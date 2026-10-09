@@ -65,6 +65,59 @@
     });
   };
 
+  /* --- Countdowns: <p data-countdown="552" data-total="600"> ticks down each
+         second and shrinks the .progress bar in the same .timer-card. ------- */
+  const fmt = (s) => {
+    const h = Math.floor(s / 3600);
+    const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+  };
+  const startCountdowns = () => {
+    document.querySelectorAll('[data-countdown]').forEach((el) => {
+      let left = Number(el.dataset.countdown);
+      const total = Number(el.dataset.total) || left;
+      const bar = el.closest('.timer-card')?.querySelector('.progress');
+      const paint = () => {
+        el.textContent = fmt(left);
+        if (bar) {
+          bar.querySelector('.progress__bar').style.setProperty('--value', `${(left / total) * 100}%`);
+          bar.setAttribute('aria-valuenow', String(left));
+        }
+      };
+      paint();
+      if (left <= 0) return;
+      const id = setInterval(() => {
+        left -= 1;
+        paint();
+        if (left <= 0) clearInterval(id);
+      }, 1000);
+    });
+  };
+
+  /* --- Reservation state (mock): remembers in the browser that a seat is held.
+         Opening the Reservation screen sets it, cancelling clears it. Home shows
+         [data-if-reserved] only while it is set. ?reserved=1 or 0 forces it. -- */
+  const RES_KEY = 'study-reserved';
+  const isReserved = () => {
+    try {
+      const forced = new URLSearchParams(location.search).get('reserved');
+      if (forced === '1') return true;
+      if (forced === '0') return false;
+      return localStorage.getItem(RES_KEY) === '1';
+    } catch {
+      return false;
+    }
+  };
+  const setReserved = (on) => {
+    try {
+      if (on) localStorage.setItem(RES_KEY, '1');
+      else localStorage.removeItem(RES_KEY);
+    } catch {
+      /* storage blocked: Home just won't show the card */
+    }
+  };
+
   /* --- Banners: auto-hide after 6s unless data-urgent ---------------------- */
   const showBanner = (el) => {
     el.hidden = false;
@@ -119,6 +172,8 @@
       return;
     }
 
+    if (t.closest('[data-clears-reserved]')) setReserved(false);
+
     const fav = t.closest('[data-favourite]');
     if (fav) {
       fav.setAttribute('aria-pressed', String(fav.getAttribute('aria-pressed') !== 'true'));
@@ -162,5 +217,8 @@
     buildSwatches();
     renderTokens();
     addCodeViews();
+    startCountdowns();
+    if (document.querySelector('[data-sets-reserved]')) setReserved(true);
+    document.querySelectorAll('[data-if-reserved]').forEach((el) => (el.hidden = !isReserved()));
   });
 })();

@@ -27,6 +27,7 @@
   --ic-moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z'/%3E%3C/svg%3E");
   --ic-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
   --ic-power: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0'/%3E%3C/svg%3E");
+  --ic-chevron-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
   --ic-star-fill: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'/%3E%3C/svg%3E");
   --ic-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'/%3E%3C/svg%3E");
 }
@@ -53,6 +54,7 @@
 .i-power { --icon: var(--ic-power); }
 .i-star { --icon: var(--ic-star); }
 .i-star-fill { --icon: var(--ic-star-fill); }
+.i-chevron-right { --icon: var(--ic-chevron-right); }
 
 
 /* --- Reset & page ------------------------------------------------------- */
@@ -400,6 +402,10 @@ button {
   background: var(--text-muted);
   -webkit-mask-image: var(--ic-coffee);
   mask-image: var(--ic-coffee);
+}
+
+.chip--plain::before {
+  display: none;
 }
 
 .filter-chip {
@@ -940,6 +946,10 @@ a.card:hover {
   gap: var(--sp-3);
   margin: 0;
   margin-top: var(--sp-2);
+}
+/* Two buttons share the row, so trim the side padding to keep labels on one line. */
+.sheet__actions .btn {
+  padding-inline: var(--sp-2);
 }
 @keyframes sheet-in {
   from {

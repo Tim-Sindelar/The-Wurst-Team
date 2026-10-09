@@ -87,6 +87,7 @@ Availability on study-space cards: dot + the words ("12 free", "3 free · almost
 - **Input / search:** 48px, `--radius-control`, 1px border, search icon inside, visible placeholder.
 - **Seat:** minimum 44px touch target even if the drawn seat is smaller. Show seat number on selection.
 - **Banner (session phases):** `--surface` with a 6px accent stripe (`--stripe`), icon + text + one action.
+- **Countdown:** `<p class="t-timer" data-countdown="552" data-total="600">` inside a `.timer-card` with a `.progress` bar. It ticks by itself and shrinks the bar. Use it on Reservation (check-in time) and Session (time left).
 - **Icons:** outline style, 1.75px stroke, 24px, `currentColor`. Same icon set across all screens.
 
 ## Accessibility
@@ -140,7 +141,7 @@ Used to tell the user something happened. No decision needed (at most one action
 ## Screens
 Source of truth for the flow: `user-flow.drawio.xml`.
 
-1. **Home:** search bar, three recent/favourite study-space cards (free count + status), map placeholder.
+1. **Home:** pinned search bar, a "Reserved" card only while a seat is held (links to Reservation), favourite study-space cards in a swipe row, tall map placeholder. The mock remembers the reservation in the browser: opening Reservation sets it, cancelling clears it, `?reserved=1` or `?reserved=0` on the URL forces it.
 2. **Seat arrangement:** top-down floor plan, six seat states, legend. Secondary button "Reserve any seat" (app picks one). Tapping a free seat opens the reserve bottom sheet.
    - **Reserve sheet** (not a screen): seat summary, note "held for X minutes", primary "Reserve", secondary "Cancel". Confirming turns the seat Reserved and goes to screen 3.
 3. **Reservation:** seat / room / building summary, X:00 check-in countdown, primary "Check in" (scan), secondary "Cancel reservation".
