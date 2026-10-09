@@ -20,6 +20,18 @@ export type SeatStatus = 'free' | 'occupied' | 'unknown';
 /** What kind of place a workspace is. Libraries are just one kind. */
 export type WorkspaceKind = 'library' | 'study' | 'group' | 'computer' | 'lounge' | 'other';
 
+export const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+export type DayKey = (typeof DAY_KEYS)[number];
+
+/** Times as "HH:MM" (24h), from < to, within one day. */
+export interface TimeRange {
+  from: string;
+  to: string;
+}
+
+/** Opening ranges per weekday; an empty list means closed that day. */
+export type OpeningHours = Record<DayKey, TimeRange[]>;
+
 /**
  * A place with seats: a library, study area, group room, etc. The type and the
  * `libraries` collection keep their original name so stored data stays compatible.
@@ -32,7 +44,8 @@ export interface Library {
   address: string | null;
   campus: Campus;
   operator: LibraryOperator;
-  openingHours: string | null;
+  /** Weekly schedule; null = not published. */
+  openingHours: OpeningHours | null;
   description: string | null;
   position: LatLng;
   /** True when the pin is a best guess (no address, or room not located yet). */
@@ -47,8 +60,10 @@ export interface Library {
   facilityId: string | null;
   /** PolyMaps level of the main room, e.g. "ETH.HG.H". */
   levelId: string | null;
-  /** Floor (PolyMaps vertical order, 0 = ground floor) the pin belongs to; null = shown on every floor. */
+  /** Floor (0 = ground floor, see LevelInfo.floor) the pin belongs to; null = shown on every floor. */
   floor: number | null;
+  /** Shown on the normal map. Off unless an admin turns it on (missing = off). */
+  enabled: boolean;
   /** PolyMaps room (unit) ids making up the library, possibly on several levels. */
   rooms: string[];
   /** PolyMaps level ids the rooms are on. */
@@ -67,6 +82,8 @@ export interface RoomRef {
   /** Area in m² (0 when unknown). */
   area: number;
   center: LatLng;
+  /** Street address of the building plus the room, e.g. "Rämistrasse 101, 8092 Zürich, HG H 30.1". */
+  address: string | null;
 }
 
 export interface Table {

@@ -7,9 +7,11 @@ import type { Mode, PlacingKind, Selection } from '../state';
 import { libraryIcon, occupancyLevel, seatIcon, tableIcon, type OccupancyLevel } from './icons';
 import { outlineToLatLngs } from './geo';
 import { OutlineEditor } from './OutlineEditor';
-import { FloorLayer } from './FloorLayer';
+import { FloorLayer, type Theme } from './FloorLayer';
+import { VectorBasemap, OPENFREEMAP_ATTRIBUTION } from './VectorBasemap';
 import { FloorPicker } from './FloorPicker';
-import { floorLabel, levelName, type FloorIndex } from '../floors/floorData';
+import { libraryFloorLabel, levelName, loadLibraryOutlines, type FloorIndex } from '../floors/floorData';
+import { partPathOptions, roundPolygons, type MinimalStyle } from './minimalStyle';
 
 const OUTLINE_COLORS: Record<OccupancyLevel, string> = {
   none: '#215caf',
@@ -33,6 +35,7 @@ export interface FlyTarget {
 }
 
 interface Props {
+  theme: Theme;
   data: OccupancyData;
   mode: Mode;
   selection: Selection;
@@ -55,12 +58,15 @@ interface Props {
   pickingRooms: boolean;
   pickedRooms: ReadonlySet<string>;
   onPickRoom: (room: RoomRef) => void;
+  /** Minimal render mode style; null renders the detailed map. */
+  minimal: MinimalStyle | null;
 }
 
 const toLatLng = (ll: { lat: number; lng: number }): LatLng => ({ lat: ll.lat, lng: ll.lng });
 
 export function MapView(props: Props) {
-  const { data, mode, selection, placing, editingOutlineId, pickingRooms } = props;
+  const { data, mode, selection, placing, editingOutlineId, pickingRooms, minimal } = props;
+  const labels = !minimal || minimal.basemapLabels;
   const editingLibrary = data.libraries.find((l) => l.id === editingOutlineId) ?? null;
   const admin = mode === 'admin';
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
@@ -75,14 +81,26 @@ export function MapView(props: Props) {
     () => new Map(data.libraries.flatMap((l) => l.rooms.map((r) => [r, l.id] as const))),
     [data.libraries],
   );
+  // Libraries without a hand-drawn outline get one derived from their rooms.
+  const [derivedOutlines, setDerivedOutlines] = useState<Record<string, MultiPolygon>>({});
+  useEffect(() => void loadLibraryOutlines().then(setDerivedOutlines), []);
+  const outlineOf = (lib: { id: string; outline: MultiPolygon | null }) => lib.outline ?? derivedOutlines[lib.id] ?? null;
+  // Other floors first, then this floor, the selected library on top.
+  const drawOrder = (lib: { id: string; floor: number | null }) => (selection.libraryId === lib.id ? 2 : onFloor(lib) ? 1 : 0);
+  const libraryNames = useMemo(() => new Map(data.libraries.map((l) => [l.id, l.name])), [data.libraries]);
+  const outlinedLibraries = data.libraries.filter((l) => outlineOf(l)).sort((a, b) => drawOrder(a) - drawOrder(b));
+
   // Computed once: the initial view frames all libraries (both campuses).
+  // (An empty list, e.g. no workspace enabled yet, has no bounds: fall back to the default center.)
   const [initialBounds] = useState(() =>
-    L.latLngBounds(data.libraries.map((l) => [l.position.lat, l.position.lng] as [number, number])).pad(0.1),
+    data.libraries.length
+      ? L.latLngBounds(data.libraries.map((l) => [l.position.lat, l.position.lng] as [number, number])).pad(0.1)
+      : undefined,
   );
 
   return (
     <MapContainer
-      bounds={data.libraries.length ? initialBounds : undefined}
+      bounds={initialBounds}
       center={[47.3925, 8.528]}
       zoom={INITIAL_ZOOM}
       maxZoom={MAX_ZOOM}
@@ -91,23 +109,13 @@ export function MapView(props: Props) {
       className={`map${placing ? ' is-placing' : ''}${pickingRooms ? ' is-picking' : ''}`}
     >
       <LayersControl position="topright">
-        <LayersControl.BaseLayer checked name="OpenStreetMap">
-          <TileLayer
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            maxNativeZoom={19}
-            maxZoom={MAX_ZOOM}
-          />
+        <LayersControl.BaseLayer checked name="Clean">
+          <VectorBasemap style="positron" labels={labels} />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="swisstopo Karte">
-          <TileLayer
-            url="https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg"
-            attribution='&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'
-            maxNativeZoom={18}
-            maxZoom={MAX_ZOOM}
-          />
+        <LayersControl.BaseLayer name="Streets">
+          <VectorBasemap style="bright" labels={labels} />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="swisstopo Luftbild">
+        <LayersControl.BaseLayer name="Satellite">
           <TileLayer
             url="https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg"
             attribution='&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'
@@ -116,6 +124,8 @@ export function MapView(props: Props) {
           />
         </LayersControl.BaseLayer>
       </LayersControl>
+      <AttributionText />
+      <BasemapOpacity opacity={minimal ? minimal.basemapOpacity : 1} />
       <ScaleControl imperial={false} />
 
       <MapEvents
@@ -130,14 +140,18 @@ export function MapView(props: Props) {
       {props.floorIndex && (
         <>
           <FloorLayer
+            theme={props.theme}
             index={props.floorIndex}
             floor={floor}
             libraryRooms={libraryRooms}
+            libraryNames={libraryNames}
+            showRoomDetails={admin}
             selectedLibraryId={selection.libraryId}
             onSelectLibrary={(libraryId) => props.onSelect({ libraryId, tableId: null, seatId: null })}
             picking={pickingRooms}
             pickedRooms={props.pickedRooms}
             onPickRoom={props.onPickRoom}
+            minimal={minimal}
           />
           <FloorPicker index={props.floorIndex} floor={floor} libraries={data.libraries} onChange={props.onFloorChange} />
         </>
@@ -151,26 +165,51 @@ export function MapView(props: Props) {
         />
       )}
 
-      {data.libraries.map((lib) => {
+      {outlinedLibraries.map((lib) => {
         // Outlines sit above the room canvas, so they are hidden while picking rooms.
-        if (!lib.outline || lib.id === editingOutlineId || pickingRooms) return null;
+        if (lib.id === editingOutlineId || pickingRooms || (minimal && !minimal.parts.workspaces.show)) return null;
         const occ = occupancyOf(data, lib.id);
         const selected = selection.libraryId === lib.id;
         const here = onFloor(lib);
+        const occColor = OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
+        const ws = minimal?.parts.workspaces;
         return (
           <Polygon
             key={lib.id}
-            positions={outlineToLatLngs(lib.outline)}
-            pathOptions={{
-              color: OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)],
-              weight: selected ? 3 : 2,
-              opacity: here ? 1 : 0.6,
-              dashArray: here ? undefined : '6 4',
-              fillOpacity: selected ? 0.15 : 0.06,
-              interactive: true,
-              bubblingMouseEvents: false,
-            }}
-            eventHandlers={{ click: () => props.onSelect({ libraryId: lib.id, tableId: null, seatId: null }) }}
+            positions={minimal ? roundPolygons(outlineToLatLngs(outlineOf(lib)!), minimal.cornerRadius) : outlineToLatLngs(outlineOf(lib)!)}
+            pathOptions={
+              minimal && ws
+                ? {
+                    ...partPathOptions(minimal, 'workspaces'),
+                    color: minimal.occupancyColors ? occColor : ws.color,
+                    fillColor: minimal.occupancyColors ? occColor : ws.fillColor,
+                    fill: true,
+                    weight: selected ? ws.weight + 1 : ws.weight,
+                    opacity: here ? ws.opacity : ws.opacity * 0.7,
+                    dashArray: here ? undefined : '6 4',
+                    fillOpacity: selected ? Math.min(1, ws.fill + 0.12) : ws.fill,
+                    interactive: true,
+                    bubblingMouseEvents: false,
+                  }
+                : {
+                    // setStyle merges, so reset what the minimal style may have set.
+                    fill: true,
+                    lineJoin: 'round',
+                    lineCap: 'round',
+                    color: occColor,
+                    fillColor: occColor,
+                    weight: selected ? 3.5 : 2.5,
+                    opacity: here ? 1 : 0.7,
+                    dashArray: here ? undefined : '6 4',
+                    fillOpacity: selected ? 0.22 : 0.1,
+                    interactive: true,
+                    bubblingMouseEvents: false,
+                  }
+            }
+            eventHandlers={{ click: () => {
+                props.onSelect({ libraryId: lib.id, tableId: null, seatId: null });
+                if (lib.floor !== null) props.onFloorChange(lib.floor);
+              } }}
           >
             <Tooltip sticky>
               <strong>{lib.name}</strong>
@@ -179,7 +218,7 @@ export function MapView(props: Props) {
               {lib.floor !== null && (
                 <>
                   <br />
-                  <span className="muted">Floor {floorLabel(lib.floor)}{lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}</span>
+                  <span className="muted">Floor {libraryFloorLabel({ floor: lib.floor, levelId: lib.levelId }, props.floorIndex?.levels)}{lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}</span>
                 </>
               )}
             </Tooltip>
@@ -187,9 +226,9 @@ export function MapView(props: Props) {
         );
       })}
 
-      {/* Icons only for libraries without an outline (otherwise unreachable) and in admin mode (for dragging). */}
+      {/* Pins only for libraries without an outline; the outline itself marks the others. */}
       {data.libraries.map((lib) => {
-        if (lib.outline && !admin) return null;
+        if (outlineOf(lib)) return null;
         const occ = occupancyOf(data, lib.id);
         return (
           <Marker
@@ -201,7 +240,7 @@ export function MapView(props: Props) {
               total: occ.total,
               selected: selection.libraryId === lib.id && !selection.tableId,
               approximate: admin && lib.positionApproximate,
-              otherFloor: onFloor(lib) ? null : floorLabel(lib.floor as number),
+              otherFloor: onFloor(lib) ? null : libraryFloorLabel({ floor: lib.floor as number, levelId: lib.levelId }, props.floorIndex?.levels),
             })}
             draggable={admin}
             zIndexOffset={selection.libraryId === lib.id ? 1000 : onFloor(lib) ? 100 : 0}
@@ -217,7 +256,7 @@ export function MapView(props: Props) {
               {lib.floor !== null && (
                 <>
                   <br />
-                  <span className="muted">Floor {floorLabel(lib.floor)}{lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}</span>
+                  <span className="muted">Floor {libraryFloorLabel({ floor: lib.floor, levelId: lib.levelId }, props.floorIndex?.levels)}{lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}</span>
                 </>
               )}
             </Tooltip>
@@ -281,5 +320,27 @@ function FlyTo({ target }: { target: FlyTarget | null }) {
     if (target.bounds) map.flyToBounds(target.bounds, { maxZoom: 20, padding: [40, 40], duration: 0.8 });
     else map.flyTo([target.position.lat, target.position.lng], target.zoom, { duration: 0.8 });
   }, [map, target]);
+  return null;
+}
+
+/** Fades every base layer (they all live in the tile pane); 0 leaves just the map background. */
+function BasemapOpacity({ opacity }: { opacity: number }) {
+  const map = useMap();
+  useEffect(() => {
+    const pane = map.getPane('tilePane');
+    if (!pane) return;
+    pane.style.opacity = String(opacity);
+    pane.style.visibility = opacity <= 0 ? 'hidden' : '';
+  }, [map, opacity]);
+  return null;
+}
+
+/** Attribution for the vector basemaps (they don't use Leaflet's per-layer attribution). */
+function AttributionText() {
+  const map = useMap();
+  useEffect(() => {
+    map.attributionControl.addAttribution(OPENFREEMAP_ATTRIBUTION);
+    return () => void map.attributionControl.removeAttribution(OPENFREEMAP_ATTRIBUTION);
+  }, [map]);
   return null;
 }

@@ -50,9 +50,10 @@ export function validateOccupancyData(input: unknown): string[] {
     if (!WORKSPACE_KINDS.includes(l.kind as never)) errors.push(`${at}: invalid kind`);
     if (!CAMPUSES.includes(l.campus as never)) errors.push(`${at}: invalid campus`);
     if (!isLatLng(l.position)) errors.push(`${at}: invalid position`);
-    for (const f of ['address', 'openingHours', 'description', 'sourceUrl']) {
+    for (const f of ['address', 'description', 'sourceUrl']) {
       if (!isStrOrNull(l[f])) errors.push(`${at}: ${f} must be string or null`);
     }
+    if (l.openingHours !== null && !isOpeningHours(l.openingHours)) errors.push(`${at}: openingHours must be null or a weekly schedule`);
     for (const f of ['facilityId', 'levelId']) {
       if (!isStrOrNull(l[f])) errors.push(`${at}: ${f} must be string or null`);
     }
@@ -102,4 +103,13 @@ export function assertOccupancyData(input: unknown): OccupancyData {
   const errors = validateOccupancyData(input);
   if (errors.length) throw new Error(`Invalid occupancy data:\n${errors.join('\n')}`);
   return input as OccupancyData;
+}
+
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+function isOpeningHours(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false;
+  return ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].every((d) => {
+    const ranges = (v as Record<string, unknown>)[d];
+    return Array.isArray(ranges) && ranges.every((r) => r && TIME.test(r.from) && TIME.test(r.to) && r.from < r.to);
+  });
 }

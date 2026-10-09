@@ -4,8 +4,29 @@
     {
       "name": "occupancy-map-preview",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "occupancy-map-preview", "--", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "occupancy-map-preview",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173
+    },
+    {
+      "name": "occupancy-map-preview-5174",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "occupancy-map-preview"
+      ],
+      "port": 5180,
+      "autoPort": true
     }
   ]
 }

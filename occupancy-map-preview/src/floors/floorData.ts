@@ -1,4 +1,5 @@
 import type { MultiPolygon } from 'geojson';
+import polygonClipping from 'polygon-clipping';
 
 // Floor plans extracted from ETH PolyMaps by scraper/extract_floors.py and
 // served as static files from public/floors/. The index is small and loaded
@@ -15,7 +16,9 @@ export interface LevelInfo {
   facilityId: string;
   /** Level name inside the building, e.g. "H". */
   name: string;
-  /** Vertical order across the site, 0 = ground floor. */
+  /** Floor letter shown to users ("H", "FO" = intermediate floor). Letters are per building, not site-wide. */
+  label: string;
+  /** Floor number, 0 = the building's ground floor, counted in storeys from the floor letters of its room names (intermediate floors join their base floor). */
   floor: number;
   /** [west, south, east, north] */
   bbox: [number, number, number, number];
@@ -110,8 +113,18 @@ function decodeLevel(raw: RawLevel): LevelPlan {
   };
 }
 
-/** Human floor label: 0 → "EG", 1 → "1", -1 → "U1". */
-export const floorLabel = (floor: number) => (floor === 0 ? 'EG' : floor > 0 ? String(floor) : `U${-floor}`);
+/** Floor letter of a level: "ETH.CAB.FO" → "FO". Same letter as LevelInfo.label. */
+export const levelLabel = (levelId: string) => levelId.slice(levelId.lastIndexOf('.') + 1);
+
+/** Floor letter(s) for a vertical order: the distinct letters of the given levels on it, e.g. "E" or "E/F". */
+export function floorLabel(floor: number, levels: LevelInfo[]) {
+  const labels = [...new Set(levels.filter((l) => l.floor === floor).map((l) => l.label))].sort();
+  return labels.length > 3 ? `${labels.slice(0, 2).join('/')}…` : labels.join('/') || String(floor);
+}
+
+/** Floor letter shown for a library: its level's letter, else the letters on its vertical order (needs the index). */
+export const libraryFloorLabel = (lib: { floor: number; levelId?: string | null }, levels: LevelInfo[] = []) =>
+  lib.levelId ? levelLabel(lib.levelId) : floorLabel(lib.floor, levels);
 
 export const intersects = (b: LevelInfo['bbox'], view: { west: number; south: number; east: number; north: number }) =>
   b[0] <= view.east && b[2] >= view.west && b[1] <= view.north && b[3] >= view.south;
@@ -123,4 +136,26 @@ export const levelName = (levelId: string) => levelId.replace(/^ETH\./, '').repl
 export function roomName(unitId: string) {
   const [, building, , ...room] = unitId.split('.');
   return `${building} ${room.join('.').replace(/_0*(?=\d)/, ' ')}`;
+}
+
+let outlinesPromise: Promise<Record<string, MultiPolygon>> | null = null;
+
+/** The file holds one polygon per room; overlapping or touching rooms of a workspace become one shape. */
+function mergeOutlines(outlines: Record<string, MultiPolygon>): Record<string, MultiPolygon> {
+  const out: Record<string, MultiPolygon> = {};
+  for (const [id, mp] of Object.entries(outlines)) {
+    try {
+      const [first, ...rest] = mp.coordinates as polygonClipping.Geom[];
+      out[id] = { type: 'MultiPolygon', coordinates: polygonClipping.union(first, ...rest) as MultiPolygon['coordinates'] };
+    } catch {
+      out[id] = mp;
+    }
+  }
+  return out;
+}
+
+/** Library outlines derived from their rooms by scraper/build_library_outlines.py (empty if not generated). */
+export function loadLibraryOutlines(): Promise<Record<string, MultiPolygon>> {
+  outlinesPromise ??= fetchJson<Record<string, MultiPolygon>>(`${BASE}/library-outlines.json`).then(mergeOutlines).catch(() => ({}));
+  return outlinesPromise;
 }

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-09T21:05:38.770Z",
+  "libraries": {
+    "added": [
+      {
+        "id": "lib-3336d878",
+        "name": "Seminars / Courses CAB G 52",
+        "kind": "library",
+        "address": null,
+        "campus": "Zentrum",
+        "operator": "ETH-Bibliothek",
+        "openingHours": null,
+        "description": null,
+        "position": {
+          "lat": 47.378535,
+          "lng": 8.5493411
+        },
+        "positionApproximate": false,
+        "sourceUrl": null,
+        "outline": null,
+        "facilityId": "ETH.CAB",
+        "levelId": "ETH.CAB.G",
+        "floor": 2,
+        "enabled": true,
+        "rooms": [
+          "ETH.CAB.G.G_052"
+        ],
+        "levels": [
+          "ETH.CAB.G"
+        ]
+      }
+    ],
+    "changed": {
+      "lib-informatik": {
+        "name": "Informatikbibliothek CAB G 41",
+        "position": {
+          "lat": 47.378356,
+          "lng": 8.5490314
+        },
+        "enabled": true
+      },
+      "ws-cab-f-31": {
+        "name": "Lernraum CAB F 31",
+        "enabled": true
+      }
+    },
+    "deleted": []
+  },
+  "tables": {
+    "added": [],
+    "changed": {},
+    "deleted": []
+  },
+  "seats": {
+    "added": [],
+    "changed": {},
+    "deleted": []
+  }
+}

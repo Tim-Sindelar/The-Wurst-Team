@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from 'react';
-import type { Library, OccupancyData, RoomRef, Seat, Table, WorkspaceKind } from '../domain/types';
+import type { DayKey, Library, OccupancyData, OpeningHours, RoomRef, Seat, Table, TimeRange, WorkspaceKind } from '../domain/types';
+import { DAY_KEYS } from '../domain/types';
+import { DAY_LABELS, emptyHours } from '../domain/hours';
 import { CAMPUSES, SEAT_STATUSES, WORKSPACE_KIND_LABELS, WORKSPACE_KINDS } from '../domain/types';
 import { outlineAreaM2, seatsOfTable, tablesOf } from '../domain/operations';
 import type { PlacingKind, Selection } from '../state';
-import { floorLabel, levelName, roomName } from '../floors/floorData';
+import { libraryFloorLabel, levelName, roomName } from '../floors/floorData';
 
 interface Props {
   data: OccupancyData;
@@ -88,6 +90,14 @@ export function AdminPanel(p: Props) {
             </button>
           </div>
           <div className="form">
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={library.enabled}
+                onChange={(e) => p.onUpdateLibrary(library.id, { enabled: e.target.checked })}
+              />
+              Show on the normal map
+            </label>
             <Field label="Name">
               <input value={library.name} onChange={(e) => p.onUpdateLibrary(library.id, { name: e.target.value })} />
             </Field>
@@ -103,18 +113,10 @@ export function AdminPanel(p: Props) {
                 ))}
               </select>
             </Field>
-            <Field label="Address">
-              <input
-                value={library.address ?? ''}
-                onChange={(e) => p.onUpdateLibrary(library.id, { address: e.target.value || null })}
-              />
+            <Field label="Address (from its first room)">
+              <div className="readonly">{library.address ?? 'Add a room to set the address'}</div>
             </Field>
-            <Field label="Opening hours">
-              <input
-                value={library.openingHours ?? ''}
-                onChange={(e) => p.onUpdateLibrary(library.id, { openingHours: e.target.value || null })}
-              />
-            </Field>
+            <HoursEditor value={library.openingHours} onChange={(h) => p.onUpdateLibrary(library.id, { openingHours: h })} />
             <div className="row">
               <Field label="Campus">
                 <select
@@ -154,9 +156,9 @@ export function AdminPanel(p: Props) {
             <Coords pos={library.position} />
             <p className="note">
               {library.rooms.length
-                ? `From PolyMaps: floor ${floorLabel(library.floor ?? 0)}${library.levelId ? ` (${levelName(library.levelId)})` : ''}`
+                ? `From PolyMaps: floor ${libraryFloorLabel({ floor: library.floor ?? 0, levelId: library.levelId })}${library.levelId ? ` (${levelName(library.levelId)})` : ''}`
                 : library.floor !== null
-                  ? `Shown on floor ${floorLabel(library.floor)}.`
+                  ? `Shown on floor ${libraryFloorLabel({ floor: library.floor })}.`
                   : 'Not in PolyMaps: shown on every floor.'}
             </p>
           </div>
@@ -385,6 +387,7 @@ function WorkspaceOptions({ libraries }: { libraries: Library[] }) {
           <optgroup key={k} label={WORKSPACE_KIND_LABELS[k]}>
             {list.map((l) => (
               <option key={l.id} value={l.id}>
+                {l.enabled ? '● ' : '○ '}
                 {l.name}
               </option>
             ))}
@@ -392,6 +395,65 @@ function WorkspaceOptions({ libraries }: { libraries: Library[] }) {
         ) : null;
       })}
     </>
+  );
+}
+
+/** Whole week in one place: a row per day, copy buttons to fill the rest of the week from Monday. */
+function HoursEditor({ value, onChange }: { value: OpeningHours | null; onChange: (h: OpeningHours | null) => void }) {
+  const hours = value ?? emptyHours();
+  const setDay = (day: DayKey, ranges: TimeRange[]) => onChange({ ...hours, [day]: ranges });
+  const setRange = (day: DayKey, i: number, patch: Partial<TimeRange>) =>
+    setDay(day, hours[day].map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const copyMonday = (days: readonly DayKey[]) =>
+    onChange({ ...hours, ...Object.fromEntries(days.map((d) => [d, hours.mon.map((r) => ({ ...r }))])) });
+  return (
+    <div className="hours-editor">
+      <div className="section-head">
+        <span className="muted">Opening hours{value ? '' : ' (not published)'}</span>
+        {value && (
+          <button className="btn-ghost" onClick={() => onChange(null)} title="Mark as not published">
+            Clear
+          </button>
+        )}
+      </div>
+      {DAY_KEYS.map((day) => (
+        <div className="hours-day" key={day}>
+          <span className="hours-label">{DAY_LABELS[day]}</span>
+          <div className="hours-ranges">
+            {hours[day].length === 0 && <span className="muted">closed</span>}
+            {hours[day].map((r, i) => (
+              <span className="hours-range" key={i}>
+                <input type="time" value={r.from} onChange={(e) => setRange(day, i, { from: e.target.value })} />
+                –
+                <input type="time" value={r.to} onChange={(e) => setRange(day, i, { to: e.target.value })} />
+                <button className="chip-remove" title="Remove" onClick={() => setDay(day, hours[day].filter((_, j) => j !== i))}>
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <button
+            className="btn-ghost"
+            title="Add a time range"
+            onClick={() => setDay(day, [...hours[day], hours[day].length ? { from: '13:00', to: '18:00' } : { from: '08:00', to: '18:00' }])}
+          >
+            +
+          </button>
+          <button className="btn-ghost" title="Open all day" onClick={() => setDay(day, [{ from: '00:00', to: '23:59' }])}>
+            24h
+          </button>
+        </div>
+      ))}
+      <div className="hours-copy">
+        <span className="muted">Copy Monday to</span>
+        <button className="btn-ghost" onClick={() => copyMonday(DAY_KEYS.slice(1, 5))}>
+          Tue–Fri
+        </button>
+        <button className="btn-ghost" onClick={() => copyMonday(DAY_KEYS.slice(1))}>
+          all days
+        </button>
+      </div>
+    </div>
   );
 }
 

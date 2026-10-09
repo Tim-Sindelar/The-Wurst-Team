@@ -29,9 +29,9 @@ export function FloorPicker({ index, floor, libraries, onChange }: Props) {
   const view = { west: bounds.getWest(), south: bounds.getSouth(), east: bounds.getEast(), north: bounds.getNorth() };
   const inView = index.levels.filter((l) => intersects(l.bbox, view));
 
-  const floors = [...new Set([...(inView.length ? inView : index.levels).map((l) => l.floor), floor])].sort(
-    (a, b) => b - a,
-  );
+  const shown = inView.length ? inView : index.levels;
+  const floors = [...new Set([...shown.map((l) => l.floor), floor])].sort((a, b) => b - a);
+  const labelOf = (f: number) => floorLabel(f, shown);
 
   const libraryFloors = new Set(
     libraries
@@ -40,7 +40,7 @@ export function FloorPicker({ index, floor, libraries, onChange }: Props) {
   );
 
   const here = inView.filter((l) => l.floor === floor);
-  const names = here.slice(0, 4).map((l) => `${l.facilityId.replace(/^ETH\./, '')} ${l.name}`);
+  const names = here.slice(0, 4).map((l) => `${l.facilityId.replace(/^ETH\./, '')} ${l.label}`);
   const status = here.length
     ? `${names.join(', ')}${here.length > names.length ? ` +${here.length - names.length}` : ''}`
     : 'No floor plans on this floor here';
@@ -57,13 +57,13 @@ export function FloorPicker({ index, floor, libraries, onChange }: Props) {
             title={libraryFloors.has(f) ? 'Libraries on this floor' : undefined}
             onClick={() => onChange(f)}
           >
-            {floorLabel(f)}
+            {labelOf(f)}
           </button>
         ))}
       </div>
       {map.getZoom() >= 16 && (
         <div className="floor-status">
-          Floor {floorLabel(floor)} · {status}
+          Floor {labelOf(floor)} · {status}
         </div>
       )}
     </>

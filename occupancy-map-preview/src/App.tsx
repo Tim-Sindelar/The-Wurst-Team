@@ -7,9 +7,28 @@ import { outlineBounds } from './map/geo';
 import { loadFloorIndex, type FloorIndex } from './floors/floorData';
 import { AdminPanel } from './components/AdminPanel';
 import { ViewerPanel } from './components/ViewerPanel';
+import { RenderControls } from './map/RenderControls';
+import {
+  clearLocalTweaks,
+  DEFAULT_MINIMAL,
+  fetchStandardStyles,
+  loadMinimalStyles,
+  saveLocalTweak,
+  saveStandardStyles,
+  type MinimalStyles,
+  type RenderMode,
+} from './map/minimalStyle';
 import { EMPTY_SELECTION, type Mode, type PlacingKind, type SaveState, type Selection } from './state';
 
 const SAVE_DEBOUNCE_MS = 400;
+
+function filterEnabled(data: OccupancyData): OccupancyData {
+  const libraries = data.libraries.filter((l) => l.enabled);
+  const ids = new Set(libraries.map((l) => l.id));
+  const tables = data.tables.filter((t) => ids.has(t.libraryId));
+  const tableIds = new Set(tables.map((t) => t.id));
+  return { ...data, libraries, tables, seats: data.seats.filter((s) => tableIds.has(s.tableId)) };
+}
 
 export default function App() {
   const [data, setData] = useState<OccupancyData | null>(null);
@@ -26,6 +45,44 @@ export default function App() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const saveTimer = useRef<number | undefined>(undefined);
   const saveChain = useRef(Promise.resolve());
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {}
+  }, [theme]);
+
+  const [renderMode, setRenderMode] = useState<RenderMode>(() => {
+    try {
+      if (localStorage.getItem('render-mode') === 'minimal') return 'minimal';
+    } catch {}
+    return 'detailed';
+  });
+  // Standard from data/map-style.json (built-in defaults until it loads), plus this browser's tweaks.
+  const [standardStyles, setStandardStyles] = useState<MinimalStyles>(DEFAULT_MINIMAL);
+  const [minimalStyles, setMinimalStyles] = useState(() => loadMinimalStyles());
+  useEffect(() => {
+    fetchStandardStyles().then(
+      (standard) => {
+        setStandardStyles(standard);
+        setMinimalStyles(loadMinimalStyles(standard));
+      },
+      (err) => console.warn('Map style standard unavailable', err),
+    );
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('render-mode', renderMode);
+    } catch {}
+  }, [renderMode]);
 
   const [floorIndex, setFloorIndex] = useState<FloorIndex | null>(null);
   const [floor, setFloor] = useState(0);
@@ -116,9 +173,13 @@ export default function App() {
     }
   };
 
-  const totals = data.libraries.reduce(
+  // The normal map only shows workspaces an admin switched on; admin mode shows all.
+  const visible: OccupancyData =
+    mode === 'admin' ? data : filterEnabled(data);
+
+  const totals = visible.libraries.reduce(
     (acc, l) => {
-      const o = ops.occupancyOf(data, l.id);
+      const o = ops.occupancyOf(visible, l.id);
       return { free: acc.free + o.free, total: acc.total + o.total };
     },
     { free: 0, total: 0 },
@@ -131,9 +192,17 @@ export default function App() {
           <div>
             <h1>ETH Workspace Occupancy</h1>
             <p className="muted">
-              {data.libraries.length} workspaces · {totals.free}/{totals.total} seats free
+              {visible.libraries.length} workspaces · {totals.free}/{totals.total} seats free
             </p>
           </div>
+          <button
+            className="theme-toggle"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            title="Toggle theme"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? '\u2600' : '\u263E'}
+          </button>
           <div className="mode-toggle" role="radiogroup" aria-label="Mode">
             <button role="radio" aria-checked={mode === 'view'} onClick={() => switchMode('view')}>
               View
@@ -149,7 +218,7 @@ export default function App() {
         <div className="panel-body">
           {mode === 'view' ? (
             <ViewerPanel
-              data={data}
+              data={visible}
               selection={selection}
               onSelectLibrary={selectLibrary}
               onSelectTable={(libraryId, tableId) => {
@@ -232,7 +301,8 @@ export default function App() {
 
       <main className="map-wrap">
         <MapView
-          data={data}
+          theme={theme}
+          data={visible}
           mode={mode}
           selection={selection}
           placing={placing}
@@ -257,6 +327,26 @@ export default function App() {
           pickingRooms={mode === 'admin' && pickingRooms}
           pickedRooms={pickedIds}
           onPickRoom={togglePickedRoom}
+          minimal={renderMode === 'minimal' ? minimalStyles[theme] : null}
+        />
+        <RenderControls
+          theme={theme}
+          mode={renderMode}
+          onModeChange={setRenderMode}
+          style={minimalStyles[theme]}
+          onStyleChange={(s) => {
+            setMinimalStyles({ ...minimalStyles, [theme]: s });
+            saveLocalTweak(theme, s);
+          }}
+          isStandard={JSON.stringify(minimalStyles) === JSON.stringify(standardStyles)}
+          onSaveStandard={async () => {
+            await saveStandardStyles(minimalStyles);
+            setStandardStyles(minimalStyles);
+          }}
+          onReset={() => {
+            clearLocalTweaks(theme);
+            setMinimalStyles({ ...minimalStyles, [theme]: standardStyles[theme] });
+          }}
         />
       </main>
     </div>
@@ -265,7 +355,7 @@ export default function App() {
 
 function SaveIndicator({ state }: { state: SaveState }) {
   const text = {
-    idle: 'Changes are saved to data/occupancy.json',
+    idle: 'Changes are saved to data/overrides.json',
     saving: 'Saving…',
     saved: 'All changes saved',
     error: 'Save failed — check the dev server console',

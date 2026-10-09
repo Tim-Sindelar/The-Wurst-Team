@@ -47,7 +47,7 @@ def fetch_page(url, oid_field, lo, hi):
     return res.get("features", [])
 
 def main():
-    out = Path(sys.argv[1] if len(sys.argv) > 1 else "polymaps_data")
+    out = Path(sys.argv[1] if len(sys.argv) > 1 else "scraper\\polymaps_data")
     workers = int(sys.argv[2]) if len(sys.argv) > 2 else 8
     out.mkdir(parents=True, exist_ok=True)
     app = get(f"{PORTAL}/{APP_ID}/data", {"f": "json"})

@@ -56,6 +56,7 @@ export function addLibrary(
     facilityId: null,
     levelId: null,
     floor,
+    enabled: false,
     rooms: [],
     levels: [],
   };
@@ -110,7 +111,8 @@ export function assignRooms(data: OccupancyData, libraryId: string, rooms: RoomR
     ...data,
     libraries: data.libraries.map((l) => {
       if (l.id === libraryId) {
-        const located = l.rooms.length ? {} : locationFrom(rooms);
+        // The first room added gives the workspace its location and address.
+        const located = l.rooms.length ? {} : { ...locationFrom(rooms), address: rooms[0].address };
         return withRooms({ ...l, ...located }, [...l.rooms, ...ids]);
       }
       return l.rooms.some((r) => ids.has(r)) ? withRooms(l, l.rooms.filter((r) => !ids.has(r))) : l;
