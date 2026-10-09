@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetHealthData, GetHealthResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses } from './types.gen';
+import type { AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, CheckInData, CheckInErrors, CheckInResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetHealthData, GetHealthResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, StartBreakData, StartBreakErrors, StartBreakResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,11 +19,172 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
+ * End Reservation
+ */
+export const adminEndReservation = <ThrowOnError extends boolean = false>(options: Options<AdminEndReservationData, ThrowOnError>): RequestResult<AdminEndReservationResponses, AdminEndReservationErrors, ThrowOnError> => (options.client ?? client).post<AdminEndReservationResponses, AdminEndReservationErrors, ThrowOnError>({ url: '/api/v1/admin/reservations/{reservation_id}/end', ...options });
+
+/**
+ * List Spaces
+ */
+export const adminListSpaces = <ThrowOnError extends boolean = false>(options?: Options<AdminListSpacesData, ThrowOnError>): RequestResult<AdminListSpacesResponses, AdminListSpacesErrors, ThrowOnError> => (options?.client ?? client).get<AdminListSpacesResponses, AdminListSpacesErrors, ThrowOnError>({ url: '/api/v1/admin/spaces', ...options });
+
+/**
+ * Create Space
+ */
+export const adminCreateSpace = <ThrowOnError extends boolean = false>(options: Options<AdminCreateSpaceData, ThrowOnError>): RequestResult<AdminCreateSpaceResponses, AdminCreateSpaceErrors, ThrowOnError> => (options.client ?? client).post<AdminCreateSpaceResponses, AdminCreateSpaceErrors, ThrowOnError>({
+    url: '/api/v1/admin/spaces',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update Space
+ */
+export const adminUpdateSpace = <ThrowOnError extends boolean = false>(options: Options<AdminUpdateSpaceData, ThrowOnError>): RequestResult<AdminUpdateSpaceResponses, AdminUpdateSpaceErrors, ThrowOnError> => (options.client ?? client).patch<AdminUpdateSpaceResponses, AdminUpdateSpaceErrors, ThrowOnError>({
+    url: '/api/v1/admin/spaces/{space_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List Closures
+ */
+export const adminListClosures = <ThrowOnError extends boolean = false>(options: Options<AdminListClosuresData, ThrowOnError>): RequestResult<AdminListClosuresResponses, AdminListClosuresErrors, ThrowOnError> => (options.client ?? client).get<AdminListClosuresResponses, AdminListClosuresErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}/closures', ...options });
+
+/**
+ * Create Closure
+ */
+export const adminCreateClosure = <ThrowOnError extends boolean = false>(options: Options<AdminCreateClosureData, ThrowOnError>): RequestResult<AdminCreateClosureResponses, AdminCreateClosureErrors, ThrowOnError> => (options.client ?? client).post<AdminCreateClosureResponses, AdminCreateClosureErrors, ThrowOnError>({
+    url: '/api/v1/admin/spaces/{space_id}/closures',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Closure
+ */
+export const adminDeleteClosure = <ThrowOnError extends boolean = false>(options: Options<AdminDeleteClosureData, ThrowOnError>): RequestResult<AdminDeleteClosureResponses, AdminDeleteClosureErrors, ThrowOnError> => (options.client ?? client).delete<AdminDeleteClosureResponses, AdminDeleteClosureErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}/closures/{closure_id}', ...options });
+
+/**
+ * Replace Opening Hours
+ */
+export const adminReplaceOpeningHours = <ThrowOnError extends boolean = false>(options: Options<AdminReplaceOpeningHoursData, ThrowOnError>): RequestResult<AdminReplaceOpeningHoursResponses, AdminReplaceOpeningHoursErrors, ThrowOnError> => (options.client ?? client).put<AdminReplaceOpeningHoursResponses, AdminReplaceOpeningHoursErrors, ThrowOnError>({
+    url: '/api/v1/admin/spaces/{space_id}/opening-hours',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Space Overview
+ */
+export const adminGetSpaceOverview = <ThrowOnError extends boolean = false>(options: Options<AdminGetSpaceOverviewData, ThrowOnError>): RequestResult<AdminGetSpaceOverviewResponses, AdminGetSpaceOverviewErrors, ThrowOnError> => (options.client ?? client).get<AdminGetSpaceOverviewResponses, AdminGetSpaceOverviewErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}/overview', ...options });
+
+/**
+ * Create Seat
+ */
+export const adminCreateSeat = <ThrowOnError extends boolean = false>(options: Options<AdminCreateSeatData, ThrowOnError>): RequestResult<AdminCreateSeatResponses, AdminCreateSeatErrors, ThrowOnError> => (options.client ?? client).post<AdminCreateSeatResponses, AdminCreateSeatErrors, ThrowOnError>({
+    url: '/api/v1/admin/spaces/{space_id}/seats',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Seat
+ */
+export const adminGetSeat = <ThrowOnError extends boolean = false>(options: Options<AdminGetSeatData, ThrowOnError>): RequestResult<AdminGetSeatResponses, AdminGetSeatErrors, ThrowOnError> => (options.client ?? client).get<AdminGetSeatResponses, AdminGetSeatErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}/seats/{seat_id}', ...options });
+
+/**
+ * Update Seat
+ */
+export const adminUpdateSeat = <ThrowOnError extends boolean = false>(options: Options<AdminUpdateSeatData, ThrowOnError>): RequestResult<AdminUpdateSeatResponses, AdminUpdateSeatErrors, ThrowOnError> => (options.client ?? client).patch<AdminUpdateSeatResponses, AdminUpdateSeatErrors, ThrowOnError>({
+    url: '/api/v1/admin/spaces/{space_id}/seats/{seat_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Check In
+ */
+export const checkIn = <ThrowOnError extends boolean = false>(options: Options<CheckInData, ThrowOnError>): RequestResult<CheckInResponses, CheckInErrors, ThrowOnError> => (options.client ?? client).post<CheckInResponses, CheckInErrors, ThrowOnError>({
+    url: '/api/v1/check-ins',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Get Health
  */
 export const getHealth = <ThrowOnError extends boolean = false>(options?: Options<GetHealthData, ThrowOnError>): RequestResult<GetHealthResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetHealthResponses, unknown, ThrowOnError>({ url: '/api/v1/health', ...options });
 
 /**
+ * Get My Reservation
+ */
+export const getMyReservation = <ThrowOnError extends boolean = false>(options?: Options<GetMyReservationData, ThrowOnError>): RequestResult<GetMyReservationResponses, GetMyReservationErrors, ThrowOnError> => (options?.client ?? client).get<GetMyReservationResponses, GetMyReservationErrors, ThrowOnError>({ url: '/api/v1/me/reservation', ...options });
+
+/**
  * Get Readiness
  */
 export const getReadiness = <ThrowOnError extends boolean = false>(options?: Options<GetReadinessData, ThrowOnError>): RequestResult<GetReadinessResponses, GetReadinessErrors, ThrowOnError> => (options?.client ?? client).get<GetReadinessResponses, GetReadinessErrors, ThrowOnError>({ url: '/api/v1/ready', ...options });
+
+/**
+ * Create Reservation
+ */
+export const createReservation = <ThrowOnError extends boolean = false>(options: Options<CreateReservationData, ThrowOnError>): RequestResult<CreateReservationResponses, CreateReservationErrors, ThrowOnError> => (options.client ?? client).post<CreateReservationResponses, CreateReservationErrors, ThrowOnError>({
+    url: '/api/v1/reservations',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Start Break
+ */
+export const startBreak = <ThrowOnError extends boolean = false>(options: Options<StartBreakData, ThrowOnError>): RequestResult<StartBreakResponses, StartBreakErrors, ThrowOnError> => (options.client ?? client).post<StartBreakResponses, StartBreakErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/break', ...options });
+
+/**
+ * End Reservation
+ */
+export const endReservation = <ThrowOnError extends boolean = false>(options: Options<EndReservationData, ThrowOnError>): RequestResult<EndReservationResponses, EndReservationErrors, ThrowOnError> => (options.client ?? client).post<EndReservationResponses, EndReservationErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/end', ...options });
+
+/**
+ * Extend Reservation
+ */
+export const extendReservation = <ThrowOnError extends boolean = false>(options: Options<ExtendReservationData, ThrowOnError>): RequestResult<ExtendReservationResponses, ExtendReservationErrors, ThrowOnError> => (options.client ?? client).post<ExtendReservationResponses, ExtendReservationErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/extend', ...options });
+
+/**
+ * Return From Break
+ */
+export const returnFromBreak = <ThrowOnError extends boolean = false>(options: Options<ReturnFromBreakData, ThrowOnError>): RequestResult<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError> => (options.client ?? client).post<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/return', ...options });
+
+/**
+ * List Spaces
+ */
+export const listSpaces = <ThrowOnError extends boolean = false>(options?: Options<ListSpacesData, ThrowOnError>): RequestResult<ListSpacesResponses, ListSpacesErrors, ThrowOnError> => (options?.client ?? client).get<ListSpacesResponses, ListSpacesErrors, ThrowOnError>({ url: '/api/v1/spaces', ...options });
+
+/**
+ * Get Space
+ */
+export const getSpace = <ThrowOnError extends boolean = false>(options: Options<GetSpaceData, ThrowOnError>): RequestResult<GetSpaceResponses, GetSpaceErrors, ThrowOnError> => (options.client ?? client).get<GetSpaceResponses, GetSpaceErrors, ThrowOnError>({ url: '/api/v1/spaces/{space_id}', ...options });

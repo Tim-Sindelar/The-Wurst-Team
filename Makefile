@@ -1,4 +1,4 @@
-.PHONY: install dev backend frontend generate lint format test build
+.PHONY: install dev backend frontend generate lint format test build seed
 
 install:
 	cd backend && uv sync --locked
@@ -28,6 +28,9 @@ format:
 
 test:
 	docker compose exec -T backend pytest
+
+seed:
+	docker compose exec -T backend python -m app.features.reservations.seed
 
 build:
 	cd frontend && npm run build
