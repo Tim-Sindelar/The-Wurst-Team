@@ -5,7 +5,7 @@ import { useMap, useMapEvents } from 'react-leaflet';
 import { intersects, loadLevel, type FloorIndex, type LevelPlan, type LineLayer, type Room, type RoomKind } from '../floors/floorData';
 import type { RoomRef } from '../domain/types';
 import { outlineToLatLngs } from './geo';
-import { partPathOptions, roundLines, roundPolygons, type MinimalStyle, type PartKey } from './minimalStyle';
+import { dropSmallLines, mergeParallelEdges, metersPerPixel, partPathOptions, polygonsSmallerThan, roundLines, roundPolygons, simplifyLines, type MinimalStyle, type PartKey } from './minimalStyle';
 
 /** Rooms are drawn from this zoom level on, walls and doors from LINE_ZOOM. */
 export const ROOM_ZOOM = 18;
@@ -118,6 +118,10 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
   }, [map]);
 
   const radius = minimal?.cornerRadius ?? 0;
+  const minSize = minimal?.minSize ?? 0;
+  const mergeDistance = minimal?.mergeDistance ?? 0;
+  const mergeAngle = minimal?.mergeAngle ?? 0;
+  const simplify = minimal?.simplify ?? 0;
 
   // Footprints of all buildings, always visible as context.
   useEffect(() => {
@@ -126,12 +130,13 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
       ? partPathOptions(minimal, 'buildings')
       : { color: BUILDING_STYLE[theme].color, weight: 1, fillColor: BUILDING_STYLE[theme].fillColor, fillOpacity: BUILDING_STYLE[theme].fillOpacity };
     const group = L.layerGroup(
-      index.facilities.map((f) =>
-        L.polygon(roundPolygons(outlineToLatLngs(f.outline), radius), { renderer: renderers.buildings, interactive: false, ...style }),
-      ),
+      index.facilities
+        .map((f) => outlineToLatLngs(f.outline))
+        .filter((polys) => !polygonsSmallerThan(polys, minSize))
+        .map((polys) => L.polygon(roundPolygons(polys, radius), { renderer: renderers.buildings, interactive: false, ...style })),
     ).addTo(map);
     return () => void group.remove();
-  }, [map, index, renderers, theme, minimal, radius]);
+  }, [map, index, renderers, theme, minimal, radius, minSize]);
 
   const floorLevels = useMemo(() => index.levels.filter((l) => l.floor === floor), [index, floor]);
 
@@ -142,12 +147,13 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
       ? partPathOptions(minimal, 'levels')
       : { color: BUILDING_STYLE[theme].levelColor, weight: 1.5, fillColor: BUILDING_STYLE[theme].levelFill, fillOpacity: 0.9 };
     const group = L.layerGroup(
-      floorLevels.map((l) =>
-        L.polygon(roundPolygons(outlineToLatLngs(l.outline), radius), { renderer: renderers.buildings, interactive: false, ...style }),
-      ),
+      floorLevels
+        .map((l) => outlineToLatLngs(l.outline))
+        .filter((polys) => !polygonsSmallerThan(polys, minSize))
+        .map((polys) => L.polygon(roundPolygons(polys, radius), { renderer: renderers.buildings, interactive: false, ...style })),
     ).addTo(map);
     return () => void group.remove();
-  }, [map, floorLevels, renderers, theme, view.zoom >= OUTLINE_ZOOM, minimal, radius]);
+  }, [map, floorLevels, renderers, theme, view.zoom >= OUTLINE_ZOOM, minimal, radius, minSize]);
 
   // Rooms and lines of the levels in view, loaded on demand.
   const visibleIds = useMemo(() => {
@@ -190,6 +196,8 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
       if (!plan || !level) continue;
       for (const room of plan.rooms) {
         const libraryId = libraryRooms.get(room.id) ?? null;
+        // Workspace rooms stay regardless of size, they are the click targets.
+        if (!libraryId && polygonsSmallerThan(room.rings, minSize)) continue;
         const poly = L.polygon(roundPolygons(room.rings, radius), {
           renderer: renderers.rooms,
           ...roomLayerStyle(theme, room.kind, libraryId, selectedLibraryId, pickedRooms.has(room.id), minimal, picking),
@@ -248,7 +256,7 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
     }
     return () => void roomGroup.remove();
     // Selection changes are applied by restyling below instead of rebuilding.
-  }, [map, renderers, plans, visibleKey, libraryRooms, libraryNames, showRoomDetails, levelsById, theme, radius]);
+  }, [map, renderers, plans, visibleKey, libraryRooms, libraryNames, showRoomDetails, levelsById, theme, radius, minSize]);
 
   useEffect(() => {
     for (const [roomId, { poly, kind, libraryId }] of roomLayers.current) {
@@ -260,20 +268,42 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
   }, [selectedLibraryId, pickedRooms, plans, visibleKey, libraryRooms, theme, minimal, picking, radius]);
 
   const showLines = view.zoom >= LINE_ZOOM;
-  useEffect(() => {
-    if (!showLines) return;
-    const group = L.layerGroup().addTo(map);
+  // Line geometry per level and layer: simplified, parallel edges merged, small pieces dropped, corners rounded.
+  // Kept apart from the styling so color tweaks don't redo the merge. While merging, the lines are
+  // simplified here (at the current zoom, like Leaflet's smoothFactor) so the merge sees the result.
+  const presimplify = mergeDistance > 0 && simplify > 0;
+  const simplifyZoom = presimplify ? view.zoom : null;
+  const levelLines = useMemo(() => {
+    const out = new Map<string, [LineLayer, L.LatLngTuple[][]][]>();
+    if (!showLines) return out;
     for (const id of visibleIds) {
       const plan = plans.get(id);
       if (!plan) continue;
-      for (const [layer, lines] of Object.entries(plan.lines) as [LineLayer, [number, number][][]][]) {
+      out.set(
+        id,
+        (Object.entries(plan.lines) as [LineLayer, [number, number][][]][]).map(([layer, lines]) => {
+          const tolerance = simplifyZoom === null || !lines[0]?.[0] ? 0 : simplify * metersPerPixel(lines[0][0][0], simplifyZoom);
+          const merged = mergeParallelEdges(simplifyLines(lines, tolerance), mergeDistance, mergeAngle);
+          return [layer, roundLines(dropSmallLines(merged, minSize), radius)];
+        }),
+      );
+    }
+    return out;
+  }, [plans, visibleKey, showLines, radius, minSize, mergeDistance, mergeAngle, simplify, simplifyZoom]);
+
+  useEffect(() => {
+    const group = L.layerGroup().addTo(map);
+    for (const layers of levelLines.values()) {
+      for (const [layer, lines] of layers) {
         if (!lines.length || (minimal && !minimal.parts[LINE_PART[layer]].show)) continue;
         const style = minimal ? partPathOptions(minimal, LINE_PART[layer]) : LINE_STYLE[theme][layer];
-        group.addLayer(L.polyline(roundLines(lines, radius), { ...style, renderer: renderers.lines, interactive: false }));
+        // Already simplified above, so Leaflet must not simplify the merged result again.
+        if (presimplify) style.smoothFactor = 0;
+        group.addLayer(L.polyline(lines, { ...style, renderer: renderers.lines, interactive: false }));
       }
     }
     return () => void group.remove();
-  }, [map, renderers, plans, visibleKey, showLines, theme, minimal, radius]);
+  }, [map, renderers, levelLines, theme, minimal, presimplify]);
 
   return null;
 }

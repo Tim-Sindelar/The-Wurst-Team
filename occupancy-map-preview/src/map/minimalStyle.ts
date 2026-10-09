@@ -1,4 +1,4 @@
-import type L from 'leaflet';
+import L from 'leaflet';
 import type { RoomKind } from '../floors/floorData';
 import type { Theme } from './FloorLayer';
 
@@ -36,6 +36,12 @@ export interface MinimalStyle {
   cornerRadius: number;
   /** Leaflet smoothFactor: path simplification in screen px. */
   simplify: number;
+  /** Structures whose diameter is below this many meters are left out (0 = keep all). Workspaces are always kept. */
+  minSize: number;
+  /** Nearly parallel line segments closer than this many meters are merged into one (0 = off). */
+  mergeDistance: number;
+  /** Largest angle in degrees between two segments that still counts as parallel for merging. */
+  mergeAngle: number;
   /** Round stroke joins and caps. */
   roundJoins: boolean;
   /** Selected workspace: extra stroke width in px. */
@@ -83,6 +89,9 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
     occupancyColors: true,
     cornerRadius: 0,
     simplify: 1,
+    minSize: 0,
+    mergeDistance: 0,
+    mergeAngle: 5,
     roundJoins: true,
     highlightWidth: 1,
     highlightFill: 0.12,
@@ -106,6 +115,9 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
     occupancyColors: true,
     cornerRadius: 0,
     simplify: 1,
+    minSize: 0,
+    mergeDistance: 0,
+    mergeAngle: 5,
     roundJoins: true,
     highlightWidth: 1,
     highlightFill: 0.15,
@@ -265,3 +277,195 @@ export const roundPolygons = (polys: In[][][], radius: number): In[][][] =>
 /** roundCorners over open polylines. */
 export const roundLines = (lines: In[][], radius: number): In[][] =>
   radius <= 0 ? lines : lines.map((line) => roundCorners(line, radius, false));
+
+// ---- small structures --------------------------------------------------------
+
+/** True when no two points of `path` are `min` meters or more apart, i.e. its diameter is below `min`. */
+function smallerThan(path: In[], min: number): boolean {
+  if (!path.length) return true;
+  const kx = M_PER_DEG_LAT * Math.cos((path[0][0] * Math.PI) / 180);
+  const m2 = min * min;
+  for (let i = 0; i < path.length; i++) {
+    for (let j = i + 1; j < path.length; j++) {
+      const dx = (path[j][1] - path[i][1]) * kx;
+      const dy = (path[j][0] - path[i][0]) * M_PER_DEG_LAT;
+      if (dx * dx + dy * dy >= m2) return false;
+    }
+  }
+  return true;
+}
+
+/** Whether a structure made of polygons (→ rings, outer ring first) has a diameter below `min` meters. */
+export const polygonsSmallerThan = (polys: In[][][], min: number): boolean =>
+  min > 0 && smallerThan(polys.flatMap((rings) => rings[0] ?? []), min);
+
+/** Open polylines without the ones whose diameter is below `min` meters. */
+export const dropSmallLines = (lines: In[][], min: number): In[][] =>
+  min <= 0 ? lines : lines.filter((line) => !smallerThan(line, min));
+
+// ---- simplification ----------------------------------------------------------
+
+/** Meters covered by one screen px at `zoom` (Web Mercator, 256 px tiles) at latitude `lat`. */
+export const metersPerPixel = (lat: number, zoom: number): number =>
+  (40_075_016.686 * Math.cos((lat * Math.PI) / 180)) / (256 * 2 ** zoom);
+
+/**
+ * Leaflet's own path simplification (what `smoothFactor` does at draw time), but
+ * with the tolerance in meters, so steps that need the simplified lines, like
+ * merging parallel edges, can run after it.
+ */
+export function simplifyLines(lines: In[][], tolerance: number): In[][] {
+  const origin = lines.find((l) => l.length)?.[0];
+  if (tolerance <= 0 || !origin) return lines;
+  const kx = M_PER_DEG_LAT * Math.cos((origin[0] * Math.PI) / 180);
+  return lines.map((line) =>
+    L.LineUtil.simplify(
+      line.map(([lat, lng]) => L.point(lng * kx, lat * M_PER_DEG_LAT)),
+      tolerance,
+    ).map((p): In => [p.y / M_PER_DEG_LAT, p.x / kx]),
+  );
+}
+
+// ---- parallel edge merging ---------------------------------------------------
+
+interface Seg {
+  ax: number;
+  ay: number;
+  bx: number;
+  by: number;
+  len: number;
+  /** Unit direction a → b. */
+  ux: number;
+  uy: number;
+}
+
+/**
+ * Merges nearly parallel segments of `lines` into one segment per group, like a
+ * simplify step that works on edges instead of vertices. Two segments group when
+ * their directions differ by at most `maxAngle` degrees and the shorter one lies
+ * within `distance` meters of the longer one, sideways and along it (groups
+ * chain). The merged segment runs through the group's length-weighted centroid
+ * along its length-weighted mean direction, so it keeps the rotation of the
+ * originals, and spans every original endpoint projected onto it, so it covers
+ * the longest way. Runs of segments without a partner keep their polylines.
+ */
+export function mergeParallelEdges(lines: In[][], distance: number, maxAngle: number): In[][] {
+  const origin = lines.find((l) => l.length)?.[0];
+  if (distance <= 0 || !origin) return lines;
+  const kx = M_PER_DEG_LAT * Math.cos((origin[0] * Math.PI) / 180);
+  const toM = ([lat, lng]: In): Pt => [lng * kx, lat * M_PER_DEG_LAT];
+  const toLatLng = (x: number, y: number): In => [y / M_PER_DEG_LAT, x / kx];
+  const cosTol = Math.cos((Math.min(maxAngle, 89) * Math.PI) / 180);
+
+  // Segments in local meters; segOf[line][k] is the index of segment k → k+1, -1 when degenerate.
+  const segs: Seg[] = [];
+  const segOf = lines.map((line) => {
+    const ids: number[] = [];
+    for (let k = 0; k + 1 < line.length; k++) {
+      const [ax, ay] = toM(line[k]);
+      const [bx, by] = toM(line[k + 1]);
+      const len = Math.hypot(bx - ax, by - ay);
+      if (len < 1e-3) {
+        ids.push(-1);
+        continue;
+      }
+      ids.push(segs.length);
+      segs.push({ ax, ay, bx, by, len, ux: (bx - ax) / len, uy: (by - ay) / len });
+    }
+    return ids;
+  });
+
+  const parent = segs.map((_, i) => i);
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+
+  const near = (p: Seg, q: Seg) => {
+    if (Math.abs(p.ux * q.ux + p.uy * q.uy) < cosTol) return false;
+    // Measure the shorter segment against the longer one's axis.
+    const [l, s] = p.len >= q.len ? [p, q] : [q, p];
+    const t = (x: number, y: number) => (x - l.ax) * l.ux + (y - l.ay) * l.uy;
+    const off = (x: number, y: number) => Math.abs((y - l.ay) * l.ux - (x - l.ax) * l.uy);
+    if (off(s.ax, s.ay) > distance || off(s.bx, s.by) > distance) return false;
+    const t1 = t(s.ax, s.ay);
+    const t2 = t(s.bx, s.by);
+    return Math.max(Math.min(t1, t2) - l.len, -Math.max(t1, t2)) <= distance;
+  };
+
+  // Sweep along x so only segments with overlapping (padded) boxes are compared.
+  const box = segs.map((g) => ({
+    x0: Math.min(g.ax, g.bx),
+    x1: Math.max(g.ax, g.bx),
+    y0: Math.min(g.ay, g.by),
+    y1: Math.max(g.ay, g.by),
+  }));
+  const order = segs.map((_, i) => i).sort((i, j) => box[i].x0 - box[j].x0);
+  for (let oi = 0; oi < order.length; oi++) {
+    const i = order[oi];
+    for (let oj = oi + 1; oj < order.length; oj++) {
+      const j = order[oj];
+      if (box[j].x0 > box[i].x1 + distance) break;
+      if (box[j].y0 > box[i].y1 + distance || box[i].y0 > box[j].y1 + distance) continue;
+      if (find(i) !== find(j) && near(segs[i], segs[j])) parent[find(i)] = find(j);
+    }
+  }
+
+  const groups = new Map<number, number[]>();
+  segs.forEach((_, i) => {
+    const root = find(i);
+    (groups.get(root) ?? groups.set(root, []).get(root)!).push(i);
+  });
+
+  const mergedLine = (members: number[]): In[] => {
+    // Directions are undirected, so average the doubled angles.
+    let c2 = 0, s2 = 0, cx = 0, cy = 0, w = 0;
+    for (const i of members) {
+      const g = segs[i];
+      const a = 2 * Math.atan2(g.uy, g.ux);
+      c2 += g.len * Math.cos(a);
+      s2 += g.len * Math.sin(a);
+      cx += (g.len * (g.ax + g.bx)) / 2;
+      cy += (g.len * (g.ay + g.by)) / 2;
+      w += g.len;
+    }
+    const theta = Math.atan2(s2, c2) / 2;
+    const ux = Math.cos(theta), uy = Math.sin(theta);
+    cx /= w;
+    cy /= w;
+    let lo = Infinity, hi = -Infinity;
+    for (const i of members) {
+      const g = segs[i];
+      for (const [x, y] of [[g.ax, g.ay], [g.bx, g.by]]) {
+        const t = (x - cx) * ux + (y - cy) * uy;
+        lo = Math.min(lo, t);
+        hi = Math.max(hi, t);
+      }
+    }
+    return [toLatLng(cx + ux * lo, cy + uy * lo), toLatLng(cx + ux * hi, cy + uy * hi)];
+  };
+
+  const out: In[][] = [];
+  const emitted = new Set<number>();
+  lines.forEach((line, li) => {
+    let run: In[] = [];
+    const flush = () => {
+      if (run.length >= 2) out.push(run);
+      run = [];
+    };
+    segOf[li].forEach((si, k) => {
+      const members = si < 0 ? null : groups.get(find(si))!;
+      if (!members || members.length === 1) {
+        if (!run.length) run.push(line[k]);
+        run.push(line[k + 1]);
+        return;
+      }
+      flush();
+      const root = find(si);
+      if (!emitted.has(root)) {
+        emitted.add(root);
+        out.push(mergedLine(members));
+      }
+    });
+    flush();
+    if (line.length === 1) out.push(line);
+  });
+  return out;
+}

@@ -162,6 +162,11 @@ export function RenderControls({ theme, mode, onModeChange, style, onStyleChange
             <h3>Geometry</h3>
             <Slider label="Corner radius" min={0} max={3} step={0.1} value={style.cornerRadius} unit="m" onChange={(v) => set({ cornerRadius: v })} />
             <Slider label="Simplify" min={0} max={5} step={0.25} value={style.simplify} unit="px" onChange={(v) => set({ simplify: v })} />
+            <Slider label="Merge parallel" min={0} max={1.5} step={0.05} value={style.mergeDistance} unit="m" onChange={(v) => set({ mergeDistance: v })} />
+            {style.mergeDistance > 0 && (
+              <Slider label="Parallel within" min={0} max={20} step={0.5} value={style.mergeAngle} unit="°" onChange={(v) => set({ mergeAngle: v })} />
+            )}
+            <Slider label="Min. size" min={0} max={10} step={0.25} value={style.minSize} unit="m" onChange={(v) => set({ minSize: v })} />
             <label className="check">
               <input type="checkbox" checked={style.roundJoins} onChange={(e) => set({ roundJoins: e.target.checked })} />
               Round line joins

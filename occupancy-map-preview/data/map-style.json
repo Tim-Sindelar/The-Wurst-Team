@@ -1,18 +1,18 @@
 {
   "light": {
     "basemapLabels": false,
-    "basemapOpacity": 0.6,
+    "basemapOpacity": 1,
     "parts": {
       "workspaces": {
         "show": true,
         "color": "#215caf",
         "weight": 1.4,
         "opacity": 1,
-        "fill": 0,
+        "fill": 0.15,
         "fillColor": "#215caf"
       },
       "libraryRooms": {
-        "show": true,
+        "show": false,
         "color": "#215caf",
         "weight": 1,
         "opacity": 1,
@@ -24,27 +24,27 @@
         "color": "#3c4450",
         "weight": 1.5,
         "opacity": 1,
-        "fill": 0.9,
-        "fillColor": "#fbfbfc"
+        "fill": 0.3,
+        "fillColor": "#cacad7"
       },
       "buildings": {
-        "show": true,
+        "show": false,
         "color": "#c3cad4",
         "weight": 1,
         "opacity": 1,
-        "fill": 0.3,
+        "fill": 0.75,
         "fillColor": "#dfe3ea"
       },
       "rooms": {
-        "show": false,
-        "color": "#c3cad4",
+        "show": true,
+        "color": "#9e9b9a",
         "weight": 0.6,
-        "opacity": 1,
-        "fill": 0,
-        "fillColor": "#c3cad4"
+        "opacity": 0.7,
+        "fill": 0.3,
+        "fillColor": "#e0e0e0"
       },
       "walls": {
-        "show": true,
+        "show": false,
         "color": "#000000",
         "weight": 1.8,
         "opacity": 1,
@@ -73,14 +73,23 @@
       "study",
       "circulation",
       "stairs",
-      "office"
+      "office",
+      "sanitary",
+      "other",
+      "service",
+      "outdoor",
+      "food",
+      "lab"
     ],
     "occupancyColors": true,
-    "cornerRadius": 0,
+    "cornerRadius": 0.3,
     "simplify": 0,
+    "minSize": 2.5,
+    "mergeDistance": 0,
+    "mergeAngle": 3,
     "roundJoins": true,
     "highlightWidth": 0.5,
-    "highlightFill": 0.2,
+    "highlightFill": 0.25,
     "highlightCustomColor": false,
     "highlightColor": "#e8590c"
   },
@@ -162,6 +171,9 @@
     "occupancyColors": true,
     "cornerRadius": 0,
     "simplify": 1,
+    "minSize": 0,
+    "mergeDistance": 0,
+    "mergeAngle": 5,
     "roundJoins": true,
     "highlightWidth": 1,
     "highlightFill": 0.15,

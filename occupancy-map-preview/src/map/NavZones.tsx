@@ -12,6 +12,8 @@ interface Props {
   highlightedZoneId: string | null;
   /** Where the home button flies back to. */
   homeBounds: L.LatLngBounds | undefined;
+  /** Admin: show the hover outline with the zone name. The normal view only changes the cursor. */
+  showHints: boolean;
 }
 
 const HOVER_STYLE: L.PathOptions = { color: '#215caf', weight: 2, opacity: 0.8, fillColor: '#215caf', fillOpacity: 0.08, interactive: false };
@@ -22,25 +24,47 @@ const ADMIN_STYLE: L.PathOptions = { color: '#e0a020', weight: 2, opacity: 0.9, 
  * runs on map clicks, so markers and workspace outlines (which stop their
  * clicks) keep working on top of a zone.
  */
-export function NavZones({ config, enabled, highlightedZoneId, homeBounds }: Props) {
+export function NavZones({ config, enabled, highlightedZoneId, homeBounds, showHints }: Props) {
   const map = useMap();
   const [hover, setHover] = useState<NavZone | null>(null);
   const moving = useRef(false);
 
-  const hit = (latlng: L.LatLng) => (enabled ? zoneAt(config, latlng, map.getZoom()) : null);
+  const hit = useRef<(e: MouseEvent) => NavZone | null>(() => null);
+  hit.current = (e) => {
+    // Map controls (zoom, floor picker, home) and pins keep their own clicks.
+    const target = e.target as Element;
+    if (!enabled || target.closest('.leaflet-control, .floor-picker, .leaflet-marker-icon, .leaflet-popup')) return null;
+    return zoneAt(config, map.mouseEventToLatLng(e), map.getZoom());
+  };
 
-  useMapEvents({
-    click: (e) => {
-      const zone = hit(e.latlng);
+  // Native capture-phase listeners on the container run before Leaflet's own
+  // handlers on rooms and workspace outlines, so a zone click takes priority
+  // over them (they still get their clicks wherever no zone is active).
+  useEffect(() => {
+    const container = map.getContainer();
+    const onClick = (e: MouseEvent) => {
+      // A drag ends with a click too; Leaflet ignores it, and so do we.
+      if ((map.dragging as L.Handler & { moved?: () => boolean }).moved?.()) return;
+      const zone = hit.current(e);
       if (!zone) return;
+      e.stopPropagation();
       setHover(null);
       map.flyTo(outlineCenter(zone.outline!), zone.zoom, { duration: 0.8 });
-    },
-    mousemove: (e) => {
+    };
+    const onMove = (e: MouseEvent) => {
       if (moving.current) return;
-      const zone = hit(e.latlng);
-      if (zone?.id !== hover?.id) setHover(zone);
-    },
+      const zone = hit.current(e);
+      setHover((prev) => (prev?.id === zone?.id ? prev : zone));
+    };
+    container.addEventListener('click', onClick, true);
+    container.addEventListener('mousemove', onMove, true);
+    return () => {
+      container.removeEventListener('click', onClick, true);
+      container.removeEventListener('mousemove', onMove, true);
+    };
+  }, [map]);
+
+  useMapEvents({
     mouseout: () => setHover(null),
     movestart: () => {
       moving.current = true;
@@ -64,7 +88,7 @@ export function NavZones({ config, enabled, highlightedZoneId, homeBounds }: Pro
   return (
     <>
       {highlighted && <Polygon key={`admin-${highlighted.id}`} positions={outlineToLatLngs(highlighted.outline!)} pathOptions={ADMIN_STYLE} />}
-      {hover && hover.id !== highlighted?.id && (
+      {showHints && hover && hover.id !== highlighted?.id && (
         <Polygon key={`hover-${hover.id}`} positions={outlineToLatLngs(hover.outline!)} pathOptions={HOVER_STYLE}>
           <Tooltip permanent direction="center" className="nav-zone-tip">
             {hover.name}

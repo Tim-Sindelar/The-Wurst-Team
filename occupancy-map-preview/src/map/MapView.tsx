@@ -203,6 +203,7 @@ export function MapView(props: Props) {
           enabled={props.navEnabled}
           highlightedZoneId={props.editingNavZone ? null : props.selectedNavZoneId}
           homeBounds={initialBounds}
+          showHints={admin}
         />
       )}
 
