@@ -119,6 +119,12 @@
       return;
     }
 
+    const fav = t.closest('[data-favourite]');
+    if (fav) {
+      fav.setAttribute('aria-pressed', String(fav.getAttribute('aria-pressed') !== 'true'));
+      return;
+    }
+
     const open = t.closest('[data-sheet-open]');
     if (open) {
       const dlg = document.getElementById(open.dataset.sheetOpen);

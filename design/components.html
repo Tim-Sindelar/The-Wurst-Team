@@ -201,6 +201,55 @@
     </section>
 
     <section>
+      <h2>Swipe row and favourite star</h2>
+      <p class="lead">Cards you scroll sideways. The next card peeks in from the right so people know to swipe, and the cards snap into place. The whole card opens the space; the star only toggles the favourite.</p>
+      <div class="stage stage--phone" data-code>
+        <div class="app__main" style="min-height: 0">
+          <ul class="scroller" aria-label="Recent and favourite study spaces">
+            <li>
+              <article class="card space-card">
+                <div class="row row--spread">
+                  <h3 class="t-title grow"><a class="space-card__link" href="#">HG E 41</a></h3>
+                  <button class="icon-button star" type="button" data-favourite aria-pressed="true" aria-label="Favourite HG E 41"><i class="icon i-star"></i><i class="icon i-star-fill"></i></button>
+                </div>
+                <span class="avail avail--high">12 free</span>
+              </article>
+            </li>
+            <li>
+              <article class="card space-card">
+                <div class="row row--spread">
+                  <h3 class="t-title grow"><a class="space-card__link" href="#">CAB E 11</a></h3>
+                  <button class="icon-button star" type="button" data-favourite aria-pressed="false" aria-label="Favourite CAB E 11"><i class="icon i-star"></i><i class="icon i-star-fill"></i></button>
+                </div>
+                <span class="avail avail--mid">3 free · almost full</span>
+              </article>
+            </li>
+            <li>
+              <article class="card space-card">
+                <div class="row row--spread">
+                  <h3 class="t-title grow"><a class="space-card__link" href="#">Main Library Reading Room</a></h3>
+                  <button class="icon-button star" type="button" data-favourite aria-pressed="false" aria-label="Favourite Main Library Reading Room"><i class="icon i-star"></i><i class="icon i-star-fill"></i></button>
+                </div>
+                <span class="avail avail--none">0 free · full</span>
+              </article>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Placeholder</h2>
+      <p class="lead">Marks something that is built elsewhere, like the campus map. Dashed outline, so nobody mistakes it for finished work. Add <code>placeholder--fill</code> and it grows to fill the screen under a <code>sticky-top</code> bar once you scroll to the end (the home screen does this).</p>
+      <div class="stage" data-code>
+        <div class="placeholder" role="img" aria-label="Placeholder: the campus map goes here">
+          <i class="icon icon--lg i-map"></i>
+          <p>Campus map goes here</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
       <h2>Tabs, segments, menu</h2>
       <div class="specimens">
         <div class="specimen">

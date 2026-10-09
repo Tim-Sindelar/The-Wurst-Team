@@ -27,6 +27,7 @@
   --ic-moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z'/%3E%3C/svg%3E");
   --ic-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
   --ic-power: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0'/%3E%3C/svg%3E");
+  --ic-star-fill: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'/%3E%3C/svg%3E");
   --ic-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'/%3E%3C/svg%3E");
 }
 .i-search { --icon: var(--ic-search); }
@@ -51,6 +52,7 @@
 .i-plus { --icon: var(--ic-plus); }
 .i-power { --icon: var(--ic-power); }
 .i-star { --icon: var(--ic-star); }
+.i-star-fill { --icon: var(--ic-star-fill); }
 
 
 /* --- Reset & page ------------------------------------------------------- */
@@ -185,6 +187,10 @@ button {
   width: 16px;
   height: 16px;
 }
+.icon--lg {
+  width: 40px;
+  height: 40px;
+}
 
 /* --- App frame (the 390px phone column) --------------------------------- */
 .app {
@@ -200,8 +206,8 @@ button {
 }
 .app__main {
   flex: 1;
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: var(--sp-4);
   padding: var(--sp-4) var(--gutter);
 }
@@ -456,6 +462,104 @@ a.card {
 }
 a.card:hover {
   box-shadow: inset 0 0 0 100px var(--hover), var(--shadow);
+}
+
+/* --- Sticky top bar: stays pinned while the screen scrolls -------------- */
+/* Direct child of .app__main. Its height is about 4.6rem (16 + 50 + 8 px). */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: calc(-1 * var(--sp-4)) calc(-1 * var(--gutter)) calc(-1 * var(--sp-2));
+  padding: var(--sp-4) var(--gutter) var(--sp-2);
+  background: var(--bg);
+}
+
+/* --- Swipe row (cards you scroll sideways) ------------------------------ */
+/* The next card peeks in from the right so people know it scrolls. */
+.scroller {
+  display: flex;
+  gap: var(--sp-3);
+  margin-inline: calc(-1 * var(--gutter));
+  padding: var(--sp-1) var(--gutter) var(--sp-2);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+}
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+.scroller > * {
+  flex: 0 0 72%;
+  scroll-snap-align: start;
+  min-width: 0;
+}
+
+/* --- Study-space card with favourite star ------------------------------- */
+/* The whole card is tappable through the title link. The star sits above it. */
+.space-card {
+  position: relative;
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+}
+.space-card > .row {
+  align-self: start;
+}
+.space-card__link {
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.space-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.space-card__link:focus-visible {
+  outline: none;
+}
+.space-card__link:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.star {
+  position: relative;
+  z-index: 1;
+  margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-2)) calc(-1 * var(--sp-2)) 0;
+  color: var(--text-muted);
+}
+.star[aria-pressed='true'] {
+  color: var(--accent);
+}
+.star .i-star-fill,
+.star[aria-pressed='true'] .i-star {
+  display: none;
+}
+.star[aria-pressed='true'] .i-star-fill {
+  display: inline-block;
+}
+
+/* --- Placeholder (for things built elsewhere, like the map) ------------- */
+.placeholder {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--sp-2);
+  min-height: 240px;
+  padding: var(--sp-4);
+  border: var(--stroke) dashed var(--border-strong);
+  border-radius: var(--radius-card);
+  color: var(--text-muted);
+  text-align: center;
+}
+/* Fills the screen under a sticky top bar once scrolled to the end. */
+.placeholder--fill {
+  min-height: calc(100vh - 4.625rem - var(--sp-4));
+  min-height: calc(100dvh - 4.625rem - var(--sp-4));
 }
 
 /* --- Notice (in-page banner, e.g. extension phases) --------------------- */
