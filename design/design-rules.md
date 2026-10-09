@@ -145,7 +145,7 @@ Source of truth for the flow: `user-flow.drawio.xml`.
 2. **Seat arrangement:** top-down floor plan, six seat states, legend. Secondary button "Reserve any seat" (app picks one). Tapping a free seat opens the reserve bottom sheet.
    - **Reserve sheet** (not a screen): seat summary, note "held for X minutes", primary "Reserve", secondary "Cancel". Confirming turns the seat Reserved and goes to screen 3.
 3. **Reservation:** seat / room / building summary, X:00 check-in countdown, primary "Check in" (scan), secondary "Cancel reservation".
-4. **QR scan:** dark camera viewfinder mock, scan frame, hint text, flashlight toggle, back button. Reused when extending. Error state: "You don't seem to be at this seat" (location check failed).
+4. **QR scan:** dark camera viewfinder mock, scan frame, hint text, flashlight toggle, back button. Reused when extending. Error state: "You don't seem to be at this seat" (location check failed), shown in place as a danger notice. In the mock, tapping the frame counts as a successful scan, and `?error=1` shows the error.
 5. **Session:** 2h countdown, seat info, buttons Extend (only in extension phases), Break, End session. Banner only in two phases: priority extension (20 min left, only you) and open extension (10 min left, everybody). No banner in the normal phase. Break state: timer pauses or shows a break timer, seat shows the cup badge.
    - Extend asks "Are you sure you want to extend?" then goes through the QR scan again on purpose, then back to the reserve sheet flow.
 

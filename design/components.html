@@ -123,7 +123,7 @@
 
     <section>
       <h2>Notice</h2>
-      <p class="lead">An in-page banner, used for the two extension phases on the session screen. Not a popup.</p>
+      <p class="lead">An in-page banner, used for the two extension phases on the session screen and for errors like "You don't seem to be at this seat" (<code>notice--danger</code>). Not a popup.</p>
       <div class="specimens">
         <div class="specimen">
           <div class="stage" data-code>
@@ -377,7 +377,14 @@
       <p class="lead">Dark in both themes, because it is a camera. The scan line animates with a calm loop and stops when the phone has reduce-motion on.</p>
       <div class="stage stage--phone" data-code>
         <div class="camera" style="min-height: 360px">
-          <div class="scan" role="img" aria-label="Scan frame: point the camera at the QR code on your table"></div>
+          <div class="camera__top">
+            <button class="icon-button" type="button" aria-label="Back"><i class="icon i-back"></i></button>
+            <button class="icon-button" type="button" data-toggle aria-pressed="false" aria-label="Flashlight"><i class="icon i-flashlight"></i></button>
+          </div>
+          <div class="camera__body">
+            <div class="scan" role="img" aria-label="Scan frame: point the camera at the QR code on your table"></div>
+            <p class="t-title">Scan the QR code on your table</p>
+          </div>
         </div>
       </div>
     </section>

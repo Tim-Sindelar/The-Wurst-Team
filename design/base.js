@@ -174,7 +174,7 @@
 
     if (t.closest('[data-clears-reserved]')) setReserved(false);
 
-    const fav = t.closest('[data-favourite]');
+    const fav = t.closest('[data-favourite], [data-toggle]');
     if (fav) {
       fav.setAttribute('aria-pressed', String(fav.getAttribute('aria-pressed') !== 'true'));
       return;
@@ -220,5 +220,7 @@
     startCountdowns();
     if (document.querySelector('[data-sets-reserved]')) setReserved(true);
     document.querySelectorAll('[data-if-reserved]').forEach((el) => (el.hidden = !isReserved()));
+    const showError = new URLSearchParams(location.search).get('error') === '1';
+    document.querySelectorAll('[data-if-error]').forEach((el) => (el.hidden = !showError));
   });
 })();

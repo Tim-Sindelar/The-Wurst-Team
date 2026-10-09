@@ -594,6 +594,10 @@ a.card:hover {
 .notice--warning {
   --state: var(--seat-bookable);
 }
+.notice--danger {
+  --state: var(--danger);
+  text-align: left;
+}
 
 /* --- Forms -------------------------------------------------------------- */
 .field {
@@ -1005,20 +1009,55 @@ a.card:hover {
 }
 
 /* --- Camera view (QR screen) ------------------------------------------- */
+/* Dark in both themes. Parts: .camera__top (buttons), .camera__body (the scan
+   frame and hint), .camera__foot (errors, mock notes). */
 .camera {
   position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   background: var(--camera-bg);
   color: var(--camera-fg);
 }
-.camera .icon-button {
-  color: var(--camera-fg);
+.camera .icon-button,
+.camera a:not(.scan) {
+  color: inherit;
+}
+.camera .icon-button:hover {
+  background: color-mix(in srgb, var(--camera-fg) 14%, transparent);
+}
+.camera .icon-button[aria-pressed='true'] {
+  background: var(--camera-fg);
+  color: var(--camera-bg);
+}
+.camera .t-muted {
+  color: color-mix(in srgb, var(--camera-fg) 72%, transparent);
+}
+.camera__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2);
+}
+.camera__body {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--gutter);
+  text-align: center;
+}
+.camera__foot {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--gutter) calc(var(--sp-4) + env(safe-area-inset-bottom));
+  text-align: center;
 }
 .scan {
   position: relative;
-  width: min(72%, 280px);
+  display: block;
+  width: min(72vw, 280px);
   aspect-ratio: 1;
   overflow: hidden;
   border: 3px solid var(--camera-fg);
