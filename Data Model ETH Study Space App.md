@@ -6,17 +6,19 @@ Oct 9, 2026 · @Filip Trplan
 
 The reservation feature lives in `backend/app/features/reservations/`: database models, API schemas, routes, reservation logic, and demo seeding. Shared configuration, database sessions, and authentication remain in `backend/app/`. Feature models are registered through `backend/app/models/__init__.py` for Alembic.
 
-This version supports immediate and next-session reservations, QR check-in, extension, cumulative breaks, cancellation, early handover, and managed-proxy authentication. Notifications, admin editing, geolocation, opening hours, and the room-layout contract are deferred.
+This version supports immediate and next-session reservations, QR check-in, extension, cumulative breaks, cancellation, early handover, and managed-proxy authentication. The admin API supports room/seat editing, opening hours, and dated closures in demo mode. Notifications, an admin UI, production admin roles, geolocation, and the room-layout contract are deferred.
 
 ## Principles
 
-- Keep four domain tables and derive state from rows and the clock. No status, end-reason, or ended-at columns are stored.
+- Derive reservation state from rows and the clock. No status, end-reason, or ended-at columns are stored.
 - Calculate deadlines from settings when an action occurs and persist them. Existing deadlines and captured break budgets survive configuration changes.
 - A user may hold one live reservation, including an upcoming reservation.
 - Reserve is one action: a free seat starts immediately; a claimable seat starts after the occupant. There is no separate queue endpoint or waiting list.
 - Use Alembic for every schema change, request-scoped SQLAlchemy sessions, and explicit write commits.
 
-## Tables
+## Core reservation tables
+
+The outline below covers core reservation fields; scheduling additions and the admin API are documented in the [README](README.md#admin-api-demo).
 
 All identifiers are UUIDs. All timestamps are PostgreSQL `timestamptz`. Columns are required unless marked nullable.
 
