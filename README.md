@@ -74,7 +74,7 @@ Repository development rules are in [AGENTS.md](AGENTS.md).
 
 ## Product research
 
-For issue-specific competitor analysis and differentiation notes on ETH study-seat reservation use cases, see [MARKET_RESEARCH.md](MARKET_RESEARCH.md).
+For issue-specific competitor analysis and differentiation notes on ETH study-seat reservation use cases, see [research/MARKET_RESEARCH.md](research/MARKET_RESEARCH.md).
 
 ## Database migrations
 
