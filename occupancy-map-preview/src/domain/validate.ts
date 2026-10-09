@@ -10,7 +10,7 @@ const isLatLng = (v: unknown) =>
   isObj(v) && Number.isFinite(v.lat) && Number.isFinite(v.lng);
 
 /** Validates a GeoJSON MultiPolygon; returns an error message or null. */
-function checkMultiPolygon(g: unknown): string | null {
+export function checkMultiPolygon(g: unknown): string | null {
   if (!isObj(g) || g.type !== 'MultiPolygon' || !Array.isArray(g.coordinates)) {
     return 'must be null or a GeoJSON MultiPolygon';
   }

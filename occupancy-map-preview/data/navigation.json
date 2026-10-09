@@ -1,0 +1,299 @@
+{
+  "zones": [
+    {
+      "id": "nav-zentrum",
+      "name": "Zentrum",
+      "kind": "area",
+      "outline": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                8.540969,
+                47.372896
+              ],
+              [
+                8.557062,
+                47.372736
+              ],
+              [
+                8.556998,
+                47.38298
+              ],
+              [
+                8.540883,
+                47.383009
+              ],
+              [
+                8.541098,
+                47.377924
+              ],
+              [
+                8.540969,
+                47.372896
+              ]
+            ]
+          ]
+        ]
+      },
+      "zoom": 17,
+      "activeBelowZoom": 16,
+      "activeFromZoom": null
+    },
+    {
+      "id": "nav-hnggerberg",
+      "name": "Hönggerberg",
+      "kind": "area",
+      "outline": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                8.501701,
+                47.40323
+              ],
+              [
+                8.51346,
+                47.403113
+              ],
+              [
+                8.514276,
+                47.412755
+              ],
+              [
+                8.501487,
+                47.412726
+              ],
+              [
+                8.501701,
+                47.40323
+              ]
+            ]
+          ]
+        ]
+      },
+      "zoom": 17,
+      "activeBelowZoom": 16,
+      "activeFromZoom": null
+    },
+    {
+      "id": "nav-47f521e1",
+      "name": "New building",
+      "kind": "building",
+      "outline": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                8.548388,
+                47.377277
+              ],
+              [
+                8.545842,
+                47.37675
+              ],
+              [
+                8.546441,
+                47.375404
+              ],
+              [
+                8.549091,
+                47.375854
+              ],
+              [
+                8.548619,
+                47.377055
+              ],
+              [
+                8.548479,
+                47.37703
+              ],
+              [
+                8.548388,
+                47.377277
+              ]
+            ]
+          ]
+        ]
+      },
+      "zoom": 19,
+      "activeBelowZoom": 18,
+      "activeFromZoom": 16
+    },
+    {
+      "id": "nav-a91a3efe",
+      "name": "New building 2",
+      "kind": "building",
+      "outline": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                8.548372,
+                47.377317
+              ],
+              [
+                8.547589,
+                47.379195
+              ],
+              [
+                8.545239,
+                47.378694
+              ],
+              [
+                8.545923,
+                47.376785
+              ],
+              [
+                8.548372,
+                47.377317
+              ]
+            ]
+          ]
+        ]
+      },
+      "zoom": 19,
+      "activeBelowZoom": 18.5,
+      "activeFromZoom": 16
+    },
+    {
+      "id": "nav-9a42d1f3",
+      "name": "New building 3",
+      "kind": "building",
+      "outline": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                8.5482,
+                47.37998
+              ],
+              [
+                8.548146,
+                47.377917
+              ],
+              [
+                8.548554,
+                47.377053
+              ],
+              [
+                8.550732,
+                47.377598
+              ],
+              [
+                8.550539,
+                47.378578
+              ],
+              [
+                8.548887,
+                47.380111
+              ],
+              [
+                8.5482,
+                47.37998
+              ]
+            ]
+          ]
+        ]
+      },
+      "zoom": 18,
+      "activeBelowZoom": 17.5,
+      "activeFromZoom": 16
+    },
+    {
+      "id": "nav-e010f185",
+      "name": "New building 4",
+      "kind": "building",
+      "outline": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                8.552272,
+                47.378937
+              ],
+              [
+                8.551462,
+                47.37844
+              ],
+              [
+                8.551311,
+                47.377724
+              ],
+              [
+                8.552272,
+                47.376925
+              ],
+              [
+                8.552958,
+                47.37654
+              ],
+              [
+                8.55467,
+                47.377699
+              ],
+              [
+                8.553811,
+                47.378392
+              ],
+              [
+                8.552663,
+                47.379115
+              ],
+              [
+                8.552272,
+                47.378937
+              ]
+            ]
+          ]
+        ]
+      },
+      "zoom": 19,
+      "activeBelowZoom": 18.5,
+      "activeFromZoom": 16
+    },
+    {
+      "id": "nav-cb67d774",
+      "name": "New building 5",
+      "kind": "building",
+      "outline": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                8.544118,
+                47.379675
+              ],
+              [
+                8.545727,
+                47.379987
+              ],
+              [
+                8.545277,
+                47.380761
+              ],
+              [
+                8.543925,
+                47.380481
+              ],
+              [
+                8.544118,
+                47.379675
+              ]
+            ]
+          ]
+        ]
+      },
+      "zoom": 19,
+      "activeBelowZoom": 18.5,
+      "activeFromZoom": 16
+    }
+  ]
+}

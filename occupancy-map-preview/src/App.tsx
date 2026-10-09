@@ -8,6 +8,9 @@ import { loadFloorIndex, type FloorIndex } from './floors/floorData';
 import { AdminPanel } from './components/AdminPanel';
 import { ViewerPanel } from './components/ViewerPanel';
 import { RenderControls } from './map/RenderControls';
+import { NavigationAdmin } from './components/NavigationAdmin';
+import { defaultNavigation, homePositions, outlineCenter, type NavigationConfig } from './domain/navigation';
+import { fetchNavigation, saveNavigation } from './data/navigationRepository';
 import {
   clearLocalTweaks,
   DEFAULT_MINIMAL,
@@ -45,6 +48,10 @@ export default function App() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const saveTimer = useRef<number | undefined>(undefined);
   const saveChain = useRef(Promise.resolve());
+  const [navigation, setNavigation] = useState<NavigationConfig | null>(null);
+  const [selectedNavZoneId, setSelectedNavZoneId] = useState<string | null>(null);
+  const [editingNavZoneId, setEditingNavZoneId] = useState<string | null>(null);
+  const navSaveTimer = useRef<number | undefined>(undefined);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try {
@@ -88,7 +95,20 @@ export default function App() {
   const [floor, setFloor] = useState(0);
 
   useEffect(() => {
-    repository.load().then(setData, (err) => setLoadError(String(err)));
+    repository.load().then(
+      (loaded) => {
+        setData(loaded);
+        // Without a saved navigation.json (or if it can't be read), start with one area per campus.
+        fetchNavigation().then(
+          (nav) => setNavigation(nav ?? defaultNavigation(loaded.libraries)),
+          (err) => {
+            console.warn('Navigation config unavailable', err);
+            setNavigation(defaultNavigation(loaded.libraries));
+          },
+        );
+      },
+      (err) => setLoadError(String(err)),
+    );
     // The map still works without floor plans (e.g. extract_floors.py not run yet).
     loadFloorIndex().then(setFloorIndex, (err) => console.warn('Floor plans unavailable', err));
   }, []);
@@ -122,6 +142,24 @@ export default function App() {
     }, SAVE_DEBOUNCE_MS);
   }, []);
 
+  /** Same debounced, serialized saving as `commit`, for data/navigation.json. */
+  const commitNavigation = useCallback((next: NavigationConfig) => {
+    setNavigation(next);
+    setSaveState('saving');
+    window.clearTimeout(navSaveTimer.current);
+    navSaveTimer.current = window.setTimeout(() => {
+      saveChain.current = saveChain.current
+        .then(() => saveNavigation(next))
+        .then(
+          () => setSaveState('saved'),
+          (err) => {
+            console.error(err);
+            setSaveState('error');
+          },
+        );
+    }, SAVE_DEBOUNCE_MS);
+  }, []);
+
   if (loadError) return <div className="fatal">Could not load data: {loadError}</div>;
   if (!data) return <div className="fatal">Loading…</div>;
 
@@ -142,6 +180,7 @@ export default function App() {
     setPlacing(null);
     setEditingOutlineId(null);
     setPickingRooms(false);
+    setEditingNavZoneId(null);
   };
 
   const togglePickedRoom = (room: RoomRef) =>
@@ -237,10 +276,12 @@ export default function App() {
                 setPlacing(kind);
                 setEditingOutlineId(null);
                 setPickingRooms(false);
+                setEditingNavZoneId(null);
               }}
               onToggleOutline={() => {
                 setPlacing(null);
                 setPickingRooms(false);
+                setEditingNavZoneId(null);
                 setEditingOutlineId(editingOutlineId ? null : selection.libraryId);
               }}
               pickingRooms={pickingRooms}
@@ -248,6 +289,7 @@ export default function App() {
               onTogglePicking={() => {
                 setPlacing(null);
                 setEditingOutlineId(null);
+                setEditingNavZoneId(null);
                 setPickingRooms(!pickingRooms);
               }}
               onUnpickRoom={(id) => setPickedRooms(pickedRooms.filter((r) => r.id !== id))}
@@ -281,6 +323,27 @@ export default function App() {
                 commit(ops.deleteSeat(data, id));
                 if (selection.seatId === id) setSelection({ ...selection, seatId: null });
               }}
+            />
+          )}
+          {mode === 'admin' && navigation && (
+            <NavigationAdmin
+              config={navigation}
+              zoom={zoom}
+              floorIndex={floorIndex}
+              selectedId={selectedNavZoneId}
+              onSelect={(id) => {
+                setSelectedNavZoneId(id);
+                setEditingNavZoneId(null);
+              }}
+              editingOutline={editingNavZoneId !== null}
+              onToggleOutline={() => {
+                setPlacing(null);
+                setPickingRooms(false);
+                setEditingOutlineId(null);
+                setEditingNavZoneId(editingNavZoneId ? null : selectedNavZoneId);
+              }}
+              onChange={commitNavigation}
+              onPreview={(zone) => flyTo(outlineCenter(zone.outline!), zone.zoom)}
             />
           )}
         </div>
@@ -328,6 +391,14 @@ export default function App() {
           pickedRooms={pickedIds}
           onPickRoom={togglePickedRoom}
           minimal={renderMode === 'minimal' ? minimalStyles[theme] : null}
+          navigation={navigation}
+          navEnabled={!(mode === 'admin' && (placing || pickingRooms || editingOutlineId || editingNavZoneId))}
+          selectedNavZoneId={mode === 'admin' ? selectedNavZoneId : null}
+          editingNavZone={(mode === 'admin' && navigation?.zones.find((z) => z.id === editingNavZoneId)) || null}
+          onNavOutlineChange={(id, outline) =>
+            navigation && commitNavigation({ zones: navigation.zones.map((z) => (z.id === id ? { ...z, outline } : z)) })
+          }
+          homePositions={homePositions(data.libraries)}
         />
         <RenderControls
           theme={theme}
@@ -355,7 +426,7 @@ export default function App() {
 
 function SaveIndicator({ state }: { state: SaveState }) {
   const text = {
-    idle: 'Changes are saved to data/overrides.json',
+    idle: 'Changes are saved to data/overrides.json and data/navigation.json',
     saving: 'Saving…',
     saved: 'All changes saved',
     error: 'Save failed — check the dev server console',

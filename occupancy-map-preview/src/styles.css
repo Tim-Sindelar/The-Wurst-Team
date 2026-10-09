@@ -320,3 +320,10 @@ span.chip { cursor: default; }
 .time-search .row { align-items: center; flex-wrap: wrap; }
 .hours-table { display: grid; grid-template-columns: auto 1fr; gap: 0 10px; margin: 0; }
 .hours-table .today { font-weight: 600; }
+
+/* click-to-zoom navigation */
+.leaflet-container.nav-hover { cursor: pointer; }
+.nav-zone-tip { font-weight: 600; }
+.leaflet-bar a.nav-home { font-size: 18px; line-height: 28px; }
+.zoom-input { display: flex; gap: 6px; align-items: center; }
+.zoom-input input { width: 80px; }

@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { jsonDocumentApi, jsonFileApi, validateMapStyle } from './server/jsonFileApi';
+import { validateNavigation } from './src/domain/navigation';
 
 const dataFile = (name: string) => fileURLToPath(new URL(`./data/${name}`, import.meta.url));
 
@@ -14,6 +15,7 @@ export default defineConfig({
       overrides: dataFile('overrides.json'),
     }),
     jsonDocumentApi({ route: '/api/map-style', file: dataFile('map-style.json'), validate: validateMapStyle }),
+    jsonDocumentApi({ route: '/api/navigation', file: dataFile('navigation.json'), validate: validateNavigation }),
   ],
   optimizeDeps: { exclude: ['maplibre-gl', '@maplibre/maplibre-gl-leaflet'] },
   server: {

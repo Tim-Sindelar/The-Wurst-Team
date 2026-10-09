@@ -12,6 +12,8 @@ import { VectorBasemap, OPENFREEMAP_ATTRIBUTION } from './VectorBasemap';
 import { FloorPicker } from './FloorPicker';
 import { libraryFloorLabel, levelName, loadLibraryOutlineRoomKeys, loadLibraryOutlines, outlineFromRooms, roomsKey, type FloorIndex } from '../floors/floorData';
 import { partPathOptions, roundPolygons, type MinimalStyle } from './minimalStyle';
+import type { NavigationConfig, NavZone } from '../domain/navigation';
+import { NavZones } from './NavZones';
 
 const OUTLINE_COLORS: Record<OccupancyLevel, string> = {
   none: '#215caf',
@@ -60,6 +62,17 @@ interface Props {
   onPickRoom: (room: RoomRef) => void;
   /** Minimal render mode style; null renders the detailed map. */
   minimal: MinimalStyle | null;
+  /** Click-to-zoom zones; null while loading. */
+  navigation: NavigationConfig | null;
+  /** False while another click action (placing, picking, drawing) is active. */
+  navEnabled: boolean;
+  /** Admin: the zone being configured, drawn dashed. */
+  selectedNavZoneId: string | null;
+  /** Admin: zone whose click area is being drawn. */
+  editingNavZone: NavZone | null;
+  onNavOutlineChange: (zoneId: string, outline: MultiPolygon | null) => void;
+  /** The start view (and the home button) frames these: both campuses. */
+  homePositions: LatLng[];
 }
 
 const toLatLng = (ll: { lat: number; lng: number }): LatLng => ({ lat: ll.lat, lng: ll.lng });
@@ -117,11 +130,11 @@ export function MapView(props: Props) {
   const libraryNames = useMemo(() => new Map(data.libraries.map((l) => [l.id, l.name])), [data.libraries]);
   const outlinedLibraries = data.libraries.filter((l) => outlineOf(l)).sort((a, b) => drawOrder(a) - drawOrder(b));
 
-  // Computed once: the initial view frames all libraries (both campuses).
-  // (An empty list, e.g. no workspace enabled yet, has no bounds: fall back to the default center.)
+  // Computed once: the initial view frames all workspaces, enabled or not (both campuses).
+  // (An empty list has no bounds: fall back to the default center.)
   const [initialBounds] = useState(() =>
-    data.libraries.length
-      ? L.latLngBounds(data.libraries.map((l) => [l.position.lat, l.position.lng] as [number, number])).pad(0.1)
+    props.homePositions.length
+      ? L.latLngBounds(props.homePositions.map((p) => [p.lat, p.lng] as [number, number])).pad(0.1)
       : undefined,
   );
 
@@ -182,6 +195,23 @@ export function MapView(props: Props) {
           />
           <FloorPicker index={props.floorIndex} floor={floor} libraries={data.libraries} onChange={props.onFloorChange} />
         </>
+      )}
+
+      {props.navigation && (
+        <NavZones
+          config={props.navigation}
+          enabled={props.navEnabled}
+          highlightedZoneId={props.editingNavZone ? null : props.selectedNavZoneId}
+          homeBounds={initialBounds}
+        />
+      )}
+
+      {props.editingNavZone && (
+        <OutlineEditor
+          key={`nav-${props.editingNavZone.id}`}
+          outline={props.editingNavZone.outline}
+          onChange={(outline) => props.onNavOutlineChange(props.editingNavZone!.id, outline)}
+        />
       )}
 
       {editingLibrary && (
@@ -337,6 +367,8 @@ function MapEvents({ onClick, onZoom }: { onClick: (pos: LatLng) => void; onZoom
     click: (e) => onClick(toLatLng(e.latlng)),
     zoomend: () => onZoom(map.getZoom()),
   });
+  // The start zoom comes from fitting the bounds, without a zoomend.
+  useEffect(() => onZoom(map.getZoom()), [map]);
   return null;
 }
 
