@@ -1,0 +1,5 @@
+@layer theme, base, mantine, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import '@mantine/core/styles.layer.css';
+@import 'tailwindcss/utilities.css' layer(utilities);
