@@ -75,7 +75,7 @@ Repository development rules are in [AGENTS.md](AGENTS.md).
 
 ## Database migrations
 
-The reservation feature defines study spaces, seats, reservations, and breaks. Domain code lives under `backend/app/features/reservations/`, with models, Pydantic schemas, routes, transaction logic, and demo seeding kept together. Shared configuration, database sessions, authentication, and health endpoints remain under `backend/app/`.
+The reservation feature defines study spaces, seats, weekly opening intervals, dated closures, reservations, and breaks. Domain code lives under `backend/app/features/reservations/`, with models, Pydantic schemas, routes, transaction logic, and demo seeding kept together. Shared configuration, database sessions, authentication, and health endpoints remain under `backend/app/`.
 
 Define feature models inheriting from `app.database.Base` and import them in `backend/app/models/__init__.py` so Alembic discovers them. Create and review a migration:
 
@@ -120,7 +120,38 @@ Timing rules live in `backend/app/config.py` and can be overridden in `backend/.
 
 All values must be positive; the public window must be shorter than the private window, which must be shorter than the session. The check-in window must also be shorter than the session. Existing deadlines and captured break budgets remain unchanged when settings change. New extensions and eligibility windows use current settings. Breaks share one allowance and do not pause the session or replenish on extension.
 
-The `reservation_states` database view derives availability from the clock, including no-shows and expired breaks. Its underlying `reservation_states_at(timestamp)` function lets each transaction use one instant after acquiring locks and lets tests exercise exact boundaries. Early release gives the next booking its originally assigned full session and check-in allowance starting at the release time, even without a background worker. Notifications are deferred.
+The `reservation_states` database view derives availability from the clock, including no-shows and expired breaks. Its underlying `reservation_states_at(timestamp)` function lets each transaction use one instant after acquiring locks and lets tests exercise exact boundaries. Early release advances the next booking when the earlier start is available, even without a background worker. Its session and check-in deadline are capped at closing or the next closure; a blocked earlier start keeps the scheduled start. Notifications are deferred.
+
+## Admin API demo
+
+Admin routes live under `/api/v1/admin`. In `AUTH_MODE=demo`, send `X-Demo-Admin: true` to use them. Without it, requests receive `403`; set `DUMMY_IS_ADMIN=true` to make demo users admins by default. `DUMMY_ADMIN_ALLOW_HEADER=false` disables the header override. `X-Demo-Admin` accepts only `true` or `false`. Proxy mode ignores these demo privileges and denies admin access; production admin roles are outside the current auth scope.
+
+| Method | Path (under `/api/v1/admin`) | Purpose |
+| --- | --- | --- |
+| GET | `/spaces` | Rooms with opening status and seat/occupancy counts |
+| POST | `/spaces` | Create a room with name, coordinates, optional layout, timezone, and hours |
+| PATCH | `/spaces/{space_id}` | Edit room metadata, layout, or timezone |
+| GET | `/spaces/{space_id}/overview` | All seats with current/pending and upcoming bookings, demo names, and deadlines |
+| POST | `/spaces/{space_id}/seats` | Add a seat; generate its QR token |
+| GET | `/spaces/{space_id}/seats/{seat_id}` | Seat configuration and QR token |
+| PATCH | `/spaces/{space_id}/seats/{seat_id}` | Rename, activate, or deactivate a seat |
+| PUT | `/spaces/{space_id}/opening-hours` | Replace the complete weekly schedule |
+| GET | `/spaces/{space_id}/closures` | List closures, optionally intersecting `starts_at`/`ends_at` query bounds |
+| POST | `/spaces/{space_id}/closures` | Block a room or an individual seat for a dated interval |
+| DELETE | `/spaces/{space_id}/closures/{closure_id}` | Remove a closure |
+| POST | `/reservations/{reservation_id}/end` | End/cancel a booking immediately; repeat safely |
+
+Create a room with `{"name":"Reading room","lat":47.37,"lng":8.54}`. Rooms default to Swiss time (`Europe/Zurich`) and continuous opening, and seats default to active. Existing rooms and seats receive those defaults through the migration. Room creation does not create seats; add them through the seats endpoint with `{"label":"A-1"}`. Editing a room or seat accepts only supplied fields; empty patches and explicit nulls are rejected. There are no hard-delete, ban, or QR-rotation endpoints.
+
+Opening hours use room-local time, including Zurich daylight-saving changes. Each interval has `weekday` (Monday `0` through Sunday `6`), `start_minute`, and `end_minute` (minutes since midnight, with `1440` representing the end of the day). For example, `{"opening_hours":[{"weekday":0,"start_minute":480,"end_minute":1200}]}` opens Monday 08:00–20:00 and closes every other day. Multiple intervals are supported; adjacent intervals are continuous and overlaps are rejected. Split overnight hours across adjacent weekdays. An empty list closes the room all week.
+
+Create closures with `{"starts_at":"2030-01-01T12:00:00+01:00","ends_at":"2030-01-01T14:00:00+01:00","reason":"Maintenance"}`. Omit `seat_id` or set it to null to close the entire room; supply a room-owned seat UUID for a seat closure. Timestamp offsets are required, response timestamps use UTC, and intervals include their start and exclude their end. Overlapping closures are supported. A closure must end in the future, but can start in the past to close immediately.
+
+Room/seat PATCH, opening-hours PUT, and closure POST/DELETE accept `?force=false` by default. If a change would affect live bookings, they return `409` with `code: "reservation_conflict"` and `reservation_impacts` describing proposed cancellations, shortened sessions, or successor shifts, including old/new start times, end times, and check-in deadlines. Nothing is saved. Repeat the same request with `?force=true` to recompute and apply changes atomically; the successful response includes the actual impacts. Timezone changes and reopening also evaluate conflicts. Timezones must be named IANA zones supported by PostgreSQL; host-specific names such as `localtime` are rejected with `422`. Reopening does not restore cancelled bookings or lengthen shortened ones.
+
+Bookings, walk-up check-ins, and extensions obey hours, closures, and seat activation. Sessions can be shortened to the next unavailable boundary; check-in deadlines are capped at the shortened end. Public space responses include hours, timezone, opening status, and seat activation, with unavailable seats excluded from `free_seats`. User identities, QR tokens, and closure reasons are exposed only through admin routes.
+
+Overview names are deterministic placeholders (`Demo user <full UUID>`). The current booking includes pending, active, or on-break status; upcoming bookings are separate. `occupied_seats` counts active checked-in users and `on_break_seats` counts breaks. Ending a booking frees its user to reserve again; it does not ban the user. No admin UI or notifications are included.
 
 ## Checks
 

@@ -51,11 +51,32 @@ def test_demo_identity():
     assert error.value.status_code == 400
 
 
-def test_protected_endpoint_requires_identity():
+@pytest.mark.parametrize("path", ["/api/v1/me/reservation", "/api/v1/admin/spaces"])
+def test_protected_endpoint_requires_identity(path):
     app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None, auth_mode="proxy")
     try:
         with TestClient(app) as client:
-            assert client.get("/api/v1/me/reservation").status_code == 401
+            assert client.get(path, headers={"X-Demo-Admin": "true"}).status_code == 401
             assert client.get("/api/v1/health").status_code == 200
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("override", ["true", "false", "invalid"])
+@pytest.mark.parametrize("allow_header", [True, False])
+def test_proxy_rejects_demo_admin_privileges(override, allow_header):
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        _env_file=None,
+        auth_mode="proxy",
+        dummy_is_admin=True,
+        dummy_admin_allow_header=allow_header,
+    )
+    try:
+        with TestClient(app) as client:
+            response = client.get(
+                "/api/v1/admin/spaces",
+                headers={"X-User-Id": "student@ethz.ch", "X-Demo-Admin": override},
+            )
+            assert response.status_code == 403
     finally:
         app.dependency_overrides.clear()

@@ -3,16 +3,16 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { checkIn, createReservation, endReservation, extendReservation, getHealth, getMyReservation, getReadiness, getSpace, listSpaces, type Options, returnFromBreak, startBreak } from '../sdk.gen';
-import type { CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetHealthData, GetHealthResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, StartBreakData, StartBreakError, StartBreakResponse } from '../types.gen';
+import { adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, checkIn, createReservation, endReservation, extendReservation, getHealth, getMyReservation, getReadiness, getSpace, listSpaces, type Options, returnFromBreak, startBreak } from '../sdk.gen';
+import type { AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetHealthData, GetHealthResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, StartBreakData, StartBreakError, StartBreakResponse } from '../types.gen';
 
 /**
- * Check In
+ * End Reservation
  */
-export const checkInMutation = (options?: Partial<Options<CheckInData>>): UseMutationOptions<CheckInResponse, CheckInError, Options<CheckInData>> => {
-    const mutationOptions: UseMutationOptions<CheckInResponse, CheckInError, Options<CheckInData>> = {
+export const adminEndReservationMutation = (options?: Partial<Options<AdminEndReservationData>>): UseMutationOptions<AdminEndReservationResponse, AdminEndReservationError, Options<AdminEndReservationData>> => {
+    const mutationOptions: UseMutationOptions<AdminEndReservationResponse, AdminEndReservationError, Options<AdminEndReservationData>> = {
         mutationFn: async (fnOptions) => {
-            const { data } = await checkIn({
+            const { data } = await adminEndReservation({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -54,6 +54,214 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
         params.query = options.query;
     }
     return [params];
+};
+
+export const adminListSpacesQueryKey = (options?: Options<AdminListSpacesData>) => createQueryKey('adminListSpaces', options);
+
+/**
+ * List Spaces
+ */
+export const adminListSpacesOptions = (options?: Options<AdminListSpacesData>) => queryOptions<AdminListSpacesResponse, AdminListSpacesError, AdminListSpacesResponse, ReturnType<typeof adminListSpacesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await adminListSpaces({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: adminListSpacesQueryKey(options)
+});
+
+/**
+ * Create Space
+ */
+export const adminCreateSpaceMutation = (options?: Partial<Options<AdminCreateSpaceData>>): UseMutationOptions<AdminCreateSpaceResponse, AdminCreateSpaceError, Options<AdminCreateSpaceData>> => {
+    const mutationOptions: UseMutationOptions<AdminCreateSpaceResponse, AdminCreateSpaceError, Options<AdminCreateSpaceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await adminCreateSpace({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Space
+ */
+export const adminUpdateSpaceMutation = (options?: Partial<Options<AdminUpdateSpaceData>>): UseMutationOptions<AdminUpdateSpaceResponse, AdminUpdateSpaceError, Options<AdminUpdateSpaceData>> => {
+    const mutationOptions: UseMutationOptions<AdminUpdateSpaceResponse, AdminUpdateSpaceError, Options<AdminUpdateSpaceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await adminUpdateSpace({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const adminListClosuresQueryKey = (options: Options<AdminListClosuresData>) => createQueryKey('adminListClosures', options);
+
+/**
+ * List Closures
+ */
+export const adminListClosuresOptions = (options: Options<AdminListClosuresData>) => queryOptions<AdminListClosuresResponse, AdminListClosuresError, AdminListClosuresResponse, ReturnType<typeof adminListClosuresQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await adminListClosures({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: adminListClosuresQueryKey(options)
+});
+
+/**
+ * Create Closure
+ */
+export const adminCreateClosureMutation = (options?: Partial<Options<AdminCreateClosureData>>): UseMutationOptions<AdminCreateClosureResponse, AdminCreateClosureError, Options<AdminCreateClosureData>> => {
+    const mutationOptions: UseMutationOptions<AdminCreateClosureResponse, AdminCreateClosureError, Options<AdminCreateClosureData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await adminCreateClosure({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete Closure
+ */
+export const adminDeleteClosureMutation = (options?: Partial<Options<AdminDeleteClosureData>>): UseMutationOptions<AdminDeleteClosureResponse, AdminDeleteClosureError, Options<AdminDeleteClosureData>> => {
+    const mutationOptions: UseMutationOptions<AdminDeleteClosureResponse, AdminDeleteClosureError, Options<AdminDeleteClosureData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await adminDeleteClosure({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Replace Opening Hours
+ */
+export const adminReplaceOpeningHoursMutation = (options?: Partial<Options<AdminReplaceOpeningHoursData>>): UseMutationOptions<AdminReplaceOpeningHoursResponse, AdminReplaceOpeningHoursError, Options<AdminReplaceOpeningHoursData>> => {
+    const mutationOptions: UseMutationOptions<AdminReplaceOpeningHoursResponse, AdminReplaceOpeningHoursError, Options<AdminReplaceOpeningHoursData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await adminReplaceOpeningHours({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const adminGetSpaceOverviewQueryKey = (options: Options<AdminGetSpaceOverviewData>) => createQueryKey('adminGetSpaceOverview', options);
+
+/**
+ * Get Space Overview
+ */
+export const adminGetSpaceOverviewOptions = (options: Options<AdminGetSpaceOverviewData>) => queryOptions<AdminGetSpaceOverviewResponse, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, ReturnType<typeof adminGetSpaceOverviewQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await adminGetSpaceOverview({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: adminGetSpaceOverviewQueryKey(options)
+});
+
+/**
+ * Create Seat
+ */
+export const adminCreateSeatMutation = (options?: Partial<Options<AdminCreateSeatData>>): UseMutationOptions<AdminCreateSeatResponse, AdminCreateSeatError, Options<AdminCreateSeatData>> => {
+    const mutationOptions: UseMutationOptions<AdminCreateSeatResponse, AdminCreateSeatError, Options<AdminCreateSeatData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await adminCreateSeat({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const adminGetSeatQueryKey = (options: Options<AdminGetSeatData>) => createQueryKey('adminGetSeat', options);
+
+/**
+ * Get Seat
+ */
+export const adminGetSeatOptions = (options: Options<AdminGetSeatData>) => queryOptions<AdminGetSeatResponse, AdminGetSeatError, AdminGetSeatResponse, ReturnType<typeof adminGetSeatQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await adminGetSeat({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: adminGetSeatQueryKey(options)
+});
+
+/**
+ * Update Seat
+ */
+export const adminUpdateSeatMutation = (options?: Partial<Options<AdminUpdateSeatData>>): UseMutationOptions<AdminUpdateSeatResponse, AdminUpdateSeatError, Options<AdminUpdateSeatData>> => {
+    const mutationOptions: UseMutationOptions<AdminUpdateSeatResponse, AdminUpdateSeatError, Options<AdminUpdateSeatData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await adminUpdateSeat({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Check In
+ */
+export const checkInMutation = (options?: Partial<Options<CheckInData>>): UseMutationOptions<CheckInResponse, CheckInError, Options<CheckInData>> => {
+    const mutationOptions: UseMutationOptions<CheckInResponse, CheckInError, Options<CheckInData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await checkIn({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
 };
 
 export const getHealthQueryKey = (options?: Options<GetHealthData>) => createQueryKey('getHealth', options);

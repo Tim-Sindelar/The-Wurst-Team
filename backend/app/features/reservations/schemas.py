@@ -2,7 +2,20 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+class OpeningInterval(BaseModel):
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+    weekday: int = Field(ge=0, le=6)
+    start_minute: int = Field(ge=0, le=1439)
+    end_minute: int = Field(ge=1, le=1440)
+
+    @model_validator(mode="after")
+    def validate_minutes(self) -> "OpeningInterval":
+        if self.end_minute <= self.start_minute:
+            raise ValueError("end_minute must be after start_minute")
+        return self
 
 
 class BookingErrorResponse(BaseModel):
@@ -43,7 +56,7 @@ class CheckInRequest(BaseModel):
 
 
 ReservationStatus = Literal["upcoming", "pending", "active", "on_break", "no_show", "ended"]
-SeatStatus = Literal["free", "reserved", "occupied", "on_break", "claimable"]
+SeatStatus = Literal["free", "reserved", "occupied", "on_break", "claimable", "unavailable"]
 ReservationAction = Literal["check_in", "extend", "start_break", "return", "end"]
 
 
@@ -54,6 +67,8 @@ class SpaceSummary(BaseModel):
     lng: float
     total_seats: int
     free_seats: int
+    timezone: str
+    is_open: bool
 
 
 class SeatAvailability(BaseModel):
@@ -61,11 +76,13 @@ class SeatAvailability(BaseModel):
     label: str
     state: SeatStatus
     reservable_at: datetime | None
+    is_active: bool
 
 
 class SpaceDetail(SpaceSummary):
     layout: dict[str, Any]
     seats: list[SeatAvailability]
+    opening_hours: list[OpeningInterval]
 
 
 class SpacesResponse(BaseModel):

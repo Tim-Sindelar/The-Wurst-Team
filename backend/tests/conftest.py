@@ -8,7 +8,7 @@ from sqlalchemy import Engine, create_engine, delete, text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import Break, Reservation, Seat, StudySpace
+from app.models import Break, Reservation, Seat, SpaceClosure, SpaceOpeningInterval, StudySpace
 
 
 def migrate(engine: Engine, revision: str = "head", *, downgrade: bool = False) -> None:
@@ -49,6 +49,6 @@ def test_engine() -> Iterator[Engine]:
 def db(test_engine: Engine) -> Iterator[Engine]:
     yield test_engine
     with Session(test_engine) as session:
-        for model in (Break, Reservation, Seat, StudySpace):
+        for model in (Break, Reservation, SpaceClosure, SpaceOpeningInterval, Seat, StudySpace):
             session.execute(delete(model))
         session.commit()

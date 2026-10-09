@@ -22,3 +22,21 @@ def get_current_user(
         return UUID(request.headers.get("X-Demo-User-Id", str(settings.dummy_user_id)))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="X-Demo-User-Id must be a UUID") from exc
+
+
+def get_current_admin(
+    request: Request,
+    user_id: Annotated[UUID, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> UUID:
+    if settings.auth_mode != "demo":
+        raise HTTPException(status_code=403, detail="Administrator access required")
+    is_admin = settings.dummy_is_admin
+    override = request.headers.get("X-Demo-Admin")
+    if settings.dummy_admin_allow_header and override is not None:
+        if override not in {"true", "false"}:
+            raise HTTPException(status_code=400, detail="X-Demo-Admin must be true or false")
+        is_admin = override == "true"
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Administrator access required")
+    return user_id

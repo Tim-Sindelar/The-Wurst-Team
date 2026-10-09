@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     auth_mode: Literal["proxy", "demo"] = "proxy"
     dummy_user_id: UUID = UUID("00000000-0000-0000-0000-000000000001")
     dummy_auth_allow_header: bool = True
+    dummy_is_admin: bool = False
+    dummy_admin_allow_header: bool = True
 
     @model_validator(mode="after")
     def validate_reservation_windows(self) -> "Settings":

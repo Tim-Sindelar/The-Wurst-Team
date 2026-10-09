@@ -65,6 +65,23 @@ def test_reservation_check_in_privacy_and_end(client, seats, clock):
     assert client.get("/api/v1/me/reservation").json()["reservation"] is None
 
 
+def test_proxy_reservation_ownership(client, seats, policy):
+    policy.auth_mode = "proxy"
+    owner = {"X-User-Id": "student@ethz.ch"}
+    other = {
+        "X-User-Id": "other@ethz.ch",
+        "X-Demo-User-Id": "42d57044-31ad-52df-a975-b5a625501b3f",
+    }
+    response = book(client, seats[0], owner)
+    assert response.status_code == 201
+    reservation_id = response.json()["reservation"]["id"]
+    mine = client.get("/api/v1/me/reservation", headers=owner).json()["reservation"]
+    assert mine["id"] == reservation_id
+    assert client.get("/api/v1/me/reservation", headers=other).json()["reservation"] is None
+    assert action(client, reservation_id, "end", other).status_code == 404
+    assert action(client, reservation_id, "end", owner).status_code == 200
+
+
 def test_reserve_any_only_uses_free_seats(client, seats, clock):
     walk_up(client, seats[0], identity())
     walk_up(client, seats[1], identity())

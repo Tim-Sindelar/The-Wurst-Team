@@ -5,6 +5,425 @@ export type ClientOptions = {
 };
 
 /**
+ * AdminClosureDeletedResponse
+ */
+export type AdminClosureDeletedResponse = {
+    /**
+     * Deleted Closure Id
+     */
+    deleted_closure_id: string;
+    /**
+     * Reservation Impacts
+     */
+    reservation_impacts: Array<ReservationImpact>;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
+ * AdminClosureResponse
+ */
+export type AdminClosureResponse = {
+    closure: ClosureDetails;
+    /**
+     * Reservation Impacts
+     */
+    reservation_impacts: Array<ReservationImpact>;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
+ * AdminClosuresResponse
+ */
+export type AdminClosuresResponse = {
+    /**
+     * Closures
+     */
+    closures: Array<ClosureDetails>;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
+ * AdminConflictResponse
+ */
+export type AdminConflictResponse = {
+    /**
+     * Code
+     */
+    code?: 'reservation_conflict';
+    /**
+     * Detail
+     */
+    detail: string;
+    /**
+     * Reservation Impacts
+     */
+    reservation_impacts: Array<ReservationImpact>;
+};
+
+/**
+ * AdminReservationDetails
+ */
+export type AdminReservationDetails = {
+    /**
+     * Available Actions
+     */
+    available_actions: Array<'check_in' | 'extend' | 'start_break' | 'return' | 'end'>;
+    /**
+     * Break Seconds Remaining
+     */
+    break_seconds_remaining: number;
+    /**
+     * Check In Deadline
+     */
+    check_in_deadline: string;
+    /**
+     * Checked In At
+     */
+    checked_in_at: string | null;
+    current_break: CurrentBreak | null;
+    /**
+     * Ends At
+     */
+    ends_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    seat: ReservationSeat;
+    space: ReservationSpace;
+    /**
+     * Starts At
+     */
+    starts_at: string;
+    /**
+     * Status
+     */
+    status: 'upcoming' | 'pending' | 'active' | 'on_break' | 'no_show' | 'ended';
+    user: AdminUser;
+};
+
+/**
+ * AdminReservationResponse
+ */
+export type AdminReservationResponse = {
+    reservation: AdminReservationDetails;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
+ * AdminSeatDetails
+ */
+export type AdminSeatDetails = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Qr Token
+     */
+    qr_token: string;
+    /**
+     * Space Id
+     */
+    space_id: string;
+};
+
+/**
+ * AdminSeatOverview
+ */
+export type AdminSeatOverview = {
+    current_reservation: AdminReservationDetails | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Reservable At
+     */
+    reservable_at: string | null;
+    /**
+     * State
+     */
+    state: 'free' | 'reserved' | 'occupied' | 'on_break' | 'claimable' | 'unavailable';
+    upcoming_reservation: AdminReservationDetails | null;
+};
+
+/**
+ * AdminSeatResponse
+ */
+export type AdminSeatResponse = {
+    /**
+     * Reservation Impacts
+     */
+    reservation_impacts: Array<ReservationImpact>;
+    seat: AdminSeatDetails;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
+ * AdminSpaceDetails
+ */
+export type AdminSpaceDetails = {
+    /**
+     * Active Seats
+     */
+    active_seats: number;
+    /**
+     * Free Seats
+     */
+    free_seats: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Open
+     */
+    is_open: boolean;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Layout
+     */
+    layout: {
+        [key: string]: unknown;
+    };
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Occupied Seats
+     */
+    occupied_seats: number;
+    /**
+     * On Break Seats
+     */
+    on_break_seats: number;
+    /**
+     * Opening Hours
+     */
+    opening_hours: Array<OpeningInterval>;
+    /**
+     * Timezone
+     */
+    timezone: string;
+    /**
+     * Total Seats
+     */
+    total_seats: number;
+};
+
+/**
+ * AdminSpaceOverview
+ */
+export type AdminSpaceOverview = {
+    /**
+     * Active Seats
+     */
+    active_seats: number;
+    /**
+     * Closures
+     */
+    closures: Array<ClosureDetails>;
+    /**
+     * Free Seats
+     */
+    free_seats: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Open
+     */
+    is_open: boolean;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Layout
+     */
+    layout: {
+        [key: string]: unknown;
+    };
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Occupied Seats
+     */
+    occupied_seats: number;
+    /**
+     * On Break Seats
+     */
+    on_break_seats: number;
+    /**
+     * Opening Hours
+     */
+    opening_hours: Array<OpeningInterval>;
+    /**
+     * Seats
+     */
+    seats: Array<AdminSeatOverview>;
+    /**
+     * Timezone
+     */
+    timezone: string;
+    /**
+     * Total Seats
+     */
+    total_seats: number;
+};
+
+/**
+ * AdminSpaceOverviewResponse
+ */
+export type AdminSpaceOverviewResponse = {
+    /**
+     * Server Time
+     */
+    server_time: string;
+    space: AdminSpaceOverview;
+};
+
+/**
+ * AdminSpaceResponse
+ */
+export type AdminSpaceResponse = {
+    /**
+     * Reservation Impacts
+     */
+    reservation_impacts: Array<ReservationImpact>;
+    /**
+     * Server Time
+     */
+    server_time: string;
+    space: AdminSpaceDetails;
+};
+
+/**
+ * AdminSpaceSummary
+ */
+export type AdminSpaceSummary = {
+    /**
+     * Active Seats
+     */
+    active_seats: number;
+    /**
+     * Free Seats
+     */
+    free_seats: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is Open
+     */
+    is_open: boolean;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Occupied Seats
+     */
+    occupied_seats: number;
+    /**
+     * On Break Seats
+     */
+    on_break_seats: number;
+    /**
+     * Timezone
+     */
+    timezone: string;
+    /**
+     * Total Seats
+     */
+    total_seats: number;
+};
+
+/**
+ * AdminSpacesResponse
+ */
+export type AdminSpacesResponse = {
+    /**
+     * Server Time
+     */
+    server_time: string;
+    /**
+     * Spaces
+     */
+    spaces: Array<AdminSpaceSummary>;
+};
+
+/**
+ * AdminUser
+ */
+export type AdminUser = {
+    /**
+     * Display Name
+     */
+    display_name: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
  * BookingErrorResponse
  */
 export type BookingErrorResponse = {
@@ -26,6 +445,104 @@ export type CheckInRequest = {
      * Qr Token
      */
     qr_token: string;
+};
+
+/**
+ * ClosureDetails
+ */
+export type ClosureDetails = {
+    /**
+     * Ends At
+     */
+    ends_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Reason
+     */
+    reason: string | null;
+    /**
+     * Seat Id
+     */
+    seat_id: string | null;
+    /**
+     * Space Id
+     */
+    space_id: string;
+    /**
+     * Starts At
+     */
+    starts_at: string;
+};
+
+/**
+ * CreateClosureRequest
+ */
+export type CreateClosureRequest = {
+    /**
+     * Ends At
+     */
+    ends_at: string;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Seat Id
+     */
+    seat_id?: string | null;
+    /**
+     * Starts At
+     */
+    starts_at: string;
+};
+
+/**
+ * CreateSeatRequest
+ */
+export type CreateSeatRequest = {
+    /**
+     * Is Active
+     */
+    is_active?: boolean;
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
+ * CreateSpaceRequest
+ */
+export type CreateSpaceRequest = {
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Layout
+     */
+    layout?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Opening Hours
+     */
+    opening_hours?: Array<OpeningInterval>;
+    /**
+     * Timezone
+     */
+    timezone?: string;
 };
 
 /**
@@ -78,6 +595,24 @@ export type MyReservationResponse = {
 };
 
 /**
+ * OpeningInterval
+ */
+export type OpeningInterval = {
+    /**
+     * End Minute
+     */
+    end_minute: number;
+    /**
+     * Start Minute
+     */
+    start_minute: number;
+    /**
+     * Weekday
+     */
+    weekday: number;
+};
+
+/**
  * ReadinessResponse
  */
 export type ReadinessResponse = {
@@ -89,6 +624,16 @@ export type ReadinessResponse = {
      * Status
      */
     status?: 'ok';
+};
+
+/**
+ * ReplaceOpeningHoursRequest
+ */
+export type ReplaceOpeningHoursRequest = {
+    /**
+     * Opening Hours
+     */
+    opening_hours: Array<OpeningInterval>;
 };
 
 /**
@@ -158,6 +703,53 @@ export type ReservationDetails = {
      * Status
      */
     status: 'upcoming' | 'pending' | 'active' | 'on_break' | 'no_show' | 'ended';
+};
+
+/**
+ * ReservationImpact
+ */
+export type ReservationImpact = {
+    /**
+     * Action
+     */
+    action: 'cancel' | 'shorten' | 'shift';
+    /**
+     * New Check In Deadline
+     */
+    new_check_in_deadline: string;
+    /**
+     * New Ends At
+     */
+    new_ends_at: string;
+    /**
+     * New Starts At
+     */
+    new_starts_at: string;
+    /**
+     * Previous Check In Deadline
+     */
+    previous_check_in_deadline: string;
+    /**
+     * Previous Ends At
+     */
+    previous_ends_at: string;
+    /**
+     * Previous Starts At
+     */
+    previous_starts_at: string;
+    /**
+     * Reservation Id
+     */
+    reservation_id: string;
+    /**
+     * Seat Id
+     */
+    seat_id: string;
+    /**
+     * Status
+     */
+    status: 'upcoming' | 'pending' | 'active' | 'on_break' | 'no_show' | 'ended';
+    user: AdminUser;
 };
 
 /**
@@ -236,6 +828,10 @@ export type SeatAvailability = {
      */
     id: string;
     /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
      * Label
      */
     label: string;
@@ -246,7 +842,7 @@ export type SeatAvailability = {
     /**
      * State
      */
-    state: 'free' | 'reserved' | 'occupied' | 'on_break' | 'claimable';
+    state: 'free' | 'reserved' | 'occupied' | 'on_break' | 'claimable' | 'unavailable';
 };
 
 /**
@@ -261,6 +857,10 @@ export type SpaceDetail = {
      * Id
      */
     id: string;
+    /**
+     * Is Open
+     */
+    is_open: boolean;
     /**
      * Lat
      */
@@ -280,9 +880,17 @@ export type SpaceDetail = {
      */
     name: string;
     /**
+     * Opening Hours
+     */
+    opening_hours: Array<OpeningInterval>;
+    /**
      * Seats
      */
     seats: Array<SeatAvailability>;
+    /**
+     * Timezone
+     */
+    timezone: string;
     /**
      * Total Seats
      */
@@ -313,6 +921,10 @@ export type SpaceSummary = {
      */
     id: string;
     /**
+     * Is Open
+     */
+    is_open: boolean;
+    /**
      * Lat
      */
     lat: number;
@@ -324,6 +936,10 @@ export type SpaceSummary = {
      * Name
      */
     name: string;
+    /**
+     * Timezone
+     */
+    timezone: string;
     /**
      * Total Seats
      */
@@ -343,6 +959,670 @@ export type SpacesResponse = {
      */
     spaces: Array<SpaceSummary>;
 };
+
+/**
+ * UpdateSeatRequest
+ */
+export type UpdateSeatRequest = {
+    /**
+     * Is Active
+     */
+    is_active?: boolean | null;
+    /**
+     * Label
+     */
+    label?: string | null;
+};
+
+/**
+ * UpdateSpaceRequest
+ */
+export type UpdateSpaceRequest = {
+    /**
+     * Lat
+     */
+    lat?: number | null;
+    /**
+     * Layout
+     */
+    layout?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Lng
+     */
+    lng?: number | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Timezone
+     */
+    timezone?: string | null;
+};
+
+export type AdminEndReservationData = {
+    body?: never;
+    path: {
+        /**
+         * Reservation Id
+         */
+        reservation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/reservations/{reservation_id}/end';
+};
+
+export type AdminEndReservationErrors = {
+    /**
+     * Response 400 Admin End Reservation
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminEndReservationError = AdminEndReservationErrors[keyof AdminEndReservationErrors];
+
+export type AdminEndReservationResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminReservationResponse;
+};
+
+export type AdminEndReservationResponse = AdminEndReservationResponses[keyof AdminEndReservationResponses];
+
+export type AdminListSpacesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/spaces';
+};
+
+export type AdminListSpacesErrors = {
+    /**
+     * Response 400 Admin List Spaces
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminListSpacesError = AdminListSpacesErrors[keyof AdminListSpacesErrors];
+
+export type AdminListSpacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpacesResponse;
+};
+
+export type AdminListSpacesResponse = AdminListSpacesResponses[keyof AdminListSpacesResponses];
+
+export type AdminCreateSpaceData = {
+    body: CreateSpaceRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/spaces';
+};
+
+export type AdminCreateSpaceErrors = {
+    /**
+     * Response 400 Admin Create Space
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminCreateSpaceError = AdminCreateSpaceErrors[keyof AdminCreateSpaceErrors];
+
+export type AdminCreateSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    201: AdminSpaceResponse;
+};
+
+export type AdminCreateSpaceResponse = AdminCreateSpaceResponses[keyof AdminCreateSpaceResponses];
+
+export type AdminUpdateSpaceData = {
+    body: UpdateSpaceRequest;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: {
+        /**
+         * Force
+         */
+        force?: boolean;
+    };
+    url: '/api/v1/admin/spaces/{space_id}';
+};
+
+export type AdminUpdateSpaceErrors = {
+    /**
+     * Response 400 Admin Update Space
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Response 409 Admin Update Space
+     *
+     * Conflict
+     */
+    409: BookingErrorResponse | AdminConflictResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminUpdateSpaceError = AdminUpdateSpaceErrors[keyof AdminUpdateSpaceErrors];
+
+export type AdminUpdateSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceResponse;
+};
+
+export type AdminUpdateSpaceResponse = AdminUpdateSpaceResponses[keyof AdminUpdateSpaceResponses];
+
+export type AdminListClosuresData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: {
+        /**
+         * Starts At
+         */
+        starts_at?: string | null;
+        /**
+         * Ends At
+         */
+        ends_at?: string | null;
+    };
+    url: '/api/v1/admin/spaces/{space_id}/closures';
+};
+
+export type AdminListClosuresErrors = {
+    /**
+     * Response 400 Admin List Closures
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminListClosuresError = AdminListClosuresErrors[keyof AdminListClosuresErrors];
+
+export type AdminListClosuresResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminClosuresResponse;
+};
+
+export type AdminListClosuresResponse = AdminListClosuresResponses[keyof AdminListClosuresResponses];
+
+export type AdminCreateClosureData = {
+    body: CreateClosureRequest;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: {
+        /**
+         * Force
+         */
+        force?: boolean;
+    };
+    url: '/api/v1/admin/spaces/{space_id}/closures';
+};
+
+export type AdminCreateClosureErrors = {
+    /**
+     * Response 400 Admin Create Closure
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Response 409 Admin Create Closure
+     *
+     * Conflict
+     */
+    409: BookingErrorResponse | AdminConflictResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminCreateClosureError = AdminCreateClosureErrors[keyof AdminCreateClosureErrors];
+
+export type AdminCreateClosureResponses = {
+    /**
+     * Successful Response
+     */
+    201: AdminClosureResponse;
+};
+
+export type AdminCreateClosureResponse = AdminCreateClosureResponses[keyof AdminCreateClosureResponses];
+
+export type AdminDeleteClosureData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+        /**
+         * Closure Id
+         */
+        closure_id: string;
+    };
+    query?: {
+        /**
+         * Force
+         */
+        force?: boolean;
+    };
+    url: '/api/v1/admin/spaces/{space_id}/closures/{closure_id}';
+};
+
+export type AdminDeleteClosureErrors = {
+    /**
+     * Response 400 Admin Delete Closure
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Response 409 Admin Delete Closure
+     *
+     * Conflict
+     */
+    409: BookingErrorResponse | AdminConflictResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminDeleteClosureError = AdminDeleteClosureErrors[keyof AdminDeleteClosureErrors];
+
+export type AdminDeleteClosureResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminClosureDeletedResponse;
+};
+
+export type AdminDeleteClosureResponse = AdminDeleteClosureResponses[keyof AdminDeleteClosureResponses];
+
+export type AdminReplaceOpeningHoursData = {
+    body: ReplaceOpeningHoursRequest;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: {
+        /**
+         * Force
+         */
+        force?: boolean;
+    };
+    url: '/api/v1/admin/spaces/{space_id}/opening-hours';
+};
+
+export type AdminReplaceOpeningHoursErrors = {
+    /**
+     * Response 400 Admin Replace Opening Hours
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Response 409 Admin Replace Opening Hours
+     *
+     * Conflict
+     */
+    409: BookingErrorResponse | AdminConflictResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminReplaceOpeningHoursError = AdminReplaceOpeningHoursErrors[keyof AdminReplaceOpeningHoursErrors];
+
+export type AdminReplaceOpeningHoursResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceResponse;
+};
+
+export type AdminReplaceOpeningHoursResponse = AdminReplaceOpeningHoursResponses[keyof AdminReplaceOpeningHoursResponses];
+
+export type AdminGetSpaceOverviewData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}/overview';
+};
+
+export type AdminGetSpaceOverviewErrors = {
+    /**
+     * Response 400 Admin Get Space Overview
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminGetSpaceOverviewError = AdminGetSpaceOverviewErrors[keyof AdminGetSpaceOverviewErrors];
+
+export type AdminGetSpaceOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceOverviewResponse;
+};
+
+export type AdminGetSpaceOverviewResponse = AdminGetSpaceOverviewResponses[keyof AdminGetSpaceOverviewResponses];
+
+export type AdminCreateSeatData = {
+    body: CreateSeatRequest;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}/seats';
+};
+
+export type AdminCreateSeatErrors = {
+    /**
+     * Response 400 Admin Create Seat
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminCreateSeatError = AdminCreateSeatErrors[keyof AdminCreateSeatErrors];
+
+export type AdminCreateSeatResponses = {
+    /**
+     * Successful Response
+     */
+    201: AdminSeatResponse;
+};
+
+export type AdminCreateSeatResponse = AdminCreateSeatResponses[keyof AdminCreateSeatResponses];
+
+export type AdminGetSeatData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+        /**
+         * Seat Id
+         */
+        seat_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}/seats/{seat_id}';
+};
+
+export type AdminGetSeatErrors = {
+    /**
+     * Response 400 Admin Get Seat
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminGetSeatError = AdminGetSeatErrors[keyof AdminGetSeatErrors];
+
+export type AdminGetSeatResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSeatResponse;
+};
+
+export type AdminGetSeatResponse = AdminGetSeatResponses[keyof AdminGetSeatResponses];
+
+export type AdminUpdateSeatData = {
+    body: UpdateSeatRequest;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+        /**
+         * Seat Id
+         */
+        seat_id: string;
+    };
+    query?: {
+        /**
+         * Force
+         */
+        force?: boolean;
+    };
+    url: '/api/v1/admin/spaces/{space_id}/seats/{seat_id}';
+};
+
+export type AdminUpdateSeatErrors = {
+    /**
+     * Response 400 Admin Update Seat
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Response 409 Admin Update Seat
+     *
+     * Conflict
+     */
+    409: BookingErrorResponse | AdminConflictResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminUpdateSeatError = AdminUpdateSeatErrors[keyof AdminUpdateSeatErrors];
+
+export type AdminUpdateSeatResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSeatResponse;
+};
+
+export type AdminUpdateSeatResponse = AdminUpdateSeatResponses[keyof AdminUpdateSeatResponses];
 
 export type CheckInData = {
     body: CheckInRequest;
