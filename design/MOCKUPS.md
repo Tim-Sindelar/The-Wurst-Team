@@ -1,5 +1,5 @@
-# Option B static mockups
+# Mock screens
 
-Open `components-b.html` or `design-system-b.html` directly in a browser. Keep `styles.css` and `option-b.css` beside them. No JavaScript, installation, server or backend is required.
+Open `index.html` in a browser (double-click works, no install or server). The font loads from Google Fonts, so be online once, or you get a system font.
 
-All component examples are written directly into the HTML. Edit their markup in each page; shared visual styling lives in the two CSS files. These are specimen documents, with the full original component inventory restyled from the EduApp phone screenshots. The existing `tokens.css` and design rules describe the separate screen design direction and are not changed by these specimens.
+Start with `design-rules.md`. The files table there says what each file is.

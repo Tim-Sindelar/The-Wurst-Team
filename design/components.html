@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Components · Study Spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="docs.css">
+  <script src="base.js"></script>
+</head>
+<body class="is-doc">
+  <header class="doc-bar">
+    <span class="doc-bar__brand">Study Spaces</span>
+    <nav aria-label="Guide pages">
+      <a href="index.html">Home</a>
+      <a href="design-system.html">Design system</a>
+      <a href="components.html" aria-current="page">Components</a>
+    </nav>
+    <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme">
+      <i class="icon i-sun"></i><i class="icon i-moon"></i>
+    </button>
+  </header>
+
+  <main class="doc">
+    <div class="doc__intro">
+      <p class="t-label">Shared building blocks</p>
+      <h1>Components</h1>
+      <p class="lead">Every screen is built from these and nothing else. Open "HTML" under a specimen to copy its markup. Need something new? Add it to <code>base.css</code> and to this page, then tell the other designer.</p>
+    </div>
+
+    <section>
+      <h2>Buttons</h2>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Variants</h3>
+          <div class="stage" data-code>
+            <button class="btn btn--primary btn--block" type="button">Reserve seat 14</button>
+            <button class="btn btn--secondary btn--block" type="button">Cancel reservation</button>
+            <button class="btn btn--danger btn--block" type="button">End session</button>
+            <button class="btn btn--quiet" type="button">Maybe later</button>
+          </div>
+          <p class="specimen__note">One primary per screen, pinned at the bottom. Danger is outlined, never filled.</p>
+        </div>
+        <div class="specimen">
+          <h3>With icon, and disabled</h3>
+          <div class="stage" data-code>
+            <button class="btn btn--primary btn--block" type="button"><i class="icon i-qr"></i> Scan to check in</button>
+            <button class="btn btn--primary btn--block" type="button" disabled>Reserve seat 14</button>
+            <button class="btn btn--secondary btn--block" type="button" disabled>Cancel reservation</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Chips</h2>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Seat-state chip</h3>
+          <div class="stage stage--row" data-code>
+            <span class="chip is-free">Free</span>
+            <span class="chip is-reserved">Reserved</span>
+            <span class="chip is-occupied">Occupied</span>
+            <span class="chip is-bookable">Bookable</span>
+            <span class="chip is-break">On break</span>
+            <span class="chip is-yours">Yours</span>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Filter chip</h3>
+          <div class="stage stage--row" data-code>
+            <button class="filter-chip" type="button" aria-pressed="true">Quiet zone</button>
+            <button class="filter-chip" type="button" aria-pressed="false">Power outlet</button>
+            <button class="filter-chip" type="button" aria-pressed="false">Group room</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Cards</h2>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Study-space card (home)</h3>
+          <div class="stage" data-code>
+            <a class="card" href="#">
+              <div class="row row--spread">
+                <h3 class="t-title">HG E 41</h3>
+                <span class="avail avail--high">12 free</span>
+              </div>
+              <p class="t-small t-muted row"><i class="icon icon--sm i-pin"></i> Main building, floor E</p>
+            </a>
+            <a class="card" href="#">
+              <div class="row row--spread">
+                <h3 class="t-title">Library Reading Room with a very long name that wraps</h3>
+                <span class="avail avail--mid">3 free</span>
+              </div>
+              <p class="t-small t-muted row"><i class="icon icon--sm i-pin"></i> Rämistrasse 101</p>
+            </a>
+          </div>
+          <p class="specimen__note">Long names wrap. The availability stays on one line.</p>
+        </div>
+        <div class="specimen">
+          <h3>Seat card with status stripe</h3>
+          <div class="stage" data-code>
+            <div class="card card--stripe is-reserved">
+              <div class="row row--spread">
+                <h3 class="t-title">Seat 14 · HG E 41</h3>
+                <span class="chip is-reserved">Reserved</span>
+              </div>
+              <p class="t-small t-muted">Check in within 09:12</p>
+              <button class="btn btn--primary btn--block" type="button">Check in</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Notice</h2>
+      <p class="lead">An in-page banner, used for the two extension phases on the session screen. Not a popup.</p>
+      <div class="specimens">
+        <div class="specimen">
+          <div class="stage" data-code>
+            <div class="notice">
+              <i class="icon i-clock"></i>
+              <div class="notice__text">
+                <p class="notice__title">Priority extension</p>
+                <p class="t-small t-muted">Only you can extend for the next 10 minutes.</p>
+                <div class="notice__actions"><button class="btn btn--primary" type="button">Extend session</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <div class="stage" data-code>
+            <div class="notice notice--warning">
+              <i class="icon i-alert"></i>
+              <div class="notice__text">
+                <p class="notice__title">Others can extend now</p>
+                <p class="t-small t-muted">If someone books this seat you'll have to leave when your time is up.</p>
+                <div class="notice__actions"><button class="btn btn--primary" type="button">Extend session</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Forms</h2>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Search</h3>
+          <div class="stage" data-code>
+            <label class="search">
+              <i class="icon i-search"></i>
+              <span class="sr-only">Search study spaces</span>
+              <input type="search" placeholder="Search study spaces">
+            </label>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Input: default and error</h3>
+          <div class="stage" data-code>
+            <div class="field">
+              <label class="field__label" for="f1">Seat code</label>
+              <input class="input" id="f1" placeholder="e.g. E41-14">
+              <p class="field__helper">Printed on the QR sticker.</p>
+            </div>
+            <div class="field field--error">
+              <label class="field__label" for="f2">Seat code</label>
+              <input class="input" id="f2" value="E41-99" aria-invalid="true">
+              <p class="field__helper">We can't find that seat.</p>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Dropdown</h3>
+          <div class="stage" data-code>
+            <div class="field">
+              <label class="field__label" for="f3">Building</label>
+              <div class="select">
+                <select id="f3"><option>HG, Main building</option><option>HCI, Hönggerberg</option><option>CAB</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Checkbox and toggle</h3>
+          <div class="stage" data-code>
+            <label class="check"><input type="checkbox" checked> Quiet zone only</label>
+            <label class="toggle-row">Notify me about extensions <input class="toggle" type="checkbox" role="switch" checked></label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Tabs, segments, menu</h2>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Tabs</h3>
+          <div class="stage" data-code>
+            <div class="tabs" role="tablist">
+              <button class="tab" role="tab" aria-selected="true" type="button">Map</button>
+              <button class="tab" role="tab" aria-selected="false" type="button">List</button>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Segmented control</h3>
+          <div class="stage" data-code>
+            <div class="segments" role="group" aria-label="Duration">
+              <button class="segment" type="button" aria-pressed="false">30 min</button>
+              <button class="segment" type="button" aria-pressed="true">1 h</button>
+              <button class="segment" type="button" aria-pressed="false">2 h</button>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Menu</h3>
+          <div class="stage" data-code>
+            <div class="menu">
+              <button class="menu-item" type="button" aria-current="true">HG E 41 <span class="t-small t-muted">12 free</span></button>
+              <button class="menu-item" type="button">CAB E 11 <span class="t-small t-muted">3 free</span></button>
+              <button class="menu-item" type="button" disabled>HCI Reading Room <span class="t-small">closed</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Countdown and break timer</h2>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Check-in countdown</h3>
+          <div class="stage" data-code>
+            <div class="card timer-card">
+              <p class="t-label">Check in within</p>
+              <p class="t-timer" aria-live="off">09:12</p>
+              <div class="progress" role="progressbar" aria-label="Time left to check in" aria-valuemin="0" aria-valuemax="600" aria-valuenow="552"><div class="progress__bar" style="--value: 92%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Break timer</h3>
+          <div class="stage" data-code>
+            <div class="card card--stripe timer-card is-break">
+              <div class="row row--spread"><p class="t-label">Break ends in</p><span class="chip is-break">On break</span></div>
+              <p class="t-timer">06:30</p>
+              <div class="progress" role="progressbar" aria-label="Break time left" aria-valuemin="0" aria-valuemax="600" aria-valuenow="390"><div class="progress__bar" style="--value: 65%"></div></div>
+              <div class="row"><button class="btn btn--secondary grow" type="button">Back at my seat</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Seat markers</h2>
+      <p class="lead">Six states, shown on the <a href="design-system.html">design system</a> page. The markup:</p>
+      <div class="stage stage--row" data-code>
+        <button class="seat is-free" type="button" aria-label="Seat 14, free"><span class="seat__body"><span class="seat__num">14</span></span></button>
+        <button class="seat is-bookable" type="button" aria-label="Seat 17, occupied, bookable"><span class="seat__body"><span class="seat__num">17</span></span><span class="seat__badge"><i class="icon icon--sm i-clock"></i></span></button>
+        <button class="seat is-yours" type="button" aria-label="Seat 19, yours"><span class="seat__body"><span class="seat__num">19</span></span></button>
+      </div>
+    </section>
+
+    <section>
+      <h2>App header and navigation</h2>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Header</h3>
+          <div class="stage stage--phone" data-code>
+            <header class="app-header">
+              <button class="icon-button" type="button" aria-label="Back"><i class="icon i-back"></i></button>
+              <h1 class="app-header__title">HG E 41</h1>
+              <button class="icon-button" type="button" aria-label="Notifications"><i class="icon i-bell"></i></button>
+            </header>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Bottom navigation</h3>
+          <div class="stage stage--phone" data-code>
+            <nav class="nav-bar" aria-label="Main">
+              <a class="nav-item" href="#" aria-current="page"><i class="icon i-map"></i>Map</a>
+              <a class="nav-item" href="#"><i class="icon i-seat"></i>My seat</a>
+              <a class="nav-item" href="#"><i class="icon i-user"></i>Profile</a>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Popups</h2>
+      <p class="lead">Two kinds only. Try them: a decision sheet slides up from the bottom and a notification banner slides in from the top. Closing a sheet any way except its right-hand button counts as Cancel.</p>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Decision sheet</h3>
+          <div class="stage">
+            <button class="btn btn--primary" type="button" data-sheet-open="sheet-reserve">Reserve seat 14</button>
+            <button class="btn btn--danger" type="button" data-sheet-open="sheet-cancel">Cancel reservation</button>
+            <button class="btn btn--danger" type="button" data-sheet-open="sheet-end">End session</button>
+          </div>
+          <p class="specimen__note">Two equal buttons. Left is the safe option, right is the action (red outline when risky). Labels are verbs.</p>
+        </div>
+        <div class="specimen">
+          <h3>Notification banner</h3>
+          <div class="stage">
+            <button class="btn btn--secondary" type="button" data-banner-open="banner-checkin">Check-in reminder (stays)</button>
+            <button class="btn btn--secondary" type="button" data-banner-open="banner-window">Extension window (fades after 6s)</button>
+          </div>
+          <p class="specimen__note">Urgent ones (check-in reminder, seat lost, session end) stay until dismissed.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Camera view</h2>
+      <p class="lead">Dark in both themes, because it is a camera. The scan line animates with a calm loop and stops when the phone has reduce-motion on.</p>
+      <div class="stage stage--phone" data-code>
+        <div class="camera" style="min-height: 360px">
+          <div class="scan" role="img" aria-label="Scan frame: point the camera at the QR code on your table"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Decision sheets. One <dialog> each; the page opens them with data-sheet-open. -->
+  <dialog class="sheet" id="sheet-reserve" aria-labelledby="sheet-reserve-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-reserve-title">Reserve seat 14?</h2>
+      <p class="t-muted">HG E 41, Main building. Held for 10 minutes. Check in before it runs out.</p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel">Cancel</button>
+        <button class="btn btn--primary" value="confirm">Reserve seat 14</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet" id="sheet-cancel" aria-labelledby="sheet-cancel-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-cancel-title">Cancel reservation?</h2>
+      <p class="t-muted">Seat 14 becomes free for others right away.</p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel">Keep seat</button>
+        <button class="btn btn--danger" value="confirm">Cancel reservation</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet" id="sheet-end" aria-labelledby="sheet-end-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-end-title">End session?</h2>
+      <p class="t-muted">Seat 14 is freed for others. You can't undo this.</p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel">Keep going</button>
+        <button class="btn btn--danger" value="confirm">End session</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Notification banners. Hidden until opened. -->
+  <div class="banner-region">
+    <div class="banner" id="banner-checkin" role="alert" data-urgent hidden>
+      <i class="icon i-bell"></i>
+      <div class="banner__text">
+        <span class="banner__title">Check in now</span>
+        <span class="t-small t-muted">Seat 14 is released in 3 minutes.</span>
+      </div>
+      <button class="btn btn--quiet" type="button" data-banner-close>Scan</button>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-window" role="status" hidden>
+      <i class="icon i-clock"></i>
+      <div class="banner__text">
+        <span class="banner__title">Extension window open</span>
+        <span class="t-small t-muted">You have 10 minutes to extend your session.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+  </div>
+</body>
+</html>

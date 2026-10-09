@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mockups · Study Spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="docs.css">
+  <script src="base.js"></script>
+</head>
+<body class="is-doc">
+  <header class="doc-bar">
+    <span class="doc-bar__brand">Study Spaces</span>
+    <nav aria-label="Guide pages">
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="design-system.html">Design system</a>
+      <a href="components.html">Components</a>
+    </nav>
+    <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme">
+      <i class="icon i-sun"></i><i class="icon i-moon"></i>
+    </button>
+  </header>
+
+  <main class="doc">
+    <div class="doc__intro">
+      <p class="t-label">ETH Zürich · Seat reservation</p>
+      <h1>Mock screens</h1>
+      <p class="lead">Click through the flow in order. The rules are in <code>design-rules.md</code>, the values in <code>tokens.css</code>, the shared parts on the Components page.</p>
+    </div>
+
+    <section>
+      <h2>Screens in flow order</h2>
+      <div class="stack stack--tight">
+        <p class="card t-muted">1. Home: not built yet</p>
+        <p class="card t-muted">2. Seat arrangement: not built yet</p>
+        <p class="card t-muted">3. Reservation: not built yet</p>
+        <p class="card t-muted">4. QR scan: not built yet</p>
+        <p class="card t-muted">5. Session: not built yet</p>
+      </div>
+      <p class="specimen__note">When you build a screen, copy <code>screens/_template.html</code>, then turn its line here into a link.</p>
+    </section>
+
+    <section>
+      <h2>Guides</h2>
+      <div class="stack stack--tight">
+        <a class="card" href="design-system.html"><span class="t-title">Design system</span><span class="t-small t-muted">Colour, seat states, type, shape, icons</span></a>
+        <a class="card" href="components.html"><span class="t-title">Components</span><span class="t-small t-muted">Buttons, cards, forms, popups and the rest, with copyable HTML</span></a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
