@@ -24,7 +24,7 @@
     <main class="app__main">
       <section class="card card--stripe is-reserved" aria-labelledby="seat-title">
         <div class="row row--spread">
-          <h2 class="t-heading" id="seat-title">Seat 14</h2>
+          <h2 class="t-heading" id="seat-title">Seat <span data-seat>14</span></h2>
           <span class="chip chip--plain is-reserved">Reserved</span>
         </div>
         <p class="row t-muted"><i class="icon icon--sm i-pin"></i> HG E 41 · Main building</p>
@@ -51,7 +51,7 @@
     <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
     <form class="sheet__body" method="dialog">
       <h2 class="t-title" id="sheet-cancel-title">Cancel reservation?</h2>
-      <p class="t-muted">Seat 14 becomes free for others right away.</p>
+      <p class="t-muted">Seat <span data-seat>14</span> becomes free for others right away.</p>
       <div class="sheet__actions">
         <button class="btn btn--secondary" value="cancel">Keep seat</button>
         <a class="btn btn--danger" href="01-home.html" data-clears-state>Cancel reservation</a>

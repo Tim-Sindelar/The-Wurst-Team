@@ -43,14 +43,14 @@
       <!-- Seat card: yours while sitting, on break while away. -->
       <section class="card card--stripe is-yours" data-show-in="normal priority open" aria-labelledby="seat-title">
         <div class="row row--spread">
-          <h2 class="t-heading" id="seat-title">Seat 14</h2>
+          <h2 class="t-heading" id="seat-title">Seat <span data-seat>14</span></h2>
           <span class="chip chip--plain is-yours">In session</span>
         </div>
         <p class="row t-muted"><i class="icon icon--sm i-pin"></i> HG E 41 · Main building</p>
       </section>
       <section class="card card--stripe is-break" data-show-in="break" aria-labelledby="seat-title-break">
         <div class="row row--spread">
-          <h2 class="t-heading" id="seat-title-break">Seat 14</h2>
+          <h2 class="t-heading" id="seat-title-break">Seat <span data-seat>14</span></h2>
           <span class="chip is-break">On break</span>
         </div>
         <p class="row t-muted"><i class="icon icon--sm i-pin"></i> HG E 41 · Main building</p>
@@ -128,7 +128,7 @@
     <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
     <form class="sheet__body" method="dialog">
       <h2 class="t-title" id="sheet-end-title">End session?</h2>
-      <p class="t-muted">Seat 14 is freed for others. You can't undo this.</p>
+      <p class="t-muted">Seat <span data-seat>14</span> is freed for others. You can't undo this.</p>
       <div class="sheet__actions">
         <button class="btn btn--secondary" value="cancel">Keep going</button>
         <a class="btn btn--danger" href="01-home.html" data-clears-state>End session</a>

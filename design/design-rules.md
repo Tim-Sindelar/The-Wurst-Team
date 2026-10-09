@@ -135,7 +135,13 @@ Used to tell the user something happened. No decision needed (at most one action
 
 ## Navigation (mock behaviour)
 - Moving between screens is a styled `<a href>`. Relative paths so the files open from disk.
-- Flow: Home → Seat arrangement → Reservation → QR scan → Session.
+- Flow: Home → Seat arrangement → (Reserve sheet) → Reservation → QR scan → Session → Home.
+  - Every card on Home opens the seat map (it is always HG E 41 in the mock).
+  - Tapping Reserve on the seat map opens the reserve sheet. Confirming goes to `03-reservation.html?seat=N`.
+  - The chosen seat number is remembered in the browser. Any element with `data-seat` shows it, so every screen says the same seat. Never hardcode a seat number in a screen, write `Seat <span data-seat>14</span>`.
+  - Check in → QR scan → Session. Break, extend and end loops are described under Session.
+  - Ending the session or cancelling the reservation goes back to Home and clears the booking.
+  - Every button and link must lead somewhere. Run the click-through before pushing.
 - Fake state (selected seat, countdown) is hardcoded or a few lines of JS. Keep it tiny.
 
 ## Screens

@@ -130,6 +130,40 @@
     }
   };
 
+  /* --- Chosen seat (mock): the seat picked on the map is remembered so every
+         later screen says the same number. Elements with [data-seat] get it. --- */
+  const SEAT_KEY = 'study-seat';
+  const seatFromUrl = param('seat');
+  if (seatFromUrl) {
+    try {
+      localStorage.setItem(SEAT_KEY, seatFromUrl);
+    } catch {
+      /* storage blocked: the number only lasts for this page view */
+    }
+  }
+  const getSeat = () => {
+    if (seatFromUrl) return seatFromUrl;
+    try {
+      return localStorage.getItem(SEAT_KEY) || '14';
+    } catch {
+      return '14';
+    }
+  };
+
+  /* Fill a decision sheet from the seat currently selected on the map. */
+  const prepareSheet = (dialog) => {
+    const nameEl = document.querySelector('[data-selected-seat-name]');
+    if (!nameEl) return;
+    const number = (nameEl.textContent.match(/\d+/) || ['14'])[0];
+    const stateEl = document.querySelector('[data-selected-seat-state]');
+    const later = !!stateEl && stateEl.classList.contains('is-bookable');
+    dialog.querySelectorAll('[data-fill-seat]').forEach((el) => (el.textContent = number));
+    dialog.querySelectorAll('[data-if-later]').forEach((el) => (el.hidden = !later));
+    dialog.querySelectorAll('[data-if-now]').forEach((el) => (el.hidden = later));
+    const go = dialog.querySelector('[data-seat-link]');
+    if (go) go.setAttribute('href', `${go.dataset.seatLink}?seat=${number}`);
+  };
+
   /* --- Banners: auto-hide after 6s unless data-urgent ---------------------- */
   const showBanner = (el) => {
     el.hidden = false;
@@ -196,6 +230,7 @@
     if (open) {
       const dlg = document.getElementById(open.dataset.sheetOpen);
       if (dlg) {
+        prepareSheet(dlg);
         wireSwipe(dlg);
         dlg.showModal();
       }
@@ -407,6 +442,7 @@
     renderTokens();
     addCodeViews();
     startCountdowns();
+    document.querySelectorAll('[data-seat]').forEach((el) => (el.textContent = getSeat()));
     const setter = document.querySelector('[data-sets-state]');
     if (setter) setState(setter.dataset.setsState);
     const current = getState();

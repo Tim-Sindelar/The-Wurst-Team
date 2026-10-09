@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Seat arrangement · Study Spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="../tokens.css">
   <link rel="stylesheet" href="../base.css">
   <script src="../base.js"></script>
@@ -11,7 +14,7 @@
 <body>
   <div class="app" data-seat-map-shell>
     <header class="app-header">
-      <a class="icon-button" href="../index.html" aria-label="Back to mock screens"><i class="icon i-back" aria-hidden="true"></i></a>
+      <a class="icon-button" href="01-home.html" aria-label="Back to home"><i class="icon i-back" aria-hidden="true"></i></a>
       <h1 class="app-header__title">Study Spaces</h1>
       <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme"><i class="icon i-sun" aria-hidden="true"></i><i class="icon i-moon" aria-hidden="true"></i></button>
     </header>
@@ -112,10 +115,24 @@
       <button class="btn btn--secondary btn--block" type="button" data-map-choose-free>Choose any free seat</button>
     </main>
 
-    <!-- Selection is local. Reservation remains a visual placeholder. -->
+    <!-- Selection is local. The Reserve button opens the sheet below; confirming goes to the Reservation screen with the chosen seat. -->
     <div class="app__actions">
-      <button class="btn btn--primary btn--block" type="button" data-selected-seat-reserve>Reserve seat 14</button>
+      <button class="btn btn--primary btn--block" type="button" data-selected-seat-reserve data-sheet-open="sheet-reserve">Reserve seat 14</button>
     </div>
   </div>
+
+  <dialog class="sheet" id="sheet-reserve" aria-labelledby="sheet-reserve-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close" aria-hidden="true"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-reserve-title">Reserve seat <span data-fill-seat>14</span>?</h2>
+      <p class="t-muted" data-if-now>HG E 41. Held for 10 minutes. Check in before it runs out.</p>
+      <p class="t-muted" data-if-later hidden>HG E 41. Your time starts when the current session ends. Check in within 10 minutes after that.</p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel">Cancel</button>
+        <a class="btn btn--primary" href="03-reservation.html" data-seat-link="03-reservation.html"><span>Reserve seat <span data-fill-seat>14</span></span></a>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>
