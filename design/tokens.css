@@ -28,12 +28,14 @@
 
   /* --- Colour: status. Only for availability / seat state ------------ */
   --seat-free: #6fbf73; /* 6.8:1 on bg */
-  --seat-reserved: #b79cf0; /* violet, dashed outline. 6.6:1 */
+  --seat-reserved: #b79cf0; /* solid violet fill */
   --seat-bookable: #f0883e; /* orange, clock badge. 6.1:1 */
   --seat-occupied: #8a7f77; /* graphic only, never text (3.9:1) */
-  --seat-break: #8a7f77; /* same as occupied, plus cup badge */
+  --seat-break: #d3b177; /* bronze fill, distinct from occupied */
   --seat-yours: var(--accent);
   --on-seat: #1d1814; /* number on a filled seat */
+
+  --on-seat-muted: #1d1814; /* numbers on occupied seats, 4.5:1 in both themes */
 
   /* --- Colour: how full a study space is (dot on cards). Not seat state --- */
   --avail-high: var(--seat-free);
@@ -84,6 +86,9 @@
   --tap-min: 44px; /* minimum touch target */
   --control-h: 48px; /* buttons, inputs */
   --screen-w: 390px; /* design width; centre this column on desktop */
+  --map-world-w: 640px; /* full room coordinate canvas */
+  --map-world-h: 760px;
+  --map-viewport-h: 420px; /* pan/zoom window in a phone screen */
 
   /* --- Motion ---------------------------------------------------------- */
   --dur-fast: 150ms;
@@ -115,7 +120,7 @@
   --seat-reserved: #6d4bc4; /* 5.7:1 */
   --seat-bookable: #b45309; /* 4.7:1 */
   --seat-occupied: #8a7f77; /* graphic only (3.7:1) */
-  --seat-break: #8a7f77;
+  --seat-break: #8e6713;
   --on-seat: #ffffff;
 
   --avail-mid: #8a5a00;
