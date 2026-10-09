@@ -52,10 +52,10 @@ Seat and availability states, always colour **plus** a second cue:
 | State | Token | Second cue |
 |---|---|---|
 | Free | `--seat-free` | Filled seat |
-| Reserved (waiting for check-in) | `--seat-reserved` (violet) | Dashed outline, hollow |
-| Occupied | `--seat-occupied` | Muted fill, no detail |
-| On break | `--seat-break` | Muted fill + coffee-cup badge |
-| Occupied, bookable (10 min left, not extended) | `--seat-bookable` (orange) | Orange fill + clock badge |
+| Reserved (waiting for check-in) | `--seat-reserved` (violet) | Solid fill + seat number; state label in details / info |
+| Occupied | `--seat-occupied` | Solid gray fill + seat number; state label in details / info |
+| On break | `--seat-break` (bronze) | Solid fill + coffee-cup badge + seat number |
+| Occupied, bookable (10 min left, not extended) | `--seat-bookable` (orange) | Solid fill + clock badge + seat number |
 | Yours / selected | `--seat-yours` | Filled with a double ring |
 
 Seat state rules (from the user flow):
@@ -64,7 +64,7 @@ Seat state rules (from the user flow):
 - A reserved seat whose reservation times out returns to Free.
 
 Availability on study-space cards: dot + the words ("12 free", "3 free · almost full", "0 free · full"). Dot uses `--avail-high` (green), `--avail-mid` (amber) or `--avail-none` (red). Amber exists only here and never on seats.
-`--seat-occupied` is graphic-only. Its contrast is too low for text.
+`--seat-occupied` is a fill colour. Seat numbers on this fill use `--on-seat-muted`, including light mode.
 
 ## Typography
 - Body 16px (`--fs-body`), secondary 14px, never below 12px.
@@ -142,7 +142,7 @@ Used to tell the user something happened. No decision needed (at most one action
 Source of truth for the flow: `user-flow.drawio.xml`.
 
 1. **Home:** the app name "Study Spaces" with the theme switch and the profile picture on the right (scrolls away), then a pinned search bar, a "Reserved" card only while a seat is held (links to Reservation), favourite study-space cards in a swipe row, tall map placeholder. The mock remembers the reservation in the browser: opening Reservation sets "reserved", opening Session sets "session" (the card then says "In session"), cancelling or ending clears it. `?state=reserved`, `?state=session` or `?state=none` on the URL forces it.
-2. **Seat arrangement:** top-down floor plan, six seat states, legend. Secondary button "Reserve any seat" (app picks one). Tapping a free seat opens the reserve bottom sheet.
+2. **Seat arrangement:** top-down floor plan, colour-coded seats. The state key opens from an info (i) button at the top of the map; it is not a permanent legend. No visible drag / pinch instructions. Secondary button "Reserve any seat" (app picks one). Tapping a free seat opens the reserve bottom sheet.
    - **Reserve sheet** (not a screen): seat summary, note "held for X minutes", primary "Reserve", secondary "Cancel". Confirming turns the seat Reserved and goes to screen 3.
 3. **Reservation:** seat / room / building summary, X:00 check-in countdown, primary "Check in" (scan), secondary "Cancel reservation".
 4. **QR scan:** dark camera viewfinder mock, scan frame, hint text, flashlight toggle, back button. Reused when extending. Error state: "You don't seem to be at this seat" (location check failed), shown in place as a danger notice. In the mock, tapping the frame counts as a successful scan, and `?error=1` shows the error.
