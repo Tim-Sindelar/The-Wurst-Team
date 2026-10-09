@@ -15,13 +15,13 @@
   <div class="app">
     <div class="camera">
       <div class="camera__top">
-        <a class="icon-button" href="03-reservation.html" aria-label="Back to your reservation"><i class="icon i-back"></i></a>
+        <a class="icon-button" href="03-reservation.html" data-href-when="from=extend" data-href="05-session.html" aria-label="Back"><i class="icon i-back"></i></a>
         <h1 class="sr-only">Scan QR code</h1>
         <button class="icon-button" type="button" data-toggle aria-pressed="false" aria-label="Flashlight"><i class="icon i-flashlight"></i></button>
       </div>
 
       <div class="camera__body">
-        <a class="scan" href="05-session.html" aria-label="Scan frame. Activate to simulate scanning the QR code on your table"></a>
+        <a class="scan" href="05-session.html" data-href-when="from=extend" data-href="05-session.html?extended=1" aria-label="Scan frame. Activate to simulate scanning the QR code on your table"></a>
         <div class="stack stack--tight">
           <p class="t-title">Scan the QR code on your table</p>
           <p class="t-small t-muted">Seat 14 · HG E 41</p>
@@ -29,15 +29,15 @@
       </div>
 
       <div class="camera__foot">
-        <div class="notice notice--danger" role="alert" data-if-error hidden>
+        <div class="notice notice--danger" role="alert" data-if-param="error=1" hidden>
           <i class="icon i-alert"></i>
           <div class="notice__text">
             <p class="notice__title">You don't seem to be at this seat</p>
             <p class="t-small t-muted">Move closer to seat 14 and try again.</p>
-            <div class="notice__actions"><a class="btn btn--secondary" href="04-qr-scan.html">Try again</a></div>
+            <div class="notice__actions"><a class="btn btn--secondary" href="04-qr-scan.html" data-keep-params>Try again</a></div>
           </div>
         </div>
-        <p class="t-small t-muted">Mock: tap the frame to scan · <a href="04-qr-scan.html?error=1">show the error state</a></p>
+        <p class="t-small t-muted">Mock: tap the frame to scan · <a href="04-qr-scan.html?error=1" data-keep-params>show the error state</a></p>
       </div>
     </div>
   </div>

@@ -73,10 +73,22 @@
     const ss = String(s % 60).padStart(2, '0');
     return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
   };
+  const param = (k) => new URLSearchParams(location.search).get(k);
+  const phase = param('phase') || 'normal';
+  const parseMap = (s) => Object.fromEntries((s || '').split(',').filter(Boolean).map((p) => p.split(':')));
+  /* Optional overrides so one timer can show every mock state:
+     data-countdown-phase="priority:1160,open:570"  (uses ?phase=)
+     data-countdown-extended="8360" data-total-extended="14400"  (uses ?extended=1) */
   const startCountdowns = () => {
     document.querySelectorAll('[data-countdown]').forEach((el) => {
       let left = Number(el.dataset.countdown);
-      const total = Number(el.dataset.total) || left;
+      let total = Number(el.dataset.total) || left;
+      const byPhase = parseMap(el.dataset.countdownPhase);
+      if (byPhase[phase]) left = Number(byPhase[phase]);
+      if (param('extended') === '1' && el.dataset.countdownExtended) {
+        left = Number(el.dataset.countdownExtended);
+        total = Number(el.dataset.totalExtended) || total;
+      }
       const bar = el.closest('.timer-card')?.querySelector('.progress');
       const paint = () => {
         el.textContent = fmt(left);
@@ -95,24 +107,24 @@
     });
   };
 
-  /* --- Reservation state (mock): remembers in the browser that a seat is held.
-         Opening the Reservation screen sets it, cancelling clears it. Home shows
-         [data-if-reserved] only while it is set. ?reserved=1 or 0 forces it. -- */
-  const RES_KEY = 'study-reserved';
-  const isReserved = () => {
+  /* --- Booking state (mock): remembers in the browser where the user is.
+         Reservation sets "reserved", Session sets "session", cancelling or ending
+         clears it. Home shows [data-if-state="reserved"] or [data-if-state="session"].
+         ?state=reserved, ?state=session or ?state=none on the URL forces it. ---- */
+  const STATE_KEY = 'study-state';
+  const getState = () => {
     try {
-      const forced = new URLSearchParams(location.search).get('reserved');
-      if (forced === '1') return true;
-      if (forced === '0') return false;
-      return localStorage.getItem(RES_KEY) === '1';
+      const forced = param('state');
+      if (forced) return forced === 'none' ? null : forced;
+      return localStorage.getItem(STATE_KEY);
     } catch {
-      return false;
+      return null;
     }
   };
-  const setReserved = (on) => {
+  const setState = (value) => {
     try {
-      if (on) localStorage.setItem(RES_KEY, '1');
-      else localStorage.removeItem(RES_KEY);
+      if (value) localStorage.setItem(STATE_KEY, value);
+      else localStorage.removeItem(STATE_KEY);
     } catch {
       /* storage blocked: Home just won't show the card */
     }
@@ -172,7 +184,7 @@
       return;
     }
 
-    if (t.closest('[data-clears-reserved]')) setReserved(false);
+    if (t.closest('[data-clears-state]')) setState(null);
 
     const fav = t.closest('[data-favourite], [data-toggle]');
     if (fav) {
@@ -218,9 +230,33 @@
     renderTokens();
     addCodeViews();
     startCountdowns();
-    if (document.querySelector('[data-sets-reserved]')) setReserved(true);
-    document.querySelectorAll('[data-if-reserved]').forEach((el) => (el.hidden = !isReserved()));
-    const showError = new URLSearchParams(location.search).get('error') === '1';
-    document.querySelectorAll('[data-if-error]').forEach((el) => (el.hidden = !showError));
+    const setter = document.querySelector('[data-sets-state]');
+    if (setter) setState(setter.dataset.setsState);
+    const current = getState();
+    document.querySelectorAll('[data-if-state]').forEach((el) => (el.hidden = el.dataset.ifState !== current));
+    /* Mock states: show an element only in some ?phase= (default "normal"). */
+    document.querySelectorAll('[data-show-in]').forEach((el) => {
+      el.hidden = !el.dataset.showIn.split(' ').includes(phase);
+    });
+    /* Show an element only when a URL parameter matches, e.g. data-if-param="error=1". */
+    document.querySelectorAll('[data-if-param]').forEach((el) => {
+      const [k, v] = el.dataset.ifParam.split('=');
+      const on = param(k) === v;
+      el.hidden = !on;
+      if (on && el.classList.contains('banner')) showBanner(el);
+    });
+    /* Carry the current URL parameters onto a link: data-keep-params (not "error"). */
+    document.querySelectorAll('[data-keep-params]').forEach((a) => {
+      const url = new URL(a.getAttribute('href'), location.href);
+      new URLSearchParams(location.search).forEach((v, k) => {
+        if (k !== 'error' && !url.searchParams.has(k)) url.searchParams.set(k, v);
+      });
+      a.setAttribute('href', url.pathname.split('/').pop() + url.search);
+    });
+    /* Swap a link's target when a URL parameter matches: data-href-when="from=extend" data-href="..." */
+    document.querySelectorAll('[data-href-when]').forEach((el) => {
+      const [k, v] = el.dataset.hrefWhen.split('=');
+      if (param(k) === v) el.setAttribute('href', el.dataset.href);
+    });
   });
 })();

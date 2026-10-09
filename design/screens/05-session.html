@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Session · Study Spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../base.css">
+  <script src="../base.js"></script>
+</head>
+<body data-sets-state="session">
+  <div class="app">
+    <header class="app-header">
+      <a class="icon-button" href="01-home.html" aria-label="Back to home"><i class="icon i-back"></i></a>
+      <h1 class="app-header__title">Your session</h1>
+      <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme">
+        <i class="icon i-sun"></i><i class="icon i-moon"></i>
+      </button>
+    </header>
+
+    <main class="app__main">
+      <!-- Phase notices. Only in the two extension phases; none in the normal phase. -->
+      <div class="notice" data-show-in="priority">
+        <i class="icon i-clock"></i>
+        <div class="notice__text">
+          <p class="notice__title">Priority extension</p>
+          <p class="t-small t-muted">Only you can extend for the next 10 minutes.</p>
+          <div class="notice__actions"><button class="btn btn--primary" type="button" data-sheet-open="sheet-extend">Extend session</button></div>
+        </div>
+      </div>
+      <div class="notice notice--warning" data-show-in="open">
+        <i class="icon i-alert"></i>
+        <div class="notice__text">
+          <p class="notice__title">Others can reserve this seat now</p>
+          <p class="t-small t-muted">Extend before someone books it. If they do, you'll have to leave when your time is up.</p>
+          <div class="notice__actions"><button class="btn btn--primary" type="button" data-sheet-open="sheet-extend">Extend session</button></div>
+        </div>
+      </div>
+
+      <!-- Seat card: yours while sitting, on break while away. -->
+      <section class="card card--stripe is-yours" data-show-in="normal priority open" aria-labelledby="seat-title">
+        <div class="row row--spread">
+          <h2 class="t-heading" id="seat-title">Seat 14</h2>
+          <span class="chip chip--plain is-yours">In session</span>
+        </div>
+        <p class="row t-muted"><i class="icon icon--sm i-pin"></i> HG E 41 · Main building</p>
+      </section>
+      <section class="card card--stripe is-break" data-show-in="break" aria-labelledby="seat-title-break">
+        <div class="row row--spread">
+          <h2 class="t-heading" id="seat-title-break">Seat 14</h2>
+          <span class="chip is-break">On break</span>
+        </div>
+        <p class="row t-muted"><i class="icon icon--sm i-pin"></i> HG E 41 · Main building</p>
+      </section>
+
+      <!-- Break timer: only on break. Your session time keeps running underneath. -->
+      <section class="card card--stripe timer-card is-break" data-show-in="break" aria-labelledby="break-label">
+        <p class="t-label" id="break-label">Break ends in</p>
+        <p class="t-timer" data-countdown="870" data-total="900">14:30</p>
+        <div class="progress" role="progressbar" aria-labelledby="break-label" aria-valuemin="0" aria-valuemax="900" aria-valuenow="870">
+          <div class="progress__bar" style="--value: 97%"></div>
+        </div>
+        <p class="t-small t-muted">Your seat is held for you. Your session time keeps running.</p>
+        <a class="btn btn--primary btn--block" href="05-session.html">Back at my seat</a>
+      </section>
+
+      <!-- Session timer: always visible. -->
+      <section class="card timer-card" aria-labelledby="timer-label">
+        <p class="t-label" id="timer-label">Session time left</p>
+        <p class="t-timer"
+           data-countdown="6761" data-total="7200"
+           data-countdown-phase="priority:1160,open:570"
+           data-countdown-extended="8360" data-total-extended="14400">1:52:41</p>
+        <div class="progress" role="progressbar" aria-labelledby="timer-label" aria-valuemin="0" aria-valuemax="7200" aria-valuenow="6761">
+          <div class="progress__bar" style="--value: 94%"></div>
+        </div>
+      </section>
+
+      <p class="t-small t-muted">Mock:
+        <a href="05-session.html">normal</a> ·
+        <a href="05-session.html?phase=priority">20 min left</a> ·
+        <a href="05-session.html?phase=open">10 min left</a> ·
+        <a href="05-session.html?phase=break">on break</a>
+      </p>
+    </main>
+
+    <div class="app__actions">
+      <div class="row" data-show-in="normal priority open">
+        <button class="btn btn--secondary grow" type="button" data-sheet-open="sheet-break"><i class="icon i-coffee"></i> Take a break</button>
+        <button class="btn btn--danger grow" type="button" data-sheet-open="sheet-end">End session</button>
+      </div>
+      <button class="btn btn--danger btn--block" type="button" data-show-in="break" data-sheet-open="sheet-end">End session</button>
+    </div>
+  </div>
+
+  <!-- Confirmation sheets -->
+  <dialog class="sheet" id="sheet-extend" aria-labelledby="sheet-extend-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-extend-title">Extend your session?</h2>
+      <p class="t-muted">Adds 2 hours. You'll scan the QR code again to confirm you're still at your seat.</p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel">Not now</button>
+        <a class="btn btn--primary" href="04-qr-scan.html?from=extend">Extend session</a>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet" id="sheet-break" aria-labelledby="sheet-break-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-break-title">Take a break?</h2>
+      <p class="t-muted">Your seat is held for 15 minutes. Your session time keeps running.</p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel">Stay</button>
+        <a class="btn btn--primary" href="05-session.html?phase=break">Start break</a>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="sheet" id="sheet-end" aria-labelledby="sheet-end-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-end-title">End session?</h2>
+      <p class="t-muted">Seat 14 is freed for others. You can't undo this.</p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel">Keep going</button>
+        <a class="btn btn--danger" href="01-home.html" data-clears-state>End session</a>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- "Session extended" confirmation, shown after the QR scan from the extend flow. -->
+  <div class="banner-region">
+    <div class="banner" role="status" data-if-param="extended=1" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Session extended</span>
+        <span class="t-small t-muted">You have 2 more hours.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+  </div>
+</body>
+</html>

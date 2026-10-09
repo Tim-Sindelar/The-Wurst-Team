@@ -25,11 +25,20 @@
         </button>
       </div>
 
-      <a class="card card--stripe is-reserved" href="03-reservation.html" data-if-reserved hidden>
+      <a class="card card--stripe is-reserved" href="03-reservation.html" data-if-state="reserved" hidden>
         <div class="row">
           <div class="grow stack stack--tight">
             <p class="t-title">Seat 14 · HG E 41</p>
             <p class="t-small t-muted">Reserved · tap to check in</p>
+          </div>
+          <i class="icon i-chevron-right"></i>
+        </div>
+      </a>
+      <a class="card card--stripe is-yours" href="05-session.html" data-if-state="session" hidden>
+        <div class="row">
+          <div class="grow stack stack--tight">
+            <p class="t-title">Seat 14 · HG E 41</p>
+            <p class="t-small t-muted">In session · tap to open</p>
           </div>
           <i class="icon i-chevron-right"></i>
         </div>
