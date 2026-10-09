@@ -2,147 +2,156 @@
 
 Oct 9, 2026 · @Filip Trplan
 
-## Core principles
+## Implemented scope
 
-The model is four tables, and seat state is computed from reservations and the clock rather than stored. Two rules shape everything else:
+The reservation feature lives in `backend/app/features/reservations/`: database models, API schemas, routes, reservation logic, and demo seeding. Shared configuration, database sessions, and dummy authentication remain in `backend/app/`. Feature models are registered through `backend/app/models/__init__.py` for Alembic.
 
-1. **Derive state, don't store it.** Free, reserved, occupied, on break and claimable are all functions of a seat's reservations and `now()`. Time-driven transitions (no-show, priority window, session end) then need no background job to stay correct. Jobs exist only to send notifications.
-2. **Store deadlines on the row.** Whenever a rule produces a deadline (check-in deadline, session end, break end), it is written onto the row when the row is created. Changing the rules later, including moving to per-room rules, then never needs a migration or a query rewrite.
+This version supports immediate and next-session reservations, QR check-in, extension, cumulative breaks, cancellation, and early handover. Real authentication, notifications, admin editing, geolocation, opening hours, and the room-layout contract are deferred.
 
-Every way something ends just moves its `ends_at` earlier. There is no separate `ended_at` or `end_reason`.
+## Principles
+
+- Keep four domain tables and derive state from rows and the clock. No status, end-reason, or ended-at columns are stored.
+- Calculate deadlines from settings when an action occurs and persist them. Existing deadlines and captured break budgets survive configuration changes.
+- A user may hold one live reservation, including an upcoming reservation.
+- Reserve is one action: a free seat starts immediately; a claimable seat starts after the occupant. There is no separate queue endpoint or waiting list.
+- Use Alembic for every schema change, request-scoped SQLAlchemy sessions, and explicit write commits.
 
 ## Tables
 
-```sql
-study_spaces (
-  id, name,
-  lat, lng,           -- map pin and geofence centre
-  layout jsonb        -- drawing of the room; references seats by id
-)
+All identifiers are UUIDs. All timestamps are PostgreSQL `timestamptz`. Columns are required unless marked nullable.
 
-seats (
-  id, space_id,
-  label,              -- "A-12"
-  qr_token unique     -- what the sticker encodes; rotatable
-)
+```text
+study_spaces
+  id                          uuid PK
+  name                        text
+  lat                         double precision
+  lng                         double precision
+  layout                      jsonb, default {}
 
-reservations (
-  id, user_id, seat_id, created_at,
-  starts_at,          -- now(), or the current occupant's ends_at when queued
-  check_in_deadline,  -- starts_at + check-in window, written at creation
-  checked_in_at,      -- null until the QR scan / check-in
-  ends_at             -- expected end; moved earlier on checkout, cancel, no-show
-)
+seats
+  id                          uuid PK
+  space_id                    uuid FK → study_spaces.id
+  label                       text
+  qr_token                    text UNIQUE
 
-breaks (
-  id, reservation_id,
-  started_at,
-  ends_at             -- started_at + max break; moved earlier on return
-)
+reservations
+  id                          uuid PK
+  user_id                     uuid
+  seat_id                     uuid FK → seats.id
+  previous_reservation_id     uuid FK → reservations.id, nullable
+  created_at                  timestamptz
+  starts_at                   timestamptz
+  check_in_deadline           timestamptz
+  checked_in_at               timestamptz, nullable
+  ends_at                     timestamptz
+  break_budget_seconds        integer
+
+breaks
+  id                          uuid PK
+  reservation_id              uuid FK → reservations.id
+  started_at                  timestamptz
+  ends_at                     timestamptz
+  returned_at                 timestamptz, nullable
 ```
 
-- `user_id` points at whatever the auth layer provides (Supabase `auth.users` or a plain `users` table).
-- Seats stay as rows so reservations have something to reference. The layout JSON only draws the room and places each seat by `seat_id`, so seat identity and the QR token live in one place.
-- An extension updates `ends_at` in place.
+`user_id` is currently supplied by dummy auth; there is no users table. QR tokens are opaque and separate from seat identity. Layouts remain empty objects until the frontend contract is defined.
 
-## Global config
+`previous_reservation_id` identifies the checked-in occupant on the same seat preceding an upcoming reservation. It lets the state calculation recognize early handover. Once activation timestamps are persisted, the link is cleared. A reservation must be activated before it can be checked in and have a successor of its own, so unresolved handovers do not form chains.
 
-Rules live in one backend config, not in the database. Values marked placeholder aren't decided yet.
+`break_budget_seconds` captures the configured allowance at reservation creation. Break deadlines remain stored in `ends_at`; returning sets `returned_at`, distinguishing a timely return from expiry. Elapsed break time consumes the shared allowance, capped by the reservation end.
 
-| Setting | Value | Used for |
+## Configuration
+
+Defaults live in the existing Pydantic `Settings` class in `backend/app/config.py`. Environment variables override them; Compose reads `backend/.env` when present. Recreate the backend after changing its environment.
+
+| Setting | Default | Purpose |
 | --- | --- | --- |
-| Session length (T) | 120 min | `reservations.ends_at` at creation and on extend |
-| Check-in window (X) | 15 min (placeholder) | `reservations.check_in_deadline` |
-| Check-in reminder | X minus 3 min | notification before a no-show |
-| Private priority window | 20 min before end | only the occupant can extend |
-| Public window | 10 min before end | anyone can queue for the next slot |
-| Max break | 30 min (placeholder) | `breaks.ends_at` |
-| Geofence radius | placeholder | location check on check-in |
+| `session_length_minutes` | 120 | New-session duration and extension amount |
+| `check_in_window_minutes` | 15 | Check-in allowance after session start |
+| `private_priority_window_minutes` | 20 | Earliest the occupant can extend before the end |
+| `public_reservation_window_minutes` | 10 | Earliest another user can reserve the next session |
+| `break_budget_minutes` | 30 | Total break allowance captured per reservation |
 
-## Derived state
+Environment names are the uppercase forms of these settings. All values must be positive. Require public window < private window < session length, and check-in window < session length.
 
-Decided: no stored status column. A view gives every reservation a readable `status`, so app code reads `status = 'active'` like a real column but the value is always current. Because deadlines are stored on the rows, the view needs no config.
+Changing settings affects new reservation deadlines, new extension amounts, and current eligibility windows. It does not rewrite stored deadlines or replenish existing break allowances. Early handover shifts a booking's stored start, check-in deadline, and end together, preserving its originally assigned duration and allowance.
 
-```sql
-create view reservation_states as
-select r.*,
-  case
-    when now() >= r.ends_at                       then 'ended'
-    when r.checked_in_at is null
-     and now() >= r.check_in_deadline             then 'no_show'
-    when r.checked_in_at is null
-     and now() < r.starts_at                      then 'queued'
-    when r.checked_in_at is null                  then 'pending'
-    when exists (select 1 from breaks b
-                 where b.reservation_id = r.id
-                   and now() < b.ends_at)         then 'on_break'
-    else 'active'
-  end as status
-from reservations r;
-```
+## Derived reservation state
 
-Seat state on the map comes from the seat's current reservation (the one where `starts_at <= now() < ends_at`):
+`reservation_states` is a read-only view backed by the SQL function `reservation_states_at(at_time)`. The function takes a clock value, not configuration. Transactions use one instant after obtaining locks; tests can exercise exact boundaries.
 
-| Seat state | Condition |
+The calculation first accounts for expired unreturned breaks, then derives early activation through the predecessor link. It exposes the original row plus `effective_starts_at`, `effective_check_in_deadline`, `effective_ends_at`, and `status`.
+
+| Status | Meaning |
 | --- | --- |
-| Free | no current reservation, or it is `no_show` |
-| Reserved | current reservation is `pending` |
-| On break | current reservation is `on_break` |
-| Occupied | current reservation is `active`, outside the public window, or someone has already queued |
-| Claimable (orange) | `active`, inside the public window, and no `queued` reservation behind it |
+| `upcoming` | The effective start has not arrived |
+| `pending` | The session started but has not checked in |
+| `active` | Checked in, with no current break |
+| `on_break` | Checked in and within an unreturned break deadline |
+| `no_show` | Check-in deadline missed |
+| `ended` | Cancelled, checked out, or session/break expired |
 
-The private priority window (orange only for the occupant) is per viewer, so it is computed in the backend for "my reservation", not in the shared view. The same goes for the claimable check, since it uses the public window from config. The map's "N free seats" is a count over these states grouped by `space_id`.
+An empty reservation interval is always ended. A no-show releases the seat at its check-in deadline; a later write persists the shortened interval, after which the stored row reads as ended. Reads alone never update rows.
 
-## Flow actions
+## Seat availability
 
-Each action in the user flow is one short transaction.
-
-| Action | What the backend does |
+| State | Meaning |
 | --- | --- |
-| Reserve a seat (or "reserve any") | First close out no-shows on that seat: `set ends_at = check_in_deadline where checked_in_at is null and check_in_deadline < now()`. Then insert with `starts_at = now()`, `check_in_deadline = now() + X`, `ends_at = now() + T`. |
-| Walk-up QR scan on a free seat | Same as reserve, with `checked_in_at = now()` set in the same insert. |
-| Check in (QR scan or button) | Look up the seat by `qr_token`, verify location, set `checked_in_at = now()` on the user's pending reservation. |
-| Extend | `ends_at = ends_at + T`. The overlap constraint rejects it if someone has already queued. |
-| Queue behind the occupant | Insert with `starts_at = current.ends_at`, check\_in\_deadline = current.ends\_at + X, `ends_at = current.ends_at + T`. |
-| Start a break | Insert a break with `ends_at = now() + max break`. |
-| Return from a break | `breaks.ends_at = now()`. |
-| Check out or cancel | `ends_at = now()`. If a queued reservation is behind it, move that one's `starts_at` (and its check-in deadline) to `now()` so its owner can check in right away. |
-| No-show | Nothing runs. The view shows `no_show` once the deadline passes, and the next reserve on that seat closes the row out. |
+| `free` | No live current or upcoming booking prevents immediate use |
+| `reserved` | Current booking awaits check-in, or a future booking prevents use |
+| `occupied` | Active occupant and the next session is unavailable |
+| `on_break` | Occupant is within their break deadline |
+| `claimable` | Active occupant is in the public window with no next booking |
 
-Notifications (check-in reminder, priority window, public window, session end, seat lost) come from a job that runs every minute and finds reservations crossing those thresholds. It only needs a small sent-log so nobody gets the same push twice.
+Seat responses include `reservable_at`: now for a free seat, the occupant's end for an available next session, or null. A seat on break retains its display state while permitting a next booking during the public window. Free-seat counts count only `free` seats.
 
-## Constraints
+## Actions
 
-The database itself prevents double booking and malformed rows, so two people tapping the same seat in the same second can't both win.
+| Action | Behavior |
+| --- | --- |
+| Reserve a seat | Reserve now when free, or at the occupant's end during the public window; reject an existing live booking for the caller |
+| Reserve any | Choose a free seat in the requested space; never choose an upcoming session |
+| QR check-in | Activate the caller's pending booking, or create a checked-in walk-up booking on a free seat |
+| Extend | During the final private-priority window, add the configured session duration if no next booking exists; allowed while on break |
+| Start break | Allow one break at a time; deadline is min(session end, now + remaining allowance) |
+| Return | Set returned_at strictly before the break deadline |
+| End | Cancel or check out; release the seat and activate a next booking immediately |
+| Miss check-in | Derive no-show without a worker; persist the shortened interval on a later mutation |
+| Break expiry | End the reservation at the break deadline and derive immediate next-booking activation |
 
-```sql
-create extension if not exists btree_gist;
+For a session ending at 14:00 with default settings, only the occupant can extend between 13:40 and 13:50. From 13:50, extension and another user's next-session reservation compete. Once the next session is booked, the occupant cannot extend into it.
 
--- one reservation per seat at any moment
-alter table reservations add constraint no_seat_overlap
-  exclude using gist (seat_id with =, tstzrange(starts_at, ends_at) with &&);
+QR scans cannot check in an upcoming booking before its start or move an existing live booking to another seat. Repeated scans for the same checked-in booking are harmless. A scan after expiry may create a new walk-up booking if the seat is free; it never revives the old booking.
 
--- one seat per user at any moment
-alter table reservations add constraint no_user_overlap
-  exclude using gist (user_id with =, tstzrange(starts_at, ends_at) with &&);
+Multiple breaks share one budget. Breaks do not pause the session, and extension does not replenish the budget. At a break deadline, return is too late. Early handover starts the next user's session and check-in clock at release time, even if no API call occurs then. Notifications are deferred.
 
--- timestamps make sense
-alter table reservations add constraint sane_times check (
-  ends_at > starts_at
-  and check_in_deadline >= starts_at
-  and (checked_in_at is null or checked_in_at between starts_at and ends_at)
-);
-```
+## Constraints and transaction safety
 
-The overlap constraints have no `where` clause. They work because every ending (checkout, cancel, no-show close-out) shrinks `ends_at`, which frees the time range.
+- `btree_gist` supports exclusion constraints. Seat intervals use `[starts_at, ends_at)`.
+- User commitments use `[created_at, ends_at)` to prevent holding multiple bookings even when their future session intervals do not overlap.
+- Cancelling an upcoming booking sets `ends_at = starts_at`. Both exclusion constraints treat that as an empty interval, preserving the row while releasing the seat and user.
+- Enforce timestamp ordering, positive break budgets, valid coordinates, unique seat labels within a space, unique QR tokens, and non-overlapping break intervals ending at return or deadline.
+- Index foreign keys and user/seat lookups.
+- Serialize caller mutations with transaction-scoped advisory locks; lock affected seats in UUID order and re-evaluate the clock afterward.
+- Before mutation, persist due expirations and handovers for affected seats and stale caller bookings. Shrink the predecessor before moving its successor to avoid transient overlap.
+- Map expected booking conflicts to HTTP 409. Keep historical rows; expose no deletion endpoints.
 
-## Left out, and open questions
+## API
 
-Left out on purpose for the MVP: per-room rules, opening hours, seat features, check-in method, end reasons (handover is just a timeout), extension counts, a link from a queued reservation to the previous one (it's found by `starts_at = ends_at` on the same seat), a reports table for disputes, and a full notification queue.
+All endpoints use `/api/v1` and typed Pydantic request/response schemas.
 
-- [ ] Can people reserve for a later time (e.g. 14:00 at 11:00), or only "now" plus queueing behind the occupant?
-- [ ] Breaks: how many per session, and does a break pause `ends_at` or not? Not pausing is much simpler.
-- [ ] Is the location check needed when the QR scan already proves presence, or only for the button check-in?
-- [ ] Auth: ETH SSO, or plain email login for the demo?
-- [ ] Shape of the layout JSON (walls, tables, seat positions keyed by `seat_id`).
-- [ ] "Arrived but seat is taken": still unsolved, the app only shows who holds it.
+| Method and path | Purpose |
+| --- | --- |
+| `GET /spaces` | Map summaries and free-seat counts |
+| `GET /spaces/{space_id}` | Layout and seat availability |
+| `GET /me/reservation` | Current/upcoming booking, or null |
+| `POST /reservations` | Reserve a specific seat or any free seat in a space |
+| `POST /check-ins` | QR check-in or walk-up |
+| `POST /reservations/{reservation_id}/extend` | Extend |
+| `POST /reservations/{reservation_id}/break` | Start a break |
+| `POST /reservations/{reservation_id}/return` | Return from a break |
+| `POST /reservations/{reservation_id}/end` | Cancel or check out |
+
+Creation accepts `{kind: "seat", seat_id}` or `{kind: "any", space_id}`. Check-in accepts `{qr_token}`. Other actions require no body. Responses include server time, effective deadlines, remaining break seconds, and available actions. Public responses omit user identities and QR tokens.
+
+Authentication currently uses a configured default UUID, optionally overridden through `X-Demo-User-Id`. This is a development stub to replace with real authentication. `make seed` creates demo spaces and seats and prints QR tokens without overwriting existing data.
