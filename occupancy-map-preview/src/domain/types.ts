@@ -17,9 +17,17 @@ export type LibraryOperator = 'ETH-Bibliothek' | 'Weitere';
 
 export type SeatStatus = 'free' | 'occupied' | 'unknown';
 
+/** What kind of place a workspace is. Libraries are just one kind. */
+export type WorkspaceKind = 'library' | 'study' | 'group' | 'computer' | 'lounge' | 'other';
+
+/**
+ * A place with seats: a library, study area, group room, etc. The type and the
+ * `libraries` collection keep their original name so stored data stays compatible.
+ */
 export interface Library {
   id: string;
   name: string;
+  kind: WorkspaceKind;
   /** Postal address incl. room, if public. */
   address: string | null;
   campus: Campus;
@@ -47,6 +55,20 @@ export interface Library {
   levels: string[];
 }
 
+/** A PolyMaps room picked on the map, with what's needed to place a workspace on it. */
+export interface RoomRef {
+  /** PolyMaps unit id, e.g. "ETH.HG.H.H_030.1". */
+  id: string;
+  /** Display name, e.g. "HG H 30.1". */
+  name: string;
+  levelId: string;
+  facilityId: string;
+  floor: number;
+  /** Area in m² (0 when unknown). */
+  area: number;
+  center: LatLng;
+}
+
 export interface Table {
   id: string;
   libraryId: string;
@@ -72,6 +94,17 @@ export interface OccupancyData {
 
 /** Upper bound on vertices per library outline. */
 export const MAX_OUTLINE_VERTICES = 5_000;
+
+export const WORKSPACE_KINDS: WorkspaceKind[] = ['library', 'study', 'group', 'computer', 'lounge', 'other'];
+
+export const WORKSPACE_KIND_LABELS: Record<WorkspaceKind, string> = {
+  library: 'Library',
+  study: 'Study area',
+  group: 'Group room',
+  computer: 'Computer room',
+  lounge: 'Lounge / café',
+  other: 'Other',
+};
 
 export const CAMPUSES: Campus[] = ['Zentrum', 'Hönggerberg'];
 export const SEAT_STATUSES: SeatStatus[] = ['free', 'occupied', 'unknown'];

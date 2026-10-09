@@ -201,23 +201,38 @@ def write_libraries(units, pois, levels, facilities):
     data = json.loads(data_file.read_text(encoding="utf-8"))
     curated = {l["id"]: l for l in data["libraries"]}
 
+    unit_by_id = {u["properties"]["UNIT_ID"]: u for u in units}
     rooms = [u for u in units if u["properties"]["USE_TYPE"] == "Bibliothek"]
     room_by_name = {clean(u["properties"]["NAME"]): u for u in rooms}
     # Named library POIs (CreateType 1) are hand-placed labels; the others mark single rooms.
     labels = [p for p in pois if p["properties"]["USE_TYPE"] == "Bibliothek" and p["properties"]["CreateType"] == 1]
     room_pois = {p["properties"]["UNIT_ID"]: p for p in pois if p["properties"]["CreateType"] == 0}
 
-    groups = []  # (curated id or None, [unit])
+    groups = []  # (existing or curated id or None, [unit])
     assigned = set()
+    # Workspaces already in the data file keep their rooms, of any use type (assigned in admin mode
+    # or by an earlier run). LIBRARY_ROOMS and the spatial grouping only place rooms nobody has yet.
+    for lib in data["libraries"]:
+        members = [unit_by_id[r] for r in lib.get("rooms", []) if r in unit_by_id and r not in assigned]
+        missing = [r for r in lib.get("rooms", []) if r not in unit_by_id]
+        if missing:
+            print(f"  warning: {lib['id']}: rooms no longer in PolyMaps: {missing}", file=sys.stderr)
+        assigned.update(u["properties"]["UNIT_ID"] for u in members)
+        if members:
+            groups.append((lib["id"], members))
+    grouped = {lib_id for lib_id, _ in groups}
     for lib_id, names in LIBRARY_ROOMS.items():
+        if lib_id in grouped:
+            continue
         members = [room_by_name[n] for n in names if n in room_by_name]
         missing = [n for n in names if n not in room_by_name]
         if missing:
             print(f"  warning: {lib_id}: rooms not found: {missing}", file=sys.stderr)
-        assigned.update(id(u) for u in members)
+        members = [u for u in members if u["properties"]["UNIT_ID"] not in assigned]
+        assigned.update(u["properties"]["UNIT_ID"] for u in members)
         if members:
             groups.append((lib_id, members))
-    groups += [(None, g) for g in spatial_groups([u for u in rooms if id(u) not in assigned])]
+    groups += [(None, g) for g in spatial_groups([u for u in rooms if u["properties"]["UNIT_ID"] not in assigned])]
 
     def footprint(u):
         return sum(abs(ring_area_centroid(poly[0])[0]) for poly in polygons(u["geometry"]))
@@ -243,11 +258,17 @@ def write_libraries(units, pois, levels, facilities):
         else:
             lng, lat = ring_area_centroid(polygons(members[0]["geometry"])[0][0])[1]
         room_names = [clean(u["properties"]["NAME"]) for u in members]
-        lib_id = lib_id or "lib-" + re.sub(r"[^a-z0-9]+", "-", room_names[0].lower()).strip("-")
+        if lib_id is None:
+            # New group; its id must not clash with an existing workspace that once held this room.
+            stem = "lib-" + re.sub(r"[^a-z0-9]+", "-", room_names[0].lower()).strip("-")
+            lib_id, n = stem, 2
+            while lib_id in curated or lib_id in kept:
+                lib_id, n = f"{stem}-{n}", n + 1
         # Re-runs keep whatever was edited in admin mode; only the location comes from PolyMaps.
         base = curated.get(lib_id) or {
             "id": lib_id,
             "name": clean(label["properties"]["NAME"]) if label else f"Bibliothek {room_names[0]}",
+            "kind": "library",
             "address": None,
             "campus": "Hönggerberg" if lat > HONGGERBERG_LAT else "Zentrum",
             "operator": "Weitere",
@@ -260,6 +281,7 @@ def write_libraries(units, pois, levels, facilities):
             fac = facilities[facility_id]
             base["address"] = ", ".join(x for x in [fac["address"], ", ".join(room_names)] if x)
         libraries.append({
+            "kind": "library",
             **base,
             "position": {"lat": r6(lat), "lng": r6(lng)},
             "positionApproximate": False,
@@ -271,10 +293,10 @@ def write_libraries(units, pois, levels, facilities):
         })
         kept.add(lib_id)
 
-    # Curated libraries PolyMaps doesn't know about (other buildings) stay as they were.
+    # Workspaces PolyMaps doesn't know about (other buildings, rooms that disappeared) stay as they were.
     for lib in data["libraries"]:
-        if lib["id"] not in kept and not lib.get("rooms"):
-            libraries.append({**lib, "facilityId": lib.get("facilityId"), "levelId": lib.get("levelId"),
+        if lib["id"] not in kept:
+            libraries.append({"kind": "library", **lib, "facilityId": lib.get("facilityId"), "levelId": lib.get("levelId"),
                               "floor": lib.get("floor"), "rooms": lib.get("rooms", []), "levels": lib.get("levels", [])})
 
     ids = {l["id"] for l in libraries}

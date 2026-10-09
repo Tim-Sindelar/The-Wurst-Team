@@ -1,4 +1,4 @@
-import { CAMPUSES, MAX_OUTLINE_VERTICES, SEAT_STATUSES, type OccupancyData } from './types';
+import { CAMPUSES, MAX_OUTLINE_VERTICES, SEAT_STATUSES, WORKSPACE_KINDS, type OccupancyData } from './types';
 
 // Dependency-free structural validation. Used by the dev API before writing
 // to disk and by the client after loading, so a broken file fails loudly.
@@ -47,6 +47,7 @@ export function validateOccupancyData(input: unknown): string[] {
     if (!isObj(l) || !isStr(l.id) || !isStr(l.name)) return errors.push(`${at}: id and name required`);
     if (libraryIds.has(l.id)) errors.push(`${at}: duplicate id ${l.id}`);
     libraryIds.add(l.id);
+    if (!WORKSPACE_KINDS.includes(l.kind as never)) errors.push(`${at}: invalid kind`);
     if (!CAMPUSES.includes(l.campus as never)) errors.push(`${at}: invalid campus`);
     if (!isLatLng(l.position)) errors.push(`${at}: invalid position`);
     for (const f of ['address', 'openingHours', 'description', 'sourceUrl']) {
@@ -71,6 +72,17 @@ export function validateOccupancyData(input: unknown): string[] {
     if (!libraryIds.has(t.libraryId as string)) errors.push(`${at}: unknown libraryId`);
     if (!isLatLng(t.position)) errors.push(`${at}: invalid position`);
   });
+
+  // A room belongs to at most one workspace.
+  const roomOwner = new Map<string, string>();
+  for (const l of input.libraries as Record<string, unknown>[]) {
+    if (!Array.isArray(l.rooms)) continue;
+    for (const r of l.rooms as string[]) {
+      const owner = roomOwner.get(r);
+      if (owner && owner !== l.id) errors.push(`room ${r} is in both ${owner} and ${l.id}`);
+      roomOwner.set(r, l.id as string);
+    }
+  }
 
   const seatIds = new Set<string>();
   (input.seats as unknown[]).forEach((s, i) => {

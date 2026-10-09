@@ -198,3 +198,11 @@ select.full { width: 100%; }
 .icon-actions { display: flex; gap: 6px; }
 .note { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
 .room-swatch.room-library { background: rgba(33, 92, 175, 0.4); border-color: #215caf; }
+
+/* Room selection (admin) */
+.chip-remove { border: 0; background: none; padding: 0 0 0 6px; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; }
+.chip-remove:hover { color: var(--danger); }
+.chip.chip-picked { border-color: #b85a00; background: #fde8d3; }
+.room-swatch.room-picked { background: rgba(240, 138, 36, 0.6); border-color: #b85a00; }
+span.chip { cursor: default; }
+.row > select { flex: 1; min-width: 0; }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { LayersControl, MapContainer, Marker, Polygon, ScaleControl, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
-import type { LatLng, MultiPolygon, OccupancyData } from '../domain/types';
+import type { LatLng, MultiPolygon, OccupancyData, RoomRef } from '../domain/types';
 import { occupancyOf } from '../domain/operations';
 import type { Mode, PlacingKind, Selection } from '../state';
 import { libraryIcon, occupancyLevel, seatIcon, tableIcon, type OccupancyLevel } from './icons';
@@ -51,12 +51,16 @@ interface Props {
   onMoveSeat: (id: string, pos: LatLng) => void;
   onZoomChange: (zoom: number) => void;
   onOutlineChange: (libraryId: string, outline: MultiPolygon | null) => void;
+  /** Admin room selection mode: clicking rooms toggles them in `pickedRooms`. */
+  pickingRooms: boolean;
+  pickedRooms: ReadonlySet<string>;
+  onPickRoom: (room: RoomRef) => void;
 }
 
 const toLatLng = (ll: { lat: number; lng: number }): LatLng => ({ lat: ll.lat, lng: ll.lng });
 
 export function MapView(props: Props) {
-  const { data, mode, selection, placing, editingOutlineId } = props;
+  const { data, mode, selection, placing, editingOutlineId, pickingRooms } = props;
   const editingLibrary = data.libraries.find((l) => l.id === editingOutlineId) ?? null;
   const admin = mode === 'admin';
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
@@ -84,7 +88,7 @@ export function MapView(props: Props) {
       maxZoom={MAX_ZOOM}
       // Geoman runs in opt-in mode (see geoman.ts); the map itself must opt in.
       pmIgnore={false}
-      className={`map${placing ? ' is-placing' : ''}`}
+      className={`map${placing ? ' is-placing' : ''}${pickingRooms ? ' is-picking' : ''}`}
     >
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="OpenStreetMap">
@@ -131,6 +135,9 @@ export function MapView(props: Props) {
             libraryRooms={libraryRooms}
             selectedLibraryId={selection.libraryId}
             onSelectLibrary={(libraryId) => props.onSelect({ libraryId, tableId: null, seatId: null })}
+            picking={pickingRooms}
+            pickedRooms={props.pickedRooms}
+            onPickRoom={props.onPickRoom}
           />
           <FloorPicker index={props.floorIndex} floor={floor} libraries={data.libraries} onChange={props.onFloorChange} />
         </>
@@ -145,9 +152,11 @@ export function MapView(props: Props) {
       )}
 
       {data.libraries.map((lib) => {
-        if (!lib.outline || lib.id === editingOutlineId || !onFloor(lib)) return null;
+        // Outlines sit above the room canvas, so they are hidden while picking rooms.
+        if (!lib.outline || lib.id === editingOutlineId || pickingRooms) return null;
         const occ = occupancyOf(data, lib.id);
         const selected = selection.libraryId === lib.id;
+        const here = onFloor(lib);
         return (
           <Polygon
             key={lib.id}
@@ -155,20 +164,39 @@ export function MapView(props: Props) {
             pathOptions={{
               color: OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)],
               weight: selected ? 3 : 2,
-              fillOpacity: selected ? 0.2 : 0.1,
+              opacity: here ? 1 : 0.6,
+              dashArray: here ? undefined : '6 4',
+              fillOpacity: selected ? 0.15 : 0.06,
+              interactive: true,
+              bubblingMouseEvents: false,
             }}
             eventHandlers={{ click: () => props.onSelect({ libraryId: lib.id, tableId: null, seatId: null }) }}
-          />
+          >
+            <Tooltip sticky>
+              <strong>{lib.name}</strong>
+              <br />
+              {occ.total === 0 ? 'No seats registered' : `${occ.free} of ${occ.total} seats free`}
+              {lib.floor !== null && (
+                <>
+                  <br />
+                  <span className="muted">Floor {floorLabel(lib.floor)}{lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}</span>
+                </>
+              )}
+            </Tooltip>
+          </Polygon>
         );
       })}
 
+      {/* Icons only for libraries without an outline (otherwise unreachable) and in admin mode (for dragging). */}
       {data.libraries.map((lib) => {
+        if (lib.outline && !admin) return null;
         const occ = occupancyOf(data, lib.id);
         return (
           <Marker
             key={lib.id}
             position={[lib.position.lat, lib.position.lng]}
             icon={libraryIcon({
+              kind: lib.kind,
               free: occ.free,
               total: occ.total,
               selected: selection.libraryId === lib.id && !selection.tableId,

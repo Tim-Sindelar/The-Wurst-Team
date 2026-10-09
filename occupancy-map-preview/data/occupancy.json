@@ -5,6 +5,7 @@
     {
       "id": "lib-hauptbibliothek",
       "name": "Hauptbibliothek / Lesesaal",
+      "kind": "library",
       "address": "Rämistrasse 101, HG H 30.1, 8092 Zürich",
       "campus": "Zentrum",
       "operator": "ETH-Bibliothek",
@@ -32,6 +33,7 @@
     {
       "id": "lib-sammlungen-archive",
       "name": "Lesesaal Sammlungen und Archive",
+      "kind": "library",
       "address": "Rämistrasse 101, HG H 26, 8092 Zürich",
       "campus": "Zentrum",
       "operator": "ETH-Bibliothek",
@@ -61,6 +63,7 @@
     {
       "id": "lib-gess",
       "name": "GESS-Bibliothek",
+      "kind": "library",
       "address": "Haldeneggsteig 4, IFW B 35, 8092 Zürich",
       "campus": "Zentrum",
       "operator": "ETH-Bibliothek",
@@ -88,6 +91,7 @@
     {
       "id": "lib-gruene",
       "name": "Grüne Bibliothek",
+      "kind": "library",
       "address": "Universitätstrasse 16, 8092 Zürich",
       "campus": "Zentrum",
       "operator": "ETH-Bibliothek",
@@ -119,6 +123,7 @@
     {
       "id": "lib-informatik",
       "name": "Informatikbibliothek",
+      "kind": "library",
       "address": "Universitätstrasse 6, 8092 Zürich",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -146,6 +151,7 @@
     {
       "id": "lib-mathbib",
       "name": "Mathematik-Bibliothek (MathBib)",
+      "kind": "library",
       "address": "Rämistrasse 101, HG G 7, 8092 Zürich",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -207,6 +213,7 @@
     {
       "id": "lib-baubibliothek",
       "name": "Baubibliothek",
+      "kind": "library",
       "address": "Stefano-Franscini-Platz 5, HIL E 2, 8093 Zürich",
       "campus": "Hönggerberg",
       "operator": "ETH-Bibliothek",
@@ -238,6 +245,7 @@
     {
       "id": "lib-physik",
       "name": "Physik-Bibliothek",
+      "kind": "library",
       "address": "Wolfgang-Pauli-Strasse 27, HIT E 12, 8093 Zürich",
       "campus": "Hönggerberg",
       "operator": "Weitere",
@@ -263,6 +271,7 @@
     {
       "id": "lib-icbp",
       "name": "Informationszentrum Chemie, Biologie, Pharmazie (ICBP)",
+      "kind": "library",
       "address": "Vladimir-Prelog-Weg 10, HCI G 5, 8093 Zürich",
       "campus": "Hönggerberg",
       "operator": "Weitere",
@@ -299,6 +308,7 @@
     {
       "id": "lib-cla-j-22",
       "name": "Bibliothek CLA J 22",
+      "kind": "library",
       "address": "Tannenstrasse 3, 8092 Zürich, CLA J 22",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -324,6 +334,7 @@
     {
       "id": "lib-lfv-d-19-1",
       "name": "Bibliothek LFV D 19.1",
+      "kind": "library",
       "address": "Schmelzbergstrasse 7, 8092 Zürich, LFV D 19.1",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -349,6 +360,7 @@
     {
       "id": "lib-no-d-25-1",
       "name": "Bibliothek NO D 25.1",
+      "kind": "library",
       "address": "Sonneggstrasse 5, 8092 Zürich, NO D 25.1, NO DO 25.2",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -376,6 +388,7 @@
     {
       "id": "lib-hg-h-29-5",
       "name": "Bibliothek HG H 29.5",
+      "kind": "library",
       "address": "Rämistrasse 101, 8092 Zürich, HG H 29.5, HG H 29.3, HG H 29.7",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -403,6 +416,7 @@
     {
       "id": "lib-hg-h-20-3",
       "name": "Bibliothek HG H 20.3",
+      "kind": "library",
       "address": "Rämistrasse 101, 8092 Zürich, HG H 20.3",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -428,6 +442,7 @@
     {
       "id": "lib-hg-eo-54-1",
       "name": "Graphische Sammlung",
+      "kind": "library",
       "address": "Rämistrasse 101, 8092 Zürich, HG EO 54.1",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -453,6 +468,7 @@
     {
       "id": "lib-ml-k-37-1",
       "name": "Bibliothek ML K 37.1",
+      "kind": "library",
       "address": "Sonneggstrasse 3, 8092 Zürich, ML K 37.1",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -478,6 +494,7 @@
     {
       "id": "lib-afz",
       "name": "Bibliothek des Archivs für Zeitgeschichte (AfZ)",
+      "kind": "library",
       "address": "Hirschengraben 62, 8092 Zürich",
       "campus": "Zentrum",
       "operator": "Weitere",
@@ -499,6 +516,7 @@
     {
       "id": "lib-hdb",
       "name": "ETH-Bibliothek HDB",
+      "kind": "library",
       "address": "Hönggerbergring 37, 8093 Zürich",
       "campus": "Hönggerberg",
       "operator": "ETH-Bibliothek",
@@ -520,6 +538,7 @@
     {
       "id": "lib-selbstlernzentrum",
       "name": "Selbstlernzentrum Hönggerberg (Sprachen lernen)",
+      "kind": "library",
       "address": null,
       "campus": "Hönggerberg",
       "operator": "ETH-Bibliothek",
@@ -541,6 +560,7 @@
     {
       "id": "lib-gta",
       "name": "gta Bibliothek",
+      "kind": "library",
       "address": null,
       "campus": "Hönggerberg",
       "operator": "Weitere",

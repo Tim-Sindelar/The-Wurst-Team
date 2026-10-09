@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import type { Library, OccupancyData, Seat, Table } from '../domain/types';
-import { CAMPUSES, SEAT_STATUSES } from '../domain/types';
+import { useState, type ReactNode } from 'react';
+import type { Library, OccupancyData, RoomRef, Seat, Table, WorkspaceKind } from '../domain/types';
+import { CAMPUSES, SEAT_STATUSES, WORKSPACE_KIND_LABELS, WORKSPACE_KINDS } from '../domain/types';
 import { outlineAreaM2, seatsOfTable, tablesOf } from '../domain/operations';
 import type { PlacingKind, Selection } from '../state';
 import { floorLabel, levelName, roomName } from '../floors/floorData';
@@ -20,10 +20,18 @@ interface Props {
   onDeleteTable: (id: string) => void;
   onUpdateSeat: (id: string, patch: Partial<Seat>) => void;
   onDeleteSeat: (id: string) => void;
+  pickingRooms: boolean;
+  pickedRooms: RoomRef[];
+  onTogglePicking: () => void;
+  onUnpickRoom: (roomId: string) => void;
+  onClearPicked: () => void;
+  onAssignRooms: (libraryId: string) => void;
+  onCreateFromRooms: (kind: WorkspaceKind) => void;
+  onRemoveRoom: (libraryId: string, roomId: string) => void;
 }
 
 const PLACING_HINT: Record<PlacingKind, string> = {
-  library: 'Click on the map to place the new library.',
+  library: 'Click on the map to place the new workspace.',
   table: 'Click on the map to place a table. Zoom in for precision.',
   seat: 'Click on the map to place seats around the table. Press Esc when done.',
 };
@@ -44,11 +52,13 @@ export function AdminPanel(p: Props) {
         </div>
       )}
 
+      <RoomSelection {...p} />
+
       <section className="panel-section">
         <div className="section-head">
-          <h2>Libraries</h2>
+          <h2>Workspaces</h2>
           <button className="btn" onClick={() => p.onPlace('library')}>
-            + Library
+            + Workspace
           </button>
         </div>
         <select
@@ -60,20 +70,16 @@ export function AdminPanel(p: Props) {
           }}
         >
           <option value="" disabled>
-            Select a library…
+            Select a workspace…
           </option>
-          {data.libraries.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
+          <WorkspaceOptions libraries={data.libraries} />
         </select>
       </section>
 
       {library && (
         <section className="panel-section">
           <div className="section-head">
-            <h3>Library details</h3>
+            <h3>Workspace details</h3>
             <button
               className="btn-danger"
               onClick={() => confirm(`Delete "${library.name}" with all its tables and seats?`) && p.onDeleteLibrary(library.id)}
@@ -84,6 +90,18 @@ export function AdminPanel(p: Props) {
           <div className="form">
             <Field label="Name">
               <input value={library.name} onChange={(e) => p.onUpdateLibrary(library.id, { name: e.target.value })} />
+            </Field>
+            <Field label="Type">
+              <select
+                value={library.kind}
+                onChange={(e) => p.onUpdateLibrary(library.id, { kind: e.target.value as WorkspaceKind })}
+              >
+                {WORKSPACE_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {WORKSPACE_KIND_LABELS[k]}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label="Address">
               <input
@@ -136,12 +154,36 @@ export function AdminPanel(p: Props) {
             <Coords pos={library.position} />
             <p className="note">
               {library.rooms.length
-                ? `From PolyMaps: floor ${floorLabel(library.floor ?? 0)}${library.levelId ? ` (${levelName(library.levelId)})` : ''} · ${library.rooms.map(roomName).join(', ')}`
+                ? `From PolyMaps: floor ${floorLabel(library.floor ?? 0)}${library.levelId ? ` (${levelName(library.levelId)})` : ''}`
                 : library.floor !== null
                   ? `Shown on floor ${floorLabel(library.floor)}.`
                   : 'Not in PolyMaps: shown on every floor.'}
             </p>
           </div>
+
+          <div className="section-head sub">
+            <h3>Rooms ({library.rooms.length})</h3>
+          </div>
+          {library.rooms.length ? (
+            <ul className="table-grid">
+              {library.rooms.map((r) => (
+                <li key={r}>
+                  <span className="chip">
+                    {roomName(r)}
+                    <button
+                      className="chip-remove"
+                      title="Remove room from this workspace"
+                      onClick={() => p.onRemoveRoom(library.id, r)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="note">No rooms yet. Use "Select rooms" above to add some.</p>
+          )}
 
           <div className="section-head sub">
             <h3>Outline</h3>
@@ -250,8 +292,105 @@ export function AdminPanel(p: Props) {
       )}
 
       {!library && (
-        <p className="hint">Select a library (list or map) to edit it and register tables and seats. All pins are draggable.</p>
+        <p className="hint">Select a workspace (list or map) to edit it and register tables and seats. All pins are draggable.</p>
       )}
+    </>
+  );
+}
+
+/** Picking rooms on the map and turning them into (part of) a workspace. */
+function RoomSelection(p: Props) {
+  const { data, selection, pickedRooms } = p;
+  const [target, setTarget] = useState('');
+  const [kind, setKind] = useState<WorkspaceKind>('study');
+  const targetId = target || selection.libraryId || '';
+  const owner = new Map(data.libraries.flatMap((l) => l.rooms.map((r) => [r, l] as const)));
+  const taken = pickedRooms.filter((r) => owner.has(r.id) && owner.get(r.id)!.id !== targetId);
+  const confirmTaken = () =>
+    !taken.length ||
+    confirm(
+      `${taken.map((r) => `${r.name} (${owner.get(r.id)!.name})`).join(', ')} will be moved out of their current workspace. Continue?`,
+    );
+
+  return (
+    <section className="panel-section">
+      <div className="section-head">
+        <h2>Rooms</h2>
+        <button className={p.pickingRooms ? 'btn is-active' : 'btn'} onClick={p.onTogglePicking}>
+          {p.pickingRooms ? 'Done selecting' : 'Select rooms'}
+        </button>
+      </div>
+      {p.pickingRooms && (
+        <p className="note">
+          Click rooms on the map to select or deselect them. Zoom in to see rooms and use the floor picker to reach
+          other floors. Press Esc when done.
+        </p>
+      )}
+      {pickedRooms.length > 0 && (
+        <>
+          <ul className="table-grid">
+            {pickedRooms.map((r) => (
+              <li key={r.id}>
+                <span className="chip chip-picked">
+                  {r.name}
+                  {owner.has(r.id) && <span className="muted"> · {owner.get(r.id)!.name}</span>}
+                  <button className="chip-remove" title="Deselect" onClick={() => p.onUnpickRoom(r.id)}>
+                    ×
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="form">
+            <div className="row">
+              <select value={targetId} onChange={(e) => setTarget(e.target.value)} aria-label="Target workspace">
+                <option value="" disabled>
+                  Add to workspace…
+                </option>
+                <WorkspaceOptions libraries={data.libraries} />
+              </select>
+              <button className="btn" disabled={!targetId} onClick={() => confirmTaken() && p.onAssignRooms(targetId)}>
+                Add
+              </button>
+            </div>
+            <div className="row">
+              <select value={kind} onChange={(e) => setKind(e.target.value as WorkspaceKind)} aria-label="New workspace type">
+                {WORKSPACE_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    New {WORKSPACE_KIND_LABELS[k].toLowerCase()}
+                  </option>
+                ))}
+              </select>
+              <button className="btn" onClick={() => confirmTaken() && p.onCreateFromRooms(kind)}>
+                Create
+              </button>
+            </div>
+            <button className="btn-ghost" onClick={p.onClearPicked}>
+              Clear selection ({pickedRooms.length})
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+/** Workspaces grouped by type, for <select>s. */
+function WorkspaceOptions({ libraries }: { libraries: Library[] }) {
+  return (
+    <>
+      {WORKSPACE_KINDS.map((k) => {
+        const list = libraries.filter((l) => l.kind === k);
+        return list.length ? (
+          <optgroup key={k} label={WORKSPACE_KIND_LABELS[k]}>
+            {list.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </optgroup>
+        ) : null;
+      })}
     </>
   );
 }

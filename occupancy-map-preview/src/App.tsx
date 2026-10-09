@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Library, OccupancyData } from './domain/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Library, OccupancyData, RoomRef } from './domain/types';
 import * as ops from './domain/operations';
 import { repository } from './data/repository';
 import { DETAIL_ZOOM, MapView, type FlyTarget } from './map/MapView';
@@ -18,6 +18,9 @@ export default function App() {
   const [selection, setSelection] = useState<Selection>(EMPTY_SELECTION);
   const [placing, setPlacing] = useState<PlacingKind | null>(null);
   const [editingOutlineId, setEditingOutlineId] = useState<string | null>(null);
+  const [pickingRooms, setPickingRooms] = useState(false);
+  const [pickedRooms, setPickedRooms] = useState<RoomRef[]>([]);
+  const pickedIds = useMemo(() => new Set(pickedRooms.map((r) => r.id)), [pickedRooms]);
   const [flyTarget, setFlyTarget] = useState<FlyTarget | null>(null);
   const [zoom, setZoom] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -33,9 +36,13 @@ export default function App() {
     loadFloorIndex().then(setFloorIndex, (err) => console.warn('Floor plans unavailable', err));
   }, []);
 
-  // Esc cancels placement mode.
+  // Esc cancels placement and room selection mode (the selected rooms are kept).
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPlacing(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setPlacing(null);
+      setPickingRooms(false);
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
@@ -77,6 +84,16 @@ export default function App() {
     setMode(m);
     setPlacing(null);
     setEditingOutlineId(null);
+    setPickingRooms(false);
+  };
+
+  const togglePickedRoom = (room: RoomRef) =>
+    setPickedRooms((prev) => (prev.some((r) => r.id === room.id) ? prev.filter((r) => r.id !== room.id) : [...prev, room]));
+
+  const finishRoomAssignment = (libraryId: string) => {
+    setPickedRooms([]);
+    setPickingRooms(false);
+    setSelection({ libraryId, tableId: null, seatId: null });
   };
 
   const handleMapClick = (pos: { lat: number; lng: number }) => {
@@ -112,9 +129,9 @@ export default function App() {
       <aside className="panel">
         <header className="panel-header">
           <div>
-            <h1>ETH Library Occupancy</h1>
+            <h1>ETH Workspace Occupancy</h1>
             <p className="muted">
-              {data.libraries.length} libraries · {totals.free}/{totals.total} seats free
+              {data.libraries.length} workspaces · {totals.free}/{totals.total} seats free
             </p>
           </div>
           <div className="mode-toggle" role="radiogroup" aria-label="Mode">
@@ -150,11 +167,32 @@ export default function App() {
               onPlace={(kind) => {
                 setPlacing(kind);
                 setEditingOutlineId(null);
+                setPickingRooms(false);
               }}
               onToggleOutline={() => {
                 setPlacing(null);
+                setPickingRooms(false);
                 setEditingOutlineId(editingOutlineId ? null : selection.libraryId);
               }}
+              pickingRooms={pickingRooms}
+              pickedRooms={pickedRooms}
+              onTogglePicking={() => {
+                setPlacing(null);
+                setEditingOutlineId(null);
+                setPickingRooms(!pickingRooms);
+              }}
+              onUnpickRoom={(id) => setPickedRooms(pickedRooms.filter((r) => r.id !== id))}
+              onClearPicked={() => setPickedRooms([])}
+              onAssignRooms={(libraryId) => {
+                commit(ops.assignRooms(data, libraryId, pickedRooms));
+                finishRoomAssignment(libraryId);
+              }}
+              onCreateFromRooms={(kind) => {
+                const [next, lib] = ops.addLibraryFromRooms(data, pickedRooms, kind);
+                commit(next);
+                finishRoomAssignment(lib.id);
+              }}
+              onRemoveRoom={(libraryId, roomId) => commit(ops.removeRoom(data, libraryId, roomId))}
               onSelectLibrary={selectLibrary}
               onSelect={setSelection}
               onUpdateLibrary={(id, patch) => commit(ops.updateLibrary(data, id, patch))}
@@ -183,7 +221,10 @@ export default function App() {
           <span><i className="seat-dot seat-occupied" /> occupied</span>
           <span><i className="seat-dot seat-unknown" /> unknown</span>
           {floorIndex && (
-            <span><i className="room-swatch room-library" /> library room</span>
+            <span><i className="room-swatch room-library" /> workspace room</span>
+          )}
+          {mode === 'admin' && pickedRooms.length > 0 && (
+            <span><i className="room-swatch room-picked" /> selected room</span>
           )}
           {zoom < DETAIL_ZOOM && <span className="muted">Zoom in to see rooms, tables &amp; seats</span>}
         </footer>
@@ -213,6 +254,9 @@ export default function App() {
           onMoveSeat={(id, pos) => commit(ops.updateSeat(data, id, { position: pos }))}
           onZoomChange={setZoom}
           onOutlineChange={(id, outline) => commit(ops.updateLibrary(data, id, { outline }))}
+          pickingRooms={mode === 'admin' && pickingRooms}
+          pickedRooms={pickedIds}
+          onPickRoom={togglePickedRoom}
         />
       </main>
     </div>

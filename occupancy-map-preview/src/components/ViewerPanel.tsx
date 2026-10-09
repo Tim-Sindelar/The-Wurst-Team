@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { Campus, Library, OccupancyData } from '../domain/types';
-import { CAMPUSES } from '../domain/types';
+import type { Campus, Library, OccupancyData, WorkspaceKind } from '../domain/types';
+import { CAMPUSES, WORKSPACE_KIND_LABELS, WORKSPACE_KINDS } from '../domain/types';
 import { occupancyOf, seatsOfTable, tablesOf } from '../domain/operations';
 import type { Selection } from '../state';
 import { OccupancyBar } from './OccupancyBar';
@@ -15,8 +15,12 @@ interface Props {
 
 export function ViewerPanel({ data, selection, onSelectLibrary, onSelectTable }: Props) {
   const [campus, setCampus] = useState<Campus | 'all'>('all');
+  const [kind, setKind] = useState<WorkspaceKind | 'all'>('all');
   const selected = data.libraries.find((l) => l.id === selection.libraryId) ?? null;
-  const libraries = data.libraries.filter((l) => campus === 'all' || l.campus === campus);
+  const libraries = data.libraries.filter(
+    (l) => (campus === 'all' || l.campus === campus) && (kind === 'all' || l.kind === kind),
+  );
+  const kinds = WORKSPACE_KINDS.filter((k) => data.libraries.some((l) => l.kind === k));
 
   return (
     <>
@@ -24,15 +28,27 @@ export function ViewerPanel({ data, selection, onSelectLibrary, onSelectTable }:
 
       <section className="panel-section">
         <div className="section-head">
-          <h2>Libraries</h2>
-          <select value={campus} onChange={(e) => setCampus(e.target.value as Campus | 'all')} aria-label="Campus filter">
-            <option value="all">All campuses</option>
-            {CAMPUSES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+          <h2>Workspaces</h2>
+          <div className="icon-actions">
+            {kinds.length > 1 && (
+              <select value={kind} onChange={(e) => setKind(e.target.value as WorkspaceKind | 'all')} aria-label="Type filter">
+                <option value="all">All types</option>
+                {kinds.map((k) => (
+                  <option key={k} value={k}>
+                    {WORKSPACE_KIND_LABELS[k]}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select value={campus} onChange={(e) => setCampus(e.target.value as Campus | 'all')} aria-label="Campus filter">
+              <option value="all">All campuses</option>
+              {CAMPUSES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <ul className="list">
           {libraries.map((lib) => {
@@ -45,6 +61,7 @@ export function ViewerPanel({ data, selection, onSelectLibrary, onSelectTable }:
                 >
                   <span className="list-title">{lib.name}</span>
                   <span className="list-meta">
+                    {lib.kind !== 'library' && `${WORKSPACE_KIND_LABELS[lib.kind]} · `}
                     {lib.campus}
                     {lib.floor !== null && ` · ${floorLabel(lib.floor)}`}
                   </span>
@@ -76,6 +93,8 @@ function LibraryDetails({
     <section className="panel-section details">
       <h2>{library.name}</h2>
       <dl>
+        <dt>Type</dt>
+        <dd>{WORKSPACE_KIND_LABELS[library.kind]}</dd>
         <dt>Address</dt>
         <dd>{library.address ?? 'not published'}</dd>
         {library.floor !== null && (

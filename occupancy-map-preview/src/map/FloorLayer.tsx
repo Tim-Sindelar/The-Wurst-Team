@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { useMap, useMapEvents } from 'react-leaflet';
-import { intersects, loadLevel, type FloorIndex, type LevelPlan, type LineLayer, type RoomKind } from '../floors/floorData';
+import { intersects, loadLevel, type FloorIndex, type LevelPlan, type LineLayer, type Room, type RoomKind } from '../floors/floorData';
+import type { RoomRef } from '../domain/types';
 import { outlineToLatLngs } from './geo';
 
 /** Rooms are drawn from this zoom level on, walls and doors from LINE_ZOOM. */
@@ -39,6 +40,16 @@ interface Props {
   libraryRooms: Map<string, string>;
   selectedLibraryId: string | null;
   onSelectLibrary: (libraryId: string) => void;
+  /** Room selection mode (admin): clicking any room toggles it instead of selecting its workspace. */
+  picking: boolean;
+  pickedRooms: ReadonlySet<string>;
+  onPickRoom: (room: RoomRef) => void;
+}
+
+interface RoomLayer {
+  poly: L.Polygon;
+  kind: RoomKind;
+  libraryId: string | null;
 }
 
 /**
@@ -47,7 +58,7 @@ interface Props {
  * use, library rooms highlighted) plus walls, doors and stairs. Level files
  * are loaded lazily for the levels in view.
  */
-export function FloorLayer({ index, floor, libraryRooms, selectedLibraryId, onSelectLibrary }: Props) {
+export function FloorLayer({ index, floor, libraryRooms, selectedLibraryId, onSelectLibrary, picking, pickedRooms, onPickRoom }: Props) {
   const map = useMap();
   const [view, setView] = useState(() => ({ bounds: map.getBounds(), zoom: map.getZoom() }));
   useMapEvents({ moveend: () => setView({ bounds: map.getBounds(), zoom: map.getZoom() }) });
@@ -127,21 +138,23 @@ export function FloorLayer({ index, floor, libraryRooms, selectedLibraryId, onSe
   }, [visibleKey]);
 
   // Callbacks change every render; the layers read them through a ref.
-  const selectRef = useRef(onSelectLibrary);
-  selectRef.current = onSelectLibrary;
+  const handlers = useRef({ onSelectLibrary, onPickRoom, picking });
+  handlers.current = { onSelectLibrary, onPickRoom, picking };
+  const levelsById = useMemo(() => new Map(index.levels.map((l) => [l.id, l])), [index]);
 
-  const libraryRoomLayers = useRef(new Map<string, L.Polygon[]>());
+  const roomLayers = useRef(new Map<string, RoomLayer>());
   useEffect(() => {
     const roomGroup = L.layerGroup().addTo(map);
-    libraryRoomLayers.current = new Map();
+    roomLayers.current = new Map();
     for (const id of visibleIds) {
       const plan = plans.get(id);
-      if (!plan) continue;
+      const level = levelsById.get(id);
+      if (!plan || !level) continue;
       for (const room of plan.rooms) {
-        const libraryId = libraryRooms.get(room.id);
+        const libraryId = libraryRooms.get(room.id) ?? null;
         const poly = L.polygon(room.rings, {
           renderer: renderers.rooms,
-          ...roomStyle(room.kind, libraryId ?? null, selectedLibraryId),
+          ...roomStyle(room.kind, libraryId, selectedLibraryId, pickedRooms.has(room.id)),
         });
         const title = room.label && room.label !== room.name ? `${room.label} · ${room.name}` : room.name;
         poly.bindTooltip(`<strong>${escapeHtml(title)}</strong><br>${escapeHtml(room.use || 'Raum')}${room.area ? ` · ${room.area} m²` : ''}`, {
@@ -149,24 +162,36 @@ export function FloorLayer({ index, floor, libraryRooms, selectedLibraryId, onSe
           direction: 'top',
           offset: [0, -6],
         });
-        if (libraryId) {
-          poly.on('click', () => selectRef.current(libraryId));
-          const list = libraryRoomLayers.current.get(libraryId) ?? [];
-          list.push(poly);
-          libraryRoomLayers.current.set(libraryId, list);
-        }
+        poly.on('click', (e) => {
+          const h = handlers.current;
+          if (h.picking) {
+            L.DomEvent.stop(e);
+            h.onPickRoom({
+              id: room.id,
+              name: room.name,
+              levelId: level.id,
+              facilityId: level.facilityId,
+              floor: level.floor,
+              area: room.area,
+              center: roomCenter(room),
+            });
+          } else if (libraryId) {
+            h.onSelectLibrary(libraryId);
+          }
+        });
+        roomLayers.current.set(room.id, { poly, kind: room.kind, libraryId });
         roomGroup.addLayer(poly);
       }
     }
     return () => void roomGroup.remove();
     // Selection changes are applied by restyling below instead of rebuilding.
-  }, [map, renderers, plans, visibleKey, libraryRooms]);
+  }, [map, renderers, plans, visibleKey, libraryRooms, levelsById]);
 
   useEffect(() => {
-    for (const [libraryId, polys] of libraryRoomLayers.current) {
-      for (const p of polys) p.setStyle(roomStyle('library', libraryId, selectedLibraryId));
+    for (const [roomId, { poly, kind, libraryId }] of roomLayers.current) {
+      poly.setStyle(roomStyle(kind, libraryId, selectedLibraryId, pickedRooms.has(roomId)));
     }
-  }, [selectedLibraryId, plans, visibleKey, libraryRooms]);
+  }, [selectedLibraryId, pickedRooms, plans, visibleKey, libraryRooms]);
 
   const showLines = view.zoom >= LINE_ZOOM;
   useEffect(() => {
@@ -185,12 +210,36 @@ export function FloorLayer({ index, floor, libraryRooms, selectedLibraryId, onSe
   return null;
 }
 
-function roomStyle(kind: RoomKind, libraryId: string | null, selectedLibraryId: string | null): L.PathOptions {
+function roomStyle(kind: RoomKind, libraryId: string | null, selectedLibraryId: string | null, picked: boolean): L.PathOptions {
+  if (picked) return { color: '#b85a00', weight: 2.5, fillColor: '#f08a24', fillOpacity: 0.6 };
   if (libraryId) {
     const selected = libraryId === selectedLibraryId;
     return { color: '#215caf', weight: selected ? 2.5 : 1.2, fillColor: '#215caf', fillOpacity: selected ? 0.5 : 0.3 };
   }
   return { color: '#b4bcc7', weight: 0.6, fillColor: ROOM_FILL[kind], fillOpacity: 0.85 };
+}
+
+/** Area-weighted centroid of the room's largest polygon (outer ring), as a map position. */
+function roomCenter(room: Room): RoomRef['center'] {
+  let best = { area: -1, lat: 0, lng: 0 };
+  for (const [outer] of room.rings) {
+    let a = 0, cx = 0, cy = 0;
+    for (let i = 0; i < outer.length; i++) {
+      const [y0, x0] = outer[i];
+      const [y1, x1] = outer[(i + 1) % outer.length];
+      const f = x0 * y1 - x1 * y0;
+      a += f;
+      cx += (x0 + x1) * f;
+      cy += (y0 + y1) * f;
+    }
+    const area = Math.abs(a / 2);
+    if (area > best.area) {
+      best = area > 1e-14
+        ? { area, lat: cy / (3 * a), lng: cx / (3 * a) }
+        : { area, lat: outer.reduce((s, p) => s + p[0], 0) / outer.length, lng: outer.reduce((s, p) => s + p[1], 0) / outer.length };
+    }
+  }
+  return { lat: +best.lat.toFixed(7), lng: +best.lng.toFixed(7) };
 }
 
 function escapeHtml(s: string) {

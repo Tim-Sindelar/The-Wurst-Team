@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import type { SeatStatus } from '../domain/types';
+import type { SeatStatus, WorkspaceKind } from '../domain/types';
 
 export type OccupancyLevel = 'none' | 'ok' | 'low' | 'full';
 
@@ -22,7 +22,12 @@ function cached(key: string, make: () => L.DivIcon) {
 const BOOK_SVG =
   '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5a1 1 0 0 0 0 2H20v2H6.5A2.5 2.5 0 0 1 4 19.5zM8 6v2h8V6z"/></svg>';
 
+// Desk with a chair, for workspaces that aren't libraries.
+const DESK_SVG =
+  '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M2 7h20v3h-2v9h-2v-9H6v9H4v-9H2zm7 5h6v2h-2v5h-2v-5H9z"/></svg>';
+
 export function libraryIcon(opts: {
+  kind: WorkspaceKind;
   free: number;
   total: number;
   selected: boolean;
@@ -30,16 +35,17 @@ export function libraryIcon(opts: {
   /** Floor label shown when the library is on another floor than the one displayed. */
   otherFloor: string | null;
 }) {
-  const { free, total, selected, approximate, otherFloor } = opts;
+  const { kind, free, total, selected, approximate, otherFloor } = opts;
   const level = occupancyLevel(free, total);
-  const key = `lib|${free}|${total}|${selected}|${approximate}|${otherFloor}`;
+  const glyph = kind === 'library' ? BOOK_SVG : DESK_SVG;
+  const key = `lib|${glyph === BOOK_SVG}|${free}|${total}|${selected}|${approximate}|${otherFloor}`;
   const classes = ['lib-pin', `lib-${level}`, selected && 'is-selected', approximate && 'is-approx', otherFloor && 'is-other-floor'];
   return cached(key, () =>
     L.divIcon({
       className: '',
       html: `<div class="${classes.filter(Boolean).join(' ')}">
                <span class="lib-shape"></span>
-               <span class="lib-book">${BOOK_SVG}</span>
+               <span class="lib-book">${glyph}</span>
                ${total > 0 ? `<span class="lib-count">${free}</span>` : ''}
                ${otherFloor ? `<span class="lib-floor">${escapeHtml(otherFloor)}</span>` : ''}
              </div>`,
