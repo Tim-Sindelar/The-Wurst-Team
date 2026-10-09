@@ -35,7 +35,7 @@ Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend
 ## Environment
 
 Compose supplies the database connection and CORS environment automatically. Its fixed credentials are for local development.
-It also loads `backend/.env` when present. Copy `backend/.env.example` there to override reservation rules or dummy identity settings, then run `make backend` to recreate the backend with the new environment.
+It defaults to demo authentication and loads `backend/.env` when present. Copy `backend/.env.example` there to override reservation rules or dummy identity settings, then run `make backend` to recreate the backend with the new environment.
 PostgreSQL data persists in the `postgres_data` volume. Stop the environment with `docker compose down`.
 
 For a backend running outside Docker, copy `backend/.env.example` to `backend/.env`, start the database with `docker compose up -d db`, then run:
@@ -75,7 +75,7 @@ Repository development rules are in [AGENTS.md](AGENTS.md).
 
 ## Database migrations
 
-The reservation feature defines study spaces, seats, reservations, and breaks. Domain code lives under `backend/app/features/reservations/`, with models, Pydantic schemas, routes, transaction logic, and demo seeding kept together. Shared configuration, database sessions, dummy authentication, and health endpoints remain under `backend/app/`.
+The reservation feature defines study spaces, seats, reservations, and breaks. Domain code lives under `backend/app/features/reservations/`, with models, Pydantic schemas, routes, transaction logic, and demo seeding kept together. Shared configuration, database sessions, authentication, and health endpoints remain under `backend/app/`.
 
 Define feature models inheriting from `app.database.Base` and import them in `backend/app/models/__init__.py` so Alembic discovers them. Create and review a migration:
 
@@ -102,7 +102,11 @@ Use http://localhost:8000/docs to explore the API. `POST /api/v1/reservations` a
 
 `GET /api/v1/me/reservation` returns the current or upcoming booking, effective deadlines, remaining break allowance, and available actions. Its `reservation` is null when there is no live booking. Reservation actions are `POST /api/v1/reservations/{id}/extend`, `/break`, `/return`, and `/end`. Space endpoints expose availability without returning user identities or QR tokens.
 
-Authentication is a development stub. Requests use `DUMMY_USER_ID` by default; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. This stub does not authenticate users and must be replaced before public deployment.
+Authentication defaults to `AUTH_MODE=proxy`: the trusted `X-User-Id` email maps to a stable UUIDv5 using a fixed application namespace. Missing or empty identity returns 401 on user-specific endpoints; demo headers are ignored. Do not change the namespace, as that would change reservation ownership. No users table or custom login is needed.
+
+Local Compose and `backend/.env.example` enable `AUTH_MODE=demo`. In this development-only mode, requests use `DUMMY_USER_ID`; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. To use proxy mode with Compose, run `AUTH_MODE=proxy docker compose up -d` (the service environment takes precedence over `backend/.env`).
+
+Proxy mode is safe only behind the authenticated hackathon managed address: keep access control enabled and direct public app/backend access blocked, otherwise clients can forge the identity header.
 
 Timing rules live in `backend/app/config.py` and can be overridden in `backend/.env`:
 

@@ -1,25 +1,24 @@
-"""Temporary demo identity. Replace get_current_user when real auth is introduced."""
+from typing import Annotated
+from uuid import UUID, uuid5
 
-from uuid import UUID
+from fastapi import Depends, HTTPException, Request
 
-from fastapi import HTTPException, Request
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
+from app.config import Settings, get_settings
 
-from app.config import get_settings
-
-
-class DummyAuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        settings = get_settings()
-        request.state.user_id = str(settings.dummy_user_id)
-        if settings.dummy_auth_allow_header:
-            request.state.user_id = request.headers.get("X-Demo-User-Id", request.state.user_id)
-        return await call_next(request)
+USER_NAMESPACE = UUID("f3e45c1d-fc27-4dfc-b84d-463bc5637f35")
 
 
-def get_current_user(request: Request) -> UUID:
+def get_current_user(
+    request: Request, settings: Annotated[Settings, Depends(get_settings)]
+) -> UUID:
+    if settings.auth_mode == "proxy":
+        email = request.headers.get("X-User-Id", "").strip()
+        if not email:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        return uuid5(USER_NAMESPACE, email)
+    if not settings.dummy_auth_allow_header:
+        return settings.dummy_user_id
     try:
-        return UUID(request.state.user_id)
+        return UUID(request.headers.get("X-Demo-User-Id", str(settings.dummy_user_id)))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="X-Demo-User-Id must be a UUID") from exc
