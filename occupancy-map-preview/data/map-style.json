@@ -6,9 +6,9 @@
       "workspaces": {
         "show": true,
         "color": "#215caf",
-        "weight": 2.5,
+        "weight": 1.4,
         "opacity": 1,
-        "fill": 0.12,
+        "fill": 0,
         "fillColor": "#215caf"
       },
       "libraryRooms": {
@@ -78,7 +78,11 @@
     "occupancyColors": true,
     "cornerRadius": 0,
     "simplify": 0,
-    "roundJoins": true
+    "roundJoins": true,
+    "highlightWidth": 0.5,
+    "highlightFill": 0.2,
+    "highlightCustomColor": false,
+    "highlightColor": "#e8590c"
   },
   "dark": {
     "basemapLabels": false,
@@ -158,6 +162,10 @@
     "occupancyColors": true,
     "cornerRadius": 0,
     "simplify": 1,
-    "roundJoins": true
+    "roundJoins": true,
+    "highlightWidth": 1,
+    "highlightFill": 0.15,
+    "highlightCustomColor": false,
+    "highlightColor": "#ffa94d"
   }
 }

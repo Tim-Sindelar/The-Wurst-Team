@@ -140,6 +140,25 @@ export function RenderControls({ theme, mode, onModeChange, style, onStyleChange
           </section>
 
           <section>
+            <h3>Workspace highlight <span className="muted">({theme} theme)</span></h3>
+            <Slider label="Extra width" min={0} max={6} step={0.25} value={style.highlightWidth} unit="px" onChange={(v) => set({ highlightWidth: v })} />
+            <Slider label="Extra fill" min={0} max={0.8} step={0.05} value={style.highlightFill} onChange={(v) => set({ highlightFill: v })} />
+            <div className="part-head">
+              <label className="check">
+                <input type="checkbox" checked={style.highlightCustomColor} onChange={(e) => set({ highlightCustomColor: e.target.checked })} />
+                Custom color
+              </label>
+              <input
+                type="color"
+                aria-label="Highlight color"
+                value={style.highlightColor}
+                disabled={!style.highlightCustomColor}
+                onChange={(e) => set({ highlightColor: e.target.value })}
+              />
+            </div>
+          </section>
+
+          <section>
             <h3>Geometry</h3>
             <Slider label="Corner radius" min={0} max={3} step={0.1} value={style.cornerRadius} unit="m" onChange={(v) => set({ cornerRadius: v })} />
             <Slider label="Simplify" min={0} max={5} step={0.25} value={style.simplify} unit="px" onChange={(v) => set({ simplify: v })} />

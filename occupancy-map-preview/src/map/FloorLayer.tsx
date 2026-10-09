@@ -311,7 +311,13 @@ function roomStyle(
       const style = partPathOptions(minimal, 'libraryRooms');
       // No per-room border: the workspace outline marks the edge of the whole.
       if (libraryId !== selectedLibraryId) return { ...style, stroke: false };
-      return { ...style, stroke: false, fill: true, fillOpacity: Math.min(1, lib.fill + 0.25) };
+      return {
+        ...style,
+        stroke: false,
+        fill: true,
+        fillColor: minimal.highlightCustomColor ? minimal.highlightColor : style.fillColor,
+        fillOpacity: Math.min(1, lib.fill + minimal.highlightFill + 0.13),
+      };
     }
     if (!libraryId && minimal.parts.rooms.show && minimal.roomKinds.includes(kind)) return partPathOptions(minimal, 'rooms');
     // Hidden rooms stay on the canvas, invisible, so tooltips, clicks and picking keep working;

@@ -38,6 +38,13 @@ export interface MinimalStyle {
   simplify: number;
   /** Round stroke joins and caps. */
   roundJoins: boolean;
+  /** Selected workspace: extra stroke width in px. */
+  highlightWidth: number;
+  /** Selected workspace: extra fill opacity. */
+  highlightFill: number;
+  /** Selected workspace: use `highlightColor` instead of the normal color. */
+  highlightCustomColor: boolean;
+  highlightColor: string;
 }
 
 export const PART_LABELS: Record<PartKey, { label: string; polygon: boolean }> = {
@@ -77,6 +84,10 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
     cornerRadius: 0,
     simplify: 1,
     roundJoins: true,
+    highlightWidth: 1,
+    highlightFill: 0.12,
+    highlightCustomColor: false,
+    highlightColor: '#e8590c',
   },
   dark: {
     basemapLabels: false,
@@ -96,6 +107,10 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
     cornerRadius: 0,
     simplify: 1,
     roundJoins: true,
+    highlightWidth: 1,
+    highlightFill: 0.15,
+    highlightCustomColor: false,
+    highlightColor: '#ffa94d',
   },
 };
 

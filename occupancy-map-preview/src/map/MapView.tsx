@@ -197,7 +197,6 @@ export function MapView(props: Props) {
         if (lib.id === editingOutlineId || pickingRooms || (minimal && !minimal.parts.workspaces.show)) return null;
         const occ = occupancyOf(data, lib.id);
         const selected = selection.libraryId === lib.id;
-        const here = onFloor(lib);
         const occColor = OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
         const ws = minimal?.parts.workspaces;
         return (
@@ -208,13 +207,14 @@ export function MapView(props: Props) {
               minimal && ws
                 ? {
                     ...partPathOptions(minimal, 'workspaces'),
-                    color: minimal.occupancyColors ? occColor : ws.color,
-                    fillColor: minimal.occupancyColors ? occColor : ws.fillColor,
+                    color: selected && minimal.highlightCustomColor ? minimal.highlightColor : minimal.occupancyColors ? occColor : ws.color,
+                    fillColor: selected && minimal.highlightCustomColor ? minimal.highlightColor : minimal.occupancyColors ? occColor : ws.fillColor,
                     fill: true,
-                    weight: selected ? ws.weight + 1 : ws.weight,
-                    opacity: here ? ws.opacity : ws.opacity * 0.7,
-                    dashArray: here ? undefined : '6 4',
-                    fillOpacity: selected ? Math.min(1, ws.fill + 0.12) : ws.fill,
+                    weight: selected ? ws.weight + minimal.highlightWidth : ws.weight,
+                    // Same look on every floor.
+                    opacity: ws.opacity,
+                    dashArray: undefined,
+                    fillOpacity: selected ? Math.min(1, ws.fill + minimal.highlightFill) : ws.fill,
                     interactive: true,
                     bubblingMouseEvents: false,
                   }
@@ -226,8 +226,8 @@ export function MapView(props: Props) {
                     color: occColor,
                     fillColor: occColor,
                     weight: selected ? 3.5 : 2.5,
-                    opacity: here ? 1 : 0.7,
-                    dashArray: here ? undefined : '6 4',
+                    opacity: 0.7,
+                    dashArray: undefined,
                     fillOpacity: selected ? 0.22 : 0.1,
                     interactive: true,
                     bubblingMouseEvents: false,
