@@ -9,9 +9,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.auth import DummyAuthMiddleware
+from app.auth import DummyAdminMiddleware, DummyAuthMiddleware
 from app.config import get_settings
 from app.database import engine, get_session
+from app.features.reservations.admin_router import router as admin_router
+from app.features.reservations.admin_service import AdminConflict
 from app.features.reservations.router import router
 from app.features.reservations.schemas import BookingErrorResponse
 from app.features.reservations.service import BookingError
@@ -26,6 +28,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="The Wurst Team API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(DummyAuthMiddleware)
+app.add_middleware(DummyAdminMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
@@ -34,6 +37,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+app.include_router(admin_router)
+
+
+@app.exception_handler(AdminConflict)
+async def handle_admin_conflict(request: Request, exc: AdminConflict) -> JSONResponse:
+    return JSONResponse(status_code=409, content=exc.response.model_dump(mode="json"))
 
 
 @app.exception_handler(BookingError)
@@ -44,6 +53,14 @@ async def handle_booking_error(request: Request, exc: BookingError) -> JSONRespo
 
 @app.exception_handler(IntegrityError)
 async def handle_booking_conflict(request: Request, exc: IntegrityError) -> JSONResponse:
+    if (
+        getattr(exc.orig, "sqlstate", None) == "23505"
+        and getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
+        == "unique_space_seat_label"
+    ):
+        return await handle_booking_error(
+            request, BookingError(409, "duplicate_seat_label", "Seat label already exists in room")
+        )
     if getattr(exc.orig, "sqlstate", None) != "23P01":
         raise exc
     error = BookingError(409, "booking_conflict", "Availability changed; refresh and try again")

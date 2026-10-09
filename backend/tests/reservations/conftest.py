@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.database import get_session
-from app.features.reservations.models import Seat, StudySpace
+from app.features.reservations.models import Seat, SpaceOpeningInterval, StudySpace
 from app.features.reservations.service import ReservationService
 from app.main import app
 
@@ -57,6 +57,13 @@ def seats(db: Engine) -> list[Seat]:
         empty = StudySpace(name="Empty test room", lat=47.4, lng=8.5)
         session.add_all([space, empty])
         session.flush()
+        session.add_all(
+            [
+                SpaceOpeningInterval(space_id=room.id, weekday=day, start_minute=0, end_minute=1440)
+                for room in (space, empty)
+                for day in range(7)
+            ]
+        )
         seats = [
             Seat(space_id=space.id, label=f"A-{index}", qr_token=uuid4().hex)
             for index in range(1, 4)

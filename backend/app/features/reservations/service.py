@@ -10,11 +10,18 @@ from sqlalchemy import bindparam, func, select, text
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.features.reservations.models import Break, Reservation, Seat, StudySpace
+from app.features.reservations.models import (
+    Break,
+    Reservation,
+    Seat,
+    SpaceOpeningInterval,
+    StudySpace,
+)
 from app.features.reservations.schemas import (
     CreateReservationRequest,
     CurrentBreak,
     MyReservationResponse,
+    OpeningInterval,
     ReservationAction,
     ReservationDetails,
     ReservationResponse,
@@ -95,6 +102,24 @@ class ReservationService:
         # Unlike transaction_timestamp(), this advances while waiting for locks.
         return self.session.scalar(select(func.clock_timestamp()))
 
+    def reservable_end(
+        self, seat_id: UUID, starts_at: datetime, ends_at: datetime
+    ) -> datetime | None:
+        return self.session.scalar(
+            select(func.seat_reservation_end_at(seat_id, starts_at, ends_at))
+        )
+
+    def is_open(self, space_id: UUID, now: datetime) -> bool:
+        return self.session.scalar(select(func.space_is_open_at(space_id, now)))
+
+    def opening_hours(self, space_id: UUID) -> list[OpeningInterval]:
+        rows = self.session.scalars(
+            select(SpaceOpeningInterval)
+            .where(SpaceOpeningInterval.space_id == space_id)
+            .order_by(SpaceOpeningInterval.weekday, SpaceOpeningInterval.start_minute)
+        ).all()
+        return [OpeningInterval.model_validate(row) for row in rows]
+
     def _live(self, now: datetime, **filters) -> list[ReservationState]:
         return reservation_states(self.session, now, live_only=True, **filters)
 
@@ -135,6 +160,16 @@ class ReservationService:
         ).all()
         affected_seats = sorted(set(seat_ids) | set(user_seats))
         if affected_seats:
+            room_ids = self.session.scalars(
+                select(Seat.space_id).where(Seat.id.in_(affected_seats))
+            ).all()
+            self.session.scalars(
+                select(StudySpace)
+                .where(StudySpace.id.in_(set(room_ids)))
+                .order_by(StudySpace.id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            ).all()
             self.session.scalars(
                 select(Seat)
                 .where(Seat.id.in_(affected_seats))
@@ -149,25 +184,33 @@ class ReservationService:
     def _availability(
         self, seat: Seat, states: list[ReservationState], now: datetime
     ) -> SeatAvailability:
+        identity = {"id": seat.id, "label": seat.label, "is_active": seat.is_active}
+        if self.reservable_end(seat.id, now, now + timedelta(seconds=1)) is None:
+            return SeatAvailability(**identity, state="unavailable", reservable_at=None)
         current = next((state for state in states if state.status != "upcoming"), None)
         upcoming = any(state.status == "upcoming" for state in states)
         if current is None:
             return SeatAvailability(
-                id=seat.id,
-                label=seat.label,
+                **identity,
                 state="reserved" if upcoming else "free",
                 reservable_at=None if upcoming else now,
             )
         if current.status == "pending":
-            return SeatAvailability(
-                id=seat.id, label=seat.label, state="reserved", reservable_at=None
-            )
+            return SeatAvailability(**identity, state="reserved", reservable_at=None)
         can_reserve = not upcoming and now >= current.effective_ends_at - timedelta(
             minutes=self.settings.public_reservation_window_minutes
         )
+        can_reserve = (
+            can_reserve
+            and self.reservable_end(
+                seat.id,
+                current.effective_ends_at,
+                current.effective_ends_at + timedelta(minutes=self.settings.session_length_minutes),
+            )
+            is not None
+        )
         return SeatAvailability(
-            id=seat.id,
-            label=seat.label,
+            **identity,
             state=(
                 "on_break"
                 if current.status == "on_break"
@@ -187,6 +230,16 @@ class ReservationService:
             >= state.effective_ends_at
             - timedelta(minutes=self.settings.private_priority_window_minutes)
             and not any(other.status == "upcoming" for other in seat_states)
+            and (
+                self.reservable_end(
+                    state.seat_id,
+                    now,
+                    state.effective_ends_at
+                    + timedelta(minutes=self.settings.session_length_minutes),
+                )
+                or state.effective_ends_at
+            )
+            > state.effective_ends_at
         )
 
     def _break_details(
@@ -284,6 +337,8 @@ class ReservationService:
                     name=space.name,
                     lat=space.lat,
                     lng=space.lng,
+                    timezone=space.timezone,
+                    is_open=self.is_open(space.id, now),
                     total_seats=len(seats_by_space[space.id]),
                     free_seats=sum(seat.state == "free" for seat in seats_by_space[space.id]),
                 )
@@ -311,6 +366,9 @@ class ReservationService:
                 lat=space.lat,
                 lng=space.lng,
                 layout=space.layout,
+                timezone=space.timezone,
+                is_open=self.is_open(space.id, now),
+                opening_hours=self.opening_hours(space.id),
                 total_seats=len(seats),
                 free_seats=sum(seat.state == "free" for seat in availability),
                 seats=availability,
@@ -328,14 +386,21 @@ class ReservationService:
         checked_in: bool = False,
     ) -> Reservation:
         starts_at = starts_at or now
+        ends_at = self.reservable_end(
+            seat_id, starts_at, starts_at + timedelta(minutes=self.settings.session_length_minutes)
+        )
+        if ends_at is None:
+            raise BookingError(409, "seat_unavailable", "Seat is inactive, closed, or blocked")
         row = Reservation(
             user_id=user_id,
             seat_id=seat_id,
             previous_reservation_id=predecessor,
             created_at=now,
             starts_at=starts_at,
-            check_in_deadline=starts_at + timedelta(minutes=self.settings.check_in_window_minutes),
-            ends_at=starts_at + timedelta(minutes=self.settings.session_length_minutes),
+            check_in_deadline=min(
+                ends_at, starts_at + timedelta(minutes=self.settings.check_in_window_minutes)
+            ),
+            ends_at=ends_at,
             checked_in_at=now if checked_in else None,
             break_budget_seconds=self.settings.break_budget_minutes * 60,
         )
@@ -386,6 +451,8 @@ class ReservationService:
         if seat is None:
             raise BookingError(404, "qr_not_found", "Seat QR token not found")
         now = self._prepare(user_id, [seat.id])
+        if self.reservable_end(seat.id, now, now + timedelta(seconds=1)) is None:
+            raise BookingError(409, "seat_unavailable", "Seat is inactive, closed, or blocked")
         mine = self._live(now, user_id=user_id)
         if mine:
             state = mine[0]
@@ -423,7 +490,11 @@ class ReservationService:
         if action == "extend":
             if not self._can_extend(state, self._live(now, seat_ids=[row.seat_id]), now):
                 raise BookingError(409, "extension_unavailable", "This session cannot be extended")
-            row.ends_at += timedelta(minutes=self.settings.session_length_minutes)
+            row.ends_at = self.reservable_end(
+                row.seat_id,
+                now,
+                row.ends_at + timedelta(minutes=self.settings.session_length_minutes),
+            )
         elif action == "break":
             if state.status != "active":
                 raise BookingError(409, "invalid_state", "A break requires an active session")
