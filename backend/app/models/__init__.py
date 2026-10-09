@@ -1,1 +1,3 @@
-"""Import future SQLAlchemy models here so Alembic can discover their metadata."""
+from app.features.reservations.models import Break, Reservation, Seat, StudySpace
+
+__all__ = ["Break", "Reservation", "Seat", "StudySpace"]

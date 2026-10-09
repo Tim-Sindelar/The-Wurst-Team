@@ -5,6 +5,48 @@ export type ClientOptions = {
 };
 
 /**
+ * BookingErrorResponse
+ */
+export type BookingErrorResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Detail
+     */
+    detail: string;
+};
+
+/**
+ * CheckInRequest
+ */
+export type CheckInRequest = {
+    /**
+     * Qr Token
+     */
+    qr_token: string;
+};
+
+/**
+ * CurrentBreak
+ */
+export type CurrentBreak = {
+    /**
+     * Ends At
+     */
+    ends_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Started At
+     */
+    started_at: string;
+};
+
+/**
  * ErrorResponse
  */
 export type ErrorResponse = {
@@ -25,6 +67,17 @@ export type HealthResponse = {
 };
 
 /**
+ * MyReservationResponse
+ */
+export type MyReservationResponse = {
+    reservation: ReservationDetails | null;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
  * ReadinessResponse
  */
 export type ReadinessResponse = {
@@ -37,6 +90,296 @@ export type ReadinessResponse = {
      */
     status?: 'ok';
 };
+
+/**
+ * RequestValidationErrorResponse
+ */
+export type RequestValidationErrorResponse = {
+    /**
+     * Detail
+     */
+    detail: Array<RequestValidationIssue>;
+};
+
+/**
+ * RequestValidationIssue
+ */
+export type RequestValidationIssue = {
+    /**
+     * Loc
+     */
+    loc: Array<string | number>;
+    /**
+     * Msg
+     */
+    msg: string;
+    /**
+     * Type
+     */
+    type: string;
+};
+
+/**
+ * ReservationDetails
+ */
+export type ReservationDetails = {
+    /**
+     * Available Actions
+     */
+    available_actions: Array<'check_in' | 'extend' | 'start_break' | 'return' | 'end'>;
+    /**
+     * Break Seconds Remaining
+     */
+    break_seconds_remaining: number;
+    /**
+     * Check In Deadline
+     */
+    check_in_deadline: string;
+    /**
+     * Checked In At
+     */
+    checked_in_at: string | null;
+    current_break: CurrentBreak | null;
+    /**
+     * Ends At
+     */
+    ends_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    seat: ReservationSeat;
+    space: ReservationSpace;
+    /**
+     * Starts At
+     */
+    starts_at: string;
+    /**
+     * Status
+     */
+    status: 'upcoming' | 'pending' | 'active' | 'on_break' | 'no_show' | 'ended';
+};
+
+/**
+ * ReservationResponse
+ */
+export type ReservationResponse = {
+    reservation: ReservationDetails;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
+ * ReservationSeat
+ */
+export type ReservationSeat = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
+ * ReservationSpace
+ */
+export type ReservationSpace = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * ReserveAnyRequest
+ */
+export type ReserveAnyRequest = {
+    /**
+     * Kind
+     */
+    kind: 'any';
+    /**
+     * Space Id
+     */
+    space_id: string;
+};
+
+/**
+ * ReserveSeatRequest
+ */
+export type ReserveSeatRequest = {
+    /**
+     * Kind
+     */
+    kind: 'seat';
+    /**
+     * Seat Id
+     */
+    seat_id: string;
+};
+
+/**
+ * SeatAvailability
+ */
+export type SeatAvailability = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Reservable At
+     */
+    reservable_at: string | null;
+    /**
+     * State
+     */
+    state: 'free' | 'reserved' | 'occupied' | 'on_break' | 'claimable';
+};
+
+/**
+ * SpaceDetail
+ */
+export type SpaceDetail = {
+    /**
+     * Free Seats
+     */
+    free_seats: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Layout
+     */
+    layout: {
+        [key: string]: unknown;
+    };
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Seats
+     */
+    seats: Array<SeatAvailability>;
+    /**
+     * Total Seats
+     */
+    total_seats: number;
+};
+
+/**
+ * SpaceResponse
+ */
+export type SpaceResponse = {
+    /**
+     * Server Time
+     */
+    server_time: string;
+    space: SpaceDetail;
+};
+
+/**
+ * SpaceSummary
+ */
+export type SpaceSummary = {
+    /**
+     * Free Seats
+     */
+    free_seats: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Total Seats
+     */
+    total_seats: number;
+};
+
+/**
+ * SpacesResponse
+ */
+export type SpacesResponse = {
+    /**
+     * Server Time
+     */
+    server_time: string;
+    /**
+     * Spaces
+     */
+    spaces: Array<SpaceSummary>;
+};
+
+export type CheckInData = {
+    body: CheckInRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/check-ins';
+};
+
+export type CheckInErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type CheckInError = CheckInErrors[keyof CheckInErrors];
+
+export type CheckInResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReservationResponse;
+};
+
+export type CheckInResponse = CheckInResponses[keyof CheckInResponses];
 
 export type GetHealthData = {
     body?: never;
@@ -53,6 +396,43 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type GetMyReservationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/reservation';
+};
+
+export type GetMyReservationErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type GetMyReservationError = GetMyReservationErrors[keyof GetMyReservationErrors];
+
+export type GetMyReservationResponses = {
+    /**
+     * Successful Response
+     */
+    200: MyReservationResponse;
+};
+
+export type GetMyReservationResponse = GetMyReservationResponses[keyof GetMyReservationResponses];
 
 export type GetReadinessData = {
     body?: never;
@@ -78,3 +458,294 @@ export type GetReadinessResponses = {
 };
 
 export type GetReadinessResponse = GetReadinessResponses[keyof GetReadinessResponses];
+
+export type CreateReservationData = {
+    /**
+     * Request
+     */
+    body: ({
+        kind: 'seat';
+    } & ReserveSeatRequest) | ({
+        kind: 'any';
+    } & ReserveAnyRequest);
+    path?: never;
+    query?: never;
+    url: '/api/v1/reservations';
+};
+
+export type CreateReservationErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type CreateReservationError = CreateReservationErrors[keyof CreateReservationErrors];
+
+export type CreateReservationResponses = {
+    /**
+     * Successful Response
+     */
+    201: ReservationResponse;
+};
+
+export type CreateReservationResponse = CreateReservationResponses[keyof CreateReservationResponses];
+
+export type StartBreakData = {
+    body?: never;
+    path: {
+        /**
+         * Reservation Id
+         */
+        reservation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/reservations/{reservation_id}/break';
+};
+
+export type StartBreakErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type StartBreakError = StartBreakErrors[keyof StartBreakErrors];
+
+export type StartBreakResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReservationResponse;
+};
+
+export type StartBreakResponse = StartBreakResponses[keyof StartBreakResponses];
+
+export type EndReservationData = {
+    body?: never;
+    path: {
+        /**
+         * Reservation Id
+         */
+        reservation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/reservations/{reservation_id}/end';
+};
+
+export type EndReservationErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type EndReservationError = EndReservationErrors[keyof EndReservationErrors];
+
+export type EndReservationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReservationResponse;
+};
+
+export type EndReservationResponse = EndReservationResponses[keyof EndReservationResponses];
+
+export type ExtendReservationData = {
+    body?: never;
+    path: {
+        /**
+         * Reservation Id
+         */
+        reservation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/reservations/{reservation_id}/extend';
+};
+
+export type ExtendReservationErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ExtendReservationError = ExtendReservationErrors[keyof ExtendReservationErrors];
+
+export type ExtendReservationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReservationResponse;
+};
+
+export type ExtendReservationResponse = ExtendReservationResponses[keyof ExtendReservationResponses];
+
+export type ReturnFromBreakData = {
+    body?: never;
+    path: {
+        /**
+         * Reservation Id
+         */
+        reservation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/reservations/{reservation_id}/return';
+};
+
+export type ReturnFromBreakErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ReturnFromBreakError = ReturnFromBreakErrors[keyof ReturnFromBreakErrors];
+
+export type ReturnFromBreakResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReservationResponse;
+};
+
+export type ReturnFromBreakResponse = ReturnFromBreakResponses[keyof ReturnFromBreakResponses];
+
+export type ListSpacesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/spaces';
+};
+
+export type ListSpacesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListSpacesError = ListSpacesErrors[keyof ListSpacesErrors];
+
+export type ListSpacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: SpacesResponse;
+};
+
+export type ListSpacesResponse = ListSpacesResponses[keyof ListSpacesResponses];
+
+export type GetSpaceData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/spaces/{space_id}';
+};
+
+export type GetSpaceErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type GetSpaceError = GetSpaceErrors[keyof GetSpaceErrors];
+
+export type GetSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: SpaceResponse;
+};
+
+export type GetSpaceResponse = GetSpaceResponses[keyof GetSpaceResponses];
