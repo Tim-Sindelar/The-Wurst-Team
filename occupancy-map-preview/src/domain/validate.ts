@@ -52,6 +52,13 @@ export function validateOccupancyData(input: unknown): string[] {
     for (const f of ['address', 'openingHours', 'description', 'sourceUrl']) {
       if (!isStrOrNull(l[f])) errors.push(`${at}: ${f} must be string or null`);
     }
+    for (const f of ['facilityId', 'levelId']) {
+      if (!isStrOrNull(l[f])) errors.push(`${at}: ${f} must be string or null`);
+    }
+    if (l.floor !== null && !Number.isInteger(l.floor)) errors.push(`${at}: floor must be an integer or null`);
+    for (const f of ['rooms', 'levels']) {
+      if (!Array.isArray(l[f]) || !(l[f] as unknown[]).every(isStr)) errors.push(`${at}: ${f} must be a string array`);
+    }
     const outlineError = l.outline === null ? null : checkMultiPolygon(l.outline);
     if (outlineError) errors.push(`${at}: outline ${outlineError}`);
   });

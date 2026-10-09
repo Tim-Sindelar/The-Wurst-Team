@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { LayersControl, MapContainer, Marker, Polygon, ScaleControl, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import type { LatLng, MultiPolygon, OccupancyData } from '../domain/types';
@@ -7,6 +7,9 @@ import type { Mode, PlacingKind, Selection } from '../state';
 import { libraryIcon, occupancyLevel, seatIcon, tableIcon, type OccupancyLevel } from './icons';
 import { outlineToLatLngs } from './geo';
 import { OutlineEditor } from './OutlineEditor';
+import { FloorLayer } from './FloorLayer';
+import { FloorPicker } from './FloorPicker';
+import { floorLabel, levelName, type FloorIndex } from '../floors/floorData';
 
 const OUTLINE_COLORS: Record<OccupancyLevel, string> = {
   none: '#215caf',
@@ -37,6 +40,10 @@ interface Props {
   /** Library whose outline is being edited, if any. */
   editingOutlineId: string | null;
   flyTarget: FlyTarget | null;
+  /** Floor plans; null while loading or when unavailable. */
+  floorIndex: FloorIndex | null;
+  floor: number;
+  onFloorChange: (floor: number) => void;
   onMapClick: (pos: LatLng) => void;
   onSelect: (sel: Selection) => void;
   onMoveLibrary: (id: string, pos: LatLng) => void;
@@ -54,6 +61,16 @@ export function MapView(props: Props) {
   const admin = mode === 'admin';
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const showDetail = zoom >= DETAIL_ZOOM;
+  const { floor } = props;
+  /** Libraries without a floor (not in PolyMaps) are shown on every floor. */
+  const onFloor = (lib: { floor: number | null }) => lib.floor === null || lib.floor === floor;
+  const librariesOnFloor = new Set(data.libraries.filter(onFloor).map((l) => l.id));
+  const tablesOnFloor = data.tables.filter((t) => librariesOnFloor.has(t.libraryId));
+  const tableIdsOnFloor = new Set(tablesOnFloor.map((t) => t.id));
+  const libraryRooms = useMemo(
+    () => new Map(data.libraries.flatMap((l) => l.rooms.map((r) => [r, l.id] as const))),
+    [data.libraries],
+  );
   // Computed once: the initial view frames all libraries (both campuses).
   const [initialBounds] = useState(() =>
     L.latLngBounds(data.libraries.map((l) => [l.position.lat, l.position.lng] as [number, number])).pad(0.1),
@@ -106,6 +123,19 @@ export function MapView(props: Props) {
       />
       <FlyTo target={props.flyTarget} />
 
+      {props.floorIndex && (
+        <>
+          <FloorLayer
+            index={props.floorIndex}
+            floor={floor}
+            libraryRooms={libraryRooms}
+            selectedLibraryId={selection.libraryId}
+            onSelectLibrary={(libraryId) => props.onSelect({ libraryId, tableId: null, seatId: null })}
+          />
+          <FloorPicker index={props.floorIndex} floor={floor} libraries={data.libraries} onChange={props.onFloorChange} />
+        </>
+      )}
+
       {editingLibrary && (
         <OutlineEditor
           key={editingLibrary.id}
@@ -115,7 +145,7 @@ export function MapView(props: Props) {
       )}
 
       {data.libraries.map((lib) => {
-        if (!lib.outline || lib.id === editingOutlineId) return null;
+        if (!lib.outline || lib.id === editingOutlineId || !onFloor(lib)) return null;
         const occ = occupancyOf(data, lib.id);
         const selected = selection.libraryId === lib.id;
         return (
@@ -143,9 +173,10 @@ export function MapView(props: Props) {
               total: occ.total,
               selected: selection.libraryId === lib.id && !selection.tableId,
               approximate: admin && lib.positionApproximate,
+              otherFloor: onFloor(lib) ? null : floorLabel(lib.floor as number),
             })}
             draggable={admin}
-            zIndexOffset={selection.libraryId === lib.id ? 1000 : 0}
+            zIndexOffset={selection.libraryId === lib.id ? 1000 : onFloor(lib) ? 100 : 0}
             eventHandlers={{
               click: () => props.onSelect({ libraryId: lib.id, tableId: null, seatId: null }),
               dragend: (e) => props.onMoveLibrary(lib.id, toLatLng(e.target.getLatLng())),
@@ -155,13 +186,19 @@ export function MapView(props: Props) {
               <strong>{lib.name}</strong>
               <br />
               {occ.total === 0 ? 'No seats registered' : `${occ.free} of ${occ.total} seats free`}
+              {lib.floor !== null && (
+                <>
+                  <br />
+                  <span className="muted">Floor {floorLabel(lib.floor)}{lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}</span>
+                </>
+              )}
             </Tooltip>
           </Marker>
         );
       })}
 
       {showDetail &&
-        data.tables.map((t) => (
+        tablesOnFloor.map((t) => (
           <Marker
             key={t.id}
             position={[t.position.lat, t.position.lng]}
@@ -176,7 +213,7 @@ export function MapView(props: Props) {
         ))}
 
       {showDetail &&
-        data.seats.map((s) => {
+        data.seats.filter((s) => tableIdsOnFloor.has(s.tableId)).map((s) => {
           const table = data.tables.find((t) => t.id === s.tableId);
           return (
             <Marker

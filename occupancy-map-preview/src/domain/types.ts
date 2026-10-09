@@ -35,6 +35,16 @@ export interface Library {
    * Always a MultiPolygon so libraries spread over several wings fit too.
    */
   outline: MultiPolygon | null;
+  /** PolyMaps building, e.g. "ETH.HG"; null when the library isn't in PolyMaps. */
+  facilityId: string | null;
+  /** PolyMaps level of the main room, e.g. "ETH.HG.H". */
+  levelId: string | null;
+  /** Floor (PolyMaps vertical order, 0 = ground floor) the pin belongs to; null = shown on every floor. */
+  floor: number | null;
+  /** PolyMaps room (unit) ids making up the library, possibly on several levels. */
+  rooms: string[];
+  /** PolyMaps level ids the rooms are on. */
+  levels: string[];
 }
 
 export interface Table {

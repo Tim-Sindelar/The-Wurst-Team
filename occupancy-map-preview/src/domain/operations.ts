@@ -32,7 +32,7 @@ export function occupancyOf(data: OccupancyData, libraryId: string) {
 
 // ---- libraries -------------------------------------------------------------
 
-export function addLibrary(data: OccupancyData, position: LatLng): [OccupancyData, Library] {
+export function addLibrary(data: OccupancyData, position: LatLng, floor: number | null): [OccupancyData, Library] {
   const library: Library = {
     id: newId('lib'),
     name: 'Neue Bibliothek',
@@ -45,6 +45,11 @@ export function addLibrary(data: OccupancyData, position: LatLng): [OccupancyDat
     positionApproximate: false,
     sourceUrl: null,
     outline: null,
+    facilityId: null,
+    levelId: null,
+    floor,
+    rooms: [],
+    levels: [],
   };
   return [touch({ ...data, libraries: [...data.libraries, library] }), library];
 }

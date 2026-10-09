@@ -4,6 +4,7 @@ import * as ops from './domain/operations';
 import { repository } from './data/repository';
 import { DETAIL_ZOOM, MapView, type FlyTarget } from './map/MapView';
 import { outlineBounds } from './map/geo';
+import { loadFloorIndex, type FloorIndex } from './floors/floorData';
 import { AdminPanel } from './components/AdminPanel';
 import { ViewerPanel } from './components/ViewerPanel';
 import { EMPTY_SELECTION, type Mode, type PlacingKind, type SaveState, type Selection } from './state';
@@ -23,8 +24,13 @@ export default function App() {
   const saveTimer = useRef<number | undefined>(undefined);
   const saveChain = useRef(Promise.resolve());
 
+  const [floorIndex, setFloorIndex] = useState<FloorIndex | null>(null);
+  const [floor, setFloor] = useState(0);
+
   useEffect(() => {
     repository.load().then(setData, (err) => setLoadError(String(err)));
+    // The map still works without floor plans (e.g. extract_floors.py not run yet).
+    loadFloorIndex().then(setFloorIndex, (err) => console.warn('Floor plans unavailable', err));
   }, []);
 
   // Esc cancels placement mode.
@@ -62,8 +68,9 @@ export default function App() {
     setSelection({ libraryId: lib.id, tableId: null, seatId: null });
     setPlacing(null);
     setEditingOutlineId(null);
+    if (lib.floor !== null) setFloor(lib.floor);
     if (lib.outline) setFlyTarget({ position: lib.position, zoom: 19, bounds: outlineBounds(lib.outline), nonce: Date.now() });
-    else flyTo(lib.position, 19);
+    else flyTo(lib.position, lib.rooms.length ? 20 : 19);
   };
 
   const switchMode = (m: Mode) => {
@@ -75,7 +82,7 @@ export default function App() {
   const handleMapClick = (pos: { lat: number; lng: number }) => {
     if (mode !== 'admin' || !placing) return;
     if (placing === 'library') {
-      const [next, lib] = ops.addLibrary(data, pos);
+      const [next, lib] = ops.addLibrary(data, pos, floorIndex ? floor : null);
       commit(next);
       setSelection({ libraryId: lib.id, tableId: null, seatId: null });
       setPlacing(null);
@@ -175,7 +182,10 @@ export default function App() {
           <span><i className="seat-dot seat-free" /> free</span>
           <span><i className="seat-dot seat-occupied" /> occupied</span>
           <span><i className="seat-dot seat-unknown" /> unknown</span>
-          {zoom < DETAIL_ZOOM && <span className="muted">Zoom in to see tables &amp; seats</span>}
+          {floorIndex && (
+            <span><i className="room-swatch room-library" /> library room</span>
+          )}
+          {zoom < DETAIL_ZOOM && <span className="muted">Zoom in to see rooms, tables &amp; seats</span>}
         </footer>
       </aside>
 
@@ -187,10 +197,16 @@ export default function App() {
           placing={placing}
           editingOutlineId={editingOutlineId}
           flyTarget={flyTarget}
+          floorIndex={floorIndex}
+          floor={floor}
+          onFloorChange={setFloor}
           onMapClick={handleMapClick}
           onSelect={(sel) => {
             // While placing or drawing, a stray click on a marker must not switch the target.
-            if (!placing && !editingOutlineId) setSelection(sel);
+            if (placing || editingOutlineId) return;
+            setSelection(sel);
+            const lib = data.libraries.find((l) => l.id === sel.libraryId);
+            if (lib && lib.floor !== null && sel.libraryId !== selection.libraryId) setFloor(lib.floor);
           }}
           onMoveLibrary={(id, pos) => commit(ops.updateLibrary(data, id, { position: pos }))}
           onMoveTable={(id, pos) => commit(ops.moveTable(data, id, pos))}

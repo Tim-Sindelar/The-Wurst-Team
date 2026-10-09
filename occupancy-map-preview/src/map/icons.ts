@@ -19,15 +19,29 @@ function cached(key: string, make: () => L.DivIcon) {
   return icon;
 }
 
-export function libraryIcon(opts: { free: number; total: number; selected: boolean; approximate: boolean }) {
-  const { free, total, selected, approximate } = opts;
+const BOOK_SVG =
+  '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5a1 1 0 0 0 0 2H20v2H6.5A2.5 2.5 0 0 1 4 19.5zM8 6v2h8V6z"/></svg>';
+
+export function libraryIcon(opts: {
+  free: number;
+  total: number;
+  selected: boolean;
+  approximate: boolean;
+  /** Floor label shown when the library is on another floor than the one displayed. */
+  otherFloor: string | null;
+}) {
+  const { free, total, selected, approximate, otherFloor } = opts;
   const level = occupancyLevel(free, total);
-  const key = `lib|${free}|${total}|${selected}|${approximate}`;
+  const key = `lib|${free}|${total}|${selected}|${approximate}|${otherFloor}`;
+  const classes = ['lib-pin', `lib-${level}`, selected && 'is-selected', approximate && 'is-approx', otherFloor && 'is-other-floor'];
   return cached(key, () =>
     L.divIcon({
       className: '',
-      html: `<div class="lib-pin lib-${level}${selected ? ' is-selected' : ''}${approximate ? ' is-approx' : ''}">
-               <span>${total === 0 ? '–' : free}</span>
+      html: `<div class="${classes.filter(Boolean).join(' ')}">
+               <span class="lib-shape"></span>
+               <span class="lib-book">${BOOK_SVG}</span>
+               ${total > 0 ? `<span class="lib-count">${free}</span>` : ''}
+               ${otherFloor ? `<span class="lib-floor">${escapeHtml(otherFloor)}</span>` : ''}
              </div>`,
       iconSize: [34, 42],
       iconAnchor: [17, 42],

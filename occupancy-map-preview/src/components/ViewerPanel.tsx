@@ -4,6 +4,7 @@ import { CAMPUSES } from '../domain/types';
 import { occupancyOf, seatsOfTable, tablesOf } from '../domain/operations';
 import type { Selection } from '../state';
 import { OccupancyBar } from './OccupancyBar';
+import { floorLabel, levelName, roomName } from '../floors/floorData';
 
 interface Props {
   data: OccupancyData;
@@ -43,7 +44,10 @@ export function ViewerPanel({ data, selection, onSelectLibrary, onSelectTable }:
                   onClick={() => onSelectLibrary(lib)}
                 >
                   <span className="list-title">{lib.name}</span>
-                  <span className="list-meta">{lib.campus}</span>
+                  <span className="list-meta">
+                    {lib.campus}
+                    {lib.floor !== null && ` · ${floorLabel(lib.floor)}`}
+                  </span>
                   <OccupancyBar free={occ.free} total={occ.total} />
                 </button>
               </li>
@@ -74,6 +78,21 @@ function LibraryDetails({
       <dl>
         <dt>Address</dt>
         <dd>{library.address ?? 'not published'}</dd>
+        {library.floor !== null && (
+          <>
+            <dt>Floor</dt>
+            <dd>
+              {floorLabel(library.floor)}
+              {library.levelId && ` · ${levelName(library.levelId)}`}
+            </dd>
+          </>
+        )}
+        {library.rooms.length > 0 && (
+          <>
+            <dt>Rooms</dt>
+            <dd>{library.rooms.map(roomName).join(', ')}</dd>
+          </>
+        )}
         <dt>Hours</dt>
         <dd>{library.openingHours ?? 'not published'}</dd>
         {library.description && (

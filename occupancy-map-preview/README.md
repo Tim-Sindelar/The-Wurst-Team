@@ -13,12 +13,18 @@ npm run dev
 
 ## Data
 
-`data/occupancy.json` holds everything. It starts with the 13 publicly listed ETH library locations and no tables or seats. Addresses were geocoded with the swisstopo search API.
-Pins flagged `positionApproximate` are best guesses, for one of two reasons:
-- The library is a room inside the main building (HG), so the pin can't be placed exactly.
-- The source publishes no address (Selbstlernzentrum, gta Bibliothek).
+Floor plans and library locations come from ETH PolyMaps (ArcGIS Indoors):
 
-Admin mode shows these pins with a dashed border. Drag a pin to the right spot, then untick the flag.
+```bash
+python scraper/scrape_polymaps.py scraper/polymaps_data   # ~400 MB of raw layers
+python scraper/extract_floors.py                          # builds the files below
+```
+
+- `public/floors/index.json`: building footprints, the outline of every level, and the list of floors (PolyMaps vertical order, 0 = ground floor).
+- `public/floors/levels/<LEVEL_ID>.json`: rooms (colored by use) plus wall, door and stair lines for one level. The map loads these on demand for the levels in view from zoom 18 on (walls from 19).
+- `data/occupancy.json`: libraries are rebuilt from the PolyMaps rooms of type `Bibliothek`. The curated libraries keep their metadata and get their rooms through `LIBRARY_ROOMS` in the script. Other library rooms are grouped by building and adjacency into extra libraries. Each library stores `floor`, `levelId` and `rooms`. Pins sit on the PolyMaps label point, or on the main room. Re-running the script keeps edits made in admin mode, and tables and seats. Libraries PolyMaps doesn't cover (AfZ, HDB, Selbstlernzentrum, gta) are kept unchanged, with `floor: null`, and show on every floor.
+
+The floor picker on the right switches floors. Library pins on other floors are dimmed and show their floor. Clicking a highlighted library room selects that library.
 
 Base layers: OpenStreetMap, swisstopo map, and swisstopo aerial imagery (up to zoom 20). The map zooms to 22 for placing seats.
 
@@ -36,4 +42,4 @@ server/          jsonFileApi.ts: Vite middleware standing in for a backend
 - To use a real backend, implement the same two endpoints, or set `VITE_API_BASE` to point at one. Later you can swap in a finer-grained repository (for example `POST /libraries/:id/tables`, `PATCH /seats/:id` for live status) without touching components.
 - The data is normalized: `libraries`, then `tables.libraryId`, then `seats.tableId`. It maps directly onto database tables, and `operations.ts` holds the business rules (cascading deletes, moving a table moves its seats) for reuse server-side.
 
-Not included yet: authentication for admin mode, live sensor or check-in data for seat status, and floor levels.
+Not included yet: authentication for admin mode, live sensor or check-in data for seat status, and per-table floors (tables follow their library's floor).

@@ -3,6 +3,7 @@ import type { Library, OccupancyData, Seat, Table } from '../domain/types';
 import { CAMPUSES, SEAT_STATUSES } from '../domain/types';
 import { outlineAreaM2, seatsOfTable, tablesOf } from '../domain/operations';
 import type { PlacingKind, Selection } from '../state';
+import { floorLabel, levelName, roomName } from '../floors/floorData';
 
 interface Props {
   data: OccupancyData;
@@ -133,6 +134,13 @@ export function AdminPanel(p: Props) {
               Position is approximate (drag the pin to fix it)
             </label>
             <Coords pos={library.position} />
+            <p className="note">
+              {library.rooms.length
+                ? `From PolyMaps: floor ${floorLabel(library.floor ?? 0)}${library.levelId ? ` (${levelName(library.levelId)})` : ''} · ${library.rooms.map(roomName).join(', ')}`
+                : library.floor !== null
+                  ? `Shown on floor ${floorLabel(library.floor)}.`
+                  : 'Not in PolyMaps: shown on every floor.'}
+            </p>
           </div>
 
           <div className="section-head sub">

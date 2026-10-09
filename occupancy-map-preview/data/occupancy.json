@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-09T17:59:29.838Z",
+  "updatedAt": "2026-10-09T18:18:34.706Z",
   "libraries": [
     {
       "id": "lib-hauptbibliothek",
@@ -11,12 +11,23 @@
       "openingHours": "Mo–Fr 8–22, Sa–So 9–17",
       "description": null,
       "position": {
-        "lat": 47.37648,
-        "lng": 8.548268
+        "lat": 47.37643,
+        "lng": 8.548042
       },
-      "positionApproximate": true,
+      "positionApproximate": false,
       "sourceUrl": "https://library.ethz.ch/ueber-uns-und-standorte/standorte-und-oeffnungszeiten/lesesaal.html",
-      "outline": null
+      "outline": null,
+      "facilityId": "ETH.HG",
+      "levelId": "ETH.HG.H",
+      "floor": 6,
+      "rooms": [
+        "ETH.HG.H.H_030.1",
+        "ETH.HG.J.J_030.1"
+      ],
+      "levels": [
+        "ETH.HG.H",
+        "ETH.HG.J"
+      ]
     },
     {
       "id": "lib-sammlungen-archive",
@@ -27,12 +38,25 @@
       "openingHours": "Mo–Fr 10–17",
       "description": "Historische Bestände: Alte und Seltene Drucke, Bildarchiv, Graphische Sammlung, Hochschularchiv, Karten, Max Frisch-Archiv, Thomas-Mann-Archiv.",
       "position": {
-        "lat": 47.37662,
-        "lng": 8.54808
+        "lat": 47.37671,
+        "lng": 8.547874
       },
-      "positionApproximate": true,
+      "positionApproximate": false,
       "sourceUrl": "https://library.ethz.ch/ueber-uns-und-standorte/standorte-und-oeffnungszeiten/lesesaal-sammlungen-und-archive.html",
-      "outline": null
+      "outline": null,
+      "facilityId": "ETH.HG",
+      "levelId": "ETH.HG.H",
+      "floor": 6,
+      "rooms": [
+        "ETH.HG.H.H_015.1",
+        "ETH.HG.H.H_026",
+        "ETH.HG.H.H_027.5",
+        "ETH.HG.J.J_026.1"
+      ],
+      "levels": [
+        "ETH.HG.H",
+        "ETH.HG.J"
+      ]
     },
     {
       "id": "lib-gess",
@@ -43,12 +67,23 @@
       "openingHours": "Mo–Fr 7–20.30 (bedient 9–17)",
       "description": "Geistes- und Sozialwissenschaften, Wirtschaft, Recht und Politik.",
       "position": {
-        "lat": 47.380348,
-        "lng": 8.544469
+        "lat": 47.380183,
+        "lng": 8.544864
       },
       "positionApproximate": false,
       "sourceUrl": "https://www.isil.nb.admin.ch/en/institutions/eth-bibliothek-gess-bibliothek-ch-001891-0",
-      "outline": null
+      "outline": null,
+      "facilityId": "ETH.IFW",
+      "levelId": "ETH.IFW.A",
+      "floor": -1,
+      "rooms": [
+        "ETH.IFW.A.A_035",
+        "ETH.IFW.B.B_035.1"
+      ],
+      "levels": [
+        "ETH.IFW.A",
+        "ETH.IFW.B"
+      ]
     },
     {
       "id": "lib-gruene",
@@ -59,12 +94,27 @@
       "openingHours": "Mo–Fr 7–21 (bedient 9–19)",
       "description": "Umwelt- und Agrarwissenschaften.",
       "position": {
-        "lat": 47.379353,
-        "lng": 8.548424
+        "lat": 47.378959,
+        "lng": 8.548684
       },
       "positionApproximate": false,
       "sourceUrl": "https://www.isil.nb.admin.ch/isil/CH-001888-5",
-      "outline": null
+      "outline": null,
+      "facilityId": "ETH.CHN",
+      "levelId": "ETH.CHN.J",
+      "floor": 7,
+      "rooms": [
+        "ETH.CHN.H.H_033",
+        "ETH.CHN.H.H_043",
+        "ETH.CHN.H.H_043.1",
+        "ETH.CHN.H.H_043.2",
+        "ETH.CHN.H.H_043.3",
+        "ETH.CHN.J.J_043"
+      ],
+      "levels": [
+        "ETH.CHN.H",
+        "ETH.CHN.J"
+      ]
     },
     {
       "id": "lib-informatik",
@@ -75,12 +125,23 @@
       "openingHours": null,
       "description": null,
       "position": {
-        "lat": 47.378345,
-        "lng": 8.548737
+        "lat": 47.378377,
+        "lng": 8.548945
       },
       "positionApproximate": false,
       "sourceUrl": "https://www.library.inf.ethz.ch/",
-      "outline": null
+      "outline": null,
+      "facilityId": "ETH.CAB",
+      "levelId": "ETH.CAB.G",
+      "floor": 4,
+      "rooms": [
+        "ETH.CAB.G.G_041",
+        "ETH.CAB.GO.GO_041"
+      ],
+      "levels": [
+        "ETH.CAB.G",
+        "ETH.CAB.GO"
+      ]
     },
     {
       "id": "lib-mathbib",
@@ -91,10 +152,10 @@
       "openingHours": "Mo–Fr 8–20",
       "description": null,
       "position": {
-        "lat": 47.37634,
-        "lng": 8.54796
+        "lat": 47.375972,
+        "lng": 8.547718
       },
-      "positionApproximate": true,
+      "positionApproximate": false,
       "sourceUrl": "https://math.ethz.ch/library.html",
       "outline": {
         "type": "MultiPolygon",
@@ -132,7 +193,287 @@
             ]
           ]
         ]
-      }
+      },
+      "facilityId": "ETH.HG",
+      "levelId": "ETH.HG.G",
+      "floor": 4,
+      "rooms": [
+        "ETH.HG.G.G_007"
+      ],
+      "levels": [
+        "ETH.HG.G"
+      ]
+    },
+    {
+      "id": "lib-baubibliothek",
+      "name": "Baubibliothek",
+      "address": "Stefano-Franscini-Platz 5, HIL E 2, 8093 Zürich",
+      "campus": "Hönggerberg",
+      "operator": "ETH-Bibliothek",
+      "openingHours": "Mo–Fr 8–21",
+      "description": "Architektur, Bau, Geomatik und Raumplanung.",
+      "position": {
+        "lat": 47.408567,
+        "lng": 8.50721
+      },
+      "positionApproximate": false,
+      "sourceUrl": "https://www.isil.nb.admin.ch/isil/CH-000767-5",
+      "outline": null,
+      "facilityId": "ETH.HIL",
+      "levelId": "ETH.HIL.E",
+      "floor": 2,
+      "rooms": [
+        "ETH.HIL.D.D_010.5",
+        "ETH.HIL.E.E_002.1",
+        "ETH.HIL.F.F_002.1",
+        "ETH.HIL.G.G_010.3"
+      ],
+      "levels": [
+        "ETH.HIL.D",
+        "ETH.HIL.E",
+        "ETH.HIL.F",
+        "ETH.HIL.G"
+      ]
+    },
+    {
+      "id": "lib-physik",
+      "name": "Physik-Bibliothek",
+      "address": "Wolfgang-Pauli-Strasse 27, HIT E 12, 8093 Zürich",
+      "campus": "Hönggerberg",
+      "operator": "Weitere",
+      "openingHours": "Mo–Fr 8.30–19",
+      "description": null,
+      "position": {
+        "lat": 47.410197,
+        "lng": 8.508212
+      },
+      "positionApproximate": false,
+      "sourceUrl": "https://library.phys.ethz.ch/",
+      "outline": null,
+      "facilityId": "ETH.HIT",
+      "levelId": "ETH.HIT.E",
+      "floor": 0,
+      "rooms": [
+        "ETH.HIT.E.E_012.1"
+      ],
+      "levels": [
+        "ETH.HIT.E"
+      ]
+    },
+    {
+      "id": "lib-icbp",
+      "name": "Informationszentrum Chemie, Biologie, Pharmazie (ICBP)",
+      "address": "Vladimir-Prelog-Weg 10, HCI G 5, 8093 Zürich",
+      "campus": "Hönggerberg",
+      "operator": "Weitere",
+      "openingHours": "Mo–Fr 8–20 (Externe bis 18)",
+      "description": null,
+      "position": {
+        "lat": 47.407731,
+        "lng": 8.507892
+      },
+      "positionApproximate": false,
+      "sourceUrl": "https://infozentrum.ethz.ch/",
+      "outline": null,
+      "facilityId": "ETH.HCI",
+      "levelId": "ETH.HCI.G",
+      "floor": 2,
+      "rooms": [
+        "ETH.HCI.G.G_005.1",
+        "ETH.HCI.H.H_005.1",
+        "ETH.HCI.J.J_056",
+        "ETH.HCI.J.J_058",
+        "ETH.HCI.J.J_059.1",
+        "ETH.HCI.J.J_059.2",
+        "ETH.HCI.J.J_059.3",
+        "ETH.HCI.J.J_059.4",
+        "ETH.HCI.J.J_059.5",
+        "ETH.HCI.J.J_059.6"
+      ],
+      "levels": [
+        "ETH.HCI.G",
+        "ETH.HCI.H",
+        "ETH.HCI.J"
+      ]
+    },
+    {
+      "id": "lib-cla-j-22",
+      "name": "Bibliothek CLA J 22",
+      "address": "Tannenstrasse 3, 8092 Zürich, CLA J 22",
+      "campus": "Zentrum",
+      "operator": "Weitere",
+      "openingHours": null,
+      "description": null,
+      "sourceUrl": null,
+      "outline": null,
+      "position": {
+        "lat": 47.377865,
+        "lng": 8.546712
+      },
+      "positionApproximate": false,
+      "facilityId": "ETH.CLA",
+      "levelId": "ETH.CLA.J",
+      "floor": 5,
+      "rooms": [
+        "ETH.CLA.J.J_022"
+      ],
+      "levels": [
+        "ETH.CLA.J"
+      ]
+    },
+    {
+      "id": "lib-lfv-d-19-1",
+      "name": "Bibliothek LFV D 19.1",
+      "address": "Schmelzbergstrasse 7, 8092 Zürich, LFV D 19.1",
+      "campus": "Zentrum",
+      "operator": "Weitere",
+      "openingHours": null,
+      "description": null,
+      "sourceUrl": null,
+      "outline": null,
+      "position": {
+        "lat": 47.377521,
+        "lng": 8.549807
+      },
+      "positionApproximate": false,
+      "facilityId": "ETH.LFV",
+      "levelId": "ETH.LFV.D",
+      "floor": 2,
+      "rooms": [
+        "ETH.LFV.D.D_019.1"
+      ],
+      "levels": [
+        "ETH.LFV.D"
+      ]
+    },
+    {
+      "id": "lib-no-d-25-1",
+      "name": "Bibliothek NO D 25.1",
+      "address": "Sonneggstrasse 5, 8092 Zürich, NO D 25.1, NO DO 25.2",
+      "campus": "Zentrum",
+      "operator": "Weitere",
+      "openingHours": null,
+      "description": null,
+      "sourceUrl": null,
+      "outline": null,
+      "position": {
+        "lat": 47.378501,
+        "lng": 8.547316
+      },
+      "positionApproximate": false,
+      "facilityId": "ETH.NO",
+      "levelId": "ETH.NO.D",
+      "floor": 2,
+      "rooms": [
+        "ETH.NO.D.D_025.1",
+        "ETH.NO.DO.DO_025.2"
+      ],
+      "levels": [
+        "ETH.NO.D",
+        "ETH.NO.DO"
+      ]
+    },
+    {
+      "id": "lib-hg-h-29-5",
+      "name": "Bibliothek HG H 29.5",
+      "address": "Rämistrasse 101, 8092 Zürich, HG H 29.5, HG H 29.3, HG H 29.7",
+      "campus": "Zentrum",
+      "operator": "Weitere",
+      "openingHours": null,
+      "description": null,
+      "sourceUrl": null,
+      "outline": null,
+      "position": {
+        "lat": 47.376475,
+        "lng": 8.547423
+      },
+      "positionApproximate": false,
+      "facilityId": "ETH.HG",
+      "levelId": "ETH.HG.H",
+      "floor": 6,
+      "rooms": [
+        "ETH.HG.H.H_029.3",
+        "ETH.HG.H.H_029.5",
+        "ETH.HG.H.H_029.7"
+      ],
+      "levels": [
+        "ETH.HG.H"
+      ]
+    },
+    {
+      "id": "lib-hg-h-20-3",
+      "name": "Bibliothek HG H 20.3",
+      "address": "Rämistrasse 101, 8092 Zürich, HG H 20.3",
+      "campus": "Zentrum",
+      "operator": "Weitere",
+      "openingHours": null,
+      "description": null,
+      "sourceUrl": null,
+      "outline": null,
+      "position": {
+        "lat": 47.377085,
+        "lng": 8.548072
+      },
+      "positionApproximate": false,
+      "facilityId": "ETH.HG",
+      "levelId": "ETH.HG.H",
+      "floor": 6,
+      "rooms": [
+        "ETH.HG.H.H_020.3"
+      ],
+      "levels": [
+        "ETH.HG.H"
+      ]
+    },
+    {
+      "id": "lib-hg-eo-54-1",
+      "name": "Graphische Sammlung",
+      "address": "Rämistrasse 101, 8092 Zürich, HG EO 54.1",
+      "campus": "Zentrum",
+      "operator": "Weitere",
+      "openingHours": null,
+      "description": null,
+      "sourceUrl": null,
+      "outline": null,
+      "position": {
+        "lat": 47.375853,
+        "lng": 8.547418
+      },
+      "positionApproximate": false,
+      "facilityId": "ETH.HG",
+      "levelId": "ETH.HG.EO",
+      "floor": 1,
+      "rooms": [
+        "ETH.HG.EO.EO_054.1"
+      ],
+      "levels": [
+        "ETH.HG.EO"
+      ]
+    },
+    {
+      "id": "lib-ml-k-37-1",
+      "name": "Bibliothek ML K 37.1",
+      "address": "Sonneggstrasse 3, 8092 Zürich, ML K 37.1",
+      "campus": "Zentrum",
+      "operator": "Weitere",
+      "openingHours": null,
+      "description": null,
+      "sourceUrl": null,
+      "outline": null,
+      "position": {
+        "lat": 47.377732,
+        "lng": 8.547737
+      },
+      "positionApproximate": false,
+      "facilityId": "ETH.ML",
+      "levelId": "ETH.ML.K",
+      "floor": 6,
+      "rooms": [
+        "ETH.ML.K.K_037.1"
+      ],
+      "levels": [
+        "ETH.ML.K"
+      ]
     },
     {
       "id": "lib-afz",
@@ -148,23 +489,12 @@
       },
       "positionApproximate": false,
       "sourceUrl": "https://afz.ethz.ch/recherche-archivbesuch/recherche/bibliothek.html",
-      "outline": null
-    },
-    {
-      "id": "lib-baubibliothek",
-      "name": "Baubibliothek",
-      "address": "Stefano-Franscini-Platz 5, HIL E 2, 8093 Zürich",
-      "campus": "Hönggerberg",
-      "operator": "ETH-Bibliothek",
-      "openingHours": "Mo–Fr 8–21",
-      "description": "Architektur, Bau, Geomatik und Raumplanung.",
-      "position": {
-        "lat": 47.408253,
-        "lng": 8.506728
-      },
-      "positionApproximate": false,
-      "sourceUrl": "https://www.isil.nb.admin.ch/isil/CH-000767-5",
-      "outline": null
+      "outline": null,
+      "facilityId": null,
+      "levelId": null,
+      "floor": null,
+      "rooms": [],
+      "levels": []
     },
     {
       "id": "lib-hdb",
@@ -180,7 +510,12 @@
       },
       "positionApproximate": false,
       "sourceUrl": "https://library.ethz.ch/ueber-uns-und-standorte/standorte-und-oeffnungszeiten/eth-bibliothek-hdb.html",
-      "outline": null
+      "outline": null,
+      "facilityId": null,
+      "levelId": null,
+      "floor": null,
+      "rooms": [],
+      "levels": []
     },
     {
       "id": "lib-selbstlernzentrum",
@@ -196,39 +531,12 @@
       },
       "positionApproximate": true,
       "sourceUrl": "https://library.ethz.ch/ueber-uns-und-standorte/standorte-und-oeffnungszeiten.html",
-      "outline": null
-    },
-    {
-      "id": "lib-physik",
-      "name": "Physik-Bibliothek",
-      "address": "Wolfgang-Pauli-Strasse 27, HIT E 12, 8093 Zürich",
-      "campus": "Hönggerberg",
-      "operator": "Weitere",
-      "openingHours": "Mo–Fr 8.30–19",
-      "description": null,
-      "position": {
-        "lat": 47.410339,
-        "lng": 8.508134
-      },
-      "positionApproximate": false,
-      "sourceUrl": "https://library.phys.ethz.ch/",
-      "outline": null
-    },
-    {
-      "id": "lib-icbp",
-      "name": "Informationszentrum Chemie, Biologie, Pharmazie (ICBP)",
-      "address": "Vladimir-Prelog-Weg 10, HCI G 5, 8093 Zürich",
-      "campus": "Hönggerberg",
-      "operator": "Weitere",
-      "openingHours": "Mo–Fr 8–20 (Externe bis 18)",
-      "description": null,
-      "position": {
-        "lat": 47.407581,
-        "lng": 8.507682
-      },
-      "positionApproximate": false,
-      "sourceUrl": "https://infozentrum.ethz.ch/",
-      "outline": null
+      "outline": null,
+      "facilityId": null,
+      "levelId": null,
+      "floor": null,
+      "rooms": [],
+      "levels": []
     },
     {
       "id": "lib-gta",
@@ -244,7 +552,12 @@
       },
       "positionApproximate": true,
       "sourceUrl": "https://archiv.gta.arch.ethz.ch/de/bibliothek",
-      "outline": null
+      "outline": null,
+      "facilityId": null,
+      "levelId": null,
+      "floor": null,
+      "rooms": [],
+      "levels": []
     }
   ],
   "tables": [
