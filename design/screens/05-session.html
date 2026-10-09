@@ -64,7 +64,7 @@
           <div class="progress__bar" style="--value: 97%"></div>
         </div>
         <p class="t-small t-muted">Your seat is held for you. Your session time keeps running.</p>
-        <a class="btn btn--primary btn--block" href="05-session.html">Back at my seat</a>
+        <a class="btn btn--primary btn--block" href="04-qr-scan.html?from=break-end"><i class="icon i-qr"></i> Back at my seat</a>
       </section>
 
       <!-- Session timer: always visible. -->
@@ -115,10 +115,10 @@
     <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
     <form class="sheet__body" method="dialog">
       <h2 class="t-title" id="sheet-break-title">Take a break?</h2>
-      <p class="t-muted">Your seat is held for 15 minutes. Your session time keeps running.</p>
+      <p class="t-muted">Your seat is held for 15 minutes. Your session time keeps running. You scan the QR code to start and to end your break.</p>
       <div class="sheet__actions">
         <button class="btn btn--secondary" value="cancel">Stay</button>
-        <a class="btn btn--primary" href="05-session.html?phase=break">Start break</a>
+        <a class="btn btn--primary" href="04-qr-scan.html?from=break-start">Start break</a>
       </div>
     </form>
   </dialog>

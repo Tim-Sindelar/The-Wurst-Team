@@ -15,15 +15,18 @@
   <div class="app">
     <div class="camera">
       <div class="camera__top">
-        <a class="icon-button" href="03-reservation.html" data-href-when="from=extend" data-href="05-session.html" aria-label="Back"><i class="icon i-back"></i></a>
+        <a class="icon-button" href="03-reservation.html" data-href-map="from=extend>05-session.html from=break-start>05-session.html from=break-end>05-session.html?phase=break" aria-label="Back"><i class="icon i-back"></i></a>
         <h1 class="sr-only">Scan QR code</h1>
         <button class="icon-button" type="button" data-toggle aria-pressed="false" aria-label="Flashlight"><i class="icon i-flashlight"></i></button>
       </div>
 
       <div class="camera__body">
-        <a class="scan" href="05-session.html" data-href-when="from=extend" data-href="05-session.html?extended=1" aria-label="Scan frame. Activate to simulate scanning the QR code on your table"></a>
+        <a class="scan" href="05-session.html" data-href-map="from=extend>05-session.html?extended=1 from=break-start>05-session.html?phase=break from=break-end>05-session.html" aria-label="Scan frame. Activate to simulate scanning the QR code on your table"></a>
         <div class="stack stack--tight">
-          <p class="t-title">Scan the QR code on your table</p>
+          <p class="t-title" data-if-no-param="from">Scan the QR code on your table</p>
+          <p class="t-title" data-if-param="from=extend" hidden>Scan the QR code to extend your session</p>
+          <p class="t-title" data-if-param="from=break-start" hidden>Scan the QR code to start your break</p>
+          <p class="t-title" data-if-param="from=break-end" hidden>Scan the QR code to end your break</p>
           <p class="t-small t-muted">Seat 14 · HG E 41</p>
         </div>
       </div>

@@ -14,15 +14,24 @@
 <body>
   <div class="app">
     <main class="app__main">
-      <div class="row sticky-top">
-        <label class="search grow">
+      <div class="row row--spread">
+        <h1 class="t-heading">Study Spaces</h1>
+        <div class="row">
+          <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme">
+            <i class="icon i-sun"></i><i class="icon i-moon"></i>
+          </button>
+          <a class="icon-button" href="06-profile.html" aria-label="Profile">
+            <span class="avatar" aria-hidden="true">AM</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sticky-top">
+        <label class="search">
           <i class="icon i-search"></i>
           <span class="sr-only">Search study spaces</span>
           <input type="search" placeholder="Search study spaces">
         </label>
-        <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme">
-          <i class="icon i-sun"></i><i class="icon i-moon"></i>
-        </button>
       </div>
 
       <a class="card card--stripe is-reserved" href="03-reservation.html" data-if-state="reserved" hidden>
@@ -44,7 +53,6 @@
         </div>
       </a>
 
-      <h1 class="sr-only">Study spaces</h1>
       <ul class="scroller" aria-label="Recent and favourite study spaces">
         <li>
           <article class="card space-card">

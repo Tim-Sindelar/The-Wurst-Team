@@ -141,13 +141,15 @@ Used to tell the user something happened. No decision needed (at most one action
 ## Screens
 Source of truth for the flow: `user-flow.drawio.xml`.
 
-1. **Home:** pinned search bar, a "Reserved" card only while a seat is held (links to Reservation), favourite study-space cards in a swipe row, tall map placeholder. The mock remembers the reservation in the browser: opening Reservation sets "reserved", opening Session sets "session" (the card then says "In session"), cancelling or ending clears it. `?state=reserved`, `?state=session` or `?state=none` on the URL forces it.
+1. **Home:** the app name "Study Spaces" with the theme switch and the profile picture on the right (scrolls away), then a pinned search bar, a "Reserved" card only while a seat is held (links to Reservation), favourite study-space cards in a swipe row, tall map placeholder. The mock remembers the reservation in the browser: opening Reservation sets "reserved", opening Session sets "session" (the card then says "In session"), cancelling or ending clears it. `?state=reserved`, `?state=session` or `?state=none` on the URL forces it.
 2. **Seat arrangement:** top-down floor plan, six seat states, legend. Secondary button "Reserve any seat" (app picks one). Tapping a free seat opens the reserve bottom sheet.
    - **Reserve sheet** (not a screen): seat summary, note "held for X minutes", primary "Reserve", secondary "Cancel". Confirming turns the seat Reserved and goes to screen 3.
 3. **Reservation:** seat / room / building summary, X:00 check-in countdown, primary "Check in" (scan), secondary "Cancel reservation".
 4. **QR scan:** dark camera viewfinder mock, scan frame, hint text, flashlight toggle, back button. Reused when extending. Error state: "You don't seem to be at this seat" (location check failed), shown in place as a danger notice. In the mock, tapping the frame counts as a successful scan, and `?error=1` shows the error.
-5. **Session:** 2h countdown, seat info, buttons Extend (only in extension phases), Break, End session. Banner only in two phases: priority extension (20 min left, only you) and open extension (10 min left, everybody). No banner in the normal phase. Break: the session clock keeps running. A break timer (15 min placeholder) appears above it, the seat shows the cup badge, and "Back at my seat" is the primary action.
+5. **Session:** 2h countdown, seat info, buttons Extend (only in extension phases), Break, End session. Banner only in two phases: priority extension (20 min left, only you) and open extension (10 min left, everybody). No banner in the normal phase. Break: starting and ending a break each go through the QR scan (`04-qr-scan.html?from=break-start` and `?from=break-end`), and the QR screen words its title to match. The session clock keeps running. A break timer (15 min placeholder) appears above it, the seat shows the cup badge, and "Back at my seat" is the primary action.
    - Extend adds 2 hours. It asks first, then goes through the QR scan again on purpose, then returns here with a "Session extended" banner.
+
+6. **Profile** (extra, not in the flow): opens from the picture on Home. Back arrow, avatar with name and email, and three notification toggles. Nothing else.
 
 Notifications are push banners, not screens. Mock at most as a banner component: check-in reminder (X-3 min), seat lost, priority window (T-20), open window (T-10), session end (with "someone reserved this seat, please hand it over" note if booked), your booked seat is free early.
 

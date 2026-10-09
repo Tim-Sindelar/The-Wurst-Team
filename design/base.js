@@ -253,10 +253,18 @@
       });
       a.setAttribute('href', url.pathname.split('/').pop() + url.search);
     });
-    /* Swap a link's target when a URL parameter matches: data-href-when="from=extend" data-href="..." */
-    document.querySelectorAll('[data-href-when]').forEach((el) => {
-      const [k, v] = el.dataset.hrefWhen.split('=');
-      if (param(k) === v) el.setAttribute('href', el.dataset.href);
+    /* Swap a link's target by URL parameter:
+       data-href-map="from=extend>05-session.html?extended=1 from=break-start>05-session.html?phase=break" */
+    document.querySelectorAll('[data-href-map]').forEach((el) => {
+      el.dataset.hrefMap.split(/\s+/).filter(Boolean).forEach((rule) => {
+        const [cond, target] = rule.split('>');
+        const [k, v] = cond.split('=');
+        if (param(k) === v) el.setAttribute('href', target);
+      });
+    });
+    /* Show an element only when a URL parameter is absent: data-if-no-param="from". */
+    document.querySelectorAll('[data-if-no-param]').forEach((el) => {
+      el.hidden = param(el.dataset.ifNoParam) !== null;
     });
   });
 })();
