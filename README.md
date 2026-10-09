@@ -72,6 +72,10 @@ Check Mantine and existing project components before building a custom component
 `frontend/src/styles.css` orders Mantine before Tailwind utilities using CSS layers and omits Tailwind Preflight to retain Mantine's base styles.
 Repository development rules are in [AGENTS.md](AGENTS.md).
 
+## Product research
+
+For issue-specific competitor analysis and differentiation notes on ETH study-seat reservation use cases, see [research/MARKET_RESEARCH.md](research/MARKET_RESEARCH.md).
+
 ## Database migrations
 
 The starter has no domain tables yet. Define models inheriting from `app.database.Base` and import them in `backend/app/models/__init__.py` so Alembic discovers them. Create and review a migration:
