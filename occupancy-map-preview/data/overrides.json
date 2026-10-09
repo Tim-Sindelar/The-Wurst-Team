@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-09T21:13:40.311Z",
+  "updatedAt": "2026-10-09T21:34:53.716Z",
   "libraries": {
     "added": [
       {
@@ -115,7 +115,8 @@
         ],
         "levels": [
           "ETH.CAB.H"
-        ]
+        ],
+        "availabilityNote": "eating period"
       }
     ],
     "changed": {
@@ -159,7 +160,9 @@
           "lat": 47.378356,
           "lng": 8.5490314
         },
-        "enabled": true
+        "enabled": true,
+        "availabilityNote": "D-INFK",
+        "cardAccess24h": true
       },
       "ws-cab-f-31": {
         "name": "Lernraum CAB F 31",

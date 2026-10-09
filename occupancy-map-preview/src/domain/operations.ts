@@ -57,6 +57,8 @@ export function addLibrary(
     levelId: null,
     floor,
     enabled: false,
+    availabilityNote: null,
+    cardAccess24h: false,
     rooms: [],
     levels: [],
   };

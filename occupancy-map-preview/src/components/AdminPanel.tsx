@@ -145,6 +145,22 @@ export function AdminPanel(p: Props) {
                 onChange={(e) => p.onUpdateLibrary(library.id, { description: e.target.value || null })}
               />
             </Field>
+            <Field label="Conditional availability">
+              <textarea
+                rows={2}
+                placeholder="e.g. only with a reservation, during exam period only"
+                value={library.availabilityNote ?? ''}
+                onChange={(e) => p.onUpdateLibrary(library.id, { availabilityNote: e.target.value || null })}
+              />
+            </Field>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={library.cardAccess24h}
+                onChange={(e) => p.onUpdateLibrary(library.id, { cardAccess24h: e.target.checked })}
+              />
+              24h access with ETH card
+            </label>
             <label className="check">
               <input
                 type="checkbox"

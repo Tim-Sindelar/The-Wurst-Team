@@ -168,6 +168,18 @@ function LibraryDetails({
         )}
         <dt>Hours</dt>
         <dd>{library.openingHours ? <HoursTable hours={library.openingHours} /> : 'not published'}</dd>
+        {library.cardAccess24h && (
+          <>
+            <dt>Access</dt>
+            <dd>24h with ETH card</dd>
+          </>
+        )}
+        {library.availabilityNote && (
+          <>
+            <dt>Availability</dt>
+            <dd>{library.availabilityNote}</dd>
+          </>
+        )}
         {library.description && (
           <>
             <dt>About</dt>

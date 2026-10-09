@@ -44,6 +44,10 @@ export interface Library {
   address: string | null;
   campus: Campus;
   operator: LibraryOperator;
+  /** Free text on when/under which conditions the place may be used (e.g. "only with a reservation"); null = none. */
+  availabilityNote: string | null;
+  /** Accessible around the clock with an ETH card, outside the opening hours. */
+  cardAccess24h: boolean;
   /** Weekly schedule; null = not published. */
   openingHours: OpeningHours | null;
   description: string | null;

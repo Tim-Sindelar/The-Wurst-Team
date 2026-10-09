@@ -68,10 +68,10 @@ function applyCollection<T extends Entity>(base: T[], ov: CollectionOverrides<T>
 
 const levelsOf = (rooms: string[]) => [...new Set(rooms.map((r) => r.split('.').slice(0, 3).join('.')))].sort();
 
-/** Pipeline output has no `enabled` flag; workspaces are off until an admin enables them. */
+/** Pipeline output has no admin-only fields: workspaces are off until enabled, with no note and no card access. */
 const withEnabled = (data: OccupancyData): OccupancyData => ({
   ...data,
-  libraries: data.libraries.map((l) => ({ ...l, enabled: l.enabled === true })),
+  libraries: data.libraries.map((l) => ({ ...l, enabled: l.enabled === true, availabilityNote: l.availabilityNote ?? null, cardAccess24h: l.cardAccess24h === true })),
 });
 
 /**

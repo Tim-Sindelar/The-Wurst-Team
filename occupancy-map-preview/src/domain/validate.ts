@@ -53,6 +53,8 @@ export function validateOccupancyData(input: unknown): string[] {
     for (const f of ['address', 'description', 'sourceUrl']) {
       if (!isStrOrNull(l[f])) errors.push(`${at}: ${f} must be string or null`);
     }
+    // Admin-only fields: absent in pipeline output.
+    if (l.availabilityNote !== undefined && !isStrOrNull(l.availabilityNote)) errors.push(`${at}: availabilityNote must be string or null`);
     if (l.openingHours !== null && !isOpeningHours(l.openingHours)) errors.push(`${at}: openingHours must be null or a weekly schedule`);
     for (const f of ['facilityId', 'levelId']) {
       if (!isStrOrNull(l[f])) errors.push(`${at}: ${f} must be string or null`);
