@@ -3,7 +3,12 @@
 Reads occupancy-map-preview/data/generated.json and the level files written by
 extract_floors.py, and writes occupancy-map-preview/public/floors/library-outlines.json:
 
-    { "<libraryId>": { "type": "MultiPolygon", "coordinates": [...] } }
+    { "<libraryId>": { "type": "MultiPolygon", "coordinates": [...], "rooms": ["<roomId>", ...] } }
+
+and, for workspaces created or changed in the admin UI (whose rooms differ from generated.json),
+public/floors/room-outlines/<levelId>.json with the polygon of every room of that level:
+
+    { "<roomId>": [[ring, ...], ...] }       (polygons -> rings -> [lng, lat])
 
 Outlines drawn by hand in the admin UI (library.outline) take precedence over these.
 """
@@ -51,7 +56,23 @@ def main():
                     if rings:
                         polygons.append(rings)
         if polygons:
-            out[lib['id']] = {'type': 'MultiPolygon', 'coordinates': polygons}
+            out[lib['id']] = {'type': 'MultiPolygon', 'coordinates': polygons, 'rooms': sorted(wanted)}
+
+    room_dir = FLOORS / 'room-outlines'
+    room_dir.mkdir(exist_ok=True)
+    for path in sorted((FLOORS / 'levels').glob('*.json')):
+        plan = json.loads(path.read_text(encoding='utf-8'))
+        rooms = {}
+        for room in plan['rooms']:
+            polys = []
+            for poly in room['rings']:
+                rings = [decode(r, plan['origin'], plan['scale']) for r in poly]
+                rings = [r for r in rings if len(r) >= 4]
+                if rings:
+                    polys.append(rings)
+            if polys:
+                rooms[room['id']] = polys
+        (room_dir / path.name).write_text(json.dumps(rooms, separators=(',', ':')), encoding='utf-8')
 
     target = FLOORS / 'library-outlines.json'
     target.write_text(json.dumps(out, separators=(',', ':')), encoding='utf-8')

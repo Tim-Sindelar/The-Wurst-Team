@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-10-09T21:05:38.770Z",
+  "updatedAt": "2026-10-09T21:13:40.311Z",
   "libraries": {
     "added": [
       {
@@ -29,11 +29,132 @@
         "levels": [
           "ETH.CAB.G"
         ]
+      },
+      {
+        "id": "lib-262a6abf",
+        "name": "Seminars / Courses CAB G 56",
+        "kind": "library",
+        "address": "Universitätstrasse 6, 8092 Zürich, CAB G 56",
+        "campus": "Zentrum",
+        "operator": "ETH-Bibliothek",
+        "openingHours": null,
+        "description": null,
+        "position": {
+          "lat": 47.3784725,
+          "lng": 8.5493646
+        },
+        "positionApproximate": false,
+        "sourceUrl": null,
+        "outline": null,
+        "facilityId": "ETH.CAB",
+        "levelId": "ETH.CAB.G",
+        "floor": 2,
+        "enabled": true,
+        "rooms": [
+          "ETH.CAB.G.G_056"
+        ],
+        "levels": [
+          "ETH.CAB.G"
+        ]
+      },
+      {
+        "id": "lib-129e041f",
+        "name": "food&lab",
+        "kind": "library",
+        "address": "Universitätstrasse 6, 8092 Zürich, CAB H 41",
+        "campus": "Zentrum",
+        "operator": "ETH-Bibliothek",
+        "openingHours": {
+          "mon": [
+            {
+              "from": "07:00",
+              "to": "20:00"
+            }
+          ],
+          "tue": [
+            {
+              "from": "07:00",
+              "to": "20:00"
+            }
+          ],
+          "wed": [
+            {
+              "from": "07:00",
+              "to": "20:00"
+            }
+          ],
+          "thu": [
+            {
+              "from": "07:00",
+              "to": "20:00"
+            }
+          ],
+          "fri": [
+            {
+              "from": "07:00",
+              "to": "20:00"
+            }
+          ],
+          "sat": [],
+          "sun": []
+        },
+        "description": null,
+        "position": {
+          "lat": 47.3783544,
+          "lng": 8.5487966
+        },
+        "positionApproximate": false,
+        "sourceUrl": null,
+        "outline": null,
+        "facilityId": "ETH.CAB",
+        "levelId": "ETH.CAB.H",
+        "floor": 3,
+        "enabled": true,
+        "rooms": [
+          "ETH.CAB.H.H_041"
+        ],
+        "levels": [
+          "ETH.CAB.H"
+        ]
       }
     ],
     "changed": {
       "lib-informatik": {
         "name": "Informatikbibliothek CAB G 41",
+        "openingHours": {
+          "mon": [
+            {
+              "from": "08:00",
+              "to": "19:00"
+            }
+          ],
+          "tue": [
+            {
+              "from": "08:00",
+              "to": "19:00"
+            }
+          ],
+          "wed": [
+            {
+              "from": "08:00",
+              "to": "19:00"
+            }
+          ],
+          "thu": [
+            {
+              "from": "08:00",
+              "to": "19:00"
+            }
+          ],
+          "fri": [
+            {
+              "from": "08:00",
+              "to": "19:00"
+            }
+          ],
+          "sat": [],
+          "sun": []
+        },
         "position": {
           "lat": 47.378356,
           "lng": 8.5490314
@@ -42,6 +163,40 @@
       },
       "ws-cab-f-31": {
         "name": "Lernraum CAB F 31",
+        "openingHours": {
+          "mon": [
+            {
+              "from": "06:00",
+              "to": "20:30"
+            }
+          ],
+          "tue": [
+            {
+              "from": "06:00",
+              "to": "20:30"
+            }
+          ],
+          "wed": [
+            {
+              "from": "06:00",
+              "to": "20:30"
+            }
+          ],
+          "thu": [
+            {
+              "from": "06:00",
+              "to": "20:30"
+            }
+          ],
+          "fri": [
+            {
+              "from": "06:00",
+              "to": "20:30"
+            }
+          ],
+          "sat": [],
+          "sun": []
+        },
         "enabled": true
       }
     },

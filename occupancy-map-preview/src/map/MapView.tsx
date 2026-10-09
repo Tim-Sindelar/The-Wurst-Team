@@ -10,7 +10,7 @@ import { OutlineEditor } from './OutlineEditor';
 import { FloorLayer, type Theme } from './FloorLayer';
 import { VectorBasemap, OPENFREEMAP_ATTRIBUTION } from './VectorBasemap';
 import { FloorPicker } from './FloorPicker';
-import { libraryFloorLabel, levelName, loadLibraryOutlines, type FloorIndex } from '../floors/floorData';
+import { libraryFloorLabel, levelName, loadLibraryOutlineRoomKeys, loadLibraryOutlines, outlineFromRooms, roomsKey, type FloorIndex } from '../floors/floorData';
 import { partPathOptions, roundPolygons, type MinimalStyle } from './minimalStyle';
 
 const OUTLINE_COLORS: Record<OccupancyLevel, string> = {
@@ -84,7 +84,34 @@ export function MapView(props: Props) {
   // Libraries without a hand-drawn outline get one derived from their rooms.
   const [derivedOutlines, setDerivedOutlines] = useState<Record<string, MultiPolygon>>({});
   useEffect(() => void loadLibraryOutlines().then(setDerivedOutlines), []);
-  const outlineOf = (lib: { id: string; outline: MultiPolygon | null }) => lib.outline ?? derivedOutlines[lib.id] ?? null;
+  // Workspaces whose rooms differ from what the pipeline built an outline for (created or changed in admin)
+  // get theirs from the room polygons, so they look like the pregenerated ones.
+  const [baselineKeys, setBaselineKeys] = useState<Record<string, string> | null>(null);
+  useEffect(() => void loadLibraryOutlineRoomKeys().then(setBaselineKeys), []);
+  const [roomOutlines, setRoomOutlines] = useState<Record<string, { key: string; outline: MultiPolygon | null }>>({});
+  const stale = baselineKeys
+    ? data.libraries.filter((l) => !l.outline && l.rooms.length && baselineKeys[l.id] !== roomsKey(l.rooms))
+    : [];
+  const staleKey = stale.map((l) => `${l.id}=${roomsKey(l.rooms)}`).join(';');
+  useEffect(() => {
+    let cancelled = false;
+    for (const l of stale) {
+      const key = roomsKey(l.rooms);
+      if (roomOutlines[l.id]?.key === key) continue;
+      outlineFromRooms(l.rooms).then((outline) => !cancelled && setRoomOutlines((prev) => ({ ...prev, [l.id]: { key, outline } })));
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [staleKey]);
+  const outlineOf = (lib: { id: string; outline: MultiPolygon | null; rooms?: string[] }) => {
+    if (lib.outline) return lib.outline;
+    if (baselineKeys && lib.rooms?.length && baselineKeys[lib.id] !== roomsKey(lib.rooms)) {
+      const own = roomOutlines[lib.id];
+      return own && own.key === roomsKey(lib.rooms) ? own.outline : null;
+    }
+    return derivedOutlines[lib.id] ?? null;
+  };
   // Other floors first, then this floor, the selected library on top.
   const drawOrder = (lib: { id: string; floor: number | null }) => (selection.libraryId === lib.id ? 2 : onFloor(lib) ? 1 : 0);
   const libraryNames = useMemo(() => new Map(data.libraries.map((l) => [l.id, l.name])), [data.libraries]);

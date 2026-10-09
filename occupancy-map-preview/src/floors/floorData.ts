@@ -138,7 +138,10 @@ export function roomName(unitId: string) {
   return `${building} ${room.join('.').replace(/_0*(?=\d)/, ' ')}`;
 }
 
+type RawOutlines = Record<string, MultiPolygon & { rooms?: string[] }>;
+let rawOutlinesPromise: Promise<RawOutlines> | null = null;
 let outlinesPromise: Promise<Record<string, MultiPolygon>> | null = null;
+const loadRawOutlines = () => (rawOutlinesPromise ??= fetchJson<RawOutlines>(`${BASE}/library-outlines.json`).catch(() => ({})));
 
 /** The file holds one polygon per room; overlapping or touching rooms of a workspace become one shape. */
 function mergeOutlines(outlines: Record<string, MultiPolygon>): Record<string, MultiPolygon> {
@@ -156,6 +159,40 @@ function mergeOutlines(outlines: Record<string, MultiPolygon>): Record<string, M
 
 /** Library outlines derived from their rooms by scraper/build_library_outlines.py (empty if not generated). */
 export function loadLibraryOutlines(): Promise<Record<string, MultiPolygon>> {
-  outlinesPromise ??= fetchJson<Record<string, MultiPolygon>>(`${BASE}/library-outlines.json`).then(mergeOutlines).catch(() => ({}));
+  outlinesPromise ??= loadRawOutlines().then(mergeOutlines);
   return outlinesPromise;
+}
+
+/** The rooms (sorted ids joined by "|") each pregenerated outline was built from. */
+export const roomsKey = (rooms: string[]) => [...rooms].sort().join('|');
+export async function loadLibraryOutlineRoomKeys(): Promise<Record<string, string>> {
+  const raw = await loadRawOutlines();
+  return Object.fromEntries(Object.entries(raw).map(([id, o]) => [id, roomsKey(o.rooms ?? [])]));
+}
+
+const roomOutlineCache = new Map<string, Promise<Record<string, polygonClipping.Geom>>>();
+const loadRoomOutlines = (levelId: string) => {
+  let p = roomOutlineCache.get(levelId);
+  if (!p) {
+    p = fetchJson<Record<string, polygonClipping.Geom>>(`${BASE}/room-outlines/${encodeURIComponent(levelId)}.json`).catch(() => ({}));
+    roomOutlineCache.set(levelId, p);
+  }
+  return p;
+};
+
+/**
+ * Outline of an arbitrary set of rooms (e.g. a workspace made in the admin UI), merged into one shape.
+ * Reads the per-level room polygons written by scraper/build_library_outlines.py.
+ */
+export async function outlineFromRooms(roomIds: string[]): Promise<MultiPolygon | null> {
+  const levelIds = [...new Set(roomIds.map((r) => r.split('.').slice(0, 3).join('.')))];
+  const perLevel = await Promise.all(levelIds.map(loadRoomOutlines));
+  const polys = roomIds.flatMap((id) => perLevel.flatMap((rooms) => rooms[id] ?? [])) as polygonClipping.Polygon[];
+  if (!polys.length) return null;
+  const [first, ...rest] = polys;
+  try {
+    return { type: 'MultiPolygon', coordinates: polygonClipping.union(first, ...rest) as MultiPolygon['coordinates'] };
+  } catch {
+    return { type: 'MultiPolygon', coordinates: polys as MultiPolygon['coordinates'] };
+  }
 }
