@@ -9,15 +9,13 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   loadFloorIndex,
   loadLevel,
   loadRoomOutline,
   roomName,
-  type Room,
 } from '../../campus-map/floors/floorData';
-import type { RoomRef } from '../../campus-map/domain/types';
 import { assertOccupancyData } from '../../campus-map/domain/validate';
 import { outlineBounds } from '../../campus-map/map/geo';
 import { Icon } from '../../components/Icon';
@@ -89,13 +87,24 @@ export function AdminNewSpacePage({
       .filter((s) => s.id !== existingSpaceId)
       .map((s) => s.map_room_id),
   );
-  const matches = searchRooms(
-    (floor.data?.rooms || []).filter(
-      (r) => !existingMapRoomId || r.id === existingMapRoomId,
-    ),
-    search,
-    (r) => roomName(r.id),
-  ).slice(0, 12);
+  // An empty search lists the selected floor; a typed one searches every building.
+  const term = search.trim();
+  const found = useQuery({
+    ...q.searchMapRoomsOptions({ query: { q: term } }),
+    enabled: !!term && !picked && !existingMapRoomId,
+    staleTime: Infinity,
+    placeholderData: keepPreviousData,
+  });
+  const results = term ? found : floor;
+  const matches = term
+    ? found.data || []
+    : searchRooms(
+        (floor.data?.rooms || []).filter(
+          (r) => !existingMapRoomId || r.id === existingMapRoomId,
+        ),
+        '',
+        (r) => roomName(r.id),
+      ).slice(0, 12);
   const target = useMemo(() => {
     const bounds =
       outline.data && picked
@@ -145,7 +154,7 @@ export function AdminNewSpacePage({
     setSearch('');
     setActiveResult(0);
   }
-  function choose(room: Room | RoomRef) {
+  function choose(room: { id: string }) {
     if (existingMapRoomId && room.id !== existingMapRoomId) return;
     setFacility(room.id.split('.').slice(0, 2).join('.'));
     setLevel(room.id.split('.').slice(0, 3).join('.'));
@@ -353,14 +362,14 @@ export function AdminNewSpacePage({
                 role="listbox"
                 aria-label="Matching rooms"
               >
-                {floor.isPending ? (
+                {results.isPending ? (
                   <Text size="sm">Loading rooms…</Text>
-                ) : floor.isError ? (
+                ) : results.isError ? (
                   <Alert variant="danger">
                     Room list unavailable.{' '}
                     <Button
                       variant="quiet"
-                      onClick={() => void floor.refetch()}
+                      onClick={() => void results.refetch()}
                     >
                       Retry rooms
                     </Button>
@@ -386,15 +395,15 @@ export function AdminNewSpacePage({
                     </button>
                   ))
                 )}
-                {!floor.isPending && !floor.isError && !matches.length && (
+                {!results.isPending && !results.isError && !matches.length && (
                   <Text size="sm" c="dimmed">
-                    No matching rooms on this floor.
+                    {term ? 'No matching rooms.' : 'No rooms on this floor.'}
                   </Text>
                 )}
               </div>
             )}
             <Text size="sm" c="dimmed">
-              Search for a room or select it on the map.
+              Search rooms in every building, or select one on the map.
             </Text>
             {picked && !existingMapRoomId && (
               <Button variant="quiet" onClick={clearSelection}>
