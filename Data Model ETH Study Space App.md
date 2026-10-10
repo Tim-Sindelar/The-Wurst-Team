@@ -4,19 +4,21 @@ Oct 9, 2026 · @Filip Trplan
 
 ## Implemented scope
 
-The reservation feature lives in `backend/app/features/reservations/`: database models, API schemas, routes, reservation logic, and demo seeding. Shared configuration, database sessions, and dummy authentication remain in `backend/app/`. Feature models are registered through `backend/app/models/__init__.py` for Alembic.
+The reservation feature lives in `backend/app/features/reservations/`: database models, API schemas, routes, reservation logic, and demo seeding. Shared configuration, database sessions, and authentication remain in `backend/app/`. Feature models are registered through `backend/app/models/__init__.py` for Alembic.
 
-This version supports immediate and next-session reservations, QR check-in, extension, cumulative breaks, cancellation, and early handover. Real authentication, notifications, admin editing, geolocation, opening hours, and the room-layout contract are deferred.
+This version supports immediate and next-session reservations, QR check-in, extension, cumulative breaks, cancellation, early handover, and managed-proxy authentication. The admin API supports room/seat editing, opening hours, and dated closures in demo mode. Notifications, an admin UI, production admin roles, geolocation, and the room-layout contract are deferred.
 
 ## Principles
 
-- Keep four domain tables and derive state from rows and the clock. No status, end-reason, or ended-at columns are stored.
+- Derive reservation state from rows and the clock. No status, end-reason, or ended-at columns are stored.
 - Calculate deadlines from settings when an action occurs and persist them. Existing deadlines and captured break budgets survive configuration changes.
 - A user may hold one live reservation, including an upcoming reservation.
 - Reserve is one action: a free seat starts immediately; a claimable seat starts after the occupant. There is no separate queue endpoint or waiting list.
 - Use Alembic for every schema change, request-scoped SQLAlchemy sessions, and explicit write commits.
 
-## Tables
+## Core reservation tables
+
+The outline below covers core reservation fields; scheduling additions and the admin API are documented in the [README](README.md#admin-api-demo).
 
 All identifiers are UUIDs. All timestamps are PostgreSQL `timestamptz`. Columns are required unless marked nullable.
 
@@ -78,7 +80,7 @@ map_documents                 map style, navigation zones, and the two layers' {
 
 Clients read the merged workspaces; saving stores the diff, so re-importing the pipeline output (`importer --generated-only`) keeps admin edits.
 
-`user_id` is currently supplied by dummy auth; there is no users table. QR tokens are opaque and separate from seat identity. Layouts remain empty objects until the frontend contract is defined.
+`user_id` is a stable UUIDv5 derived from the trusted proxy's `X-User-Id` email. Explicit demo mode supplies dummy UUIDs for local development. Optional display customizations live in `user_profiles`: `id` (the same UUID, primary key), `name` (varchar(80)), and `photo` (nullable bytea containing a resized, metadata-free PNG). A row is created on the first profile save; reservations do not require one. Email and credentials are not stored, and profile edits never change reservation ownership. QR tokens are opaque and separate from seat identity. Layouts remain empty objects until the frontend contract is defined.
 
 `previous_reservation_id` identifies the checked-in occupant on the same seat preceding an upcoming reservation. It lets the state calculation recognize early handover. Once activation timestamps are persisted, the link is cleared. A reservation must be activated before it can be checked in and have a successor of its own, so unresolved handovers do not form chains.
 
@@ -178,4 +180,4 @@ All endpoints use `/api/v1` and typed Pydantic request/response schemas.
 
 Creation accepts `{kind: "seat", seat_id}` or `{kind: "any", space_id}`. Check-in accepts `{qr_token}`. Other actions require no body. Responses include server time, effective deadlines, remaining break seconds, and available actions. Public responses omit user identities and QR tokens.
 
-Authentication currently uses a configured default UUID, optionally overridden through `X-Demo-User-Id`. This is a development stub to replace with real authentication. `make seed` creates demo spaces and seats and prints QR tokens without overwriting existing data.
+Authentication defaults to proxy mode and requires the authenticated managed ingress with no direct public access. Local demo mode uses a configured default UUID, optionally overridden through `X-Demo-User-Id`. `make seed` creates demo spaces and seats and prints QR tokens without overwriting existing data.

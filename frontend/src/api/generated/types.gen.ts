@@ -424,6 +424,24 @@ export type AdminUser = {
 };
 
 /**
+ * Body_update_me
+ */
+export type BodyUpdateMe = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Photo
+     */
+    photo?: Blob | File | null;
+    /**
+     * Remove Photo
+     */
+    remove_photo?: boolean;
+};
+
+/**
  * Booking
  *
  * One booking of the day, in minutes after midnight (Zurich time).
@@ -1705,6 +1723,28 @@ export type UpdateSpaceRequest = {
 };
 
 /**
+ * UserResponse
+ */
+export type UserResponse = {
+    /**
+     * Email
+     */
+    email: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
+};
+
+/**
  * UzhLocation
  */
 export type UzhLocation = {
@@ -2783,6 +2823,72 @@ export type SaveMapWorkspacesResponses = {
 };
 
 export type SaveMapWorkspacesResponse = SaveMapWorkspacesResponses[keyof SaveMapWorkspacesResponses];
+
+export type GetMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me';
+};
+
+export type GetMeErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+};
+
+export type GetMeError = GetMeErrors[keyof GetMeErrors];
+
+export type GetMeResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type GetMeResponse = GetMeResponses[keyof GetMeResponses];
+
+export type UpdateMeData = {
+    body: BodyUpdateMe;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me';
+};
+
+export type UpdateMeErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Request Entity Too Large
+     */
+    413: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMeError = UpdateMeErrors[keyof UpdateMeErrors];
+
+export type UpdateMeResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type UpdateMeResponse = UpdateMeResponses[keyof UpdateMeResponses];
 
 export type GetMyReservationData = {
     body?: never;

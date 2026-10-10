@@ -12,6 +12,8 @@ dependencies = [
     "alembic>=1.14,<2",
     "psycopg[binary]>=3.2,<4",
     "tzdata>=2025.2",
+    "pillow>=12.3,<13",
+    "python-multipart>=0.0.20,<1",
 ]
 
 [project.scripts]

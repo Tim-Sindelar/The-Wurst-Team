@@ -18,6 +18,7 @@ from app.models import (
     SpaceClosure,
     SpaceOpeningInterval,
     StudySpace,
+    UserProfile,
 )
 
 
@@ -69,6 +70,7 @@ def db(test_engine: Engine) -> Iterator[Engine]:
             MapEntity,
             MapOverride,
             MapDocument,
+            UserProfile,
         ):
             session.execute(delete(model))
         session.commit()

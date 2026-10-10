@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
+from app.config import Settings, get_settings
 from app.database import get_session
 from app.features.campus_map import eth_rooms
 from app.features.campus_map.dataset_cache import DatasetCache
@@ -67,6 +68,7 @@ def client(db: Engine, tmp_path: Path, datasets_dir: Path) -> Iterator[TestClien
     )
     app.dependency_overrides[get_session] = test_session
     app.dependency_overrides[get_services] = lambda: services
+    app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None, auth_mode="demo")
     try:
         with TestClient(app) as client:
             yield client

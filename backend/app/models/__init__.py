@@ -7,6 +7,7 @@ from app.features.reservations.models import (
     SpaceOpeningInterval,
     StudySpace,
 )
+from app.models.profile import UserProfile
 
 __all__ = [
     "Break",
@@ -18,4 +19,5 @@ __all__ = [
     "SpaceClosure",
     "SpaceOpeningInterval",
     "StudySpace",
+    "UserProfile",
 ]

@@ -27,7 +27,7 @@ npm run dev --prefix frontend
 ```
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
-The frontend implements the mock screens from `design/` with mock data only (no API calls yet); Mantine, TanStack Query, and the API client are configured for wiring the backend in.
+The frontend implements the screens from `design/`. Its profile and home avatar use the real `/api/v1/me` endpoint; study spaces, reservations, and notification controls still use mock data/local state and do not write to the database.
 The campus map (`/map`, linked from the home screen) is the view mode of `occupancy-map-preview/`, made for phones. Its data comes from the backend under `/api/v1/map` (see "Campus map" below), so it needs `make backend` running.
 Vite proxies `/api` requests to the backend on port 8000. Backend source changes reload automatically; migrations run when the backend container starts.
 
@@ -36,7 +36,7 @@ Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend
 ## Environment
 
 Compose supplies the database connection and CORS environment automatically. Its fixed credentials are for local development.
-It also loads `backend/.env` when present. Copy `backend/.env.example` there to override reservation rules or dummy identity settings, then run `make backend` to recreate the backend with the new environment.
+It defaults to demo authentication and loads `backend/.env` when present. Copy `backend/.env.example` there to override reservation rules or dummy identity settings, then run `make backend` to recreate the backend with the new environment.
 PostgreSQL data persists in the `postgres_data` volume. Stop the environment with `docker compose down`.
 
 For a backend running outside Docker, copy `backend/.env.example` to `backend/.env`, start the database with `docker compose up -d db`, then run:
@@ -76,7 +76,7 @@ Repository development rules are in [AGENTS.md](AGENTS.md).
 
 ## Database migrations
 
-The reservation feature defines study spaces, seats, weekly opening intervals, dated closures, reservations, and breaks. Domain code lives under `backend/app/features/reservations/`, with models, Pydantic schemas, routes, transaction logic, and demo seeding kept together. Shared configuration, database sessions, dummy authentication, and health endpoints remain under `backend/app/`.
+The reservation feature defines study spaces, seats, weekly opening intervals, dated closures, reservations, and breaks. Domain code lives under `backend/app/features/reservations/`, with models, Pydantic schemas, routes, transaction logic, and demo seeding kept together. Shared configuration, database sessions, authentication, and health endpoints remain under `backend/app/`.
 
 Define feature models inheriting from `app.database.Base` and import them in `backend/app/models/__init__.py` so Alembic discovers them. Create and review a migration:
 
@@ -103,7 +103,22 @@ Use http://localhost:8000/docs to explore the API. `POST /api/v1/reservations` a
 
 `GET /api/v1/me/reservation` returns the current or upcoming booking, effective deadlines, remaining break allowance, and available actions. Its `reservation` is null when there is no live booking. Reservation actions are `POST /api/v1/reservations/{id}/extend`, `/break`, `/return`, and `/end`. Space endpoints expose availability without returning user identities or QR tokens.
 
-Authentication is a development stub. Requests use `DUMMY_USER_ID` by default; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. This stub does not authenticate users and must be replaced before public deployment.
+Authentication defaults to `AUTH_MODE=proxy`: the trusted `X-User-Id` email maps to a stable UUIDv5 using a fixed application namespace. Missing or empty identity returns 401 on user-specific endpoints; demo headers are ignored. Do not change the namespace, as that would change reservation ownership. Login still belongs to the proxy; the optional `user_profiles` table stores only display customizations, not credentials or email addresses.
+
+`GET /api/v1/me` returns `{id, name, email, photo_url}` using that same reservation identity. Unless a display name has been saved, proxy mode percent-decodes `X-User-Name`, falling back to the email if the name is absent; demo mode returns `Demo user`. Demo email is null, shown as `Local demo account`. `photo_url` is a PNG data URL or null. Responses are not HTTP-cacheable. The frontend uses this endpoint in both modes, with loading/error states and a reload action; it never supplies identity headers or stores auth tokens. Logout is not implemented.
+
+On Profile, edit the display name, choose/preview or remove a photo, then press **Save changes**. `PATCH /api/v1/me` accepts multipart form fields: `name` (1–80 characters after trimming, input capped at 80), optional `photo`, and optional `remove_photo=true`. Omit `photo` to keep the current picture. Edits are saved together and can only affect the authenticated user's profile; email, UUID, and reservation ownership never change. Photos must be actual JPEG, PNG, or WebP images, at most 2 MiB and 16 megapixels. The backend corrects orientation, resizes to fit 256×256, and re-encodes to PNG without source metadata. Profile data persists in PostgreSQL; no upload directory or storage service is needed.
+
+To test locally, rebuild with `docker compose up -d --build --wait backend` (installs upload dependencies and applies the migration), open http://localhost:5173/profile, save a name/photo, and refresh. Check the home avatar too. Demo users share `DUMMY_USER_ID` by default; use a different `X-Demo-User-Id` through the API to check profile isolation. In demo mode, an API upload looks like:
+
+```sh
+curl -X PATCH http://localhost:8000/api/v1/me \
+  -F 'name=My display name' -F 'photo=@/path/to/photo.png'
+```
+
+Local Compose and `backend/.env.example` enable `AUTH_MODE=demo`. In this development-only mode, requests use `DUMMY_USER_ID`; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. To use proxy mode with Compose, run `AUTH_MODE=proxy docker compose up -d` (the service environment takes precedence over `backend/.env`).
+
+Proxy mode is safe only behind the authenticated hackathon managed address: keep access control enabled and direct public app/backend access blocked, otherwise clients can forge the identity header.
 
 Timing rules live in `backend/app/config.py` and can be overridden in `backend/.env`:
 
@@ -121,7 +136,7 @@ The `reservation_states` database view derives availability from the clock, incl
 
 ## Admin API demo
 
-Admin routes live under `/api/v1/admin`. Send `X-Demo-Admin: true` to use them in the local demo. Without it, requests receive `403`; set `DUMMY_IS_ADMIN=true` to make the configured demo identity an admin by default. `DUMMY_ADMIN_ALLOW_HEADER=false` disables the header override. `X-Demo-Admin` accepts only `true` or `false`. This is a development stub, like the existing user identity middleware, and must be replaced before public deployment.
+Admin routes live under `/api/v1/admin`. In `AUTH_MODE=demo`, send `X-Demo-Admin: true` to use them. Without it, requests receive `403`; set `DUMMY_IS_ADMIN=true` to make demo users admins by default. `DUMMY_ADMIN_ALLOW_HEADER=false` disables the header override. `X-Demo-Admin` accepts only `true` or `false`. Proxy mode ignores these demo privileges and denies admin access; production admin roles are outside the current auth scope.
 
 | Method | Path (under `/api/v1/admin`) | Purpose |
 | --- | --- | --- |
@@ -185,3 +200,15 @@ make test       # pytest inside the running backend container
 For local Python test execution, start PostgreSQL and run `uv run --locked pytest` from `backend/`.
 
 The production frontend is written to `frontend/dist/`. A deployment must serve it with an `/api` reverse proxy or set `VITE_API_BASE_URL` before building; the Vite proxy is only used during development.
+
+## Deployment authentication
+
+`AUTH_MODE` is the only auth switch: `demo` locally, `proxy` on the VM. For Compose, persist `AUTH_MODE=proxy` in the repository-root `.env` (not `backend/.env`, which the Compose service environment overrides), then recreate the backend:
+
+```sh
+docker compose up -d --build --wait backend
+```
+
+This also installs image-upload dependencies and applies the `user_profiles` migration. Keep the existing PostgreSQL volume (do not use `docker compose down -v`); it holds both reservations and profile photos. Rebuild and publish the frontend with `npm run build --prefix frontend`. Outside Compose, install locked dependencies and run `alembic upgrade head` before restarting the backend. No new auth setting or photo-storage configuration is required.
+
+This switches authentication, not web hosting. Keep the managed address authenticated, forward `/api` on the same origin with `X-User-Id` and `X-User-Name` intact, and block direct public access to the backend/app. No frontend auth setting or identity injection is needed. At the managed URL, verify that Profile shows your actual name/email; use a second account to confirm a different identity. Actual edu-ID login requires the managed proxy; local tests simulate its headers. Admin access remains demo-only.

@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, checkIn, createReservation, endReservation, extendReservation, getEthRoom, getEthRooms, getHealth, getMapDataset, getMapNavigation, getMapStyle, getMapWorkspaces, getMyReservation, getReadiness, getSpace, getUzhOccupancy, listMapDatasets, listSpaces, type Options, returnFromBreak, saveMapNavigation, saveMapStyle, saveMapWorkspaces, startBreak } from '../sdk.gen';
-import type { AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetEthRoomData, GetEthRoomError, GetEthRoomResponse, GetEthRoomsData, GetEthRoomsError, GetEthRoomsResponse, GetHealthData, GetHealthResponse, GetMapDatasetData, GetMapDatasetError, GetMapDatasetResponse, GetMapNavigationData, GetMapNavigationError, GetMapNavigationResponse, GetMapStyleData, GetMapStyleError, GetMapStyleResponse, GetMapWorkspacesData, GetMapWorkspacesResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, GetUzhOccupancyData, GetUzhOccupancyError, GetUzhOccupancyResponse, ListMapDatasetsData, ListMapDatasetsResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, SaveMapNavigationData, SaveMapNavigationError, SaveMapNavigationResponse, SaveMapStyleData, SaveMapStyleError, SaveMapStyleResponse, SaveMapWorkspacesData, SaveMapWorkspacesError, SaveMapWorkspacesResponse, StartBreakData, StartBreakError, StartBreakResponse } from '../types.gen';
+import { adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, checkIn, createReservation, endReservation, extendReservation, getEthRoom, getEthRooms, getHealth, getMapDataset, getMapNavigation, getMapStyle, getMapWorkspaces, getMe, getMyReservation, getReadiness, getSpace, getUzhOccupancy, listMapDatasets, listSpaces, type Options, returnFromBreak, saveMapNavigation, saveMapStyle, saveMapWorkspaces, startBreak, updateMe } from '../sdk.gen';
+import type { AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetEthRoomData, GetEthRoomError, GetEthRoomResponse, GetEthRoomsData, GetEthRoomsError, GetEthRoomsResponse, GetHealthData, GetHealthResponse, GetMapDatasetData, GetMapDatasetError, GetMapDatasetResponse, GetMapNavigationData, GetMapNavigationError, GetMapNavigationResponse, GetMapStyleData, GetMapStyleError, GetMapStyleResponse, GetMapWorkspacesData, GetMapWorkspacesResponse, GetMeData, GetMeError, GetMeResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, GetUzhOccupancyData, GetUzhOccupancyError, GetUzhOccupancyResponse, ListMapDatasetsData, ListMapDatasetsResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, SaveMapNavigationData, SaveMapNavigationError, SaveMapNavigationResponse, SaveMapStyleData, SaveMapStyleError, SaveMapStyleResponse, SaveMapWorkspacesData, SaveMapWorkspacesError, SaveMapWorkspacesResponse, StartBreakData, StartBreakError, StartBreakResponse, UpdateMeData, UpdateMeError, UpdateMeResponse } from '../types.gen';
 
 /**
  * End Reservation
@@ -486,6 +486,41 @@ export const saveMapWorkspacesMutation = (options?: Partial<Options<SaveMapWorks
     const mutationOptions: UseMutationOptions<SaveMapWorkspacesResponse, SaveMapWorkspacesError, Options<SaveMapWorkspacesData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await saveMapWorkspaces({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getMeQueryKey = (options?: Options<GetMeData>) => createQueryKey('getMe', options);
+
+/**
+ * Get Me
+ */
+export const getMeOptions = (options?: Options<GetMeData>) => queryOptions<GetMeResponse, GetMeError, GetMeResponse, ReturnType<typeof getMeQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getMe({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getMeQueryKey(options)
+});
+
+/**
+ * Update Me
+ */
+export const updateMeMutation = (options?: Partial<Options<UpdateMeData>>): UseMutationOptions<UpdateMeResponse, UpdateMeError, Options<UpdateMeData>> => {
+    const mutationOptions: UseMutationOptions<UpdateMeResponse, UpdateMeError, Options<UpdateMeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateMe({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

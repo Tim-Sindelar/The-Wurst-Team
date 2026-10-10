@@ -21,6 +21,7 @@ services:
       - path: ./backend/.env
         required: false
     environment:
+      AUTH_MODE: ${AUTH_MODE:-demo}
       DATABASE_URL: postgresql+psycopg://hackathon:hackathon@db:5432/hackathon
       CORS_ORIGINS: '["http://localhost:5173", "http://127.0.0.1:5173"]'
       MAP_FLOORS_DIR: /app/floors

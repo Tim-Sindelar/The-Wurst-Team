@@ -155,7 +155,7 @@ Source of truth for the flow: `user-flow.drawio.xml`.
 5. **Session:** 2h countdown, seat info, buttons Extend (only in extension phases), Break, End session. Banner only in two phases: priority extension (20 min left, only you) and open extension (10 min left, everybody). No banner in the normal phase. Break: starting and ending a break each go through the QR scan (`04-qr-scan.html?from=break-start` and `?from=break-end`), and the QR screen words its title to match. The session clock keeps running. A break timer (15 min placeholder) appears above it, the seat shows the cup badge, and "Back at my seat" is the primary action.
    - Extend adds 2 hours. It asks first, then goes through the QR scan again on purpose, then returns here with a "Session extended" banner.
 
-6. **Profile** (extra, not in the flow): opens from the picture on Home. Back arrow, avatar with name and email, and three notification toggles. Nothing else.
+6. **Profile** (extra, not in the flow): opens from the picture on Home. Back arrow, avatar with name and read-only email, editable display name, secondary photo picker with preview/removal, and three notification toggles. Save changes is the single primary action in the bottom action bar; editing never changes login identity. Show validation/save errors in place and a notification banner after saving. Photos accept JPEG/PNG/WebP up to 2 MiB and 16 megapixels.
 
 Notifications are push banners, not screens. Mock at most as a banner component: check-in reminder (X-3 min), seat lost, priority window (T-20), open window (T-10), session end (with "someone reserved this seat, please hand it over" note if booked), your booked seat is free early.
 
