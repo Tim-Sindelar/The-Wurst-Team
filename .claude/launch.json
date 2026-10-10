@@ -80,6 +80,23 @@
       ],
       "port": 5443,
       "url": "https://localhost:5443"
+    },
+    {
+      "name": "polymaps-ar-http",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "C:/Users/diffr/code/wurst team repo 2/polymaps-ar",
+        "--",
+        "--port",
+        "5444"
+      ],
+      "env": {
+        "PLAIN_HTTP": "1"
+      },
+      "port": 5444
     }
   ]
 }
