@@ -16,22 +16,20 @@ import { Icon } from '../../components/Icon';
 import { SectionLabel } from '../../components/SectionLabel';
 import { StatusBanner } from '../../components/StatusBanner';
 import { paths } from '../../routes';
-import { draftPaths, initials, sampleInvite, type DraftPerson } from './draft';
+import {
+  activeDraftParties,
+  draftPaths,
+  initials,
+  sampleInvite,
+  type DraftPerson,
+} from './draft';
 import { DraftFrame } from './SocialDraftLayout';
 import { useSocialDraft } from './useSocialDraft';
 
 export function FriendsDraftScreen() {
   const { state, dispatch } = useSocialDraft();
-  const [search, setSearch] = useState('');
-  const [remove, setRemove] = useState<DraftPerson | null>(null);
-  const [notice, setNotice] = useState('');
-  const friends = state.friends.filter((p) =>
-    p.name.toLowerCase().includes(search.trim().toLowerCase()),
-  );
-  const ready = state.party.members.filter(
-    (m) => m.status === 'accepted',
-  ).length;
-
+  const parties = activeDraftParties(state.parties);
+  const requests = state.requests.filter((r) => r.incoming).length;
   return (
     <DraftFrame
       title="Friends"
@@ -46,6 +44,21 @@ export function FriendsDraftScreen() {
         </Button>
       }
     >
+      <SectionLabel>Privacy</SectionLabel>
+      <Card component="section" aria-label="Location sharing">
+        <Switch
+          label="Share my study room with friends"
+          checked={state.shareRoom}
+          onChange={(e) => {
+            dispatch({ type: 'privacy', enabled: e.currentTarget.checked });
+          }}
+        />
+        <Text size="sm" c="dimmed">
+          Friends can see your room only while you’re checked in. Your seat and
+          phone location stay private.
+        </Text>
+      </Card>
+      <SectionLabel>Study together</SectionLabel>
       <Card
         component={Link}
         to={draftPaths.parties}
@@ -54,15 +67,76 @@ export function FriendsDraftScreen() {
       >
         <div className="flex items-center justify-between gap-3">
           <div className="grid min-w-0 gap-1">
-            <Title order={2}>Study together</Title>
+            <Title order={2}>Study parties</Title>
             <Text size="sm" c="dimmed">
-              {state.party.name} · {ready} ready
+              {parties.length
+                ? `${parties.length} active ${parties.length === 1 ? 'party' : 'parties'} · invitations and group bookings`
+                : 'Create a party and book seats together'}
             </Text>
           </div>
           <Icon name="chevronRight" />
         </div>
       </Card>
+      <Card component={Link} to={draftPaths.locations} className="no-underline">
+        <div className="flex items-center gap-3">
+          <Icon name="pin" />
+          <div className="grid min-w-0 flex-1 gap-1">
+            <Title order={2}>Stalk my friends</Title>
+            <Text size="sm" c="dimmed">
+              Find the rooms your friends choose to share
+            </Text>
+          </div>
+          <Icon name="chevronRight" />
+        </div>
+      </Card>
+      <SectionLabel>Friendships</SectionLabel>
+      <Card component={Link} to={draftPaths.manage} className="no-underline">
+        <div className="flex items-center gap-3">
+          <Icon name="friends" />
+          <div className="grid min-w-0 flex-1 gap-1">
+            <Title order={2}>Manage friends</Title>
+            <Text size="sm" c="dimmed">
+              {state.friends.length} friends
+              {requests
+                ? ` · ${requests} ${requests === 1 ? 'request' : 'requests'} to review`
+                : ''}
+            </Text>
+          </div>
+          <Icon name="chevronRight" />
+        </div>
+      </Card>
+    </DraftFrame>
+  );
+}
 
+export function ManageFriendsDraftScreen() {
+  const { state, dispatch } = useSocialDraft();
+  const [search, setSearch] = useState('');
+  const [remove, setRemove] = useState<DraftPerson | null>(null);
+  const [notice, setNotice] = useState('');
+  const friends = state.friends.filter((p) =>
+    p.name.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  return (
+    <DraftFrame
+      title="Manage friends"
+      backTo={draftPaths.friends}
+      actions={
+        <Button
+          component={Link}
+          to={draftPaths.add}
+          leftSection={<Icon name="plus" />}
+        >
+          Add a friend
+        </Button>
+      }
+    >
+      <StatusBanner
+        opened={!!notice}
+        onClose={() => setNotice('')}
+        icon="check"
+        title={notice}
+      />
       {state.requests.length > 0 && (
         <SectionLabel>Friend requests · {state.requests.length}</SectionLabel>
       )}
@@ -118,11 +192,7 @@ export function FriendsDraftScreen() {
         <Card key={person.id} component="article" aria-label={person.name}>
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <PersonRow
-                person={person}
-                detail={person.room ?? 'No shared location'}
-                location={!!person.room}
-              />
+              <PersonRow person={person} detail="Friend" />
             </div>
             <ActionIcon
               aria-label={`Remove ${person.name} from friends`}
@@ -143,26 +213,6 @@ export function FriendsDraftScreen() {
         </Card>
       )}
 
-      <SectionLabel>Privacy</SectionLabel>
-      <Card component="section" aria-label="Location sharing">
-        <Switch
-          label="Share my study room with friends"
-          checked={state.shareRoom}
-          onChange={(e) => {
-            dispatch({ type: 'privacy', enabled: e.currentTarget.checked });
-            setNotice(
-              e.currentTarget.checked
-                ? 'Room sharing enabled'
-                : 'Room sharing disabled',
-            );
-          }}
-        />
-        <Text size="sm" c="dimmed">
-          Only accepted friends can see your room while you’re checked in. Your
-          exact seat and phone location stay private.
-        </Text>
-      </Card>
-
       <DecisionSheet
         opened={!!remove}
         onClose={() => setRemove(null)}
@@ -179,12 +229,50 @@ export function FriendsDraftScreen() {
         You’ll stop sharing your study room with each other. You can send
         another request later.
       </DecisionSheet>
-      <StatusBanner
-        opened={!!notice}
-        onClose={() => setNotice('')}
-        icon="check"
-        title={notice}
-      />
+    </DraftFrame>
+  );
+}
+
+export function FriendLocationsDraftScreen() {
+  const { state } = useSocialDraft();
+  const shared = state.friends.filter((p) => p.room !== null);
+  return (
+    <DraftFrame
+      title="Stalk my friends"
+      backTo={draftPaths.friends}
+      actions={
+        <Button
+          component={Link}
+          to={paths.map}
+          leftSection={<Icon name="map" />}
+        >
+          Open campus map
+        </Button>
+      }
+    >
+      <Text c="dimmed">
+        Only rooms your friends share while checked in. No seat numbers or live
+        tracking.
+      </Text>
+      <SectionLabel>Shared study rooms · {shared.length}</SectionLabel>
+      {shared.map((person) => (
+        <Card
+          key={person.id}
+          component="article"
+          aria-label={`${person.name} in ${person.room}`}
+        >
+          <PersonRow person={person} detail={person.room!} location />
+        </Card>
+      ))}
+      {shared.length === 0 && (
+        <Card>
+          <Text c="dimmed">No friends are sharing a study room right now.</Text>
+        </Card>
+      )}
+      <Text size="sm" c="dimmed">
+        Friends without a shared room stay private. Manage your own sharing at
+        the top of Friends.
+      </Text>
     </DraftFrame>
   );
 }
@@ -253,7 +341,7 @@ function AddFriendPreview({ inviteCode }: { inviteCode: string | null }) {
         url.searchParams.get('invite') !== 'sam'
       ) {
         setError(
-          'That invite link isn’t available in this preview. Use Sam’s sample link above.',
+          'That invite link isn’t available in this preview. Use Sam’s sample link below.',
         );
         return;
       }
@@ -309,6 +397,13 @@ function AddFriendPreview({ inviteCode }: { inviteCode: string | null }) {
         </Button>
       </Card>
       <SectionLabel>Have a friend’s link?</SectionLabel>
+      <Button
+        variant="quiet"
+        component={Link}
+        to={`${draftPaths.add}?invite=sam`}
+      >
+        Try Sam’s sample invite
+      </Button>
       <Card
         component="form"
         id="friend-invite-form"

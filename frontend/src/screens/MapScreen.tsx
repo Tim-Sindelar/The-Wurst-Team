@@ -7,7 +7,11 @@ const CampusMap = lazy(() =>
 
 export function MapScreen() {
   return (
-    <Suspense fallback={<div className="h-dvh bg-bg" />}>
+    <Suspense
+      fallback={
+        <div className={import.meta.env.DEV ? 'h-full bg-bg' : 'h-dvh bg-bg'} />
+      }
+    >
       <CampusMap />
     </Suspense>
   );

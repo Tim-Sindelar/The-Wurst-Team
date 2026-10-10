@@ -11,34 +11,41 @@ export type DraftMember = {
   cancelled: boolean;
 };
 export type DraftParty = {
+  id: string;
+  organizerId: string;
   name: string;
   status: 'open' | 'booked' | 'cancelled';
   members: DraftMember[];
   bookedAt: number | null;
 };
 export type DraftState = {
+  demoSeedVersion: number;
   revision: number;
   friends: DraftPerson[];
   requests: DraftRequest[];
   shareRoom: boolean;
   viewer: string;
-  party: DraftParty;
+  parties: DraftParty[];
+  activePartyId: string;
 };
-export type DraftAction =
+export type DraftAction = (
   | { type: 'reset' }
   | { type: 'privacy'; enabled: boolean }
   | { type: 'accept-request' | 'remove-request' | 'remove-friend'; id: string }
   | { type: 'send-request'; person: DraftPerson }
-  | { type: 'create-party'; name: string; invited: string[] }
+  | { type: 'create-party'; id: string; name: string }
   | { type: 'invite-members'; invited: string[] }
   | { type: 'viewer'; id: string }
   | { type: 'reply'; accept: boolean }
   | { type: 'leave' | 'cancel-party' | 'cancel-seat' | 'check-in' }
-  | { type: 'book'; assignments: Record<string, number>; now: number };
+  | { type: 'book'; assignments: Record<string, number>; now: number }
+) & { partyId?: string };
 
 export const draftPaths = {
   friends: '/social-draft',
   add: '/social-draft/add',
+  manage: '/social-draft/manage',
+  locations: '/social-draft/locations',
   parties: '/social-draft/parties',
   newParty: '/social-draft/parties/new',
   party: '/social-draft/party',
@@ -47,6 +54,17 @@ export const draftPaths = {
   reservation: '/social-draft/party/reservation',
   scan: '/social-draft/party/scan',
 } as const;
+
+export function activeDraftParties(parties: DraftParty[]) {
+  return parties.filter((p) => p.status !== 'cancelled');
+}
+
+export function partyPath(
+  id: string,
+  section?: 'invite' | 'seats' | 'reservation' | 'scan',
+) {
+  return `${draftPaths.party}/${encodeURIComponent(id)}${section ? `/${section}` : ''}`;
+}
 
 export const organizer: DraftPerson = {
   id: 'you',
@@ -80,6 +98,7 @@ export function initialDraftState(): DraftState {
     },
   ];
   return {
+    demoSeedVersion: 1,
     revision: 0,
     friends,
     requests: [
@@ -94,15 +113,32 @@ export function initialDraftState(): DraftState {
     ],
     shareRoom: false,
     viewer: 'you',
-    party: {
-      name: 'Afternoon study',
-      status: 'open',
-      members: [
-        asMember(organizer, true),
-        ...friends.map((p) => asMember(p, p.id !== 'anna')),
-      ],
-      bookedAt: null,
-    },
+    activePartyId: 'afternoon-study',
+    parties: [
+      {
+        id: 'afternoon-study',
+        organizerId: 'you',
+        name: 'Afternoon study',
+        status: 'open',
+        members: [
+          asMember(organizer, true),
+          ...friends.map((p) => asMember(p, true)),
+        ],
+        bookedAt: null,
+      },
+      {
+        id: 'anna-study',
+        organizerId: 'anna',
+        name: 'Anna’s study group',
+        status: 'open',
+        members: [
+          asMember(friends[0], true),
+          asMember(organizer),
+          ...friends.slice(1).map((p) => asMember(p, true)),
+        ],
+        bookedAt: null,
+      },
+    ],
   };
 }
 
@@ -110,15 +146,25 @@ export function draftReducer(
   state: DraftState,
   action: DraftAction,
 ): DraftState {
-  const updateMember = (update: (member: DraftMember) => DraftMember) => ({
+  const party = state.parties.find(
+    (p) => p.id === (action.partyId ?? state.activePartyId),
+  );
+  const viewer = party?.members.some((m) => m.person.id === state.viewer)
+    ? state.viewer
+    : 'you';
+  const updateParty = (
+    update: (party: DraftParty) => DraftParty,
+  ): DraftState => ({
     ...state,
-    party: {
-      ...state.party,
-      members: state.party.members.map((member) =>
-        member.person.id === state.viewer ? update(member) : member,
-      ),
-    },
+    parties: state.parties.map((p) => (p.id === party?.id ? update(p) : p)),
   });
+  const updateMember = (update: (member: DraftMember) => DraftMember) =>
+    updateParty((p) => ({
+      ...p,
+      members: p.members.map((member) =>
+        member.person.id === viewer ? update(member) : member,
+      ),
+    }));
   switch (action.type) {
     case 'reset':
       return { ...initialDraftState(), revision: state.revision + 1 };
@@ -159,81 +205,187 @@ export function draftReducer(
             ],
           };
     case 'create-party':
+      if (!action.name.trim() || state.parties.some((p) => p.id === action.id))
+        return state;
       return {
         ...state,
         viewer: 'you',
-        party: {
-          name: action.name,
-          status: 'open',
-          bookedAt: null,
-          members: [
-            asMember(organizer, true),
-            ...state.friends
-              .filter((p) => action.invited.includes(p.id))
-              .map((p) => asMember(p)),
-          ],
-        },
+        activePartyId: action.id,
+        parties: [
+          {
+            id: action.id,
+            organizerId: 'you',
+            name: action.name.trim(),
+            status: 'open',
+            bookedAt: null,
+            members: [asMember(organizer, true)],
+          },
+          ...state.parties,
+        ],
       };
     case 'invite-members': {
-      const reinvited = state.party.members.map((m) =>
+      if (!party || party.status !== 'open' || viewer !== party.organizerId)
+        return state;
+      const reinvited = party.members.map((m) =>
         action.invited.includes(m.person.id) &&
         ['declined', 'left'].includes(m.status)
           ? asMember(m.person)
           : m,
       );
-      return {
-        ...state,
-        party: {
-          ...state.party,
-          members: [
-            ...reinvited,
-            ...state.friends
-              .filter(
-                (p) =>
-                  action.invited.includes(p.id) &&
-                  !reinvited.some((m) => m.person.id === p.id),
-              )
-              .map((p) => asMember(p)),
-          ],
-        },
-      };
+      return updateParty((p) => ({
+        ...p,
+        members: [
+          ...reinvited,
+          ...state.friends
+            .filter(
+              (p) =>
+                action.invited.includes(p.id) &&
+                !reinvited.some((m) => m.person.id === p.id),
+            )
+            .map((p) => asMember(p)),
+        ],
+      }));
     }
     case 'reply':
+      if (!party || party.status !== 'open' || party.organizerId === viewer)
+        return state;
       return updateMember((m) => ({
         ...m,
         status: action.accept ? 'accepted' : 'declined',
       }));
     case 'leave':
+      if (!party || party.status !== 'open' || party.organizerId === viewer)
+        return state;
       return updateMember((m) => ({ ...m, status: 'left' }));
     case 'book':
-      return {
-        ...state,
-        party: {
-          ...state.party,
-          status: 'booked',
-          bookedAt: action.now,
-          members: state.party.members.map((m) => ({
-            ...m,
-            seat: action.assignments[m.person.id] ?? null,
-          })),
-        },
-      };
+      if (!party || party.status !== 'open' || viewer !== party.organizerId)
+        return state;
+      return updateParty((p) => ({
+        ...p,
+        status: 'booked',
+        bookedAt: action.now,
+        members: p.members.map((m) => ({
+          ...m,
+          seat: action.assignments[m.person.id] ?? null,
+        })),
+      }));
     case 'check-in':
       return updateMember((m) => ({ ...m, checkedIn: true }));
     case 'cancel-seat':
       return updateMember((m) => ({ ...m, cancelled: true, checkedIn: false }));
     case 'cancel-party':
-      return {
-        ...state,
-        party: {
-          ...state.party,
-          status: 'cancelled',
-          members: state.party.members.map((m) => ({
-            ...m,
-            cancelled: m.cancelled || !m.checkedIn,
-          })),
-        },
-      };
+      return viewer !== party?.organizerId
+        ? state
+        : updateParty((p) => ({
+            ...p,
+            status: 'cancelled',
+            members: p.members.map((m) => ({
+              ...m,
+              cancelled: m.cancelled || !m.checkedIn,
+            })),
+          }));
+  }
+}
+
+export const draftStorageKey = 'study-spaces:social-draft:v2';
+
+/** Upgrade the previous one-party demo once, preserving custom parties and reservations. */
+function seedDemoParties(state: DraftState): DraftState {
+  if (state.demoSeedVersion === 1) return state;
+  const [full, invitation] = initialDraftState().parties;
+  let parties = state.parties.map((p) =>
+    p.id === full.id && p.status === 'open' ? { ...full } : p,
+  );
+  if (!parties.some((p) => p.id === invitation.id))
+    parties = [...parties, invitation];
+  if (!parties.some((p) => p.id === full.id && p.status === 'open'))
+    parties = [
+      ...parties,
+      {
+        ...full,
+        id: parties.some((p) => p.id === full.id)
+          ? 'afternoon-study-demo'
+          : full.id,
+      },
+    ];
+  return { ...state, parties, demoSeedVersion: 1 };
+}
+
+/** Isolated from the real profile and booking stores; old/corrupt drafts reset safely. */
+export function restoreDraftState(saved: string | null): DraftState {
+  if (!saved) return initialDraftState();
+  try {
+    const state: DraftState = JSON.parse(saved);
+    const person = (p: DraftPerson) =>
+      typeof p?.id === 'string' &&
+      typeof p.name === 'string' &&
+      (p.room === null || typeof p.room === 'string');
+    if (
+      typeof state.shareRoom !== 'boolean' ||
+      typeof state.activePartyId !== 'string' ||
+      !Array.isArray(state.friends) ||
+      !state.friends.every(person) ||
+      !Array.isArray(state.requests) ||
+      !state.requests.every(
+        (r) => person(r.person) && typeof r.incoming === 'boolean',
+      ) ||
+      !Array.isArray(state.parties) ||
+      !state.parties.length ||
+      !state.parties.every(
+        (p) =>
+          typeof p.id === 'string' &&
+          (p.organizerId === undefined ||
+            (typeof p.organizerId === 'string' &&
+              p.members?.some((m) => m.person?.id === p.organizerId))) &&
+          typeof p.name === 'string' &&
+          ['open', 'booked', 'cancelled'].includes(p.status) &&
+          (p.bookedAt === null || typeof p.bookedAt === 'number') &&
+          Array.isArray(p.members) &&
+          p.members.some((m) => m.person?.id === 'you') &&
+          p.members.every(
+            (m) =>
+              person(m.person) &&
+              ['invited', 'accepted', 'declined', 'left'].includes(m.status) &&
+              (m.seat === null || Number.isInteger(m.seat)) &&
+              typeof m.checkedIn === 'boolean' &&
+              typeof m.cancelled === 'boolean',
+          ),
+      )
+    )
+      return initialDraftState();
+    return seedDemoParties({
+      ...state,
+      parties: state.parties.map((p) => ({
+        ...p,
+        organizerId: p.organizerId ?? 'you',
+      })),
+      activePartyId: state.parties.some((p) => p.id === state.activePartyId)
+        ? state.activePartyId
+        : state.parties[0].id,
+      viewer: 'you',
+      revision: 0,
+    });
+  } catch {
+    return initialDraftState();
+  }
+}
+
+export function loadDraftState(): DraftState {
+  try {
+    return restoreDraftState(localStorage.getItem(draftStorageKey));
+  } catch {
+    return initialDraftState();
+  }
+}
+
+export function saveDraftState(state: DraftState) {
+  try {
+    localStorage.setItem(
+      draftStorageKey,
+      JSON.stringify({ ...state, viewer: 'you' }),
+    );
+  } catch {
+    /* The preview still works in memory when browser storage is unavailable. */
   }
 }
 

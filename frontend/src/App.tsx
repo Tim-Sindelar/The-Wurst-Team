@@ -1,9 +1,5 @@
-import {
-  createBrowserRouter,
-  Outlet,
-  RouterProvider,
-  ScrollRestoration,
-} from 'react-router';
+import { createBrowserRouter, RouterProvider } from 'react-router';
+import { AppLayout } from './components/AppLayout';
 import { paths } from './routes';
 import { HomeScreen } from './screens/HomeScreen';
 import { MapScreen } from './screens/MapScreen';
@@ -17,19 +13,10 @@ const socialDraftRoutes = import.meta.env.DEV
   ? (await import('./features/social-draft/routes')).socialDraftRoutes
   : [];
 
-function RootLayout() {
-  return (
-    <>
-      <ScrollRestoration />
-      <Outlet />
-    </>
-  );
-}
-
 const router = createBrowserRouter(
   [
     {
-      element: <RootLayout />,
+      element: <AppLayout />,
       children: [
         { path: paths.home, element: <HomeScreen /> },
         { path: paths.map, element: <MapScreen /> },

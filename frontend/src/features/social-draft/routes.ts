@@ -10,6 +10,20 @@ export const socialDraftRoutes: RouteObject[] = [
     }),
     children: [
       {
+        path: 'manage',
+        lazy: async () => ({
+          Component: (await import('./FriendsDraftScreens'))
+            .ManageFriendsDraftScreen,
+        }),
+      },
+      {
+        path: 'locations',
+        lazy: async () => ({
+          Component: (await import('./FriendsDraftScreens'))
+            .FriendLocationsDraftScreen,
+        }),
+      },
+      {
         index: true,
         lazy: async () => ({
           Component: (await import('./FriendsDraftScreens')).FriendsDraftScreen,
@@ -36,39 +50,51 @@ export const socialDraftRoutes: RouteObject[] = [
         }),
       },
       {
-        path: 'party',
+        path: 'party/:partyId',
         lazy: async () => ({
           Component: (await import('./PartyDraftScreens')).PartyDraftScreen,
         }),
       },
       {
-        path: 'party/invite',
+        path: 'party/:partyId/invite',
         lazy: async () => ({
           Component: (await import('./PartyDraftScreens'))
-            .PartyEditorDraftScreen,
+            .InviteFriendsDraftScreen,
         }),
       },
       {
-        path: 'party/seats',
+        path: 'party/:partyId/seats',
         lazy: async () => ({
           Component: (await import('./PartyBookingDraftScreens'))
             .PartySeatsDraftScreen,
         }),
       },
       {
-        path: 'party/reservation',
+        path: 'party/:partyId/reservation',
         lazy: async () => ({
           Component: (await import('./PartyBookingDraftScreens'))
             .PartyReservationDraftScreen,
         }),
       },
       {
-        path: 'party/scan',
+        path: 'party/:partyId/scan',
         lazy: async () => ({
           Component: (await import('./PartyBookingDraftScreens'))
             .PartyScanDraftScreen,
         }),
       },
+      ...[
+        'party',
+        'party/invite',
+        'party/seats',
+        'party/reservation',
+        'party/scan',
+      ].map((path) => ({
+        path,
+        lazy: async () => ({
+          Component: (await import('./SocialDraftLayout')).LegacyPartyRedirect,
+        }),
+      })),
     ],
   },
 ];

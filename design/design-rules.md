@@ -124,7 +124,7 @@ Which actions use a decision sheet (all of them ask first):
 
 ### 2. Notification banner
 Used to tell the user something happened. No decision needed (at most one action button).
-- Slides in from the top, over the content, with an icon, one short line of text, and optionally one button.
+- Routine confirmations appear in the page, with an icon and one short line of text; they never cover navigation. Urgent notices can float below the header, with an optional action.
 - Auto-dismisses after about 6 seconds, except urgent ones, which stay until tapped or swiped away: check-in reminder, seat lost, session end with the hand-over note.
 - Announced to screen readers (`role="status"`, or `role="alert"` for the urgent ones).
 - Same six messages as in the user flow: check-in reminder, seat lost, priority window opens (T-20), everybody can extend (T-10), session ended, your booked seat is free early.
@@ -134,6 +134,7 @@ Used to tell the user something happened. No decision needed (at most one action
 - The extension phases on the session screen are a banner in the page, not a popup.
 
 ## Navigation (mock behaviour)
+- Development trial: Home / Map / Friends bottom navigation sits outside the scrolling viewport. Page action bars sit above it, and the map fills the remaining viewport. Selected destinations have a label, icon, and top border indicator. The Friends hub has privacy first, then Study parties, Stalk my friends (only shared rooms), and Manage friends. No Friends/Parties toggle.
 - Moving between screens is a styled `<a href>`. Relative paths so the files open from disk.
 - Flow: Home → Seat arrangement → (Reserve sheet) → Reservation → QR scan → Session → Home.
   - Every card on Home opens the seat map (it is always HG E 41 in the mock).

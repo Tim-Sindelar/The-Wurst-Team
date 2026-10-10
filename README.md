@@ -143,7 +143,9 @@ not replace the frontend's existing mocked booking flow. See [the social backend
 for setup, endpoints, consent rules, and the frontend integration boundary.
 
 A separate development-only frontend draft is at `http://127.0.0.1:5173/social-draft`.
-It uses sample data, supports switching party perspectives, and leaves ordinary bookings alone.
+Open it through **Friends** in the development Home / Map / Friends bottom navigation. Its hub
+separates parties, shared friend rooms and friend management. It uses sample data, saves multiple parties
+and privacy preferences locally, supports switching party perspectives, and leaves ordinary bookings alone.
 See [the draft walkthrough](design/social-draft.md). It is not registered in production builds.
 
 ## Admin API demo

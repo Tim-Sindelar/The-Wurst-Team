@@ -81,6 +81,7 @@ jobs:
           npm ci
           npm run lint
           npm run typecheck
+          npm run test:social-draft
           npm run build
       - name: Check backend
         working-directory: backend

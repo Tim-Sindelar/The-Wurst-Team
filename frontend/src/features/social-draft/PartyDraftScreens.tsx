@@ -1,35 +1,33 @@
-import {
-  Alert,
-  Button,
-  Card,
-  Switch,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Alert, Button, Card, Text, TextInput, Title } from '@mantine/core';
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
 import { SectionLabel } from '../../components/SectionLabel';
 import { StatusBanner } from '../../components/StatusBanner';
-import { draftPaths } from './draft';
+import {
+  activeDraftParties,
+  draftPaths,
+  partyPath,
+  type DraftParty,
+} from './draft';
 import { PersonRow } from './FriendsDraftScreens';
 import { DraftFrame } from './SocialDraftLayout';
 import { useSocialDraft } from './useSocialDraft';
 
 export function PartiesDraftScreen() {
   const { state } = useSocialDraft();
-  const ready = state.party.members.filter(
-    (m) => m.status === 'accepted',
-  ).length;
-  const invited = state.party.members.filter(
-    (m) => m.status === 'invited',
-  ).length;
-  const member = state.party.members.find((m) => m.person.id === state.viewer);
-  const visible =
-    member?.status === 'accepted' ||
-    (member?.status === 'invited' && state.party.status === 'open');
+  const parties = activeDraftParties(state.parties);
+  const invitations = parties.filter((p) =>
+    p.members.some(
+      (m) => m.person.id === state.viewer && m.status === 'invited',
+    ),
+  );
+  const joined = parties.filter((p) =>
+    p.members.some(
+      (m) => m.person.id === state.viewer && m.status === 'accepted',
+    ),
+  );
   return (
     <DraftFrame
       title="Study parties"
@@ -48,136 +46,226 @@ export function PartiesDraftScreen() {
         Find a room, choose seats, and book together. Everyone checks in at
         their own seat.
       </Text>
+      {invitations.length > 0 && (
+        <SectionLabel>Invitations · {invitations.length}</SectionLabel>
+      )}
+      {invitations.map((party) => (
+        <PartySummary key={party.id} party={party} viewer={state.viewer} />
+      ))}
       <SectionLabel>Your parties</SectionLabel>
-      {visible ? (
-        <Card component={Link} to={draftPaths.party} className="no-underline">
-          <div className="flex items-center justify-between gap-3">
-            <div className="grid min-w-0 gap-2">
-              <Title order={2} className="break-words">
-                {state.party.name}
-              </Title>
-              <Text size="sm" c="dimmed">
-                {state.party.status === 'open'
-                  ? `${ready} ready · ${invited} invited`
-                  : state.party.status === 'booked'
-                    ? 'Seats reserved · HG E 41'
-                    : 'Party cancelled'}
-              </Text>
-              <Text size="sm">
-                {state.viewer === 'you'
-                  ? 'You organize this party'
-                  : member?.status === 'invited'
-                    ? 'You’re invited'
-                    : 'You joined this party'}
-              </Text>
-            </div>
-            <Icon name="chevronRight" />
-          </div>
-        </Card>
-      ) : (
+      {joined.map((party) => (
+        <PartySummary key={party.id} party={party} viewer={state.viewer} />
+      ))}
+      {joined.length === 0 && (
         <Card>
           <Text c="dimmed">
-            No parties yet. Create one and invite your friends.
+            No active parties. Create one or join a friend’s invitation.
           </Text>
         </Card>
       )}
+      {state.parties
+        .filter(
+          (p) =>
+            p.status === 'cancelled' &&
+            p.members.some(
+              (m) =>
+                m.person.id === state.viewer && m.checkedIn && !m.cancelled,
+            ),
+        )
+        .map((party) => (
+          <Card
+            key={party.id}
+            component={Link}
+            to={partyPath(party.id, 'reservation')}
+            className="no-underline"
+          >
+            <Title order={2}>Your ongoing session</Title>
+            <Text size="sm" c="dimmed">
+              Your checked-in seat is still yours. Open your session.
+            </Text>
+          </Card>
+        ))}
     </DraftFrame>
   );
 }
 
-export function PartyEditorDraftScreen() {
-  const { state, dispatch } = useSocialDraft();
-  const navigate = useNavigate();
-  const creating = useLocation().pathname === draftPaths.newParty;
-  const [name, setName] = useState('Afternoon study');
-  const [selected, setSelected] = useState<string[]>([]);
-  const ready = state.party.members.filter((m) =>
-    ['invited', 'accepted'].includes(m.status),
+export function PartySummary({
+  party,
+  viewer = 'you',
+}: {
+  party: DraftParty;
+  viewer?: string;
+}) {
+  const ready = party.members.filter((m) => m.status === 'accepted').length;
+  const invited = party.members.filter((m) => m.status === 'invited').length;
+  const invitation = party.members.some(
+    (m) => m.person.id === viewer && m.status === 'invited',
   );
-  const canInvite =
-    creating || (state.viewer === 'you' && state.party.status === 'open');
+  return (
+    <Card component={Link} to={partyPath(party.id)} className="no-underline">
+      <div className="flex items-center justify-between gap-3">
+        <div className="grid min-w-0 gap-2">
+          <Title order={2} className="break-words">
+            {party.name}
+          </Title>
+          <Text size="sm" c="dimmed">
+            {party.status === 'open'
+              ? `${ready} joined${invited ? ` · ${invited} invited` : ''}`
+              : party.status === 'booked'
+                ? 'Seats reserved · HG E 41'
+                : 'Party cancelled'}
+          </Text>
+          <Text size="sm">
+            {invitation
+              ? 'You’re invited · open to join or decline'
+              : viewer === party.organizerId
+                ? 'You organize this party'
+                : 'You joined this party'}
+          </Text>
+        </div>
+        <Icon name="chevronRight" />
+      </div>
+    </Card>
+  );
+}
+
+export function PartyEditorDraftScreen() {
+  const { dispatch } = useSocialDraft();
+  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const create = () => {
+    if (!name.trim()) return;
+    const id = crypto.randomUUID();
+    dispatch({ type: 'create-party', id, name: name.trim() });
+    navigate(partyPath(id, 'invite'));
+  };
   return (
     <DraftFrame
-      title={creating ? 'Create a party' : 'Invite friends'}
-      backTo={creating ? draftPaths.parties : draftPaths.party}
+      title="Create a party"
+      backTo={draftPaths.parties}
       actions={
-        <Button
-          type="submit"
-          form="party-editor-form"
-          disabled={
-            !canInvite || (creating ? !name.trim() : selected.length === 0)
-          }
-        >
-          {creating ? 'Create party' : 'Send invitations'}
+        <Button type="submit" form="create-party-form" disabled={!name.trim()}>
+          Create party
         </Button>
       }
     >
+      <Text c="dimmed">
+        Name your party, then invite friends. You’ll choose seats together after
+        they join.
+      </Text>
+      <Card
+        component="form"
+        id="create-party-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          create();
+        }}
+      >
+        <TextInput
+          label="Party name"
+          required
+          maxLength={80}
+          value={name}
+          placeholder="e.g. Afternoon study"
+          onChange={(e) => setName(e.currentTarget.value)}
+        />
+      </Card>
+    </DraftFrame>
+  );
+}
+
+export function InviteFriendsDraftScreen() {
+  const { state, dispatch } = useSocialDraft();
+  const [search, setSearch] = useState('');
+  const canInvite =
+    state.viewer === state.party.organizerId && state.party.status === 'open';
+  const friends = state.friends.filter((p) =>
+    p.name.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  return (
+    <DraftFrame
+      title="Invite friends"
+      backTo={partyPath(state.party.id)}
+      actions={
+        <Button component={Link} to={partyPath(state.party.id)}>
+          Done
+        </Button>
+      }
+    >
+      <Title order={2} className="break-words">
+        {state.party.name}
+      </Title>
+      <Text c="dimmed">
+        Tap Invite next to a friend. They must join before you can book a seat
+        for them.
+      </Text>
       {!canInvite && (
-        <Alert variant="danger" role="alert" title="Invitations unavailable">
+        <Alert title="Invitations unavailable">
           Only the organizer can invite friends to an open party.
         </Alert>
       )}
-      <Card
-        component="form"
-        id="party-editor-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!canInvite || (creating && !name.trim())) return;
-          dispatch(
-            creating
-              ? { type: 'create-party', name: name.trim(), invited: selected }
-              : { type: 'invite-members', invited: selected },
-          );
-          navigate(draftPaths.party);
-        }}
-      >
-        {creating && (
-          <TextInput
-            label="Party name"
-            required
-            maxLength={80}
-            value={name}
-            onChange={(e) => setName(e.currentTarget.value)}
-          />
-        )}
-        <Text size="sm" c="dimmed">
-          Invite accepted friends. They’ll each choose whether to join before
-          you can reserve a seat for them.
-        </Text>
-        <SectionLabel>Invite friends</SectionLabel>
-        {state.friends.map((person) => {
-          const existing =
-            !creating && ready.some((m) => m.person.id === person.id);
-          return (
-            <div
-              key={person.id}
-              className="grid gap-1 border-b border-border pb-3 last:border-b-0 last:pb-0"
-            >
-              <Switch
-                label={person.name}
-                checked={existing || selected.includes(person.id)}
+      {state.friends.length > 0 && (
+        <TextInput
+          type="search"
+          label="Find a friend"
+          placeholder="Search by name"
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          leftSection={<Icon name="search" />}
+        />
+      )}
+      <SectionLabel>Your friends</SectionLabel>
+      {friends.map((person) => {
+        const member = state.party.members.find(
+          (m) => m.person.id === person.id,
+        );
+        const existing =
+          member?.status === 'accepted' || member?.status === 'invited';
+        return (
+          <Card key={person.id} component="article" aria-label={person.name}>
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <PersonRow
+                  person={person}
+                  detail={
+                    member?.status === 'accepted'
+                      ? 'Joined'
+                      : member?.status === 'invited'
+                        ? 'Invitation sent'
+                        : (person.room ?? 'No shared location')
+                  }
+                />
+              </div>
+              <Button
+                variant="secondary"
                 disabled={!canInvite || existing}
-                onChange={(e) => {
-                  const checked = e.currentTarget.checked;
-                  setSelected((ids) =>
-                    checked
-                      ? [...ids, person.id]
-                      : ids.filter((id) => id !== person.id),
-                  );
-                }}
-              />
-              <Text size="sm" c="dimmed">
+                aria-label={`${existing ? (member?.status === 'accepted' ? 'Joined' : 'Invited') : 'Invite'} ${person.name}`}
+                onClick={() =>
+                  dispatch({ type: 'invite-members', invited: [person.id] })
+                }
+              >
                 {existing
-                  ? 'Already in this party'
-                  : (person.room ?? 'No shared location')}
-              </Text>
+                  ? member?.status === 'accepted'
+                    ? 'Joined'
+                    : 'Invited'
+                  : 'Invite'}
+              </Button>
             </div>
-          );
-        })}
-        {state.friends.length === 0 && (
-          <Text c="dimmed">Add friends before sending invitations.</Text>
-        )}
-      </Card>
+          </Card>
+        );
+      })}
+      {friends.length === 0 && (
+        <Text c="dimmed">
+          {search
+            ? 'No friends match that name.'
+            : 'Add a friend to invite them to your party.'}
+        </Text>
+      )}
+      {state.friends.length === 0 && (
+        <Button variant="secondary" component={Link} to={draftPaths.add}>
+          Add a friend
+        </Button>
+      )}
     </DraftFrame>
   );
 }
@@ -191,7 +279,10 @@ export function PartyDraftScreen() {
   const [notice, setNotice] = useState('');
   const { party, viewer } = state;
   const member = party.members.find((m) => m.person.id === viewer);
-  const isOrganizer = viewer === 'you';
+  const isOrganizer = viewer === party.organizerId;
+  const organizerName = party.members.find(
+    (m) => m.person.id === party.organizerId,
+  )?.person.name;
   const accepted = party.members.filter((m) => m.status === 'accepted');
   const pending = party.members.filter((m) => m.status === 'invited');
   const hasSeat = !!member?.seat && !member.cancelled;
@@ -233,7 +324,7 @@ export function PartyDraftScreen() {
               </>
             ) : isOrganizer ? (
               <>
-                <Button component={Link} to={draftPaths.seats}>
+                <Button component={Link} to={partyPath(party.id, 'seats')}>
                   Choose seats for {accepted.length}
                 </Button>
                 <Button variant="secondary" onClick={() => setSheet('cancel')}>
@@ -248,7 +339,10 @@ export function PartyDraftScreen() {
           ) : (
             <>
               {hasSeat ? (
-                <Button component={Link} to={draftPaths.reservation}>
+                <Button
+                  component={Link}
+                  to={partyPath(party.id, 'reservation')}
+                >
                   View my seat
                 </Button>
               ) : (
@@ -271,7 +365,9 @@ export function PartyDraftScreen() {
           {party.name}
         </Title>
         <Text c="dimmed">
-          {isOrganizer ? 'You’re the organizer' : 'Organized by Alex Müller'}
+          {isOrganizer
+            ? 'You’re the organizer'
+            : `Organized by ${organizerName}`}
         </Text>
         <Text size="sm">
           {party.status === 'open'
@@ -281,7 +377,11 @@ export function PartyDraftScreen() {
               : 'Party cancelled'}
         </Text>
         {party.status === 'open' && isOrganizer && (
-          <Button variant="secondary" component={Link} to={draftPaths.invite}>
+          <Button
+            variant="secondary"
+            component={Link}
+            to={partyPath(party.id, 'invite')}
+          >
             Invite friends
           </Button>
         )}
@@ -327,43 +427,27 @@ export function PartyDraftScreen() {
               ...m.person,
               name: m.person.id === viewer ? 'You' : m.person.name,
             }}
-            detail={
-              m.person.id === 'you'
-                ? 'Organizer'
-                : m.status === 'accepted'
-                  ? 'Joined the party'
-                  : m.status === 'invited'
-                    ? 'Invitation pending'
-                    : m.status === 'declined'
-                      ? 'Declined invitation'
-                      : 'Left the party'
-            }
-          />
-          <Text size="sm" className="flex items-center gap-2">
-            <Icon
-              name={
-                m.checkedIn
-                  ? 'check'
-                  : m.seat && !m.cancelled
-                    ? 'qr'
+            detail={[
+              m.person.id === party.organizerId ? 'Organizer' : '',
+              m.checkedIn
+                ? `Seat ${m.seat} · checked in`
+                : m.cancelled
+                  ? m.seat
+                    ? `Seat ${m.seat} · released`
+                    : 'Party cancelled'
+                  : m.seat
+                    ? `Seat ${m.seat} · needs check-in`
                     : m.status === 'accepted'
-                      ? 'check'
-                      : 'clock'
-              }
-              size="sm"
-            />
-            {m.checkedIn
-              ? `Seat ${m.seat} · checked in`
-              : m.cancelled && m.seat
-                ? `Seat ${m.seat} · released`
-                : m.seat
-                  ? `Seat ${m.seat} · needs to check in`
-                  : m.status === 'accepted'
-                    ? 'Ready to book'
-                    : m.status === 'invited'
-                      ? 'Waiting for a reply'
-                      : 'Not included in booking'}
-          </Text>
+                      ? 'Joined'
+                      : m.status === 'invited'
+                        ? 'Invitation pending'
+                        : m.status === 'declined'
+                          ? 'Declined'
+                          : 'Left party',
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          />
         </Card>
       ))}
       {party.status === 'booked' && (
@@ -419,7 +503,7 @@ export function PartyDraftScreen() {
           }
           if (sheet === 'cancel') {
             dispatch({ type: 'cancel-party' });
-            setNotice('Party cancelled');
+            navigate(draftPaths.parties);
           }
           setSheet(null);
         }}

@@ -41,6 +41,11 @@ Local demo mode supports `X-Demo-User-Id` to exercise multiple users through the
   expose no room. Sharing returns a room, never GPS or an exact seat. Responses use `no-store`;
   the frontend must refresh friend data when focused and after relevant mutations.
 - Parties have an organizer and at most 12 invited/accepted members, including the organizer.
+  Party invitations are direct friend invites, without shared join links. The organizer posts a
+  friend ID to `/parties/{id}/invitations`; the recipient sees the invitation in `GET /parties`
+  and explicitly accepts or declines through `/parties/{id}/reply`. The backend stores state;
+  it does not push an invitation popup. The frontend displays an Invitations section and opens
+  a consent sheet when the recipient taps Join.
   Only the organizer invites accepted friends. A member must explicitly accept before their
   seat can be booked. Joining must clearly say: **The organizer can reserve a seat for you and
   cancel it before you check in. You must check in yourself.** Friendship does not grant this consent.

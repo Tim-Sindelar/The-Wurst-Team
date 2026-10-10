@@ -14,7 +14,7 @@ type StatusBannerProps = {
 
 const AUTO_HIDE_MS = 6000;
 
-/** Notification banner that slides in from the top to say something happened. */
+/** Routine confirmations stay in the page; urgent notices float below the header. */
 export function StatusBanner({
   opened,
   onClose,
@@ -30,10 +30,18 @@ export function StatusBanner({
   }, [opened, urgent, onClose]);
 
   return (
-    <div className="pointer-events-none fixed top-0 left-1/2 z-30 grid w-full max-w-phone -translate-x-1/2 gap-2 p-2">
+    <div
+      className={
+        urgent
+          ? 'pointer-events-none fixed top-16 left-1/2 z-30 grid w-full max-w-phone -translate-x-1/2 gap-2 p-2'
+          : opened
+            ? 'grid gap-2'
+            : 'hidden'
+      }
+    >
       <Transition
         mounted={opened}
-        transition="slide-down"
+        transition={urgent ? 'slide-down' : 'fade'}
         duration={250}
         timingFunction="cubic-bezier(0.2, 0, 0, 1)"
       >

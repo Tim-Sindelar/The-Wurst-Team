@@ -10,7 +10,7 @@ import { TimerCard } from '../../components/TimerCard';
 import { stripeClass } from '../../domain/seat';
 import { useCountdown } from '../../hooks/useCountdown';
 import { mockSpace, roomSeats } from '../../mock/data';
-import { draftPaths, holdSeconds, sessionSeconds } from './draft';
+import { partyPath, holdSeconds, sessionSeconds } from './draft';
 import { DraftFrame } from './SocialDraftLayout';
 import { useSocialDraft } from './useSocialDraft';
 
@@ -26,7 +26,8 @@ export function PartySeatsDraftScreen() {
   const person = members.find((m) => m.person.id === active)?.person;
   const picked = Object.values(assignments);
   const complete = members.every((m) => !!assignments[m.person.id]);
-  const allowed = state.viewer === 'you' && state.party.status === 'open';
+  const allowed =
+    state.viewer === state.party.organizerId && state.party.status === 'open';
 
   const choose = (number: number) => {
     const seat = roomSeats.find((s) => s.number === number);
@@ -53,7 +54,7 @@ export function PartySeatsDraftScreen() {
   return (
     <DraftFrame
       title="Choose party seats"
-      backTo={draftPaths.party}
+      backTo={partyPath(state.party.id)}
       actions={
         allowed ? (
           <Button disabled={!complete} onClick={() => setSheetOpen(true)}>
@@ -62,7 +63,7 @@ export function PartySeatsDraftScreen() {
               : `Choose ${members.length - picked.length} more ${members.length - picked.length === 1 ? 'seat' : 'seats'}`}
           </Button>
         ) : (
-          <Button component={Link} to={draftPaths.party}>
+          <Button component={Link} to={partyPath(state.party.id)}>
             Back to party
           </Button>
         )
@@ -88,7 +89,7 @@ export function PartySeatsDraftScreen() {
             value={active}
             data={members.map((m) => ({
               value: m.person.id,
-              label: m.person.id === 'you' ? 'You' : m.person.name,
+              label: m.person.id === state.viewer ? 'You' : m.person.name,
             }))}
             rightSection={<Icon name="back" size="sm" className="-rotate-90" />}
             onChange={(e) => {
@@ -97,8 +98,9 @@ export function PartySeatsDraftScreen() {
             }}
           />
           <Text size="sm" c="dimmed">
-            Tap a free seat for {active === 'you' ? 'yourself' : person?.name}.
-            Choose seats close to each other.
+            Tap a free seat for{' '}
+            {active === state.viewer ? 'yourself' : person?.name}. Choose seats
+            close to each other.
           </Text>
           <SeatMap
             seats={roomSeats}
@@ -125,7 +127,7 @@ export function PartySeatsDraftScreen() {
               <div className="flex items-center justify-between gap-2">
                 <div className="grid min-w-0 gap-1">
                   <Text className="break-words">
-                    {m.person.id === 'you' ? 'You' : m.person.name}
+                    {m.person.id === state.viewer ? 'You' : m.person.name}
                   </Text>
                   <Text size="sm" c="dimmed">
                     {assignments[m.person.id]
@@ -165,7 +167,7 @@ export function PartySeatsDraftScreen() {
             return;
           }
           dispatch({ type: 'book', assignments, now: Date.now() });
-          navigate(draftPaths.reservation);
+          navigate(partyPath(state.party.id, 'reservation'));
         }}
       >
         {mockSpace.name}. Seats {picked.join(', ')} for {members.length}{' '}
@@ -210,18 +212,18 @@ function ReservationPreview() {
       title={
         member?.checkedIn ? 'Your party session' : 'Your party reservation'
       }
-      backTo={draftPaths.party}
+      backTo={partyPath(state.party.id)}
       actions={
         available ? (
           <>
             {member.checkedIn ? (
-              <Button component={Link} to={draftPaths.party}>
+              <Button component={Link} to={partyPath(state.party.id)}>
                 View party
               </Button>
             ) : (
               <Button
                 component={Link}
-                to={draftPaths.scan}
+                to={partyPath(state.party.id, 'scan')}
                 leftSection={<Icon name="qr" />}
               >
                 Check in at my seat
@@ -232,7 +234,7 @@ function ReservationPreview() {
             </Button>
           </>
         ) : (
-          <Button component={Link} to={draftPaths.party}>
+          <Button component={Link} to={partyPath(state.party.id)}>
             Back to party
           </Button>
         )
@@ -327,7 +329,10 @@ export function PartyScanDraftScreen() {
   const member = state.party.members.find((m) => m.person.id === state.viewer);
   const allowed = !!member?.seat && !member.cancelled && !member.checkedIn;
   return (
-    <DraftFrame title="Scan your seat" backTo={draftPaths.reservation}>
+    <DraftFrame
+      title="Scan your seat"
+      backTo={partyPath(state.party.id, 'reservation')}
+    >
       {allowed ? (
         <>
           <Text>Scan the QR code at seat {member.seat}.</Text>
@@ -349,7 +354,7 @@ export function PartyScanDraftScreen() {
                 return;
               }
               dispatch({ type: 'check-in' });
-              navigate(draftPaths.reservation);
+              navigate(partyPath(state.party.id, 'reservation'));
             }}
           >
             <Icon name="qr" size="lg" />
