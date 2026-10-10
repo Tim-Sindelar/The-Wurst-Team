@@ -18,6 +18,29 @@ export interface LocalizeRequest {
   focal: number;
   /** Coarse position from the beacons: the server only searches map images around it. */
   prior: { lng: number; lat: number; levelId: string | null; accuracy: number } | null;
+  /** Debug mode: the server answers with its intermediate results and stores the query under this id. */
+  debug?: string;
+}
+
+/** The localizer's intermediate results in debug mode (vps/vps/localizer.py). */
+export interface LocalizeDebug {
+  keypoints: number;
+  timing: Record<string, number>;
+  prior?: { x: number; y: number; levelId: string | null; radius: number };
+  candidates?: { name: string; dist: number }[];
+  /** Most similar map images; the `used` ones were matched (enough mutual NN matches). */
+  shortlist?: { name: string; mnn: number; used: boolean; center: [number, number, number]; matches?: number; matches3d?: number }[];
+  /** Query keypoints with a 2D-3D match. */
+  matchedKp?: number[];
+  /** Query keypoints of the pose's inliers, and where the pose projects their 3D points. */
+  inlierKp?: number[];
+  reprojected?: [number, number][];
+  reprojError?: { median: number; p90: number };
+  inlierDepth?: { median: number; min: number; max: number };
+  solvers?: Record<string, { inliers: number; focal: number; fov: number } | null>;
+  solver?: string | null;
+  /** The pose found, also when it was rejected. */
+  pose?: { lng: number; lat: number; levelId: string; height: number; heading: number; pitch: number; focal: number; priorDist?: number };
 }
 
 export interface LocalizeResponse {
@@ -42,13 +65,16 @@ export interface LocalizeResponse {
   /** Server time, ms. */
   ms?: number;
   scene?: string;
+  debug?: LocalizeDebug;
+  /** Debug mode: the server kept the query, the frame and context can be uploaded for it. */
+  debugStored?: boolean;
 }
 
 export function encodeRequest(req: LocalizeRequest): ArrayBuffer {
   const f = req.features;
   const n = f.scores.length;
   const header = new TextEncoder().encode(
-    JSON.stringify({ n, width: f.width, height: f.height, focal: req.focal, prior: req.prior, descScale: DESC_SCALE, dim: DESCRIPTOR_DIM }),
+    JSON.stringify({ n, width: f.width, height: f.height, focal: req.focal, prior: req.prior, descScale: DESC_SCALE, dim: DESCRIPTOR_DIM, ...(req.debug ? { debug: req.debug } : {}) }),
   );
   const size = 8 + header.length + n * 8 + n * 4 + n * DESCRIPTOR_DIM;
   const buf = new ArrayBuffer(size);

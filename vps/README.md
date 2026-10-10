@@ -3,7 +3,7 @@
 The AR app (`polymaps-ar`) knows roughly where it is from the PolyMaps beacons (~1.5 m) but not
 which way the phone faces: the indoor compass is often 10–30° off. This service fixes that. The
 phone computes SuperPoint features of a camera frame **on the device** and sends only those
-(~260 KiB, never the image). The server matches them against a 3D map of ETH and returns the
+(~260 KiB, never the image outside debug mode). The server matches them against a 3D map of ETH and returns the
 camera's position and full orientation. The app then corrects its heading and position.
 
 ```
@@ -67,6 +67,41 @@ Queries go through the app's path: 640 px, 1024 keypoints, int8 wire format, bea
 
 The CAB queries include hard cases the map can't explain (close-ups of boxes in a storeroom,
 dark stairwells). Unlocalized queries return `ok: false` and the app keeps its current heading.
+
+## Debug mode
+
+Tick **debug** in the AR view (or open it with `?vpsDebug=1`; the choice is remembered). Each visual
+fix then:
+
+- **on the phone** shows the grey 640 px frame SuperPoint actually ran on, with all keypoints
+  (yellow), the ones matched to 3D map points (orange rings), the pose's inliers (green) and blue
+  lines to where the pose reprojects their 3D points. Below that: the shortlist (mutual-NN / LightGlue /
+  2D-3D matches per map image), both solvers' inliers and FOV, reprojection error, distance of the
+  pose to the beacon fix (also for rejected poses), visual vs. AR heading, image brightness /
+  sharpness, keypoint coverage, how fast the phone was turning, timings, and hints on the likely
+  cause. ‹ › browse the last 12 attempts.
+- **on the server** stores a bundle under `~/vps/debug/<id>/` (newest 300 kept):
+  `request.bin` (the features as received), `server.json` (answer + every intermediate step:
+  candidate images and distances, shortlist, matched / inlier keypoints, solver results, pose),
+  `frame.png` (the exact network input, lossless) and `client.json` (beacon fix and its age,
+  orientation at capture: rendered quaternion, heading, pitch, sensor reading, heading offset,
+  compass lock, angular speed; video / view size, FOV setting, focal guess, camera track settings;
+  ONNX backend and timings; image and keypoint statistics; what the app applied).
+
+Unlike normal use, debug mode uploads the frame (~300 KiB PNG + the usual ~260 KiB features).
+
+```bash
+scp -r viscon-vm:~/vps/debug data/                   # fetch
+python debug_replay.py data/debug --summary          # one line per attempt: result, inliers, heading error, image quality...
+python debug_replay.py data/debug/<id> --db data/db/*.h5 --images data/lamar/HGE/sessions/map/raw_data data/lamar/CAB/sessions/map/raw_data
+```
+
+A replay re-runs the localizer on the phone's features (try config changes), runs the reference
+PyTorch SuperPoint on `frame.png` and compares it with the phone's features (share of the same
+keypoints, descriptor cosine: catches NNAPI / WebGPU precision problems and image layout bugs),
+localizes with the reference features too, and writes `replay.png`: the annotated frame, a top
+view (floor plan, map cameras near the beacon fix, shortlist, beacon fix with the phone's heading,
+visual pose) and the shortlisted map images.
 
 ## Files
 

@@ -58,6 +58,14 @@ class Localizer:
         return idx
 
     def shortlist(self, q: Query, cands: np.ndarray) -> list[tuple[int, int]]:
+        """(mutual NN matches, image index) of the most similar candidates."""
+        return self.select_shortlist(self.shortlist_scores(q, cands))
+
+    def select_shortlist(self, scored: list[tuple[int, int]]) -> list[tuple[int, int]]:
+        return [s for s in scored[: self.conf.shortlist] if s[0] >= self.conf.min_mnn]
+
+    def shortlist_scores(self, q: Query, cands: np.ndarray) -> list[tuple[int, int]]:
+        """All candidates by mutual NN matches, best first."""
         qd = torch.from_numpy(q.descriptors)
         scored = []
         for i in cands:
@@ -70,10 +78,11 @@ class Localizer:
             mutual = (nn10[nn01] == torch.arange(len(nn01))) & (sim.max(1).values > 0.75)
             scored.append((int(mutual.sum()), int(i)))
         scored.sort(reverse=True)
-        return [s for s in scored[: self.conf.shortlist] if s[0] >= self.conf.min_mnn]
+        return scored
 
-    def match(self, q: Query, i: int) -> tuple[np.ndarray, np.ndarray]:
-        """Indices into the query keypoints and the 3D points they match (only triangulated ones)."""
+    def match(self, q: Query, i: int, return_all: bool = False):
+        """Indices into the query keypoints and the 3D points they match (only triangulated ones);
+        with `return_all` also the number of LightGlue matches before that."""
         kp, desc, p3d = self.db.features(i)
         w, h = self.db.image_sizes[i]
         dev = self.conf.device
@@ -87,44 +96,106 @@ class Localizer:
         }
         m = self.matcher(data)['matches'][0].cpu().numpy()
         keep = p3d[m[:, 1]] >= 0
+        if return_all:
+            return m[keep, 0], p3d[m[keep, 1]], len(m)
         return m[keep, 0], p3d[m[keep, 1]]
 
-    def localize(self, q: Query) -> dict:
+    def localize(self, q: Query, debug: bool = False) -> dict:
+        """The pose, or ok=False and a reason. With `debug`, also every intermediate step under
+        'debug' (see debug_replay.py): candidates, shortlist, matched and inlier keypoints, both
+        solvers' results and the pose even when it is rejected."""
         t0 = time.time()
+        dbg: dict = {'timing': {}, 'keypoints': len(q.keypoints)}
+        lap_t = [t0]
+
+        def lap(name: str):
+            now = time.time()
+            dbg['timing'][name] = round(1000 * (now - lap_t[0]))
+            lap_t[0] = now
+
+        def done(out: dict) -> dict:
+            out.setdefault('scene', self.db.scene)
+            out.setdefault('ms', round(1000 * (time.time() - t0)))
+            if debug:
+                out['debug'] = dbg
+            return out
+
         cands = self.candidates(q.prior)
+        if q.prior:
+            x, y = self.db.to_local(q.prior['lng'], q.prior['lat'])
+            d = np.hypot(self.db.centers[cands, 0] - x, self.db.centers[cands, 1] - y)
+            dbg['prior'] = {'x': round(float(x), 2), 'y': round(float(y), 2), 'levelId': q.prior.get('levelId'),
+                            'radius': max(self.conf.radius, 3 * float(q.prior.get('accuracy') or 0))}
+            dbg['candidates'] = [{'name': self.db.names[i], 'dist': round(float(di), 2)} for i, di in zip(cands, d)]
+        lap('candidates')
         if len(cands) == 0:
-            return {'ok': False, 'reason': 'no map images near this position', 'scene': self.db.scene}
-        short = self.shortlist(q, cands)
+            return done({'ok': False, 'reason': 'no map images near this position'})
+        scored = self.shortlist_scores(q, cands)
+        short = self.select_shortlist(scored)
+        lap('shortlist')
+        # The best candidates also when they fall below min_mnn: how close was it?
+        dbg['shortlist'] = [{'name': self.db.names[i], 'mnn': mnn, 'used': k < len(short),
+                             'center': [round(float(v), 2) for v in self.db.centers[i]]}
+                            for k, (mnn, i) in enumerate(scored[:max(len(short), self.conf.shortlist)])]
         if not short:
-            return {'ok': False, 'reason': 'no similar map images', 'candidates': len(cands), 'scene': self.db.scene}
+            return done({'ok': False, 'reason': 'no similar map images', 'candidates': len(cands)})
         qi, pi = [], []
-        for _, i in short:
-            a, b = self.match(q, i)
+        for s, (_, i) in zip(dbg['shortlist'], short):
+            a, b, n_lg = self.match(q, i, return_all=True)
+            s['matches'] = n_lg
+            s['matches3d'] = len(a)
             qi.append(a)
             pi.append(b)
+        lap('match')
         qi = np.concatenate(qi)
         pi = np.concatenate(pi)
         # One correspondence per (query keypoint, 3D point).
         pairs = np.unique(np.stack([qi, pi], 1), axis=0)
+        dbg['matchedKp'] = sorted({int(k) for k in pairs[:, 0]})
         if len(pairs) < self.conf.min_inliers:
-            return {'ok': False, 'reason': f'only {len(pairs)} 2D-3D matches', 'candidates': len(cands),
-                    'matches': len(pairs), 'scene': self.db.scene}
+            return done({'ok': False, 'reason': f'only {len(pairs)} 2D-3D matches', 'candidates': len(cands),
+                         'matches': len(pairs)})
         pts2d = q.keypoints[pairs[:, 0]].astype(np.float64) + 0.5  # COLMAP pixel centres
         pts3d = self.db.points[pairs[:, 1]]
-        ret = self.solve(q, pts2d, pts3d)
-        if ret is None or ret['num_inliers'] < self.conf.min_inliers:
-            n = 0 if ret is None else ret['num_inliers']
-            return {'ok': False, 'reason': f'pose not found ({n} inliers)', 'candidates': len(cands),
-                    'matches': len(pairs), 'inliers': n, 'scene': self.db.scene}
+        ret = self.solve(q, pts2d, pts3d, dbg)
+        lap('pose')
+        n = 0 if ret is None else int(ret['num_inliers'])
+        if ret is not None and debug:
+            self.describe_inliers(q, ret, pairs, pts2d, pts3d, dbg)
+        if ret is None or n < self.conf.min_inliers:
+            return done({'ok': False, 'reason': f'pose not found ({n} inliers)', 'candidates': len(cands),
+                         'matches': len(pairs), 'inliers': n})
         out = self.db.describe_pose(ret['cam_from_world'])
         if not self.plausible(q, out):
-            return {'ok': False, 'reason': 'pose too far from the beacon position', 'candidates': len(cands),
-                    'matches': len(pairs), 'inliers': int(ret['num_inliers']), 'scene': self.db.scene}
-        out.update(ok=True, focal=float(ret['focal']), inliers=int(ret['num_inliers']), matches=len(pairs),
-                   candidates=len(cands), shortlist=len(short), ms=round(1000 * (time.time() - t0)), scene=self.db.scene)
-        return out
+            return done({'ok': False, 'reason': 'pose too far from the beacon position', 'candidates': len(cands),
+                         'matches': len(pairs), 'inliers': n})
+        out.update(ok=True, focal=float(ret['focal']), inliers=n, matches=len(pairs),
+                   candidates=len(cands), shortlist=len(short))
+        return done(out)
 
-    def solve(self, q: Query, pts2d: np.ndarray, pts3d: np.ndarray):
+    def describe_inliers(self, q: Query, ret: dict, pairs, pts2d, pts3d, dbg: dict):
+        """Inlier keypoints, where the pose puts their 3D points in the image, and the pose itself
+        (also a rejected one)."""
+        mask = np.asarray(ret['inlier_mask'], bool)
+        R = np.asarray(ret['cam_from_world'].rotation.matrix())
+        t = np.asarray(ret['cam_from_world'].translation)
+        pc = pts3d[mask] @ R.T + t
+        uv = ret['focal'] * pc[:, :2] / pc[:, 2:3] + np.array([q.width / 2, q.height / 2]) - 0.5
+        err = np.linalg.norm(uv - (pts2d[mask] - 0.5), axis=1)
+        dbg['inlierKp'] = [int(k) for k in pairs[mask, 0]]
+        dbg['reprojected'] = [[round(float(u), 1), round(float(v), 1)] for u, v in uv]
+        if mask.any():
+            dbg['reprojError'] = {'median': round(float(np.median(err)), 2), 'p90': round(float(np.percentile(err, 90)), 2)}
+            dbg['inlierDepth'] = {'median': round(float(np.median(pc[:, 2])), 2), 'min': round(float(pc[:, 2].min()), 2),
+                                  'max': round(float(pc[:, 2].max()), 2)}
+        pose = self.db.describe_pose(ret['cam_from_world'])
+        pose['focal'] = round(float(ret['focal']), 1)
+        if 'prior' in dbg:
+            x, y = self.db.to_local(pose['lng'], pose['lat'])
+            pose['priorDist'] = round(float(np.hypot(x - dbg['prior']['x'], y - dbg['prior']['y'])), 2)
+        dbg['pose'] = pose
+
+    def solve(self, q: Query, pts2d: np.ndarray, pts3d: np.ndarray, dbg: dict | None = None):
         """P3P with the client's focal guess, then refined with the focal free. P4Pf (focal unknown)
         only when that clearly explains more matches: far, flat scenes let focal length and distance
         trade off, and P4Pf then finds wrong poses metres along the viewing direction."""
@@ -140,20 +211,30 @@ class Localizer:
             ref = pycolmap.AbsolutePoseRefinementOptions()
             ref.refine_focal_length = True
             ret = pycolmap.estimate_and_refine_absolute_pose(pts2d, pts3d, cam, est, ref)
+            key = 'p4pf' if estimate_focal else 'p3p'
             if ret is None:
+                if dbg is not None:
+                    dbg.setdefault('solvers', {})[key] = None
                 continue
             f = cam.params[0]
             fov = 2 * np.degrees(np.arctan(max(q.width, q.height) / 2 / f))
+            if dbg is not None:
+                dbg.setdefault('solvers', {})[key] = {'inliers': int(ret['num_inliers']), 'focal': round(float(f), 1),
+                                                      'fov': round(float(fov), 1)}
             if not 35 < fov < 110:  # no phone camera: degenerate
                 continue
             ret['focal'] = f
             results[estimate_focal] = ret
         fixed, free = results.get(False), results.get(True)
         if fixed is None:
-            return free
-        if free is not None and free['num_inliers'] > 1.3 * fixed['num_inliers']:
-            return free
-        return fixed
+            chosen = free
+        elif free is not None and free['num_inliers'] > 1.3 * fixed['num_inliers']:
+            chosen = free
+        else:
+            chosen = fixed
+        if dbg is not None:
+            dbg['solver'] = None if chosen is None else 'p4pf' if chosen is free else 'p3p'
+        return chosen
 
     def plausible(self, q: Query, out: dict) -> bool:
         """The beacon fix is metres off at worst: a pose far from it is a wrong match."""

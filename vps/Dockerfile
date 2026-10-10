@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 RUN python -c "from lightglue import LightGlue; LightGlue(features='superpoint')"
 COPY vps /app/vps
 WORKDIR /app
-CMD ["sh", "-c", "python -m vps.server --host 127.0.0.1 --port 8090 --threads 3 --db /data/*.h5"]
+CMD ["sh", "-c", "python -m vps.server --host 127.0.0.1 --port 8090 --threads 3 --db /data/*.h5 --debug-dir /debug"]

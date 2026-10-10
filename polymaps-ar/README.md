@@ -134,7 +134,7 @@ the comparison.
 
 **Localize visually** (or **auto**, every 3 s) runs SuperPoint on the current camera frame in the
 browser (`public/vps/superpoint.onnx`, onnxruntime-web, WebGPU or WASM). It posts only the features
-(~260 KiB, never the image), together with the beacon fix, to `vps/localize`. The server matches
+(~260 KiB, never the image outside debug mode), together with the beacon fix, to `vps/localize`. The server matches
 them against LaMAR's 3D maps of HG E and CAB and returns the camera pose. The app then:
 
 - turns the heading so the rendered camera faces the visual one, and locks out the compass
@@ -146,6 +146,10 @@ them against LaMAR's 3D maps of HG E and CAB and returns the camera pose. The ap
 In WebXR the camera belongs to ARCore. A visual fix taken before starting WebXR carries over,
 because the heading stays locked. `?camera=<image url>` uses a photo instead of the camera, to test
 on a desktop. The dev server proxies `/vps/localize` to `VPS_URL` (default `http://127.0.0.1:8090`).
+
+**debug** (or `?vpsDebug=1`) shows each attempt's frame with its keypoints, matches and inliers and
+the numbers behind a failure, and uploads frame + context to the server for `../vps/debug_replay.py`
+(see "Debug mode" in `../vps/README.md`).
 
 ## Pathfinding (`scraper/pathfinding`, `src/pathfinding`)
 

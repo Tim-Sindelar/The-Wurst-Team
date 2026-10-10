@@ -1,4 +1,4 @@
-# On the VM: docker compose up -d --build (in ~/ar/vps). The router proxies /ar/vps/localize here.
+# On the VM: docker compose up -d --build (in ~/vps). The router proxies /ar/vps/{localize,health,debug/} here.
 services:
   vps:
     build: .
@@ -6,4 +6,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./data/db:/data:ro
+      # Debug-mode queries from the app (frames + context, newest 300): see debug_replay.py.
+      - ./debug:/debug
     mem_limit: 3g

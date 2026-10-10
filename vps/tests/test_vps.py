@@ -84,3 +84,24 @@ def test_describe_pose_conventions(tiny_db, heading):
                                      -np.cos(h) * np.cos(np.radians(10))], atol=1e-9)
     # camera up stays up-ish (no roll)
     assert (R @ np.array([0, 1.0, 0]))[1] > 0.9
+
+
+def test_debug_store(tmp_path):
+    from vps.debugstore import DebugStore
+    store = DebugStore(tmp_path, keep=2)
+    req = encode(np.zeros((3, 2)), np.zeros(3), np.zeros((3, 256)), 8, 8, 1.0, None, debug='abc123')
+    assert decode(req).debug == 'abc123'
+    with pytest.raises(ValueError):
+        store.dir('../etc')
+    with pytest.raises(FileNotFoundError):  # uploads only for a query the server has stored
+        store.save_upload('abc123', 'frame.png', b'png')
+    store.save_query('abc123', req, {'ok': False})
+    store.save_upload('abc123', 'frame.png', b'png')
+    with pytest.raises(ValueError):
+        store.save_upload('abc123', 'evil.sh', b'x')
+    with pytest.raises(ValueError):
+        store.save_upload('abc123', 'client.json', b'not json')
+    assert json.loads((tmp_path / 'abc123' / 'server.json').read_text())['ok'] is False
+    for i in range(3):
+        store.save_query(f'later{i}', req, {})
+    assert len(list(tmp_path.iterdir())) == 2

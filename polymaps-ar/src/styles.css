@@ -121,6 +121,19 @@ table.stats td:nth-child(2) { text-align: left; }
 .ar-hud button { padding: 4px 10px; }
 .ar-hint { color: #c9d1dc; font-size: 0.78rem; }
 .ar-vps { color: #b8f0c8; font-size: 0.8rem; }
+.vps-debug {
+  position: absolute; top: 8px; left: 8px; right: 8px; max-height: 58%; overflow: auto; z-index: 2;
+  background: rgba(0,0,0,0.82); color: #e8edf3; font-size: 0.72rem; border-radius: 8px; padding: 6px 8px;
+}
+.vps-debug-head { display: flex; gap: 8px; align-items: center; }
+.vps-debug-head span { flex: 1; }
+.vps-debug-head button { padding: 2px 10px; }
+.vps-debug-canvas { display: block; width: 100%; max-height: 36vh; object-fit: contain; margin-top: 6px; }
+.vps-debug-legend { margin: 2px 0; }
+.vps-debug-hints { color: #ffc56b; margin: 2px 0; }
+.vps-debug table { border-collapse: collapse; }
+.vps-debug th { text-align: left; vertical-align: top; padding-right: 8px; color: #9fb0c3; font-weight: normal; }
+.vps-debug td { word-break: break-word; }
 
 @media (max-width: 860px) {
   .main { grid-template-columns: 1fr; grid-template-rows: minmax(320px, 55vh) auto; overflow: auto; }

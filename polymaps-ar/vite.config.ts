@@ -47,7 +47,7 @@ export default defineConfig({
     port: 5443,
     strictPort: true,
     proxy: {
-      '^/vps/(localize|health)': { target: process.env.VPS_URL ?? 'http://127.0.0.1:8090', rewrite: (p) => p.replace(/^\/vps/, '') },
+      '^/vps/(localize|health|debug/)': { target: process.env.VPS_URL ?? 'http://127.0.0.1:8090', rewrite: (p) => p.replace(/^\/vps/, '') },
     },
   },
   preview: { host: true, port: 5443, strictPort: true },

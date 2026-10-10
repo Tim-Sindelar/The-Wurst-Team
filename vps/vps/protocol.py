@@ -20,6 +20,7 @@ class Query:
     keypoints: np.ndarray  # (N, 2) float32
     scores: np.ndarray  # (N,) float32
     descriptors: np.ndarray  # (N, 256) float32, unit rows
+    debug: str | None = None  # debug-mode id (server.py stores the query under it)
 
 
 def decode(buf: bytes, max_keypoints: int = 4096) -> Query:
@@ -40,16 +41,19 @@ def decode(buf: bytes, max_keypoints: int = 4096) -> Query:
     o += 4 * n
     desc = np.frombuffer(buf, 'i1', n * dim, o).reshape(n, dim).astype(np.float32) / float(header.get('descScale', 256))
     desc /= np.maximum(np.linalg.norm(desc, axis=1, keepdims=True), 1e-6)
+    debug = header.get('debug')
     return Query(int(header['width']), int(header['height']), float(header['focal']), header.get('prior'),
-                 kp.astype(np.float32), scores.astype(np.float32), desc)
+                 kp.astype(np.float32), scores.astype(np.float32), desc, debug if isinstance(debug, str) else None)
 
 
 def encode(kp: np.ndarray, scores: np.ndarray, desc: np.ndarray, width: int, height: int, focal: float,
-           prior: dict | None, desc_scale: float = 256) -> bytes:
+           prior: dict | None, desc_scale: float = 256, debug: str | None = None) -> bytes:
     """The client's encoding, for tests and the offline evaluation."""
     n = len(kp)
-    header = json.dumps({'n': n, 'width': width, 'height': height, 'focal': focal, 'prior': prior,
-                         'descScale': desc_scale, 'dim': 256}).encode()
+    h = {'n': n, 'width': width, 'height': height, 'focal': focal, 'prior': prior, 'descScale': desc_scale, 'dim': 256}
+    if debug:
+        h['debug'] = debug
+    header = json.dumps(h).encode()
     q = np.clip(np.round(desc * desc_scale), -127, 127).astype('i1')
     return b''.join([MAGIC, struct.pack('<I', len(header)), header, kp.astype('<f4').tobytes(),
                      scores.astype('<f4').tobytes(), q.tobytes()])

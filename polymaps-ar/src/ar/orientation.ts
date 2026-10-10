@@ -65,7 +65,7 @@ export class HeadingFusion {
   locked = false;
   private relative: { alpha: number; beta: number; gamma: number; t: number; q: Quaternion } | null = null;
   /** Recent peak angular speed of the phone, degrees per second. */
-  private speed = 0;
+  speed = 0;
   private firstCompassT: number | null = null;
   private lastCompassT: number | null = null;
 

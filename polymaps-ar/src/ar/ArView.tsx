@@ -16,6 +16,8 @@ import type { Route } from '../pathfinding/route';
 import { HeadingFusion, orientationQuaternion, requestOrientationPermission, screenAngle, watchOrientation, type OrientationReading } from './orientation';
 import { VpsClient, focalFromFov, fovFromFocal, type VpsResult } from '../vps/client';
 import { VisualOffset, headingCorrection } from '../vps/fusion';
+import { debugInitiallyOn, featureStats, imageStats, newDebugId, rememberDebug, uploadDebug } from '../vps/debug';
+import { VpsDebugPanel, type VpsDebugAttempt } from '../vps/VpsDebugPanel';
 
 export interface ArPose extends LngLat {
   levelId: string | null;
@@ -40,11 +42,22 @@ const LABEL_RANGE_M = 25;
 const VPS_INTERVAL_MS = 3000;
 /** A visual fix's floor is trusted over the beacons' this long. */
 const VPS_LEVEL_HOLD_MS = 20_000;
+/** Debug mode keeps this many attempts to browse. */
+const DEBUG_HISTORY = 12;
 
 interface VpsState {
   busy: boolean;
   last: VpsResult | null;
   error: string | null;
+}
+
+/** Heading (degrees clockwise from north) and pitch of a three.js camera in the AR world (x east, y up, z south). */
+function viewAngles(q: Quaternion): { heading: number; pitch: number } {
+  const f = new Vector3(0, 0, -1).applyQuaternion(q);
+  return {
+    heading: ((((Math.atan2(f.x, -f.z) * 180) / Math.PI) % 360) + 360) % 360,
+    pitch: (Math.asin(Math.max(-1, Math.min(1, f.y))) * 180) / Math.PI,
+  };
 }
 
 /** ?camera=<image url>: a still photo instead of the camera (testing the visual fix on a desktop). */
@@ -84,6 +97,10 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
   const [vps, setVps] = useState<VpsState>({ busy: false, last: null, error: null });
   const vpsBusy = useRef(false);
   const [vpsAuto, setVpsAuto] = useState(false);
+  const [vpsDebug, setVpsDebug] = useState(debugInitiallyOn);
+  const vpsDebugRef = useRef(vpsDebug);
+  vpsDebugRef.current = vpsDebug;
+  const [debugAttempts, setDebugAttempts] = useState<VpsDebugAttempt[]>([]);
   const visualOffset = useRef(new VisualOffset());
   const visualLevel = useRef<{ levelId: string; t: number } | null>(null);
   const renderedQ = useRef(new Quaternion());
@@ -140,13 +157,18 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
     const qAtCapture = renderedQ.current.clone();
     const anchor = anchorRef.current;
     const beaconAtCapture = anchor ? toLocal(p, anchor) : null;
+    const debugId = vpsDebugRef.current ? newDebugId() : undefined;
+    // Debug mode: what the server can't know about the capture (see vps/debug_replay.py).
+    const captured = debugId ? captureContext(p, qAtCapture, vw, vh, viewW, viewH) : null;
+    let applied: number | null = null;
     try {
       const res = await vpsClient.current.localize(video, vw, vh, focalFromFov(fovRef.current, vw, vh, viewW, viewH), {
         lng: p.lng, lat: p.lat, levelId: p.levelId, accuracy: p.accuracy,
-      });
+      }, debugId);
       if (res.ok && res.quaternion && res.lng != null && res.lat != null) {
         const visual = new Quaternion(...res.quaternion);
         const d = headingCorrection(qAtCapture, visual);
+        applied = d;
         setHeadingOffset((h) => ((((h + d + 180) % 360) + 360) % 360) - 180);
         setCompassLocked(true);
         // Without motion sensors (desktop, ?camera=) the pitch is the dragged one: take the visual one.
@@ -159,12 +181,59 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
         if (res.focalVideo && (res.inliers ?? 0) >= 80) setFov(Math.round(fovFromFocal(res.focalVideo, vw, vh, viewW, viewH)));
       }
       setVps({ busy: false, last: res, error: null });
+      if (debugId && captured) recordDebug(debugId, captured, res, null, applied);
     } catch (e) {
       setVps((v) => ({ ...v, busy: false, error: (e as Error).message }));
       setVpsAuto(false);
+      if (debugId && captured) recordDebug(debugId, captured, null, (e as Error).message, null);
     } finally {
       vpsBusy.current = false;
     }
+  };
+
+  /** The phone's side of a capture, for the debug panel and the server's client.json. */
+  const captureContext = (p: ArPose, q: Quaternion, vw: number, vh: number, viewW: number, viewH: number) => {
+    const o = orientationRef.current;
+    const track = (videoRef.current?.srcObject as MediaStream | null)?.getVideoTracks()[0];
+    const angles = viewAngles(q);
+    return {
+      time: Date.now(),
+      rendered: { ...angles, angularSpeed: o ? Math.round(fusionRef.current.speed) : null },
+      context: {
+        app: { userAgent: navigator.userAgent, android: typeof window.PolymapsAndroid !== 'undefined', testImage: TEST_IMAGE, page: location.pathname + location.search },
+        prior: { ...p, ageMs: p.timestamp != null ? Date.now() - p.timestamp : null },
+        orientation: {
+          sensors, reading: o, ...angles, quaternion: q.toArray(), angularSpeed: o ? fusionRef.current.speed : null,
+          headingOffset: headingRef.current, compassLocked: fusionRef.current.locked, screenAngle: screenAngle(),
+        },
+        camera: {
+          videoWidth: vw, videoHeight: vh, viewWidth: viewW, viewHeight: viewH, devicePixelRatio: window.devicePixelRatio,
+          fovSetting: fovRef.current, track: track?.getSettings?.() ?? null,
+        },
+        visualOffset: { x: visualOffset.current.x, y: visualOffset.current.y },
+      } as Record<string, unknown>,
+    };
+  };
+
+  const recordDebug = (id: string, captured: ReturnType<typeof captureContext>, res: VpsResult | null, error: string | null, applied: number | null) => {
+    const frame = res?.frame;
+    const attempt: VpsDebugAttempt = {
+      id, time: captured.time, frame, result: res, error, rendered: captured.rendered,
+      image: frame ? imageStats(frame.gray, frame.width, frame.height) : undefined,
+      features: frame ? featureStats(frame.features) : undefined,
+      upload: res?.debugStored ? 'uploading…' : res ? 'not stored by the server' : 'no answer',
+    };
+    setDebugAttempts((list) => [attempt, ...list].slice(0, DEBUG_HISTORY));
+    if (!frame || !res?.debugStored) return;
+    const context = {
+      ...captured.context, id, capturedAt: new Date(captured.time).toISOString(),
+      backend: res.backend, timing: { extractMs: Math.round(res.extractMs), totalMs: Math.round(res.totalMs), serverMs: res.ms },
+      frame: { width: frame.width, height: frame.height, scaleX: frame.scaleX, scaleY: frame.scaleY, focal: frame.focal },
+      image: attempt.image, features: attempt.features, requestBytes: res.bytes,
+      result: { ok: res.ok, reason: res.reason, inliers: res.inliers, heading: res.heading }, headingCorrectionApplied: applied,
+    };
+    const setUpload = (upload: string) => setDebugAttempts((list) => list.map((a) => (a.id === id ? { ...a, upload } : a)));
+    uploadDebug(id, frame, context).then(setUpload, (e: Error) => setUpload(`upload failed: ${e.message}`));
   };
   const localizeRef = useRef(localizeVisually);
   localizeRef.current = localizeVisually;
@@ -407,6 +476,7 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
       ) : (
         <video ref={videoRef} className="ar-video" playsInline muted />
       )}
+      {vpsDebug && !inXr && <VpsDebugPanel attempts={debugAttempts} />}
       {cameraState !== 'on' && !inXr && <div className="ar-fallback">{cameraState === 'error' ? 'No camera' : 'Starting camera…'}{fallbackLabel ? ` · ${fallbackLabel}` : ''}</div>}
       <div ref={hostRef} className="ar-canvas" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} />
       <div className="ar-hud" ref={hudRef}>
@@ -446,6 +516,12 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
               </button>
               <label title="A visual fix every few seconds">
                 <input type="checkbox" checked={vpsAuto} onChange={(e) => setVpsAuto(e.target.checked)} /> auto
+              </label>
+              <label title="Show what the visual fix saw and found. Uploads each frame (grey, 640 px) with its context to the VPS server for debugging">
+                <input type="checkbox" checked={vpsDebug} onChange={(e) => {
+                    setVpsDebug(e.target.checked);
+                    rememberDebug(e.target.checked);
+                  }} /> debug
               </label>
             </>
           )}
