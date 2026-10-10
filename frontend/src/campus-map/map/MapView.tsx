@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import L from 'leaflet';
 import {
-  LayersControl,
   MapContainer,
   Marker,
   Polygon,
   ScaleControl,
-  TileLayer,
-  Tooltip,
   useMap,
   useMapEvents,
 } from 'react-leaflet';
@@ -27,8 +24,6 @@ import { VectorBasemap, OPENFREEMAP_ATTRIBUTION } from './VectorBasemap';
 import { FloorPicker } from './FloorPicker';
 import { Floors3D } from './Floors3D';
 import {
-  libraryFloorLabel,
-  levelName,
   loadLibraryOutlineRoomKeys,
   loadLibraryOutlines,
   outlineFromRooms,
@@ -43,8 +38,16 @@ import {
   type View3DStyle,
 } from './minimalStyle';
 import type { RoomInfo } from '../roomFeatures';
-import type { NavigationConfig } from '../domain/navigation';
+import { campusViews, type NavigationConfig } from '../domain/navigation';
 import { NavZones } from './NavZones';
+import {
+  buildGroups,
+  floorLift,
+  liftRings,
+  STACK_ZOOM,
+  useBuildingGroup,
+  type BuildingGroup,
+} from './buildingGroups';
 
 const OUTLINE_COLORS: Record<OccupancyLevel, string> = {
   none: '#215caf',
@@ -90,8 +93,10 @@ interface Props {
   roomLabels: boolean;
   selectedEthRoom: string | null;
   onEthRoomClick: ((ethId: string) => void) | null;
-  /** Mensa rooms (see FloorLayer), apart from the workspaces. */
+  /** Mensa rooms (see FloorLayer). */
   mensaRooms: ReadonlyMap<string, MensaRoom>;
+  /** Workspaces that are also a mensa, drawn in the mensa's color: library id → mensa. */
+  mensaWorkspaces: ReadonlyMap<string, MensaRoom>;
   selectedMensaId: string | null;
   onSelectMensa: (mensaId: string) => void;
   /** 3D view: the other floors stacked around the selected one; null when off. */
@@ -116,13 +121,6 @@ export function MapView(props: Props) {
   /** Libraries without a floor (not in PolyMaps) are shown on every floor. */
   const onFloor = (lib: { floor: number | null }) =>
     lib.floor === null || lib.floor === floor;
-  const librariesOnFloor = new Set(
-    data.libraries.filter(onFloor).map((l) => l.id),
-  );
-  const tablesOnFloor = data.tables.filter((t) =>
-    librariesOnFloor.has(t.libraryId),
-  );
-  const tableIdsOnFloor = new Set(tablesOnFloor.map((t) => t.id));
   const libraryRooms = useMemo(
     () =>
       new Map(
@@ -185,15 +183,81 @@ export function MapView(props: Props) {
     }
     return derivedOutlines[lib.id] ?? null;
   };
-  // Other floors first, then this floor, the selected library on top.
-  const drawOrder = (lib: { id: string; floor: number | null }) =>
-    selection.libraryId === lib.id ? 2 : onFloor(lib) ? 1 : 0;
-  const libraryNames = useMemo(
-    () => new Map(data.libraries.map((l) => [l.id, l.name])),
-    [data.libraries],
+  // The selected library on top.
+  const drawOrder = (lib: { id: string }) =>
+    selection.libraryId === lib.id ? 1 : 0;
+  // 3D view: the building group in focus is stacked, its floors lifted north (see Floors3D).
+  const groups = useMemo(
+    () => (props.floorIndex ? buildGroups(props.floorIndex) : null),
+    [props.floorIndex],
   );
+  const [focusGroup, setFocusGroup] = useState<BuildingGroup | null>(null);
+  const stackGroup = props.view3d && zoom >= STACK_ZOOM ? focusGroup : null;
+  const spacing = props.view3d?.spacing ?? 0;
+  /** 3D on: only the stacked group draws a floor, the rest are footprints. */
+  const stackOnly = !!props.view3d;
+  const footprints = useMemo(
+    () =>
+      stackOnly && groups
+        ? [...groups.values()].filter((g) => g !== stackGroup)
+        : [],
+    [stackOnly, groups, stackGroup],
+  );
+  /** How far north a workspace or pin of a building's floor is drawn. */
+  const liftOf = (facilityId: string | null, f: number | null) =>
+    stackGroup &&
+    facilityId &&
+    f !== null &&
+    stackGroup.facilityIds.has(facilityId)
+      ? floorLift(stackGroup, f, spacing)
+      : 0;
+  // A stacked group without the selected floor switches to its nearest floor.
+  const onFloorChange = props.onFloorChange;
+  useEffect(() => {
+    if (!stackGroup?.floors.length || stackGroup.floors.includes(floor)) return;
+    const nearest = stackGroup.floors.reduce((a, b) =>
+      Math.abs(b - floor) < Math.abs(a - floor) ? b : a,
+    );
+    onFloorChange(nearest);
+  }, [stackGroup, floor, onFloorChange]);
+  /** Room layouts show from the building level: the lowest zoom a building zone flies to. */
+  const roomZoom = useMemo(() => {
+    const zooms = (props.navigation?.zones ?? [])
+      .filter((z) => z.kind === 'building')
+      .map((z) => z.zoom);
+    return zooms.length ? Math.min(...zooms) : undefined;
+  }, [props.navigation]);
+  const planLift = useMemo(
+    () =>
+      stackGroup
+        ? { group: stackGroup, dLat: floorLift(stackGroup, floor, spacing) }
+        : null,
+    [stackGroup, floor, spacing],
+  );
+  const libraryById = new Map(data.libraries.map((l) => [l.id, l]));
+  const libraryLift = (libraryId: string) => {
+    const lib = libraryById.get(libraryId);
+    return lib ? liftOf(lib.facilityId, lib.floor) : 0;
+  };
+
+  /* A workspace shows only on its own floor; in 3D also only in the stacked
+     group (the other buildings are just footprints). */
+  const shown = (lib: { floor: number | null; facilityId: string | null }) =>
+    onFloor(lib) &&
+    (!stackOnly ||
+      lib.floor === null ||
+      (!!stackGroup &&
+        !!lib.facilityId &&
+        stackGroup.facilityIds.has(lib.facilityId)));
+  const librariesOnFloor = new Set(
+    data.libraries.filter(shown).map((l) => l.id),
+  );
+  const tablesOnFloor = data.tables.filter((t) =>
+    librariesOnFloor.has(t.libraryId),
+  );
+  const tableIdsOnFloor = new Set(tablesOnFloor.map((t) => t.id));
   const outlinedLibraries = data.libraries
-    .filter((l) => outlineOf(l))
+    .filter((l) => shown(l) && outlineOf(l))
     .sort((a, b) => drawOrder(a) - drawOrder(b));
 
   // Computed once: the initial view frames all workspaces, enabled or not (both campuses).
@@ -218,22 +282,8 @@ export function MapView(props: Props) {
       tapTolerance={15}
       className="map"
     >
-      <LayersControl position="topright">
-        <LayersControl.BaseLayer checked name="Clean">
-          <VectorBasemap style="positron" labels={labels} />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Streets">
-          <VectorBasemap style="bright" labels={labels} />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Satellite">
-          <TileLayer
-            url="https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg"
-            attribution='&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'
-            maxNativeZoom={20}
-            maxZoom={MAX_ZOOM}
-          />
-        </LayersControl.BaseLayer>
-      </LayersControl>
+      {/* Always the clean base map. */}
+      <VectorBasemap style="positron" labels={labels} />
       <AttributionText />
       <BasemapOpacity opacity={minimal ? minimal.basemapOpacity : 1} />
       <ScaleControl imperial={false} />
@@ -245,7 +295,12 @@ export function MapView(props: Props) {
         }}
       />
       <FlyTo target={props.flyTarget} />
-      <FitStart bounds={initialBounds} />
+      <StartView
+        bounds={initialBounds}
+        start={
+          props.navigation ? (campusViews(props.navigation)[0] ?? null) : null
+        }
+      />
 
       {props.floorIndex && (
         <>
@@ -254,8 +309,6 @@ export function MapView(props: Props) {
             index={props.floorIndex}
             floor={floor}
             libraryRooms={libraryRooms}
-            libraryNames={libraryNames}
-            showRoomDetails={false}
             selectedLibraryId={selection.libraryId}
             onSelectLibrary={(libraryId) =>
               props.onSelect({ libraryId, tableId: null, seatId: null })
@@ -272,30 +325,33 @@ export function MapView(props: Props) {
             mensaRooms={props.mensaRooms}
             selectedMensaId={props.selectedMensaId}
             onSelectMensa={props.onSelectMensa}
+            lift={planLift}
+            stackOnly={stackOnly}
+            footprints={footprints}
+            roomZoom={roomZoom}
           />
           {props.view3d && (
             <Floors3D
               theme={props.theme}
-              index={props.floorIndex}
+              group={stackGroup}
               floor={floor}
               onFloorChange={props.onFloorChange}
               style={props.view3d}
               minimal={minimal}
-              libraryRooms={libraryRooms}
-              selectedLibraryId={selection.libraryId}
-              ethRooms={props.ethRooms}
-              occupancyStyle={props.occupancyStyle}
-              mensaRooms={props.mensaRooms}
-              selectedMensaId={props.selectedMensaId}
             />
           )}
           <FloorPicker
             index={props.floorIndex}
             floor={floor}
-            libraries={data.libraries}
             onChange={props.onFloorChange}
+            view3d={!!props.view3d}
+            group={stackGroup}
           />
         </>
+      )}
+
+      {props.view3d && (
+        <GroupTracker groups={groups} onChange={setFocusGroup} />
       )}
 
       {props.navigation && (
@@ -303,7 +359,6 @@ export function MapView(props: Props) {
           config={props.navigation}
           enabled
           highlightedZoneId={null}
-          homeBounds={initialBounds}
           showHints={false}
         />
       )}
@@ -313,18 +368,20 @@ export function MapView(props: Props) {
         if (minimal && !minimal.parts.workspaces.show) return null;
         const occ = occupancyOf(data, lib.id);
         const selected = selection.libraryId === lib.id;
-        const occColor = OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
+        // A workspace that is also a mensa has the mensa's color.
+        const mensaColor = props.mensaWorkspaces.get(lib.id)?.color;
+        const occColor =
+          mensaColor ?? OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
         const ws = minimal?.parts.workspaces;
+        const latlngs = liftRings(
+          outlineToLatLngs(outlineOf(lib)!),
+          liftOf(lib.facilityId, lib.floor),
+        );
         return (
           <Polygon
             key={lib.id}
             positions={
-              minimal
-                ? roundPolygons(
-                    outlineToLatLngs(outlineOf(lib)!),
-                    minimal.cornerRadius,
-                  )
-                : outlineToLatLngs(outlineOf(lib)!)
+              minimal ? roundPolygons(latlngs, minimal.cornerRadius) : latlngs
             }
             pathOptions={
               minimal && ws
@@ -333,15 +390,13 @@ export function MapView(props: Props) {
                     color:
                       selected && minimal.highlightCustomColor
                         ? minimal.highlightColor
-                        : minimal.occupancyColors
-                          ? occColor
-                          : ws.color,
+                        : (mensaColor ??
+                          (minimal.occupancyColors ? occColor : ws.color)),
                     fillColor:
                       selected && minimal.highlightCustomColor
                         ? minimal.highlightColor
-                        : minimal.occupancyColors
-                          ? occColor
-                          : ws.fillColor,
+                        : (mensaColor ??
+                          (minimal.occupancyColors ? occColor : ws.fillColor)),
                     fill: true,
                     weight: selected
                       ? ws.weight + minimal.highlightWidth
@@ -380,55 +435,29 @@ export function MapView(props: Props) {
                 if (lib.floor !== null) props.onFloorChange(lib.floor);
               },
             }}
-          >
-            <Tooltip sticky>
-              <strong>{lib.name}</strong>
-              <br />
-              {occ.total === 0
-                ? 'No seats registered'
-                : `${occ.free} of ${occ.total} seats free`}
-              {lib.floor !== null && (
-                <>
-                  <br />
-                  <span className="muted">
-                    Floor{' '}
-                    {libraryFloorLabel(
-                      { floor: lib.floor, levelId: lib.levelId },
-                      props.floorIndex?.levels,
-                    )}
-                    {lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}
-                  </span>
-                </>
-              )}
-            </Tooltip>
-          </Polygon>
+          />
         );
       })}
 
       {/* Pins only for libraries without an outline; the outline itself marks the others. */}
       {data.libraries.map((lib) => {
-        if (outlineOf(lib)) return null;
+        if (!shown(lib) || outlineOf(lib)) return null;
         const occ = occupancyOf(data, lib.id);
         return (
           <Marker
             key={lib.id}
-            position={[lib.position.lat, lib.position.lng]}
+            position={[
+              lib.position.lat + liftOf(lib.facilityId, lib.floor),
+              lib.position.lng,
+            ]}
             icon={libraryIcon({
               kind: lib.kind,
               free: occ.free,
               total: occ.total,
               selected: selection.libraryId === lib.id && !selection.tableId,
               approximate: false,
-              otherFloor: onFloor(lib)
-                ? null
-                : libraryFloorLabel(
-                    { floor: lib.floor as number, levelId: lib.levelId },
-                    props.floorIndex?.levels,
-                  ),
             })}
-            zIndexOffset={
-              selection.libraryId === lib.id ? 1000 : onFloor(lib) ? 100 : 0
-            }
+            zIndexOffset={selection.libraryId === lib.id ? 1000 : 100}
             eventHandlers={{
               click: () =>
                 props.onSelect({
@@ -437,28 +466,7 @@ export function MapView(props: Props) {
                   seatId: null,
                 }),
             }}
-          >
-            <Tooltip direction="top">
-              <strong>{lib.name}</strong>
-              <br />
-              {occ.total === 0
-                ? 'No seats registered'
-                : `${occ.free} of ${occ.total} seats free`}
-              {lib.floor !== null && (
-                <>
-                  <br />
-                  <span className="muted">
-                    Floor{' '}
-                    {libraryFloorLabel(
-                      { floor: lib.floor, levelId: lib.levelId },
-                      props.floorIndex?.levels,
-                    )}
-                    {lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}
-                  </span>
-                </>
-              )}
-            </Tooltip>
-          </Marker>
+          />
         );
       })}
 
@@ -466,7 +474,10 @@ export function MapView(props: Props) {
         tablesOnFloor.map((t) => (
           <Marker
             key={t.id}
-            position={[t.position.lat, t.position.lng]}
+            position={[
+              t.position.lat + libraryLift(t.libraryId),
+              t.position.lng,
+            ]}
             icon={tableIcon(
               t.label,
               selection.tableId === t.id && !selection.seatId,
@@ -491,7 +502,10 @@ export function MapView(props: Props) {
             return (
               <Marker
                 key={s.id}
-                position={[s.position.lat, s.position.lng]}
+                position={[
+                  s.position.lat + (table ? libraryLift(table.libraryId) : 0),
+                  s.position.lng,
+                ]}
                 icon={seatIcon(s.status, selection.seatId === s.id)}
                 zIndexOffset={800}
                 eventHandlers={{
@@ -502,17 +516,26 @@ export function MapView(props: Props) {
                       seatId: s.id,
                     }),
                 }}
-              >
-                <Tooltip direction="top">
-                  {s.label}: {s.status}
-                </Tooltip>
-              </Marker>
+              />
             );
           })}
 
       {props.children}
     </MapContainer>
   );
+}
+
+/** Reports the building group the 3D view stacks (see useBuildingGroup). */
+function GroupTracker({
+  groups,
+  onChange,
+}: {
+  groups: ReadonlyMap<string, BuildingGroup> | null;
+  onChange: (group: BuildingGroup | null) => void;
+}) {
+  const group = useBuildingGroup(groups);
+  useEffect(() => onChange(group), [group, onChange]);
+  return null;
 }
 
 function MapEvents({ onZoom }: { onZoom: (zoom: number) => void }) {
@@ -527,20 +550,48 @@ function MapEvents({ onZoom }: { onZoom: (zoom: number) => void }) {
 /* Fits the start view once the map has its real size. On phones (and in
    background tabs) the map can be created while its container is still
    0×0, which leaves it at the maximum zoom on one spot. */
-function FitStart({ bounds }: { bounds: L.LatLngBounds | undefined }) {
+/**
+ * The start view: the Zentrum campus, as its area zone flies to. Until the
+ * navigation zones have loaded (or without any), both campuses. Applied once
+ * the map has its size, and the campus only once.
+ */
+function StartView({
+  bounds,
+  start,
+}: {
+  bounds: L.LatLngBounds | undefined;
+  start: { center: LatLng; zoom: number } | null;
+}) {
   const map = useMap();
+  const [sized, setSized] = useState(false);
+  const done = useRef(false);
   useEffect(() => {
-    if (!bounds) return;
     const container = map.getContainer();
+    if (container.clientWidth && container.clientHeight) {
+      map.invalidateSize();
+      setSized(true);
+      return;
+    }
     const observer = new ResizeObserver(() => {
       if (!container.clientWidth || !container.clientHeight) return;
       observer.disconnect();
       map.invalidateSize();
-      map.fitBounds(bounds, { padding: [16, 16], animate: false });
+      setSized(true);
     });
     observer.observe(container);
     return () => observer.disconnect();
-  }, [map, bounds]);
+  }, [map]);
+  const lat = start?.center.lat;
+  const lng = start?.center.lng;
+  const zoom = start?.zoom;
+  useEffect(() => {
+    if (!sized || done.current) return;
+    if (lat !== undefined && lng !== undefined && zoom !== undefined) {
+      done.current = true;
+      map.setView([lat, lng], zoom, { animate: false });
+    } else if (bounds)
+      map.fitBounds(bounds, { padding: [16, 16], animate: false });
+  }, [map, sized, bounds, lat, lng, zoom]);
   return null;
 }
 

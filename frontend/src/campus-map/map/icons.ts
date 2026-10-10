@@ -32,19 +32,16 @@ export function libraryIcon(opts: {
   total: number;
   selected: boolean;
   approximate: boolean;
-  /** Floor label shown when the library is on another floor than the one displayed. */
-  otherFloor: string | null;
 }) {
-  const { kind, free, total, selected, approximate, otherFloor } = opts;
+  const { kind, free, total, selected, approximate } = opts;
   const level = occupancyLevel(free, total);
   const glyph = kind === 'library' ? BOOK_SVG : DESK_SVG;
-  const key = `lib|${glyph === BOOK_SVG}|${free}|${total}|${selected}|${approximate}|${otherFloor}`;
+  const key = `lib|${glyph === BOOK_SVG}|${free}|${total}|${selected}|${approximate}`;
   const classes = [
     'lib-pin',
     `lib-${level}`,
     selected && 'is-selected',
     approximate && 'is-approx',
-    otherFloor && 'is-other-floor',
   ];
   return cached(key, () =>
     L.divIcon({
@@ -53,7 +50,6 @@ export function libraryIcon(opts: {
                <span class="lib-shape"></span>
                <span class="lib-book">${glyph}</span>
                ${total > 0 ? `<span class="lib-count">${free}</span>` : ''}
-               ${otherFloor ? `<span class="lib-floor">${escapeHtml(otherFloor)}</span>` : ''}
              </div>`,
       iconSize: [34, 42],
       iconAnchor: [17, 42],
