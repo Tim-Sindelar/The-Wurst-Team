@@ -160,7 +160,7 @@ export function PartyEditorDraftScreen() {
       }
     >
       {!canCreateParty && activeParty && (
-        <Alert title="You already have an active party">
+        <Alert variant="danger" title="You already have an active party">
           Leave or cancel it first.{' '}
           <Button
             variant="secondary"
@@ -390,7 +390,7 @@ export function PartyDraftScreen() {
       {party.status === 'open' &&
         member.status === 'invited' &&
         conflictingParty && (
-          <Alert title="You already have an active party">
+          <Alert variant="danger" title="You already have an active party">
             Leave or cancel {conflictingParty.name} before joining this one.{' '}
             <Button
               variant="secondary"
