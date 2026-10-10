@@ -46,7 +46,7 @@
     @apply m-0;
   }
 
-  /* --- ActionIcon: icon (44px), map (32px), camera ------------------------ */
+  /* --- ActionIcon: icon (44px), map (32px), fab (56px), camera ------------------------ */
   .ui-icon-button {
     @apply rounded-control border-0 bg-transparent text-text;
 
@@ -58,6 +58,17 @@
 
       &:disabled {
         @apply bg-transparent text-text opacity-40;
+      }
+    }
+    /* Floating action on a map: inverted (light on dark, dark on light), bigger, with a shadow. */
+    &[data-variant='fab'] {
+      @apply size-14 min-h-14 min-w-14 bg-text text-bg shadow-card;
+
+      &:hover:not(:disabled) {
+        @apply shadow-[inset_0_0_0_100px_var(--color-hover)];
+      }
+      &:disabled {
+        @apply opacity-40;
       }
     }
     &[data-variant='icon'],

@@ -1,6 +1,6 @@
-import { Alert, Button, Card, Text, Title } from '@mantine/core';
+import { ActionIcon, Alert, Button, Text } from '@mantine/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
   createReservationMutation,
@@ -16,20 +16,18 @@ import {
   ScreenHeader,
   ScreenMain,
 } from '../components/Screen';
-import { SeatChip } from '../components/SeatChip';
 import { SeatMap } from '../components/seat-map/SeatMap';
+import { SeatSheet } from '../components/seat-map/SeatSheet';
 import { apiProblem } from '../domain/booking';
 import { layoutSeats } from '../domain/room';
 import { describeAvailability } from '../domain/space';
-import {
-  isReservable,
-  seatStateDetail,
-  seatStateName,
-  stripeClass,
-} from '../domain/seat';
+import { isReservable, seatStateDetail, seatStateName } from '../domain/seat';
 import { useMyReservation, useRefreshBooking } from '../hooks/useMyReservation';
 import { useRules } from '../hooks/useRules';
 import { paths } from '../routes';
+
+/* Room the seat sheet covers at the bottom of the map; a picked seat is centred above it. */
+const SHEET_INSET = 200;
 
 export function SeatMapScreen() {
   const { spaceId = '' } = useParams();
@@ -60,6 +58,15 @@ export function SeatMapScreen() {
   const level = space
     ? describeAvailability(space.free_seats, space.total_seats, space.is_open)
     : null;
+
+  useEffect(() => {
+    if (!picked || sheetOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPicked(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [picked, sheetOpen]);
 
   const header = (
     <ScreenHeader
@@ -121,11 +128,7 @@ export function SeatMapScreen() {
     );
   }
 
-  const fallback =
-    seats.find((item) => item.state === 'yours') ??
-    seats.find((item) => item.state === 'free') ??
-    seats[0];
-  const seat = seats.find((item) => item.id === picked) ?? fallback;
+  const seat = seats.find((item) => item.id === picked) ?? null;
   const timeFormat = new Intl.DateTimeFormat(undefined, {
     hour: '2-digit',
     minute: '2-digit',
@@ -164,9 +167,9 @@ export function SeatMapScreen() {
   const later = seat?.state === 'bookable';
   const busy = ownSeatId !== null && !own;
   const canReserve =
-    Boolean(seat) && space.is_open && !busy && isReservable(seat.state);
+    seat !== null && space.is_open && !busy && isReservable(seat.state);
 
-  let actionLabel = 'No seats to show';
+  let actionLabel = '';
   if (seat) {
     if (own) actionLabel = running ? 'View session' : 'View reservation';
     else if (!space.is_open) actionLabel = 'Closed · unavailable';
@@ -176,16 +179,39 @@ export function SeatMapScreen() {
     else actionLabel = `${seatStateName[seat.state]} · unavailable`;
   }
 
-  const sheetNote = later
-    ? `${space.name}. Your time starts ${reservableFrom ? `at ${reservableFrom}, ` : ''}when the current session ends. Check in within ${rules.check_in_window_minutes} minutes after that.`
-    : `${space.name}. Check in within ${rules.check_in_window_minutes} minutes of reserving, or the seat is released.`;
+  const checkIn = (
+    <strong className="font-bold text-text">
+      {rules.check_in_window_minutes} minutes
+    </strong>
+  );
+  const sheetNote = later ? (
+    <>
+      Your time starts{' '}
+      {reservableFrom
+        ? `at ${reservableFrom}`
+        : 'when the current session ends'}
+      . Check in within {checkIn} after that.
+    </>
+  ) : (
+    <>Check in within {checkIn} or the seat is released.</>
+  );
+
+  const seatDetail = seat
+    ? own
+      ? running
+        ? 'Your session'
+        : 'Reserved for you'
+      : later && reservableFrom
+        ? `Occupied · available to reserve from ${reservableFrom}`
+        : seatStateDetail[seat.state]
+    : null;
 
   return (
     <Screen className="h-dvh overflow-hidden">
       {header}
 
-      <ScreenMain fit>
-        {hidden > 0 && (
+      {hidden > 0 && (
+        <div className="px-4 pt-3">
           <Alert
             variant="warning"
             icon={<Icon name="alert" />}
@@ -193,69 +219,57 @@ export function SeatMapScreen() {
           >
             <Text size="sm">The room plan has no space for them yet.</Text>
           </Alert>
-        )}
+        </div>
+      )}
 
-        {seat ? (
-          <>
-            <div className="min-h-0 flex-1 basis-0">
-              <SeatMap seats={seats} selected={seat.id} onSelect={setPicked} />
-            </div>
-
-            <Card
-              component="article"
-              className={stripeClass[seat.state]}
-              aria-labelledby="selected-seat-title"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Title order={3} id="selected-seat-title">
-                  Seat {seat.label}
-                </Title>
-                <SeatChip state={seat.state} />
-              </div>
-              <Text size="sm" c="dimmed">
-                {space.name} ·{' '}
-                {own
-                  ? running
-                    ? 'Your session'
-                    : 'Reserved for you'
-                  : later && reservableFrom
-                    ? `Occupied · available to reserve from ${reservableFrom}`
-                    : seatStateDetail[seat.state]}
-              </Text>
-            </Card>
-          </>
+      <main className="relative min-h-0 flex-1">
+        {seats.length > 0 ? (
+          <SeatMap
+            seats={seats}
+            selected={seat?.id ?? null}
+            onSelect={setPicked}
+            onDeselect={() => setPicked(null)}
+            bottomInset={SHEET_INSET}
+          />
         ) : (
-          <Alert icon={<Icon name="clock" />} title="No seats in service">
-            <Text size="sm">This study space has no seats you can book.</Text>
-          </Alert>
+          <div className="p-4">
+            <Alert icon={<Icon name="clock" />} title="No seats in service">
+              <Text size="sm">This study space has no seats you can book.</Text>
+            </Alert>
+          </div>
         )}
-      </ScreenMain>
 
-      <ActionBar>
-        {ownSeatId === null && (
-          <Button
-            variant="secondary"
-            fullWidth
-            disabled={!seats.some((item) => item.state === 'free')}
-            onClick={chooseAnyFree}
-          >
-            Choose any free seat
-          </Button>
-        )}
-        <Button
-          fullWidth
-          disabled={!own && !canReserve}
-          onClick={() =>
-            own
-              ? navigate(running ? paths.session : paths.reservation)
-              : setSheetOpen(true)
-          }
-        >
-          {actionLabel}
-        </Button>
-      </ActionBar>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-2 flex flex-col items-end gap-3">
+          {ownSeatId === null && (
+            <ActionIcon
+              variant="fab"
+              className="pointer-events-auto mr-4 last:mb-4"
+              aria-label="Choose any free seat"
+              title="Choose any free seat"
+              disabled={!seats.some((item) => item.state === 'free')}
+              onClick={chooseAnyFree}
+            >
+              <Icon name="dice" className="size-8" />
+            </ActionIcon>
+          )}
+          {seat && (
+            <SeatSheet
+              key={seat.id}
+              title={`Seat ${seat.label}`}
+              state={seat.state}
+              detail={`${space.name} · ${seatDetail}`}
+              actionLabel={actionLabel}
+              actionDisabled={!own && !canReserve}
+              onAction={() =>
+                own
+                  ? navigate(running ? paths.session : paths.reservation)
+                  : setSheetOpen(true)
+              }
+              onClose={() => setPicked(null)}
+            />
+          )}
+        </div>
+      </main>
 
       <DecisionSheet
         opened={sheetOpen}

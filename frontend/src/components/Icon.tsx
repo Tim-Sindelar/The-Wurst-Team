@@ -45,6 +45,19 @@ const paths = {
       <path d="M9 4v14M15 6v14" />
     </>
   ),
+  /* Five-pip die: rounded square, bold filled pips so it stays crisp at 24px. */
+  dice: (
+    <>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
+      <g fill="currentColor" stroke="none">
+        <circle cx="8.5" cy="8.5" r="1.4" />
+        <circle cx="15.5" cy="8.5" r="1.4" />
+        <circle cx="12" cy="12" r="1.4" />
+        <circle cx="8.5" cy="15.5" r="1.4" />
+        <circle cx="15.5" cy="15.5" r="1.4" />
+      </g>
+    </>
+  ),
   door: (
     <>
       <path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17" />
@@ -78,6 +91,7 @@ const paths = {
       <path d="M16.5 16.5L21 21" />
     </>
   ),
+  seat: <path d="M7 4h10v8H7zM5 12h14v4H5zM8 16v4M16 16v4" />,
   star: (
     <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
   ),

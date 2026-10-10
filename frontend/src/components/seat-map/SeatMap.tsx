@@ -1,4 +1,4 @@
-import { ActionIcon, Popover, Text } from '@mantine/core';
+import { ActionIcon, Popover } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
 import { roomGeometry, roomTables, type MapSeat } from '../../domain/room';
@@ -17,25 +17,37 @@ const keyStates: SeatState[] = [
 
 type SeatMapProps = {
   seats: MapSeat[];
-  selected: string;
+  /** The selected seat, or null when nothing is selected. */
+  selected: string | null;
   onSelect: (seatId: string) => void;
+  /** The empty map was tapped. */
+  onDeselect: () => void;
+  /** Height in px of what covers the bottom of the map (the seat sheet). */
+  bottomInset?: number;
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
-   Pan, pinch and zoom; the colour key opens from the (i) button. */
-export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
+   Pan, pinch and scroll to zoom; the colour key opens from the (i) button. */
+export function SeatMap({
+  seats,
+  selected,
+  onSelect,
+  onDeselect,
+  bottomInset = 0,
+}: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
-  const zoomLabelRef = useRef<HTMLOutputElement>(null);
-  const zoomInRef = useRef<HTMLButtonElement>(null);
-  const zoomOutRef = useRef<HTMLButtonElement>(null);
   const panZoomRef = useRef<PanZoom | null>(null);
   const onSelectRef = useRef(onSelect);
+  const onDeselectRef = useRef(onDeselect);
+  const insetRef = useRef(bottomInset);
   const [ready, setReady] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
+    onDeselectRef.current = onDeselect;
+    insetRef.current = bottomInset;
   });
 
   useEffect(() => {
@@ -45,14 +57,10 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
     const panZoom = createPanZoom({
       viewport,
       world,
-      onDraw: ({ scale, canZoomIn, canZoomOut }) => {
-        if (zoomLabelRef.current)
-          zoomLabelRef.current.textContent = `${Math.round(scale * 100)}%`;
-        if (zoomInRef.current) zoomInRef.current.disabled = !canZoomIn;
-        if (zoomOutRef.current) zoomOutRef.current.disabled = !canZoomOut;
-      },
+      onDraw: () => {},
       onSeatTap: (seat) => onSelectRef.current(String(seat.dataset.seatId)),
       onMapPress: () => setKeyOpen(false),
+      onMapTap: () => onDeselectRef.current(),
     });
     panZoomRef.current = panZoom;
     setReady(true);
@@ -65,13 +73,13 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
     if (shownSelection.current === selected) return;
     shownSelection.current = selected;
     const seat = seats.find((item) => item.id === selected);
-    if (seat) panZoomRef.current?.centerOn(seat.x, seat.y);
+    if (seat) panZoomRef.current?.centerOn(seat.x, seat.y, insetRef.current);
   }, [selected, seats]);
 
   return (
     <div
       ref={viewportRef}
-      className="relative h-full cursor-grab touch-none overflow-hidden rounded-card border border-border-strong bg-canvas select-none"
+      className="relative size-full cursor-grab touch-none overflow-hidden bg-canvas select-none"
       tabIndex={0}
       role="region"
       aria-label="Interactive room map. Arrow keys move, plus and minus zoom, Home fits the room."
@@ -175,49 +183,6 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
           </Popover.Dropdown>
         </Popover>
       </div>
-
-      <div
-        className="absolute top-3 right-3 grid rounded-control border border-border-strong bg-surface shadow-card"
-        role="group"
-        aria-label="Map controls"
-        data-map-controls
-      >
-        <ActionIcon
-          ref={zoomInRef}
-          variant="map"
-          aria-label="Zoom in"
-          onClick={() => panZoomRef.current?.zoomBy(1.25)}
-        >
-          <Icon name="plus" size="sm" />
-        </ActionIcon>
-        <ActionIcon
-          ref={zoomOutRef}
-          variant="map"
-          className="rounded-none border-t border-border"
-          aria-label="Zoom out"
-          onClick={() => panZoomRef.current?.zoomBy(0.8)}
-        >
-          <Icon name="minus" size="sm" />
-        </ActionIcon>
-        <ActionIcon
-          variant="map"
-          className="border-t border-border"
-          aria-label="Fit whole room"
-          title="Fit whole room"
-          onClick={() => panZoomRef.current?.fit()}
-        >
-          <Icon name="fitRoom" size="sm" />
-        </ActionIcon>
-      </div>
-
-      <Text
-        component="output"
-        ref={zoomLabelRef}
-        className="pointer-events-none absolute bottom-3 left-3 rounded-control border border-border bg-surface px-2 py-1 text-label text-text-muted tabular-nums"
-        aria-label="Map zoom"
-      >
-        100%
-      </Text>
     </div>
   );
 }

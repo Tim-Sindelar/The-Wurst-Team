@@ -88,6 +88,19 @@
 
   --animate-scan-line: scan-line 2.4s var(--ease-standard) infinite alternate;
 
+  --animate-sheet-up: sheet-up 220ms var(--ease-standard);
+
+  @keyframes sheet-up {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @keyframes scan-line {
     from {
       transform: translateY(0);

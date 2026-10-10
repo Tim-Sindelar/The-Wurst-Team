@@ -42,12 +42,15 @@ export type PanZoomOptions = {
   onSeatTap: (seat: HTMLElement) => void;
   /** Any pointer press on the map outside the info key (closes the key). */
   onMapPress: () => void;
+  /** The empty map (no seat, no controls) was tapped without dragging. */
+  onMapTap: () => void;
 };
 
 export type PanZoom = {
   fit: () => void;
   zoomBy: (factor: number) => void;
-  centerOn: (x: number, y: number) => void;
+  /** `lift` moves the target up from the middle, to clear a sheet at the bottom. */
+  centerOn: (x: number, y: number, lift?: number) => void;
   destroy: () => void;
 };
 
@@ -60,6 +63,7 @@ export function createPanZoom({
   onDraw,
   onSeatTap,
   onMapPress,
+  onMapTap,
 }: PanZoomOptions): PanZoom {
   const pointers = new Map<number, Point>();
   const worldWidth = world.offsetWidth;
@@ -92,11 +96,11 @@ export function createPanZoom({
   };
 
   /* Selecting from the overview zooms back to at least 100% to inspect. */
-  const centerOn = (wx: number, wy: number) => {
+  const centerOn = (wx: number, wy: number, lift = 0) => {
     fitted = false;
     scale = Math.max(1, scale);
     x = width / 2 - wx * scale;
-    y = height / 2 - wy * scale;
+    y = (height - lift) / 2 - wy * scale;
     draw();
   };
 
@@ -189,6 +193,11 @@ export function createPanZoom({
       gesture?.kind === 'pan' && !gesture.moved && event.type === 'pointerup'
         ? gesture.seat
         : null;
+    const tappedEmpty =
+      gesture?.kind === 'pan' &&
+      !gesture.moved &&
+      !gesture.seat &&
+      event.type === 'pointerup';
     pointers.delete(event.pointerId);
     if (viewport.hasPointerCapture(event.pointerId))
       viewport.releasePointerCapture(event.pointerId);
@@ -209,7 +218,7 @@ export function createPanZoom({
     if (tapped) {
       onSeatTap(tapped);
       tapped.focus({ preventScroll: true });
-    }
+    } else if (tappedEmpty) onMapTap();
   };
 
   const onWheel = (event: WheelEvent) => {
