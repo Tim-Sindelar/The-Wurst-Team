@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { cx } from './cx';
 import { Icon } from './Icon';
+import { RequestsBell } from './RequestsBell';
 
 /* The screen frame: fills the whole width of any phone (no side margins),
    becomes a centred 390px column from 480px up. Full height, with the
@@ -35,7 +36,7 @@ type ScreenHeaderProps = {
   subtitle?: ReactNode;
 };
 
-/** Top bar: back arrow, screen title (and optional subtitle). */
+/** Top bar: back arrow, screen title (and optional subtitle), requests bell. */
 export function ScreenHeader({
   title,
   backTo,
@@ -59,6 +60,7 @@ export function ScreenHeader({
           </Title>
           {subtitle}
         </div>
+        <RequestsBell />
       </div>
     </header>
   );

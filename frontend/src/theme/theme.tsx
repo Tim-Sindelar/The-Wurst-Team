@@ -6,6 +6,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   createTheme,
   Drawer,
   Input,
@@ -109,6 +110,11 @@ export const theme = createTheme({
       defaultProps: { leftSectionWidth: 44 },
     }),
 
+    Checkbox: Checkbox.extend({
+      defaultProps: { size: 'md' },
+      classNames: { input: 'ui-checkbox', icon: 'ui-checkbox-icon' },
+    }),
+
     Switch: Switch.extend({
       defaultProps: { labelPosition: 'left', withThumbIndicator: false },
       vars: () => ({
@@ -148,11 +154,18 @@ export const theme = createTheme({
 
     Avatar: Avatar.extend({
       classNames: (_theme, props) => ({
-        root: props.size === 'lg' ? 'ui-avatar ui-avatar--lg' : 'ui-avatar',
+        root:
+          props.size === 'lg'
+            ? 'ui-avatar ui-avatar--lg'
+            : props.size === 'sm'
+              ? 'ui-avatar ui-avatar--sm'
+              : 'ui-avatar',
         placeholder:
           props.size === 'lg'
             ? 'ui-avatar-placeholder ui-avatar-placeholder--lg'
-            : 'ui-avatar-placeholder',
+            : props.size === 'sm'
+              ? 'ui-avatar-placeholder ui-avatar-placeholder--sm'
+              : 'ui-avatar-placeholder',
       }),
     }),
 

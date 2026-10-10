@@ -1,6 +1,6 @@
 import type { ServerEvent } from '../api/generated';
 import type { IconName } from '../components/Icon.tsx';
-import { draftPaths, partyPath } from '../features/social-draft/draft.ts';
+import { groupPath, socialPaths } from '../features/social/paths.ts';
 
 export type EventNotice = {
   icon: IconName;
@@ -17,19 +17,19 @@ export function describeEvent(event: ServerEvent): EventNotice | null {
       return {
         icon: 'userPlus',
         title: `Friend request from ${event.person.name}`,
-        link: draftPaths.friends,
+        link: socialPaths.requests,
       };
     case 'friend_request.accepted':
       return {
         icon: 'userCheck',
         title: `${event.person.name} accepted your friend request`,
-        link: draftPaths.friends,
+        link: socialPaths.friends,
       };
     case 'party.invited':
       return {
         icon: 'mail',
         title: `${event.person.name} invited you to ${event.party_name}`,
-        link: partyPath(event.party_id),
+        link: groupPath(event.party_id),
       };
     case 'party.replied':
       return {
@@ -37,27 +37,27 @@ export function describeEvent(event: ServerEvent): EventNotice | null {
         title: event.accepted
           ? `${event.person.name} joined ${event.party_name}`
           : `${event.person.name} declined ${event.party_name}`,
-        link: partyPath(event.party_id),
+        link: groupPath(event.party_id),
       };
     case 'party.left':
       return {
         icon: 'userMinus',
         title: `${event.person.name} left ${event.party_name}`,
-        link: partyPath(event.party_id),
+        link: groupPath(event.party_id),
       };
     case 'party.booked':
       return {
         icon: 'calendarCheck',
         title: `${event.party_name} is booked`,
         message: 'Your seat is reserved. Check in when you arrive.',
-        link: partyPath(event.party_id),
+        link: groupPath(event.party_id),
       };
     case 'party.cancelled':
       return {
         icon: 'calendarX',
         title: `${event.party_name} was cancelled`,
         message: 'Seats not yet checked in were released.',
-        link: draftPaths.parties,
+        link: socialPaths.friends,
       };
     case 'ping':
       return null;

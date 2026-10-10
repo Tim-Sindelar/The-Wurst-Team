@@ -145,21 +145,15 @@ backend settings default to disabled. Enabling it does
 not replace the frontend's live individual-booking flow. See [the social backend contract](docs/social-backend.md)
 for setup, endpoints, consent rules, and the frontend integration boundary.
 
-A social frontend is at `http://127.0.0.1:5173/social-draft`, in production and in CI-deployed PR previews.
-Open it through **Friends** in the Home / Map / Friends / Profile bottom navigation. Profile replaces
-the avatar shortcut on Home; Home / Map / Profile remain available when social is disabled. Its hub
-shows privacy first, a party entry and one friend list with shared rooms first. Requests have
-their own page; Add a friend stays pinned above bottom navigation. People search, friend requests,
-friendships and privacy use the real backend when enabled; signing in makes names and avatars
-discoverable, with room sharing off by default. PR deployments enable this in their isolated database.
-Parties use real invitations, accepted membership, manual room/seat selection and atomic group
-booking. Everyone checks in independently through the existing reservation/session screens.
-Only one joined active party per person is allowed; invitations can wait until that slot is free.
-Saved previews never appear in production. A disabled backend shows an unavailable notice.
-See [the walkthrough](design/social-draft.md). `VITE_SOCIAL_ENABLED=false` hides the social feature.
-`VITE_SOCIAL_DEMO_ENABLED=true` separately enables the old sample UI; local development defaults to
-samples when this flag is omitted. CI disables samples for both PRs and production. Docker accepts
-the corresponding `SOCIAL_ENABLED` and `SOCIAL_DEMO_ENABLED` build arguments.
+The social screens are under **Friends** in the Home / Map / Friends / Profile bottom navigation
+(`/friends`), in production and in CI-deployed PR previews. Friends has one search box for friends
+and people to add, the study group you're in, and your friends with their shared rooms. The bell in
+every header opens Requests: study group invitations and friend requests. A study group is created in
+one step (name and who to invite); its organizer then books a seat for everyone who joined on
+`/groups/:id/seats`, and each person checks in through the usual reservation screens. Only one
+active group per person is allowed. Everything uses the real backend; there is no sample mode.
+See the mockups in `design/screens/08-friends.html` and `09-book-together.html`.
+`VITE_SOCIAL_ENABLED=false` (Docker build argument `SOCIAL_ENABLED`) hides the social feature.
 
 ## Admin API demo
 

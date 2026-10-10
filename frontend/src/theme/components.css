@@ -140,6 +140,18 @@
     @apply text-text-muted;
   }
 
+  /* --- Checkbox: picking people. 20px box, accent when ticked. ---------- */
+  .ui-checkbox {
+    @apply cursor-pointer rounded-control border-border-strong bg-surface;
+
+    &:checked {
+      @apply border-accent bg-accent;
+    }
+  }
+  .ui-checkbox-icon {
+    @apply text-on-accent;
+  }
+
   /* --- Switch: 48 × 28 track, 20px thumb ---------------------------------- */
   .ui-switch {
     @apply w-full;
@@ -195,6 +207,10 @@
   .ui-avatar--lg {
     @apply size-18 min-w-18;
   }
+  /* Small: overlapping stacks of people and the seat picker's member chips. */
+  .ui-avatar--sm {
+    @apply size-8 min-w-8;
+  }
   .ui-avatar-placeholder {
     @apply border border-border-strong text-small leading-none font-bold text-text;
     background: color-mix(
@@ -205,6 +221,9 @@
   }
   .ui-avatar-placeholder--lg {
     @apply text-heading;
+  }
+  .ui-avatar-placeholder--sm {
+    @apply text-label;
   }
 
   /* --- Alert: in-page notice with a 6px stripe. info, warning, danger. ---- */

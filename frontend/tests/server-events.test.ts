@@ -18,7 +18,7 @@ test('social events say who did what and link to it', () => {
     {
       icon: 'userPlus',
       title: 'Friend request from Ana Novak',
-      link: '/social-draft',
+      link: '/requests',
     },
   );
   const declined = describeEvent({
@@ -30,11 +30,11 @@ test('social events say who did what and link to it', () => {
   });
   assert.equal(declined?.title, 'Ana Novak declined Study group');
   assert.equal(declined?.icon, 'userX');
-  assert.equal(declined?.link, '/social-draft/party/p%201');
+  assert.equal(declined?.link, '/groups/p%201');
   assert.equal(
     describeEvent({ type: 'party.cancelled', party_id: 'p', party_name: 'X' })
       ?.link,
-    '/social-draft/parties',
+    '/friends',
   );
 });
 

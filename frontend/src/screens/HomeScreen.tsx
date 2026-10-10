@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
+import { RequestsBell } from '../components/RequestsBell';
 import { SafeAreaTop, Screen, ScreenMain } from '../components/Screen';
 import { SpaceLists } from '../components/SpaceLists';
 import { stripeClass, type SeatState } from '../domain/seat';
@@ -44,7 +45,10 @@ export function HomeScreen() {
     <Screen>
       <SafeAreaTop />
       <ScreenMain>
-        <Title order={1}>Study Spaces</Title>
+        <div className="flex items-center justify-between gap-2">
+          <Title order={1}>Study Spaces</Title>
+          <RequestsBell />
+        </div>
 
         <div className="sticky top-[env(safe-area-inset-top)] z-2 -mx-4 -mt-4 -mb-2 bg-bg px-4 pt-4 pb-2">
           <TextInput

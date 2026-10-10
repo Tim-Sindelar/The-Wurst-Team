@@ -3,14 +3,11 @@ import react from '@vitejs/plugin-react';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
-import { resolveSocialMode } from './src/domain/socialMode.ts';
+import { resolveSocialEnabled } from './src/domain/socialMode.ts';
 
 export default defineConfig(({ mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...process.env };
-  const social = resolveSocialMode(
-    env.VITE_SOCIAL_ENABLED,
-    env.VITE_SOCIAL_DEMO_ENABLED,
-  );
+  const social = { enabled: resolveSocialEnabled(env.VITE_SOCIAL_ENABLED) };
   return {
     base: process.env.VITE_APP_BASE_PATH ?? '/',
     plugins: [

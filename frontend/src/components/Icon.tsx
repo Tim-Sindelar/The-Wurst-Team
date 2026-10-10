@@ -10,6 +10,12 @@ const paths = {
     </>
   ),
   back: <path d="M15 5l-7 7 7 7" />,
+  bell: (
+    <>
+      <path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4z" />
+      <path d="M10 21a2 2 0 0 0 4 0" />
+    </>
+  ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   chevronRight: <path d="M9 5l7 7-7 7" />,
   clock: (

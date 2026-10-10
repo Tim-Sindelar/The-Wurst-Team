@@ -1,7 +1,7 @@
 # Friends and party booking backend
 
 Social features are optional; deployment Compose enables them in production and PRs, while
-standalone backend settings remain disabled by default. The [frontend](../design/social-draft.md)
+standalone backend settings remain disabled by default. The [frontend](../frontend/src/features/social/)
 connects people search, friend requests, friends, privacy, shared rooms and parties through the
 generated API client. Party bookings create real, individually owned reservations; the existing
 reservation/session/QR screens handle each member’s check-in. Production never loads sample data.
@@ -20,9 +20,7 @@ check-in, and session endpoints. Do not downgrade the database just to disable t
 
 The frontend uses `getSocialCapabilitiesOptions()` to require an enabled backend. All social APIs
 except capabilities are gated in the backend. `VITE_SOCIAL_ENABLED` controls frontend availability;
-`VITE_SOCIAL_DEMO_ENABLED` independently selects local sample party screens. CI disables samples
-in production and PRs. Sample friendships require both the explicit demo mode and a disabled
-backend; network/auth failures never fall back to sample mutations.
+The frontend has no sample mode: with the backend off it shows an error in place.
 
 Use the existing managed-proxy authentication in deployment. Keep direct access blocked, keep
 managed authentication enabled, and use `AUTH_MODE=proxy`. Social never creates credentials,

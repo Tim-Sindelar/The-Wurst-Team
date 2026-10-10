@@ -17,6 +17,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/domain/` | Domain types and per-state lookups (seat states, labels, state classes) |
 | `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useServerEvents` (the events WebSocket), `useQrScanner`, `useNow`, `useCountdown` |
 | `src/routes.ts` | Screen paths |
+| `src/features/social/` | Friends, Requests, study groups and group booking (`/friends`, `/requests`, `/groups/...`). See "Friends and study groups" below |
 | `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
 | `src/pwa.ts`, `pwa/service-worker.js`, `public/manifest.webmanifest`, `public/icons/` | The installable app: worker registration, the service worker (the `service-worker` plugin in `vite.config.ts` emits it as `sw.js`), the manifest and the app icons. See "Installable app" below |
@@ -41,11 +42,11 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | In-page notice | `Alert` with `variant="info"` (default), `"warning"` or `"danger"` |
 | Countdown | `TimerCard` (label, ticking time, progress bar) |
 | Decision before an action | `DecisionSheet`: safe option left (outlined), action right; `actionTone="danger"` for end or cancel |
-| Something happened | `StatusBanner` (auto-hides after 6s unless `urgent`); for server events, `describeEvent` in `src/domain/serverEvents.ts` (see "Real-time events") |
+| Something happened | `notify(title, icon)` from `src/components/notify.tsx` for confirmations of what the user just did; server events through `describeEvent` in `src/domain/serverEvents.ts` (see "Real-time events"). Both float below the header and never move the page. `StatusBanner` remains for the booking screens' own banners |
 | Toggle | `Switch` with a `label` |
 | Text | `Title order={1}` is the 28px screen heading, `order={2/3}` the 20px title (add `text-heading` for a heading-sized `h2`). `Text size="sm"` for secondary text, `c="dimmed"` for muted. Section labels: `SectionLabel`. Timers: `text-timer tabular-nums` |
 | Icons | `Icon` from `src/components/Icon.tsx` only (24px outline, 1.75 stroke). Add new icons there |
-| Screen layout | `Screen` > `ScreenHeader` (back, title, theme switch) > `ScreenMain` > `ActionBar` |
+| Screen layout | `Screen` > `ScreenHeader` (back, title, requests bell) > `ScreenMain` > `ActionBar` |
 
 Only two kinds of popup exist: the decision sheet and the notification banner. Don't add a third. Server events show the same banner through `@mantine/notifications` (themed in `theme.tsx`, `.ui-notifications`), so they are not a third kind. (The campus map's bottom sheets, `MapSheet`, use the decision sheet's frame for its settings and its room dashboard.) Errors on a screen are shown in place as a `danger` notice.
 
@@ -94,6 +95,16 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - The room screen (`/seats/:spaceId`, `SeatMapScreen`) is a full-bleed `SeatMap` under the header with nothing selected at first. Tapping a seat opens `SeatSheet` (a non-modal card at the bottom, not a third popup); its action opens the decision sheet to confirm. The `map` button "Choose any free seat" top right picks a random other free seat and is hidden while the user holds a seat. If the server answers `seat_unavailable` to a reservation (someone else was first), the sheet closes and a danger `Alert` "Seat X was just taken" with "Choose another seat" shows over the map; other errors stay inside the decision sheet.
 - The notification switches on Profile save per-user preferences automatically in localStorage on this device; notification delivery is not implemented.
 - Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`. The camera feed fills the scan screen, dimmed outside the scan frame; there is no typed-code fallback. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
+
+### Friends and study groups
+
+- Screens implement `design/screens/08-friends.html` (Friends, Requests, Study group, New study group) and `09-book-together.html`. The API calls a study group a party; the screens never say "party". Everything is live: there is no sample-data mode. `VITE_SOCIAL_ENABLED=false` hides the feature; a backend with social off shows an error in place.
+- Data comes through `src/features/social/useSocial.ts`: `useFriends`, `usePeopleSearch`, `useGroups` (the group you're in, invitations, your last cancelled group), `useGroup`, `useRequestCount` (the bell) and `useSocialActions`, which runs one change at a time, keeps its error for the screen and refetches every query afterwards. Pure rules live in `groups.ts` and `seatTogether.ts` (tested in `tests/social-groups.test.ts`).
+- The bell (`RequestsBell`) is in every `ScreenHeader` and in Home's title row. It opens `/requests`, which holds study group invitations, friend requests and the requests you sent.
+- One active group per person: an open group you joined, or a booked one while your seat from it is held or in use. A clash shows as one danger line on the invitation and disables Join.
+- "Start a study group" always opens `/groups/new`; a cancelled group is offered there as "Use again" (name and people filled in), never shown as the current group.
+- `/groups/:id/seats` is full screen like the seat map. The header shows the room and its free seats like the seat map, under it is Home's search box; while it's in use, matching rooms (`filterSpaces`, those the group fits in first) cover the map. Opening a room's seat map (`/seats/:id`) while you organize an open group someone joined redirects here with `?room=`. After each seat the picker moves to the next person without one. Once everyone has a seat, tapping a name (or their seat) selects that person and the next free seat tapped moves them; nobody's seat is ever cleared that way. Room results are Home's `SpaceLists` (rows before typing, matches while typing), with too-small rooms marked. Group seats show initials (`SeatMap`'s `people` prop). A `seat_unavailable` answer shows "A seat was just taken" over the map.
+- Keep text minimal: no helper sentences, labels over explanations.
 
 ### Real-time events
 
