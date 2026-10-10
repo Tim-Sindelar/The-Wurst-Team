@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "_comment": "Which PolyMaps rooms each mensa occupies, kept apart from the workspaces in occupancy-map-preview/data/overrides.json. Keyed by the mensa id in locations.json. room: the room the ETH Gastro facilities API lists (idapps.ethz.ch/cookpit-pub-services/v1/facilities). rooms: PolyMaps unit ids of the mensa, main room first, plus the adjoining catering rooms ('Verpflegung') of the same outlet. facilityId/levelId/floor: the main room's building, level and floor (0 = ground floor). position: area-weighted center of the rooms on the main level; it replaces the pin position in locations.json. UZH mensas and Mendokoro (HPI is not in PolyMaps) have no entry.",
+  "mensas": {
+    "eth-polyterrasse": {
+      "room": "MM B 79",
+      "facilityId": "ETH.MM",
+      "levelId": "ETH.MM.B",
+      "floor": -2,
+      "rooms": [
+        "ETH.MM.B.B_079"
+      ],
+      "levels": [
+        "ETH.MM.B"
+      ],
+      "position": {
+        "lat": 47.3765272,
+        "lng": 8.5462675
+      }
+    },
+    "eth-clausiusbar": {
+      "room": "CLA D 5",
+      "facilityId": "ETH.CLA",
+      "levelId": "ETH.CLA.D",
+      "floor": 0,
+      "rooms": [
+        "ETH.CLA.D.D_005"
+      ],
+      "levels": [
+        "ETH.CLA.D"
+      ],
+      "position": {
+        "lat": 47.3775919,
+        "lng": 8.5466542
+      }
+    },
+    "eth-archimedes": {
+      "room": "GLC E 16",
+      "facilityId": "ETH.GLC",
+      "levelId": "ETH.GLC.E",
+      "floor": 0,
+      "rooms": [
+        "ETH.GLC.E.E_016"
+      ],
+      "levels": [
+        "ETH.GLC.E"
+      ],
+      "position": {
+        "lat": 47.3773702,
+        "lng": 8.5533633
+      }
+    },
+    "eth-dozentenfoyer": {
+      "room": "HG K 30.5",
+      "facilityId": "ETH.HG",
+      "levelId": "ETH.HG.K",
+      "floor": 5,
+      "rooms": [
+        "ETH.HG.K.K_030.5"
+      ],
+      "levels": [
+        "ETH.HG.K"
+      ],
+      "position": {
+        "lat": 47.376354,
+        "lng": 8.5476631
+      }
+    },
+    "eth-food-lab": {
+      "room": "CAB H 41",
+      "facilityId": "ETH.CAB",
+      "levelId": "ETH.CAB.H",
+      "floor": 3,
+      "rooms": [
+        "ETH.CAB.H.H_041"
+      ],
+      "levels": [
+        "ETH.CAB.H"
+      ],
+      "position": {
+        "lat": 47.3783544,
+        "lng": 8.5487966
+      }
+    },
+    "eth-polysnack": {
+      "room": "HG F 32",
+      "facilityId": "ETH.HG",
+      "levelId": "ETH.HG.F",
+      "floor": 1,
+      "rooms": [
+        "ETH.HG.F.F_032"
+      ],
+      "levels": [
+        "ETH.HG.F"
+      ],
+      "position": {
+        "lat": 47.3761178,
+        "lng": 8.5481054
+      }
+    },
+    "eth-tannenbar": {
+      "room": "ML E 23",
+      "facilityId": "ETH.ML",
+      "levelId": "ETH.ML.E",
+      "floor": 0,
+      "rooms": [
+        "ETH.ML.E.E_023",
+        "ETH.ML.E.E_021"
+      ],
+      "levels": [
+        "ETH.ML.E"
+      ],
+      "position": {
+        "lat": 47.3775114,
+        "lng": 8.5479198
+      }
+    },
+    "eth-food-market": {
+      "room": "HPR D 70.1",
+      "facilityId": "ETH.HPR",
+      "levelId": "ETH.HPR.D",
+      "floor": 0,
+      "rooms": [
+        "ETH.HPR.D.D_070.1",
+        "ETH.HPR.D.D_070.2",
+        "ETH.HPR.D.D_070.6"
+      ],
+      "levels": [
+        "ETH.HPR.D"
+      ],
+      "position": {
+        "lat": 47.407937,
+        "lng": 8.5097318
+      }
+    },
+    "eth-fusion": {
+      "room": "HCI E 5",
+      "facilityId": "ETH.HCI",
+      "levelId": "ETH.HCI.E",
+      "floor": 0,
+      "rooms": [
+        "ETH.HCI.E.E_005",
+        "ETH.HCI.F.F_005"
+      ],
+      "levels": [
+        "ETH.HCI.E",
+        "ETH.HCI.F"
+      ],
+      "position": {
+        "lat": 47.4077206,
+        "lng": 8.5078195
+      }
+    },
+    "eth-alumni-lounge": {
+      "room": "HIL D 57.2",
+      "facilityId": "ETH.HIL",
+      "levelId": "ETH.HIL.D",
+      "floor": 0,
+      "rooms": [
+        "ETH.HIL.D.D_057.2"
+      ],
+      "levels": [
+        "ETH.HIL.D"
+      ],
+      "position": {
+        "lat": 47.4082807,
+        "lng": 8.5066623
+      }
+    },
+    "eth-rice-up": {
+      "room": "HIT E 31",
+      "facilityId": "ETH.HIT",
+      "levelId": "ETH.HIT.E",
+      "floor": 0,
+      "rooms": [
+        "ETH.HIT.E.E_031"
+      ],
+      "levels": [
+        "ETH.HIT.E"
+      ],
+      "position": {
+        "lat": 47.4103337,
+        "lng": 8.508516
+      }
+    },
+    "eth-octavo": {
+      "room": "OCT E 16",
+      "facilityId": "ETH.OCT",
+      "levelId": "ETH.OCT.E",
+      "floor": 0,
+      "rooms": [
+        "ETH.OCT.E.E_016",
+        "ETH.OCT.E.E_021",
+        "ETH.OCT.E.E_019.2",
+        "ETH.OCT.E.E_022"
+      ],
+      "levels": [
+        "ETH.OCT.E"
+      ],
+      "position": {
+        "lat": 47.413304,
+        "lng": 8.536862
+      }
+    }
+  }
+}

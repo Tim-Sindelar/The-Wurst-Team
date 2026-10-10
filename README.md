@@ -28,6 +28,7 @@ npm run dev --prefix frontend
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
 The frontend implements the screens from `design/`. Its profile and home avatar use the real `/api/v1/me` endpoint; study spaces, reservations, and notification controls still use mock data/local state and do not write to the database.
+The campus map (`/map`, linked from the home screen) is the view mode of `occupancy-map-preview/`, made for phones. Its data comes from the backend under `/api/v1/map` (see "Campus map" below), so it needs `make backend` running.
 Vite proxies `/api` requests to the backend on port 8000. Backend source changes reload automatically; migrations run when the backend container starts.
 
 Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend/package-lock.json`. Rebuild the backend container after changing Python dependencies.
@@ -176,6 +177,36 @@ Bookings, walk-up check-ins, and extensions obey hours, closures, and seat activ
 
 Overview names are deterministic placeholders (`Demo user <full UUID>`). The current booking includes pending, active, or on-break status; upcoming bookings are separate. `occupied_seats` counts active checked-in users and `on_break_seats` counts breaks. Ending a booking frees its user to reserve again; it does not ban the user. No admin UI or notifications are included.
 
+## Campus map
+
+The map's backend is the feature `backend/app/features/campus_map/`:
+
+| Route | What |
+| --- | --- |
+| `GET /api/v1/map/workspaces` | Workspaces (libraries, study areas, ...), their tables and seats: the generated data with the admin edits applied. `PUT` (admin) stores edits as a diff against the generated data |
+| `GET /api/v1/map/style`, `/navigation` | Map colours per theme, click-to-zoom areas. `PUT` (admin) replaces them |
+| `GET /api/v1/map/datasets[/<id>]` | Campus datasets (mensas, transport, ASVZ, shared mobility, weather, amenities). `?at=YYYY-MM-DDTHH:MM` for another Zurich time, `?refresh=true` to fetch now |
+| `GET /api/v1/map/eth/rooms[?date=]` | Every ETH room with the day's bookings and where it is on the floor plans; fetched from ETH in the background, at most hourly |
+| `GET /api/v1/map/eth/room?id=`, `/eth/file?id=`, `/eth/uzh` | ETH room sheet, room photos, live UZH library occupancy |
+| `/api/v1/map/floors/...` | Floor plans (static files) |
+
+The workspaces, style and navigation are stored in Postgres (`map_entities`, `map_overrides`, `map_documents`). They are edited in `occupancy-map-preview/` (Admin mode and Style panel), which saves JSON files; `make map-sync` copies them to `backend/app/features/campus_map/map-data/` and imports them. A fresh database imports those files when the backend starts. The importer can also write the database back to the files:
+
+```bash
+docker compose exec backend python -m app.features.campus_map.importer --export
+docker compose exec backend python -m app.features.campus_map.importer --generated-only  # after a scraper re-run, keeps admin edits
+```
+
+ETH bookings and dataset results are cached in the `map_cache` volume (`backend/.cache/campus-map` outside Docker). The dataset fetchers live in `backend/app/features/campus_map/datasets/` (see its README). The backend Docker build downloads public ETH PolyMaps geometry and generates floor plans and workspace outlines in a separate build stage. Only the generated files are included in the image, at `/app/floors`; no local floor-plan folder is required. Docker caches the download layer between builds; use `docker compose build --no-cache backend` to refresh the source geometry. `eth_room_dashboard.py` in the repo root is a standalone dashboard over the same ETH code.
+
+For the standalone developer preview or a backend running outside Docker, run `make map-floors` to generate `occupancy-map-preview/public/floors` locally. This preserves workspace data and admin edits. With Python but without Make, run:
+
+```sh
+python scraper/scrape_polymaps.py scraper/polymaps_data
+python scraper/extract_floors.py --floors-only
+python scraper/build_library_outlines.py
+```
+
 ## Checks
 
 ```sh
@@ -191,6 +222,8 @@ For local Python test execution, start PostgreSQL and run `uv run --locked pytes
 The production frontend is written to `frontend/dist/`. A deployment must serve it with an `/api` reverse proxy or set `VITE_API_BASE_URL` before building; the Vite proxy is only used during development.
 
 ## Deployment authentication
+
+For GitHub Actions deployment to the organizers' VM using Caddy, see [the deployment guide](docs/deployment.md). It covers SSH secrets, branch CI checks, contributor-only PR previews and URL comments, the first deployment, local verification, persistent storage, and rollback.
 
 `AUTH_MODE` is the only auth switch: `demo` locally, `proxy` on the VM. For Compose, persist `AUTH_MODE=proxy` in the repository-root `.env` (not `backend/.env`, which the Compose service environment overrides), then recreate the backend:
 

@@ -1,0 +1,13 @@
+{
+  "id": "amenities",
+  "title": "Everyday amenities",
+  "description": "Water fountains, toilets, supermarkets, ATMs, pharmacies, post offices, copy shops, microwaves, defibrillators and more around the campuses (OpenStreetMap).",
+  "glyph": "📍",
+  "color": "#5b6b7f",
+  "ttlSeconds": 86400,
+  "defaultOn": false,
+  "time": {
+    "support": "live",
+    "note": "Today's OpenStreetMap data; the places hardly change, but there is no history."
+  }
+}

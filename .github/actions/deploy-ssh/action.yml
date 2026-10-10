@@ -1,0 +1,56 @@
+name: Configure deployment SSH
+description: Install the deployment key and verified host key for this job
+inputs:
+  key:
+    required: true
+    description: SSH private key
+  known-hosts:
+    required: true
+    description: Verified known-hosts entries
+  host:
+    default: 02-direct.viscon-hackathon.ch
+    description: VM hostname
+  user:
+    default: viscon
+    description: SSH username
+  port:
+    default: "22"
+    description: SSH port
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        DEPLOY_SSH_KEY: ${{ inputs.key }}
+        DEPLOY_KNOWN_HOSTS: ${{ inputs.known-hosts }}
+        DEPLOY_HOST: ${{ inputs.host }}
+        DEPLOY_USER: ${{ inputs.user }}
+        DEPLOY_PORT: ${{ inputs.port }}
+      run: |
+        set -euo pipefail
+        [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+        [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+        [[ "$DEPLOY_PORT" =~ ^[0-9]+$ ]]
+        if [[ -z "$DEPLOY_SSH_KEY" || -z "$DEPLOY_KNOWN_HOSTS" ]]; then
+          echo 'Set DEPLOY_SSH_KEY and DEPLOY_KNOWN_HOSTS in this deployment environment.' >&2
+          exit 1
+        fi
+        install -d -m 700 "$RUNNER_TEMP/deploy-ssh"
+        printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy-ssh/key"
+        printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/deploy-ssh/known_hosts"
+        chmod 600 "$RUNNER_TEMP/deploy-ssh/"*
+        cat > "$RUNNER_TEMP/deploy-ssh/config" <<EOF
+        Host deployment
+          HostName $DEPLOY_HOST
+          User $DEPLOY_USER
+          Port $DEPLOY_PORT
+          IdentityFile $RUNNER_TEMP/deploy-ssh/key
+          UserKnownHostsFile $RUNNER_TEMP/deploy-ssh/known_hosts
+          StrictHostKeyChecking yes
+          IdentitiesOnly yes
+          BatchMode yes
+          ConnectTimeout 15
+          ServerAliveInterval 15
+          ServerAliveCountMax 4
+        EOF
+        ssh -F "$RUNNER_TEMP/deploy-ssh/config" deployment 'docker compose version'

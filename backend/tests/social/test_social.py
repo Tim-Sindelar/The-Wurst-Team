@@ -6,9 +6,11 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.features.campus_map.models import MapDocument
 from app.features.reservations.models import Reservation
 from app.features.reservations.service import BookingError, ReservationService
 from app.features.social.models import Friendship, Party, PartyMember, SocialUser
+from app.models.profile import UserProfile
 from tests.conftest import migrate
 
 A, B, C, D = [UUID(int=index) for index in range(1, 5)]
@@ -530,3 +532,30 @@ def test_social_defaults_off_and_can_be_enabled_by_environment(monkeypatch):
     assert Settings(_env_file=None).social_enabled is False
     monkeypatch.setenv("SOCIAL_ENABLED", "true")
     assert Settings(_env_file=None).social_enabled is True
+
+
+@pytest.mark.parametrize("revision", ["8fd4c12b6a90", "a1f3c7d92e54"])
+def test_merge_migration_upgrades_either_feature_branch_without_losing_data(db, revision):
+    migrate(db, "92a543e210ab", downgrade=True)
+    migrate(db, revision)
+    user_id = UUID(int=100)
+    with Session(db) as session:
+        session.add(UserProfile(id=user_id, name="Existing profile"))
+        if revision == "8fd4c12b6a90":
+            session.add(SocialUser(user_id=user_id, fallback_name="Existing friend"))
+        else:
+            session.add(MapDocument(name="existing-map", data={"keep": True}))
+        session.commit()
+    migrate(db)
+    with Session(db) as session:
+        assert session.get(UserProfile, user_id).name == "Existing profile"
+        assert session.scalar(select(func.count()).select_from(SocialUser)) == (
+            1 if revision == "8fd4c12b6a90" else 0
+        )
+        assert session.scalar(select(func.count()).select_from(MapDocument)) == (
+            1 if revision == "a1f3c7d92e54" else 0
+        )
+        if revision == "8fd4c12b6a90":
+            assert session.get(SocialUser, user_id).fallback_name == "Existing friend"
+        else:
+            assert session.get(MapDocument, "existing-map").data == {"keep": True}

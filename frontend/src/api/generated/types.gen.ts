@@ -442,6 +442,39 @@ export type BodyUpdateMe = {
 };
 
 /**
+ * Booking
+ *
+ * One booking of the day, in minutes after midnight (Zurich time).
+ */
+export type Booking = {
+    /**
+     * E
+     */
+    e: number;
+    /**
+     * Kind
+     */
+    kind: 'lecture' | 'exercise' | 'lecture_exercise' | 'course_other' | 'event' | 'reserved' | 'cancelled' | 'closed';
+    /**
+     * Number
+     */
+    number: string | null;
+    /**
+     * Organiser
+     */
+    organiser: string | null;
+    /**
+     * S
+     */
+    s: number;
+    /**
+     * Title
+     */
+    title: string | null;
+    [key: string]: unknown;
+};
+
+/**
  * BookingErrorResponse
  */
 export type BookingErrorResponse = {
@@ -453,6 +486,21 @@ export type BookingErrorResponse = {
      * Detail
      */
     detail: string;
+};
+
+/**
+ * BookingWindow
+ */
+export type BookingWindow = {
+    /**
+     * Max
+     */
+    max: string | null;
+    /**
+     * Min
+     */
+    min: string | null;
+    [key: string]: unknown;
 };
 
 /**
@@ -582,6 +630,170 @@ export type CurrentBreak = {
 };
 
 /**
+ * DatasetDocument
+ *
+ * What datasets/<id>/fetch.py produces.
+ */
+export type DatasetDocument = {
+    /**
+     * At
+     */
+    at?: string | null;
+    /**
+     * Dataset
+     */
+    dataset: string;
+    /**
+     * Errors
+     */
+    errors: Array<string>;
+    /**
+     * Fetchedat
+     */
+    fetchedAt: string;
+    /**
+     * Items
+     */
+    items: Array<DatasetItem>;
+    /**
+     * Sources
+     */
+    sources: Array<string>;
+    [key: string]: unknown;
+};
+
+/**
+ * DatasetItem
+ */
+export type DatasetItem = {
+    /**
+     * Approximate
+     */
+    approximate: boolean;
+    /**
+     * Campus
+     */
+    campus: string | null;
+    /**
+     * Category
+     */
+    category: string;
+    /**
+     * Details
+     */
+    details: {
+        [key: string]: unknown;
+    };
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Subtitle
+     */
+    subtitle: string | null;
+    /**
+     * Url
+     */
+    url: string | null;
+    [key: string]: unknown;
+};
+
+/**
+ * DatasetMeta
+ *
+ * datasets/<id>/dataset.json
+ */
+export type DatasetMeta = {
+    /**
+     * Color
+     */
+    color: string;
+    /**
+     * Defaulton
+     */
+    defaultOn: boolean;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Glyph
+     */
+    glyph: string;
+    /**
+     * Id
+     */
+    id: string;
+    time?: DatasetTime | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Ttlseconds
+     */
+    ttlSeconds: number;
+    [key: string]: unknown;
+};
+
+/**
+ * DatasetResponse
+ */
+export type DatasetResponse = {
+    /**
+     * Ageseconds
+     */
+    ageSeconds: number;
+    /**
+     * At
+     */
+    at: string | null;
+    document: DatasetDocument;
+    /**
+     * Lasterror
+     */
+    lastError: string | null;
+    meta: DatasetMeta;
+    /**
+     * Refreshing
+     */
+    refreshing: boolean;
+    [key: string]: unknown;
+};
+
+/**
+ * DatasetTime
+ */
+export type DatasetTime = {
+    /**
+     * Note
+     */
+    note: string;
+    /**
+     * Resolution
+     */
+    resolution?: 'day' | 'hour' | 'minute' | null;
+    /**
+     * Support
+     */
+    support: 'full' | 'partial' | 'live';
+    [key: string]: unknown;
+};
+
+/**
  * ErrorResponse
  */
 export type ErrorResponse = {
@@ -589,6 +801,148 @@ export type ErrorResponse = {
      * Detail
      */
     detail: string;
+};
+
+/**
+ * EthRoom
+ */
+export type EthRoom = {
+    /**
+     * Bookings
+     */
+    bookings: Array<Booking>;
+    /**
+     * Building
+     */
+    building: string;
+    /**
+     * Campus
+     */
+    campus: string | null;
+    /**
+     * Equipment
+     */
+    equipment: Array<string>;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Floor
+     */
+    floor: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Room
+     */
+    room: string;
+    /**
+     * Seats
+     */
+    seats: number | null;
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Workplaces
+     */
+    workplaces: number | null;
+    [key: string]: unknown;
+};
+
+/**
+ * EthRoomsResponse
+ *
+ * running: fetching from ETH; error: the last fetch failed and there is no
+ * current snapshot.
+ */
+export type EthRoomsResponse = {
+    /**
+     * Ageseconds
+     */
+    ageSeconds: number | null;
+    /**
+     * Done
+     */
+    done: number;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Floorplans
+     */
+    floorPlans: boolean;
+    /**
+     * Matches
+     */
+    matches: {
+        [key: string]: Array<RoomPlace>;
+    };
+    /**
+     * Nextfetchinseconds
+     */
+    nextFetchInSeconds: number | null;
+    snapshot: EthSnapshot | null;
+    /**
+     * Stale
+     */
+    stale: boolean;
+    /**
+     * State
+     */
+    state: 'ok' | 'running' | 'error';
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Unmatched
+     */
+    unmatched: Array<string>;
+    window: BookingWindow | null;
+    [key: string]: unknown;
+};
+
+/**
+ * EthSnapshot
+ */
+export type EthSnapshot = {
+    /**
+     * Buildings
+     */
+    buildings: {
+        [key: string]: string | null;
+    };
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Errors
+     */
+    errors: number;
+    /**
+     * Fetchedat
+     */
+    fetchedAt: string;
+    /**
+     * Rooms
+     */
+    rooms: Array<EthRoom>;
+    /**
+     * Schemaversion
+     */
+    schemaVersion: 1;
+    /**
+     * Ttlseconds
+     */
+    ttlSeconds: number;
+    [key: string]: unknown;
 };
 
 /**
@@ -673,6 +1027,129 @@ export type HealthResponse = {
 };
 
 /**
+ * LatLng
+ */
+export type LatLng = {
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lng
+     */
+    lng: number;
+    [key: string]: unknown;
+};
+
+/**
+ * Library
+ *
+ * A place with seats: a library, study area, group room, etc. ("workspace").
+ */
+export type Library = {
+    /**
+     * Address
+     */
+    address: string | null;
+    /**
+     * Availabilitynote
+     */
+    availabilityNote?: string | null;
+    /**
+     * Campus
+     */
+    campus: 'Zentrum' | 'Hönggerberg';
+    /**
+     * Cardaccess24H
+     */
+    cardAccess24h?: boolean;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Facilityid
+     */
+    facilityId: string | null;
+    /**
+     * Floor
+     */
+    floor: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'library' | 'study' | 'group' | 'computer' | 'lounge' | 'other';
+    /**
+     * Levelid
+     */
+    levelId: string | null;
+    /**
+     * Levels
+     */
+    levels: Array<string>;
+    /**
+     * Name
+     */
+    name: string;
+    openingHours: OpeningHours | null;
+    /**
+     * Operator
+     */
+    operator: string;
+    outline: MultiPolygon | null;
+    position: LatLng;
+    /**
+     * Positionapproximate
+     */
+    positionApproximate: boolean;
+    /**
+     * Rooms
+     */
+    rooms: Array<string>;
+    /**
+     * Sourceurl
+     */
+    sourceUrl: string | null;
+    [key: string]: unknown;
+};
+
+/**
+ * MapStyle
+ *
+ * The per-theme minimal map styles (map-data/map-style.json).
+ */
+export type MapStyle = {
+    dark: ThemeStyle;
+    light: ThemeStyle;
+    [key: string]: unknown;
+};
+
+/**
+ * MultiPolygon
+ *
+ * GeoJSON MultiPolygon, coordinates as [lng, lat].
+ */
+export type MultiPolygon = {
+    /**
+     * Coordinates
+     */
+    coordinates: Array<Array<Array<Array<number>>>>;
+    /**
+     * Type
+     */
+    type: 'MultiPolygon';
+    [key: string]: unknown;
+};
+
+/**
  * MyReservationResponse
  */
 export type MyReservationResponse = {
@@ -681,6 +1158,118 @@ export type MyReservationResponse = {
      * Server Time
      */
     server_time: string;
+};
+
+/**
+ * NavZone
+ *
+ * Clicking inside a zone flies the map to it, while the zoom is in its active range.
+ */
+export type NavZone = {
+    /**
+     * Activebelowzoom
+     */
+    activeBelowZoom: number;
+    /**
+     * Activefromzoom
+     */
+    activeFromZoom: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'area' | 'building';
+    /**
+     * Name
+     */
+    name: string;
+    outline: MultiPolygon | null;
+    /**
+     * Zoom
+     */
+    zoom: number;
+    [key: string]: unknown;
+};
+
+/**
+ * NavigationConfig
+ */
+export type NavigationConfig = {
+    /**
+     * Zones
+     */
+    zones: Array<NavZone>;
+    [key: string]: unknown;
+};
+
+/**
+ * OccupancyData
+ *
+ * All workspaces, their tables and seats: the generated data with the admin
+ * overrides applied.
+ */
+export type OccupancyData = {
+    /**
+     * Libraries
+     */
+    libraries: Array<Library>;
+    /**
+     * Schemaversion
+     */
+    schemaVersion: 1;
+    /**
+     * Seats
+     */
+    seats: Array<Seat>;
+    /**
+     * Tables
+     */
+    tables: Array<Table>;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    [key: string]: unknown;
+};
+
+/**
+ * OpeningHours
+ *
+ * Opening ranges per weekday; an empty list means closed that day.
+ */
+export type OpeningHours = {
+    /**
+     * Fri
+     */
+    fri: Array<TimeRange>;
+    /**
+     * Mon
+     */
+    mon: Array<TimeRange>;
+    /**
+     * Sat
+     */
+    sat: Array<TimeRange>;
+    /**
+     * Sun
+     */
+    sun: Array<TimeRange>;
+    /**
+     * Thu
+     */
+    thu: Array<TimeRange>;
+    /**
+     * Tue
+     */
+    tue: Array<TimeRange>;
+    /**
+     * Wed
+     */
+    wed: Array<TimeRange>;
+    [key: string]: unknown;
 };
 
 /**
@@ -1041,6 +1630,59 @@ export type ReserveSeatRequest = {
 };
 
 /**
+ * RoomPlace
+ *
+ * Where an ETH room is on the floor plans.
+ */
+export type RoomPlace = {
+    /**
+     * Floor
+     */
+    floor: number;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Levelid
+     */
+    levelId: string;
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Unitid
+     */
+    unitId: string;
+    [key: string]: unknown;
+};
+
+/**
+ * Seat
+ */
+export type Seat = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    position: LatLng;
+    /**
+     * Status
+     */
+    status: 'free' | 'occupied' | 'unknown';
+    /**
+     * Tableid
+     */
+    tableId: string;
+    [key: string]: unknown;
+};
+
+/**
  * SeatAssignment
  */
 export type SeatAssignment = {
@@ -1256,6 +1898,56 @@ export type SpacesResponse = {
 };
 
 /**
+ * Table
+ */
+export type Table = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Libraryid
+     */
+    libraryId: string;
+    position: LatLng;
+    [key: string]: unknown;
+};
+
+/**
+ * ThemeStyle
+ */
+export type ThemeStyle = {
+    /**
+     * Parts
+     */
+    parts: {
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+};
+
+/**
+ * TimeRange
+ *
+ * Times as "HH:MM" (24h), from < to, within one day.
+ */
+export type TimeRange = {
+    /**
+     * From
+     */
+    from: string;
+    /**
+     * To
+     */
+    to: string;
+    [key: string]: unknown;
+};
+
+/**
  * UpdateSeatRequest
  */
 export type UpdateSeatRequest = {
@@ -1317,6 +2009,48 @@ export type UserResponse = {
      * Photo Url
      */
     photo_url?: string | null;
+};
+
+/**
+ * UzhLocation
+ */
+export type UzhLocation = {
+    /**
+     * Fraction
+     */
+    fraction: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Name
+     */
+    name: string;
+    [key: string]: unknown;
+};
+
+/**
+ * UzhOccupancy
+ */
+export type UzhOccupancy = {
+    /**
+     * Fetchedat
+     */
+    fetchedAt: string;
+    /**
+     * Locations
+     */
+    locations: Array<UzhLocation>;
+    /**
+     * Source
+     */
+    source: string;
+    [key: string]: unknown;
 };
 
 /**
@@ -2021,6 +2755,341 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type ListMapDatasetsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/datasets';
+};
+
+export type ListMapDatasetsResponses = {
+    /**
+     * Response List Map Datasets
+     *
+     * Successful Response
+     */
+    200: Array<DatasetMeta>;
+};
+
+export type ListMapDatasetsResponse = ListMapDatasetsResponses[keyof ListMapDatasetsResponses];
+
+export type GetMapDatasetData = {
+    body?: never;
+    path: {
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: {
+        /**
+         * At
+         *
+         * Zurich time, YYYY-MM-DDTHH:MM (default: now)
+         */
+        at?: string | null;
+        /**
+         * Refresh
+         *
+         * Fetch now instead of using the cache
+         */
+        refresh?: boolean;
+    };
+    url: '/api/v1/map/datasets/{dataset_id}';
+};
+
+export type GetMapDatasetErrors = {
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Bad Gateway
+     */
+    502: ErrorResponse;
+};
+
+export type GetMapDatasetError = GetMapDatasetErrors[keyof GetMapDatasetErrors];
+
+export type GetMapDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DatasetResponse;
+};
+
+export type GetMapDatasetResponse = GetMapDatasetResponses[keyof GetMapDatasetResponses];
+
+export type GetEthRoomData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Id
+         *
+         * e.g. "HG E 7"
+         */
+        id: string;
+    };
+    url: '/api/v1/map/eth/room';
+};
+
+export type GetEthRoomErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Bad Gateway
+     */
+    502: ErrorResponse;
+};
+
+export type GetEthRoomError = GetEthRoomErrors[keyof GetEthRoomErrors];
+
+export type GetEthRoomResponses = {
+    /**
+     * Response Get Eth Room
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type GetEthRoomResponse = GetEthRoomResponses[keyof GetEthRoomResponses];
+
+export type GetEthRoomsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Date
+         *
+         * YYYY-MM-DD
+         */
+        date?: string | null;
+    };
+    url: '/api/v1/map/eth/rooms';
+};
+
+export type GetEthRoomsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Bad Gateway
+     */
+    502: ErrorResponse;
+};
+
+export type GetEthRoomsError = GetEthRoomsErrors[keyof GetEthRoomsErrors];
+
+export type GetEthRoomsResponses = {
+    /**
+     * Successful Response
+     */
+    200: EthRoomsResponse;
+};
+
+export type GetEthRoomsResponse = GetEthRoomsResponses[keyof GetEthRoomsResponses];
+
+export type GetUzhOccupancyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/eth/uzh';
+};
+
+export type GetUzhOccupancyErrors = {
+    /**
+     * Bad Gateway
+     */
+    502: ErrorResponse;
+};
+
+export type GetUzhOccupancyError = GetUzhOccupancyErrors[keyof GetUzhOccupancyErrors];
+
+export type GetUzhOccupancyResponses = {
+    /**
+     * Successful Response
+     */
+    200: UzhOccupancy;
+};
+
+export type GetUzhOccupancyResponse = GetUzhOccupancyResponses[keyof GetUzhOccupancyResponses];
+
+export type GetMapNavigationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/navigation';
+};
+
+export type GetMapNavigationErrors = {
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+};
+
+export type GetMapNavigationError = GetMapNavigationErrors[keyof GetMapNavigationErrors];
+
+export type GetMapNavigationResponses = {
+    /**
+     * Successful Response
+     */
+    200: NavigationConfig;
+};
+
+export type GetMapNavigationResponse = GetMapNavigationResponses[keyof GetMapNavigationResponses];
+
+export type SaveMapNavigationData = {
+    body: NavigationConfig;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/navigation';
+};
+
+export type SaveMapNavigationErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveMapNavigationError = SaveMapNavigationErrors[keyof SaveMapNavigationErrors];
+
+export type SaveMapNavigationResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SaveMapNavigationResponse = SaveMapNavigationResponses[keyof SaveMapNavigationResponses];
+
+export type GetMapStyleData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/style';
+};
+
+export type GetMapStyleErrors = {
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+};
+
+export type GetMapStyleError = GetMapStyleErrors[keyof GetMapStyleErrors];
+
+export type GetMapStyleResponses = {
+    /**
+     * Successful Response
+     */
+    200: MapStyle;
+};
+
+export type GetMapStyleResponse = GetMapStyleResponses[keyof GetMapStyleResponses];
+
+export type SaveMapStyleData = {
+    body: MapStyle;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/style';
+};
+
+export type SaveMapStyleErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveMapStyleError = SaveMapStyleErrors[keyof SaveMapStyleErrors];
+
+export type SaveMapStyleResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SaveMapStyleResponse = SaveMapStyleResponses[keyof SaveMapStyleResponses];
+
+export type GetMapWorkspacesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/workspaces';
+};
+
+export type GetMapWorkspacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: OccupancyData;
+};
+
+export type GetMapWorkspacesResponse = GetMapWorkspacesResponses[keyof GetMapWorkspacesResponses];
+
+export type SaveMapWorkspacesData = {
+    body: OccupancyData;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/workspaces';
+};
+
+export type SaveMapWorkspacesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveMapWorkspacesError = SaveMapWorkspacesErrors[keyof SaveMapWorkspacesErrors];
+
+export type SaveMapWorkspacesResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SaveMapWorkspacesResponse = SaveMapWorkspacesResponses[keyof SaveMapWorkspacesResponses];
 
 export type GetMeData = {
     body?: never;

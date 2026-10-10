@@ -45,6 +45,18 @@ const paths = {
       <path d="M9 4v14M15 6v14" />
     </>
   ),
+  door: (
+    <>
+      <path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17" />
+      <path d="M3 21h18M15 12v.01" />
+    </>
+  ),
+  layers: (
+    <>
+      <path d="M12 3l9 5-9 5-9-5z" />
+      <path d="M3 12.5l9 5 9-5M3 17l9 5 9-5" />
+    </>
+  ),
   minus: <path d="M5 12h14" />,
   moon: <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" />,
   pin: (

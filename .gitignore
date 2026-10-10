@@ -11,3 +11,6 @@
 !.env.example
 !**/.env.example
 .DS_Store
+scraper/polymaps_data/
+occupancy-map-preview/public/floors/
+backend/.cache/

@@ -11,6 +11,9 @@ from app.config import get_settings
 from app.models import (
     Break,
     Friendship,
+    MapDocument,
+    MapEntity,
+    MapOverride,
     Party,
     PartyMember,
     Reservation,
@@ -72,6 +75,9 @@ def db(test_engine: Engine) -> Iterator[Engine]:
             SpaceOpeningInterval,
             Seat,
             StudySpace,
+            MapEntity,
+            MapOverride,
+            MapDocument,
             UserProfile,
         ):
             session.execute(delete(model))

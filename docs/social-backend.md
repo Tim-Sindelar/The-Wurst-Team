@@ -111,8 +111,9 @@ Do not implement group booking by making several HTTP calls to the individual re
 The social route commits once after both reservation rows and party references are ready.
 
 Shared merge points: `config.py`, `main.py`, model registration, test cleanup, the reservation
-locking helper, Alembic's revision chain, and generated API files. Rebase the social migration
-onto the team's current migration head before merging if another migration lands first. Regenerate
+locking helper, Alembic's revision graph, and generated API files. The social and campus-map
+heads are joined by `b7e2f91a4c60`, so databases on either feature branch can upgrade without
+rewriting applied revisions. Join any future competing heads with a merge revision. Regenerate
 the client from the merged backend using `make generate`.
 
 ## Verification

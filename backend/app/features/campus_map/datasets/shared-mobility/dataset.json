@@ -1,0 +1,13 @@
+{
+  "id": "shared-mobility",
+  "title": "Bikes & scooters",
+  "description": "Shared bikes, e-bikes and e-scooters available near the campuses right now (sharedmobility.ch).",
+  "glyph": "🚲",
+  "color": "#8e44ad",
+  "ttlSeconds": 120,
+  "defaultOn": false,
+  "time": {
+    "support": "live",
+    "note": "sharedmobility.ch only has the vehicles available right now: no history, no forecast."
+  }
+}
