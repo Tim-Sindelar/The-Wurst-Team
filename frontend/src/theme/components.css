@@ -60,13 +60,10 @@
         @apply bg-transparent text-text opacity-40;
       }
     }
-    /* Floating action on a map: inverted (light on dark, dark on light), bigger, with a shadow. */
+    /* Floating action on a map: no box, the 3D die is the button (64px target). */
     &[data-variant='fab'] {
-      @apply size-14 min-h-14 min-w-14 bg-text text-bg shadow-card;
+      @apply size-16 min-h-16 min-w-16 rounded-full;
 
-      &:hover:not(:disabled) {
-        @apply shadow-[inset_0_0_0_100px_var(--color-hover)];
-      }
       &:disabled {
         @apply opacity-40;
       }

@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Button, Text } from '@mantine/core';
+import { Alert, Button, Text } from '@mantine/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -16,6 +16,7 @@ import {
   ScreenHeader,
   ScreenMain,
 } from '../components/Screen';
+import { DiceButton } from '../components/seat-map/DiceButton';
 import { SeatMap } from '../components/seat-map/SeatMap';
 import { SeatSheet } from '../components/seat-map/SeatSheet';
 import { apiProblem } from '../domain/booking';
@@ -139,8 +140,12 @@ export function SeatMapScreen() {
     : null;
 
   const chooseAnyFree = () => {
-    const free = seats.find((item) => item.state === 'free');
-    if (free) setPicked(free.id);
+    /* A random free seat, never the one already shown (unless it's the only one). */
+    const free = seats.filter((item) => item.state === 'free');
+    const others = free.filter((item) => item.id !== picked);
+    const pool = others.length > 0 ? others : free;
+    if (pool.length > 0)
+      setPicked(pool[Math.floor(Math.random() * pool.length)].id);
   };
 
   const confirmReserve = () => {
@@ -241,16 +246,10 @@ export function SeatMapScreen() {
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-2 flex flex-col items-end gap-3">
           {ownSeatId === null && (
-            <ActionIcon
-              variant="fab"
-              className="pointer-events-auto mr-4 last:mb-4"
-              aria-label="Choose any free seat"
-              title="Choose any free seat"
+            <DiceButton
               disabled={!seats.some((item) => item.state === 'free')}
-              onClick={chooseAnyFree}
-            >
-              <Icon name="dice" className="size-8" />
-            </ActionIcon>
+              onRoll={chooseAnyFree}
+            />
           )}
           {seat && (
             <SeatSheet

@@ -25,7 +25,7 @@ import { Icon } from '../components/Icon';
 
    Variants:
    - Button: primary (default), secondary, danger, quiet
-   - ActionIcon: icon (default, 44px), map (32px map control), fab (56px), camera
+   - ActionIcon: icon (default, 44px), map (32px map control), fab (64px, boxless), camera
    - Alert: info (default), warning, danger */
 
 const fontFamily =
