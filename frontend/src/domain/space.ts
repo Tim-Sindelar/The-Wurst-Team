@@ -10,6 +10,8 @@ export type StudySpace = {
   availability: Availability;
   availabilityText: string;
   favourite: boolean;
+  /** The room's photo, once the API has one. Without it the card stays plain. */
+  photoUrl?: string;
 };
 
 /** At or below this share of free seats a room counts as almost full. */
