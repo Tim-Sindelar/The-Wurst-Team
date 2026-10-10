@@ -19,6 +19,27 @@ export interface RadioMapIndex {
   source: string;
 }
 
+/**
+ * The radio map's per-beacon statistics mix scans where the beacon was heard with scans where it
+ * was not, the latter recorded at a floor value: weak means come with huge variances, capped at
+ * 550 dB² = m²/4 (the variance of a 50/50 mix of two values m apart). Decoding each (mean, var)
+ * as such a mixture, with MISSING_RSSI as floor and HEARD_STD as the spread when heard, gives a
+ * detection probability and a when-heard mean (typically -92..-74 dBm, heard 50..99 % of the time).
+ * The floor value isn't documented; -120 dBm gives the most plausible decoding.
+ */
+export const MISSING_RSSI = -120;
+export const HEARD_STD = 4;
+
+export function decodeStatistic(mean: number, std: number): { detect: number; heardMean: number } {
+  const a = mean - MISSING_RSSI;
+  if (a <= 0) return { detect: 0.01, heardMean: mean };
+  const A = std * std + a * a;
+  const disc = Math.max(0, A * A - 4 * a * a * HEARD_STD * HEARD_STD);
+  const m = (A + Math.sqrt(disc)) / (2 * a);
+  const detect = Math.min(0.99, Math.max(0.01, a / m));
+  return { detect, heardMean: MISSING_RSSI + Math.max(a, m) };
+}
+
 export interface Tile {
   key: string;
   count: number;
@@ -28,8 +49,12 @@ export interface Tile {
   /** Fingerprint of point i is entries offsets[i] .. offsets[i + 1] - 1. */
   offsets: Uint32Array;
   beacon: Uint16Array;
+  /** Raw radio map statistics. */
   mean: Float32Array;
   std: Float32Array;
+  /** Decoded: probability of hearing the beacon in a scan, and its mean RSSI when heard. */
+  detect: Float32Array;
+  heardMean: Float32Array;
   /** Beacon index -> points of this tile that heard it. */
   byBeacon: Map<number, number[]>;
 }
@@ -54,6 +79,8 @@ export function parseTile(key: string, buf: ArrayBuffer): Tile {
   const beacon = new Uint16Array(entries);
   const mean = new Float32Array(entries);
   const std = new Float32Array(entries);
+  const detect = new Float32Array(entries);
+  const heardMean = new Float32Array(entries);
   const byBeacon = new Map<number, number[]>();
   pos = 4;
   let e = 0;
@@ -69,13 +96,16 @@ export function parseTile(key: string, buf: ArrayBuffer): Tile {
       beacon[e] = b;
       mean[e] = view.getInt16(pos + 2, true) / 10;
       std[e] = view.getUint16(pos + 4, true) / 10;
+      const d = decodeStatistic(mean[e], std[e]);
+      detect[e] = d.detect;
+      heardMean[e] = d.heardMean;
       let list = byBeacon.get(b);
       if (!list) byBeacon.set(b, (list = []));
       list.push(i);
     }
   }
   offsets[count] = e;
-  return { key, count, lng, lat, level, offsets, beacon, mean, std, byBeacon };
+  return { key, count, lng, lat, level, offsets, beacon, mean, std, detect, heardMean, byBeacon };
 }
 
 export class RadioMap {

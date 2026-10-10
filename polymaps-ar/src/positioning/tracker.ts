@@ -7,7 +7,7 @@ import { fromLocal, toLocal, type LngLat } from '../geo';
 import type { Estimate } from './fingerprint';
 
 export interface TrackerOptions {
-  /** Process noise: typical walking speed in m/s. */
+  /** Process noise in m/s: well above walking speed, so the track keeps up with a walker (tuned in simulation). */
   speed: number;
   /** Innovations beyond this many sigmas (and gateMin metres) are outliers. */
   gateSigma: number;
@@ -23,7 +23,7 @@ export interface TrackerOptions {
   correlatedError: number;
 }
 
-export const DEFAULT_TRACKER: TrackerOptions = { speed: 1.4, gateSigma: 3, gateMin: 12, maxOutliers: 3, levelHold: 2, correlatedError: 2.5 };
+export const DEFAULT_TRACKER: TrackerOptions = { speed: 4, gateSigma: 3, gateMin: 12, maxOutliers: 3, levelHold: 2, correlatedError: 2.5 };
 
 export interface TrackState extends LngLat {
   levelIndex: number;

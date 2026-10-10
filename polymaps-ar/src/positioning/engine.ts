@@ -23,7 +23,7 @@ export interface EngineOptions {
 }
 
 export const DEFAULT_ENGINE: EngineOptions = {
-  windowMs: 2500,
+  windowMs: 2000,
   intervalMs: 1000,
   offset: null,
   offsetAlpha: 0.2,

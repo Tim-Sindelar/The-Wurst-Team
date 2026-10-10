@@ -8,24 +8,14 @@
  *       Tuning: --window <ms> (scan window), --speed <m/s> (tracker process noise).
  */
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { seededRandom, toLocal } from '../src/geo';
 import { evaluate, formatStats, type Sample } from '../src/evaluation/metrics';
 import { parseSession, sessionSamples } from '../src/evaluation/session';
 import { BlePositioningEngine, DEFAULT_ENGINE } from '../src/positioning/engine';
 import { DEFAULT_TRACKER } from '../src/positioning/tracker';
-import { RadioMap, type RadioMapIndex, type Tile } from '../src/positioning/radioMap';
+import type { Tile } from '../src/positioning/radioMap';
+import { loadRadioMapFromDisk } from './diskRadioMap';
 import { SimulatedBeaconSource } from '../src/positioning/sources/simulated';
-
-const IPS_DIR = fileURLToPath(new URL('../public/ips/', import.meta.url));
-
-export function loadRadioMapFromDisk(dir = IPS_DIR): RadioMap {
-  const index = JSON.parse(readFileSync(`${dir}index.json`, 'utf-8')) as RadioMapIndex;
-  return new RadioMap(index, async (key) => {
-    const b = readFileSync(`${dir}tiles/${key}.bin`);
-    return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
-  });
-}
 
 function arg(name: string, fallback: number): number {
   const i = process.argv.indexOf(name);

@@ -97,6 +97,7 @@ export function EvaluationPanel({ session, setSession, truth, recording, setReco
         ))}
       </div>
 
+      <div className="table-wrap">
       <table className="stats">
         <caption>
           {session.checkpoints.length} checkpoints, sampled once per second after a 3 s warm-up. Errors in metres.
@@ -125,6 +126,7 @@ export function EvaluationPanel({ session, setSession, truth, recording, setReco
           ))}
         </tbody>
       </table>
+      </div>
       <ErrorCdf stats={stats} />
 
       <label className="block">

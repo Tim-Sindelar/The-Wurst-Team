@@ -10,11 +10,14 @@ import { Group, PerspectiveCamera, Quaternion, Scene, Vector3, WebGLRenderer } f
 import { toLocal, type LngLat } from '../geo';
 import type { FloorPlans } from '../floors/floorPlans';
 import { buildLevelScene, disposeGroup } from './scene';
+import { XrAlignment } from './xrAlignment';
 import { orientationQuaternion, requestOrientationPermission, screenAngle, watchOrientation, type OrientationReading } from './orientation';
 
 export interface ArPose extends LngLat {
   levelId: string | null;
   accuracy: number;
+  /** Time of the fix; XR alignment uses each fix once. */
+  timestamp?: number;
 }
 
 interface Props {
@@ -27,6 +30,7 @@ interface Props {
 const EYE_HEIGHT = 1.5;
 /** Re-anchor (rebuild the scene around the user) beyond this distance, to keep float precision. */
 const REANCHOR_M = 300;
+const LABEL_RANGE_M = 25;
 
 export function ArView({ floors, pose, fallbackLabel }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -34,6 +38,7 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
   const poseRef = useRef(pose);
   poseRef.current = pose;
   const [cameraState, setCameraState] = useState<'off' | 'on' | 'error'>('off');
+  const [cameraKey, setCameraKey] = useState(0);
   const [sensors, setSensors] = useState<'unknown' | 'absolute' | 'relative' | 'none'>('unknown');
   const [headingOffset, setHeadingOffset] = useState(0);
   const headingRef = useRef(0);
@@ -44,6 +49,38 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
   const [status, setStatus] = useState('');
   const orientationRef = useRef<OrientationReading | null>(null);
   const lookRef = useRef({ yaw: 0, pitch: -10 });
+  const rendererRef = useRef<WebGLRenderer | null>(null);
+  const hudRef = useRef<HTMLDivElement>(null);
+  const [xrSupported, setXrSupported] = useState(false);
+  const [inXr, setInXr] = useState(false);
+
+  useEffect(() => {
+    const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
+    xr?.isSessionSupported('immersive-ar').then(setXrSupported, () => setXrSupported(false));
+  }, []);
+
+  const startXr = async () => {
+    const renderer = rendererRef.current;
+    const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
+    if (!renderer || !xr) return;
+    await requestOrientationPermission();
+    // ARCore needs the camera itself; the browser shows the passthrough image in XR.
+    const video = videoRef.current;
+    (video?.srcObject as MediaStream | null)?.getTracks().forEach((t) => t.stop());
+    setCameraState('off');
+    const session = await xr.requestSession('immersive-ar', {
+      requiredFeatures: ['local-floor'],
+      optionalFeatures: ['dom-overlay'],
+      domOverlay: hudRef.current ? { root: hudRef.current } : undefined,
+    });
+    renderer.xr.setReferenceSpaceType('local-floor');
+    await renderer.xr.setSession(session);
+    setInXr(true);
+    session.addEventListener('end', () => {
+      setInXr(false);
+      setCameraKey((k) => k + 1); // restart the camera feed
+    });
+  };
 
   // Camera feed.
   useEffect(() => {
@@ -66,7 +103,7 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
       cancelled = true;
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [cameraKey]);
 
   // Orientation sensors.
   useEffect(() => {
@@ -94,13 +131,21 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
     const camera = new PerspectiveCamera(fovRef.current, 1, 0.1, 200);
     let anchor: LngLat | null = null;
     let levelGroup: Group | null = null;
+    // The plan lives in `world`: identity normally (the camera moves), XR-aligned in WebXR (the
+    // tracked camera moves and the world is placed around it).
+    const world = new Group();
+    scene.add(world);
+    const xrAlign = new XrAlignment();
+    const worldQ = new Quaternion();
+    const xrPos = new Vector3();
+    const fixWorld = new Vector3();
+    const labelPos = new Vector3();
     let levelKey = '';
     let loading = '';
     const target = new Vector3(0, EYE_HEIGHT, 0);
     const q = new Quaternion();
     const yawFix = new Quaternion();
     const up = new Vector3(0, 1, 0);
-    let frame = 0;
 
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = host;
@@ -120,11 +165,11 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
         const plan = await floors.plan(levelId, origin);
         if (loading !== key) return;
         if (levelGroup) {
-          scene.remove(levelGroup);
+          world.remove(levelGroup);
           disposeGroup(levelGroup);
         }
         levelGroup = buildLevelScene(plan);
-        scene.add(levelGroup);
+        world.add(levelGroup);
         levelKey = key;
         const summary = floors.level(levelId);
         setStatus(summary ? `${summary.facilityId.replace('ETH.', '')} ${summary.label} · ${plan.rooms.length} rooms` : levelId);
@@ -137,28 +182,54 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
     };
 
     const tick = () => {
-      frame = requestAnimationFrame(tick);
       const p = poseRef.current;
+      const inXr = renderer.xr.isPresenting;
       if (p) {
         if (!anchor || Math.hypot(toLocal(p, anchor).x, toLocal(p, anchor).y) > REANCHOR_M) {
           anchor = { lng: p.lng, lat: p.lat };
           levelKey = '';
           camera.position.set(0, EYE_HEIGHT, 0);
+          xrAlign.reset();
         }
         if (p.levelId) void loadLevel(p.levelId, anchor);
         const local = toLocal(p, anchor);
         target.set(local.x, EYE_HEIGHT, -local.y);
         // Glide towards new fixes instead of jumping (fixes come ~1 Hz).
-        camera.position.lerp(target, 0.08);
+        if (!inXr) camera.position.lerp(target, 0.08);
       }
       const o = orientationRef.current;
-      if (o) {
+      if (inXr) {
+        const xrCam = renderer.xr.getCamera();
+        xrCam.getWorldPosition(xrPos);
+        let compass: Quaternion | null = null;
+        if (o) compass = orientationQuaternion(worldQ, o.alpha, o.beta, o.gamma, screenAngle());
+        xrAlign.updateHeading(xrCam.getWorldQuaternion(q), compass, (headingRef.current * Math.PI) / 180);
+        if (p) xrAlign.updatePosition(xrPos, fixWorld.set(target.x, 0, target.z), p.timestamp ?? 0);
+        world.rotation.set(0, xrAlign.yaw ?? 0, 0);
+        world.position.copy(xrAlign.t);
+        world.visible = xrAlign.ready;
+      } else if (o) {
+        world.position.set(0, 0, 0);
+        world.rotation.set(0, 0, 0);
+        world.visible = true;
         orientationQuaternion(q, o.alpha, o.beta, o.gamma, screenAngle());
         yawFix.setFromAxisAngle(up, (headingRef.current * Math.PI) / 180);
         camera.quaternion.copy(yawFix).multiply(q);
       } else {
+        world.position.set(0, 0, 0);
+        world.rotation.set(0, 0, 0);
+        world.visible = true;
         const { yaw, pitch } = lookRef.current;
         camera.rotation.set((pitch * Math.PI) / 180, ((yaw + headingRef.current) * Math.PI) / 180, 0, 'YXZ');
+      }
+      // Labels only for nearby rooms; far ones pile up on the horizon.
+      if (levelGroup) {
+        const eye = inXr ? xrPos : camera.position;
+        for (const child of levelGroup.children) {
+          if (!child.userData.label) continue;
+          child.getWorldPosition(labelPos);
+          child.visible = labelPos.distanceTo(eye) < LABEL_RANGE_M;
+        }
       }
       if (camera.fov !== fovRef.current) {
         camera.fov = fovRef.current;
@@ -166,9 +237,12 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
       }
       renderer.render(scene, camera);
     };
-    tick();
+    renderer.setAnimationLoop(tick);
+    rendererRef.current = renderer;
     return () => {
-      cancelAnimationFrame(frame);
+      renderer.setAnimationLoop(null);
+      void renderer.xr.getSession()?.end();
+      rendererRef.current = null;
       observer.disconnect();
       if (levelGroup) disposeGroup(levelGroup);
       renderer.dispose();
@@ -199,9 +273,9 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
   return (
     <div className="ar-view">
       <video ref={videoRef} className="ar-video" playsInline muted />
-      {cameraState !== 'on' && <div className="ar-fallback">{cameraState === 'error' ? 'No camera' : 'Starting camera…'}{fallbackLabel ? ` · ${fallbackLabel}` : ''}</div>}
+      {cameraState !== 'on' && !inXr && <div className="ar-fallback">{cameraState === 'error' ? 'No camera' : 'Starting camera…'}{fallbackLabel ? ` · ${fallbackLabel}` : ''}</div>}
       <div ref={hostRef} className="ar-canvas" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} />
-      <div className="ar-hud">
+      <div className="ar-hud" ref={hudRef}>
         <div>{pose ? `${status || 'Loading floor plan…'} · ±${pose.accuracy.toFixed(1)} m` : 'Waiting for a position…'}</div>
         <div className="ar-hud-row">
           {sensors === 'unknown' || sensors === 'none' ? (
@@ -221,13 +295,19 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
             {headingOffset.toFixed(0)}°
             <input type="range" min={-180} max={180} value={headingOffset} onChange={(e) => setHeadingOffset(Number(e.target.value))} />
           </label>
-          <label>
+          {xrSupported && !inXr && <button onClick={() => startXr().catch((e: Error) => setStatus(`WebXR: ${e.message}`))}>Start WebXR AR</button>}
+          {inXr && <button onClick={() => rendererRef.current?.xr.getSession()?.end()}>Exit WebXR</button>}
+          {!inXr && <label>
             FOV {fov}°
             <input type="range" min={35} max={90} value={fov} onChange={(e) => setFov(Number(e.target.value))} />
-          </label>
+          </label>}
         </div>
         <div className="ar-hint">
-          {sensors === 'none' ? 'Drag to look around.' : 'Drag sideways to line up walls with the camera image.'}
+          {inXr
+            ? 'WebXR: tracking by ARCore, plan anchored by the position fix and compass. Use the heading slider to line up walls.'
+            : sensors === 'none'
+              ? 'Drag to look around.'
+              : 'Drag sideways to line up walls with the camera image.'}
         </div>
       </div>
     </div>

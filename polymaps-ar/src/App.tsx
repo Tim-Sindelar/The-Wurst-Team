@@ -21,6 +21,12 @@ type GpsMode = 'off' | 'device' | 'simulation';
 
 const DEFAULT_LEVEL = 'ETH.HG.E';
 
+/** ?sim=lng,lat,LEVEL_ID starts both simulations with the phone at that spot (demos, tests). */
+function initialSim(): { lng: number; lat: number; levelId: string } | null {
+  const [lng, lat, levelId] = (new URLSearchParams(location.search).get('sim') ?? '').split(',');
+  return levelId && Number.isFinite(+lng) && Number.isFinite(+lat) ? { lng: +lng, lat: +lat, levelId } : null;
+}
+
 function initialTab(): Tab {
   const t = new URLSearchParams(location.search).get('tab');
   return t === 'test' || t === 'ar' ? t : 'map';
@@ -31,12 +37,13 @@ export function App() {
   const [floors, setFloors] = useState<FloorPlans | null>(null);
   const [loadError, setLoadError] = useState<string[]>([]);
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [bleMode, setBleMode] = useState<BleMode>('off');
-  const [gpsMode, setGpsMode] = useState<GpsMode>('off');
+  const [startSim] = useState(initialSim);
+  const [bleMode, setBleMode] = useState<BleMode>(startSim ? 'simulation' : 'off');
+  const [gpsMode, setGpsMode] = useState<GpsMode>(startSim ? 'simulation' : 'off');
   const [bleFix, setBleFix] = useState<PositionFix | null>(null);
   const [gpsFix, setGpsFix] = useState<PositionFix | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [levelId, setLevelId] = useState(DEFAULT_LEVEL);
+  const [levelId, setLevelId] = useState(startSim?.levelId ?? DEFAULT_LEVEL);
   const [followFix, setFollowFix] = useState(true);
   const [simTruth, setSimTruth] = useState<SimulatedTruth | null>(null);
   const simTruthRef = useRef(simTruth);
@@ -48,6 +55,12 @@ export function App() {
   recordingRef.current = recording;
   const engineRef = useRef<BlePositioningEngine | null>(null);
   const simRef = useRef<SimulatedBeaconSource | null>(null);
+
+  useEffect(() => {
+    if (startSim && radioMap && radioMap.levelIndexOf(startSim.levelId) >= 0) {
+      setSimTruth({ lng: startSim.lng, lat: startSim.lat, levelIndex: radioMap.levelIndexOf(startSim.levelId) });
+    }
+  }, [startSim, radioMap]);
 
   useEffect(() => {
     RadioMap.load('ips').then(setRadioMap, (e: Error) => setLoadError((l) => [...l, e.message]));

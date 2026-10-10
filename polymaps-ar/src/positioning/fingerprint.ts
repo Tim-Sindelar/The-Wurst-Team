@@ -1,16 +1,17 @@
 /**
  * Probabilistic fingerprinting on the PolyMaps radio map.
  *
- * Each radio map point stores, per beacon, the mean and standard deviation of the RSSI measured
- * there. For a scan (mean RSSI per heard beacon over a short window) the log-likelihood of a point is
- *   sum over heard beacons in its fingerprint   log N(rssi + offset; mean, std)
- * + sum over heard beacons not in its fingerprint log N(rssi + offset; MISSING_MEAN, MISSING_STD)
- * + sum over strong beacons it expects but that were not heard  log P(rssi < detection threshold)
+ * Each radio map point stores, per beacon, how likely a scan hears it and its mean RSSI when heard
+ * (decoded from the raw statistics, see decodeStatistic). For a scan (mean RSSI per heard beacon over
+ * a short window) the log-likelihood of a point is
+ *   sum over heard beacons in its fingerprint      log P(heard) + log N(rssi + offset; heard mean, σ)
+ * + sum over heard beacons not in its fingerprint  log P(heard anyway) + log N(rssi + offset; weak, σ)
+ * + sum over its beacons that were not heard       log P(not heard)
  * The position is the likelihood-weighted mean of the best K points on the most likely level.
  * `offset` absorbs the difference between this phone's radio and the device the map was made with.
  */
 import { fromLocal, toLocal } from '../geo';
-import type { RadioMap, Tile } from './radioMap';
+import { HEARD_STD, type RadioMap, type Tile } from './radioMap';
 
 export interface Observation {
   beacon: number;
@@ -24,13 +25,14 @@ export interface LocateOptions {
   k: number;
   /** Search radius (m) around the strongest beacons' rough positions. */
   radius: number;
-  /** Lower bound on the radio map std, plus the scanner's own noise, in dB. */
+  /** Scanner noise and model error added to the heard spread, in dB. */
   noiseStd: number;
-  /** RSSI assumed for heard beacons the point's fingerprint doesn't contain. */
-  missingMean: number;
-  missingStd: number;
-  /** Phones rarely report weaker beacons; expected beacons below this don't count as missing. */
-  detectionThreshold: number;
+  /** Heard beacons the point's fingerprint doesn't contain: how likely, and at what RSSI. */
+  unknownDetect: number;
+  unknownMean: number;
+  unknownStd: number;
+  /** Scans per window: a beacon heard in any of them counts as heard. */
+  scansPerWindow: number;
   /** Restrict to these levels (indices), e.g. from a tracker's floor belief. */
   levels?: Set<number>;
 }
@@ -40,9 +42,10 @@ export const DEFAULT_LOCATE: LocateOptions = {
   k: 10,
   radius: 45,
   noiseStd: 3,
-  missingMean: -100,
-  missingStd: 5,
-  detectionThreshold: -98,
+  unknownDetect: 0.03,
+  unknownMean: -95,
+  unknownStd: 6,
+  scansPerWindow: 2,
 };
 
 export interface Estimate {
@@ -66,26 +69,34 @@ function logNormal(x: number, mean: number, std: number): number {
   return -0.5 * z * z - Math.log(std) - LOG_SQRT_2PI;
 }
 
-/** log of the standard normal CDF, stable for very negative z. */
-function logPhi(z: number): number {
-  if (z > -5) {
-    // Abramowitz-Stegun 7.1.26 via erfc
-    const t = 1 / (1 + 0.3275911 * (Math.abs(z) / Math.SQRT2));
-    const y = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
-    const erfc = y * Math.exp(-(z * z) / 2);
-    return Math.log(z >= 0 ? 1 - erfc / 2 : erfc / 2);
+const ANCHOR_SPREAD_M = 150;
+
+/**
+ * The strongest heard beacons with a known position that agree on where we are: the largest group
+ * within ANCHOR_SPREAD_M of one of them. A few beacon ids occur in two buildings (32 of ~12 400
+ * are heard strongly more than 300 m apart), so a single beacon's rough position can't be trusted.
+ */
+export function anchorBeacons(map: RadioMap, obs: Observation[], count = 6): { beacon: number; lng: number; lat: number }[] {
+  const strongest = [...obs]
+    .sort((a, b) => b.rssi - a.rssi)
+    .map((o) => ({ beacon: o.beacon, p: map.beaconPosition(o.beacon) }))
+    .filter((a): a is { beacon: number; p: NonNullable<typeof a.p> } => a.p !== null)
+    .slice(0, count);
+  let best: typeof strongest = [];
+  for (const centre of strongest) {
+    const group = strongest.filter((a) => {
+      const d = toLocal(a.p, centre.p);
+      return Math.hypot(d.x, d.y) < ANCHOR_SPREAD_M;
+    });
+    if (group.length > best.length) best = group; // ties: the earlier (stronger) centre wins
   }
-  return -0.5 * z * z - Math.log(-z) - LOG_SQRT_2PI;
+  return best.slice(0, 4).map((a) => ({ beacon: a.beacon, lng: a.p.lng, lat: a.p.lat }));
 }
 
-/** Tiles that can contain the scanner: around the rough positions of the strongest beacons heard. */
+/** Tiles that can contain the scanner: around the anchor beacons. */
 export function candidateTiles(map: RadioMap, obs: Observation[], radius = DEFAULT_LOCATE.radius): string[] {
   const keys = new Set<string>();
-  const strongest = [...obs].sort((a, b) => b.rssi - a.rssi).slice(0, 4);
-  for (const o of strongest) {
-    const p = map.beaconPosition(o.beacon);
-    if (p) for (const key of map.tilesAround(p, radius)) keys.add(key);
-  }
+  for (const a of anchorBeacons(map, obs)) for (const key of map.tilesAround(a, radius)) keys.add(key);
   return [...keys];
 }
 
@@ -103,23 +114,23 @@ export function locate(map: RadioMap, observations: Observation[], options: Part
 
   const observed = new Map<number, number>();
   for (const o of obs) observed.set(o.beacon, o.rssi + opt.offset);
-  // Every point pays the "not in fingerprint" price for all heard beacons; matched beacons refund it.
-  let missingTotal = 0;
-  const missingOf = new Map<number, number>();
+  // Every point pays the "not in its fingerprint" price for all heard beacons; matched ones refund it.
+  let unknownTotal = 0;
+  const unknownOf = new Map<number, number>();
   for (const [b, rssi] of observed) {
-    const m = logNormal(rssi, opt.missingMean, opt.missingStd);
-    missingOf.set(b, m);
-    missingTotal += m;
+    const u = Math.log(opt.unknownDetect) + logNormal(rssi, opt.unknownMean, opt.unknownStd);
+    unknownOf.set(b, u);
+    unknownTotal += u;
   }
+  const std = Math.hypot(HEARD_STD, opt.noiseStd);
 
-  const strongest = [...obs].sort((a, b) => b.rssi - a.rssi).slice(0, 4);
-  const anchors = strongest.map((o) => map.beaconPosition(o.beacon)!).filter(Boolean);
+  const anchors = anchorBeacons(map, obs);
   const scored: Scored[] = [];
   const seen = new Set<string>();
   for (const key of candidateTiles(map, obs, opt.radius)) {
     const tile = map.getTile(key);
     if (!tile) continue;
-    for (const o of strongest) {
+    for (const o of anchors) {
       for (const i of tile.byBeacon.get(o.beacon) ?? []) {
         const id = `${key}:${i}`;
         if (seen.has(id)) continue;
@@ -131,16 +142,15 @@ export function locate(map: RadioMap, observations: Observation[], options: Part
           return d.x * d.x + d.y * d.y < opt.radius * opt.radius;
         });
         if (!near) continue;
-        let ll = missingTotal;
+        let ll = unknownTotal;
         for (let e = tile.offsets[i]; e < tile.offsets[i + 1]; e++) {
           const b = tile.beacon[e];
-          const mean = tile.mean[e];
-          const std = Math.hypot(tile.std[e], opt.noiseStd);
+          const missed = Math.pow(1 - tile.detect[e], opt.scansPerWindow);
           const rssi = observed.get(b);
           if (rssi !== undefined) {
-            ll += logNormal(rssi, mean, std) - missingOf.get(b)!;
-          } else if (mean > opt.detectionThreshold) {
-            ll += logPhi((opt.detectionThreshold - mean) / std);
+            ll += Math.log(1 - missed) + logNormal(rssi, tile.heardMean[e], std) - unknownOf.get(b)!;
+          } else {
+            ll += Math.log(missed);
           }
         }
         scored.push({ tile, i, ll });

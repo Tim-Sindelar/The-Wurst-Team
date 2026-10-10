@@ -80,6 +80,9 @@ code { font-size: 0.85em; background: #f0f0ec; padding: 1px 4px; border-radius: 
 .pill.ble { border-left: 4px solid var(--ble); }
 .pill.gps { border-left: 4px solid var(--gps); }
 
+
+.table-wrap { overflow-x: auto; margin: 0 -16px; padding: 0 16px; }
+.table-wrap table.stats th, .table-wrap table.stats td { white-space: nowrap; }
 table.stats { width: 100%; border-collapse: collapse; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
 table.stats caption { text-align: left; color: var(--muted); padding-bottom: 6px; font-size: 0.8rem; }
 table.stats th, table.stats td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: right; }
