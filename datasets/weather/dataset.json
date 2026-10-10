@@ -1,0 +1,9 @@
+{
+  "id": "weather",
+  "title": "Weather",
+  "description": "Current weather and the next hours at each campus (Open-Meteo).",
+  "glyph": "☀",
+  "color": "#e0a020",
+  "ttlSeconds": 900,
+  "defaultOn": true
+}

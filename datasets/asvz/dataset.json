@@ -1,0 +1,9 @@
+{
+  "id": "asvz",
+  "title": "ASVZ sport",
+  "description": "ASVZ sport centers with the next lessons (sport, time, free places).",
+  "glyph": "🏃",
+  "color": "#1f9e6e",
+  "ttlSeconds": 900,
+  "defaultOn": false
+}

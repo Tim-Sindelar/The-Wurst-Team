@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import L from 'leaflet';
 import { LayersControl, MapContainer, Marker, Polygon, ScaleControl, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import type { LatLng, MultiPolygon, OccupancyData, RoomRef } from '../domain/types';
@@ -80,6 +80,8 @@ interface Props {
   roomLabels: boolean;
   selectedEthRoom: string | null;
   onEthRoomClick: ((ethId: string) => void) | null;
+  /** More map layers (the campus datasets), rendered inside the map. */
+  children?: ReactNode;
 }
 
 const toLatLng = (ll: { lat: number; lng: number }): LatLng => ({ lat: ll.lat, lng: ll.lng });
@@ -371,6 +373,8 @@ export function MapView(props: Props) {
             </Marker>
           );
         })}
+
+      {props.children}
     </MapContainer>
   );
 }

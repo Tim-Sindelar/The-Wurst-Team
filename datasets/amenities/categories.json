@@ -1,0 +1,23 @@
+{
+  "_comment": "OpenStreetMap tag filters per category, and the circles searched (lat, lng, radius m).",
+  "areas": [
+    {"name": "Zentrum", "lat": 47.3770, "lng": 8.5480, "radius": 900},
+    {"name": "Hönggerberg", "lat": 47.4085, "lng": 8.5085, "radius": 800},
+    {"name": "Irchel", "lat": 47.3970, "lng": 8.5485, "radius": 500},
+    {"name": "Oerlikon", "lat": 47.4130, "lng": 8.5400, "radius": 500}
+  ],
+  "categories": [
+    {"id": "water", "label": "Drinking water", "filters": ["amenity=drinking_water", "amenity=fountain][drinking_water=yes"]},
+    {"id": "toilets", "label": "Toilets", "filters": ["amenity=toilets"]},
+    {"id": "microwave", "label": "Microwave", "filters": ["amenity=microwave"]},
+    {"id": "supermarket", "label": "Supermarket", "filters": ["shop=supermarket", "shop=convenience"]},
+    {"id": "cafe", "label": "Café", "filters": ["amenity=cafe"]},
+    {"id": "atm", "label": "ATM", "filters": ["amenity=atm"]},
+    {"id": "pharmacy", "label": "Pharmacy", "filters": ["amenity=pharmacy"]},
+    {"id": "post", "label": "Post office", "filters": ["amenity=post_office"]},
+    {"id": "copyshop", "label": "Copy shop", "filters": ["shop=copyshop"]},
+    {"id": "books", "label": "Bookshop", "filters": ["shop=books"]},
+    {"id": "aed", "label": "Defibrillator", "filters": ["emergency=defibrillator"]},
+    {"id": "bike-repair", "label": "Bike repair station", "filters": ["amenity=bicycle_repair_station"]}
+  ]
+}

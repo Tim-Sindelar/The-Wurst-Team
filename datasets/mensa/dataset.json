@@ -1,0 +1,9 @@
+{
+  "id": "mensa",
+  "title": "Mensas & cafeterias",
+  "description": "ETH and UZH mensas with today's menus, prices and opening hours.",
+  "glyph": "🍽",
+  "color": "#d9822b",
+  "ttlSeconds": 3600,
+  "defaultOn": true
+}

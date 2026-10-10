@@ -30,6 +30,11 @@ import { OccupancyLegend } from './components/OccupancyLegend';
 import { RoomDetails } from './components/RoomDetails';
 import { FreeRooms } from './components/FreeRooms';
 import { UzhPanel } from './components/UzhPanel';
+import { DatasetLayers, type DatasetSelection } from './datasets/DatasetLayers';
+import { DatasetButton, DatasetPanel } from './datasets/DatasetControls';
+import { DatasetSidebar } from './datasets/DatasetSidebar';
+import { loadDatasetSettings, saveDatasetSettings, useDatasetList, useDatasets, type DatasetSettings } from './datasets/useDatasets';
+import type { DatasetItem, DatasetMeta } from './datasets/types';
 
 const SAVE_DEBOUNCE_MS = 400;
 const NO_DATA: RoomState = { status: 'unknown', current: null, next: null, until: 1440 };
@@ -137,6 +142,39 @@ export default function App() {
     return byUnit;
   }, [rooms, ethResponse, roomInfos, roomFeatures.occupancy, roomFeatures.labels, roomFeatures.details]);
   const placedRooms = useMemo(() => new Set(Object.keys(ethResponse?.matches ?? {})), [ethResponse]);
+
+  // ---- campus datasets (mensas, transport, sport, weather, ...; see ../datasets) ----
+  const { list: datasetMetas, error: datasetListError } = useDatasetList();
+  const [storedDatasetSettings, setDatasetSettingsState] = useState<DatasetSettings | null>(loadDatasetSettings);
+  // Until the user changes something, the datasets marked defaultOn are shown.
+  const datasetSettings: DatasetSettings = storedDatasetSettings ?? {
+    enabled: (datasetMetas ?? []).filter((m) => m.defaultOn).map((m) => m.id),
+    hiddenCategories: {},
+  };
+  const setDatasetSettings = (s: DatasetSettings) => {
+    setDatasetSettingsState(s);
+    saveDatasetSettings(s);
+  };
+  const { states: datasetStates, reload: reloadDataset } = useDatasets(datasetMetas, datasetSettings.enabled);
+  const [datasetPanelOpen, setDatasetPanelOpen] = useState(false);
+  const [selectedDatasetItem, setSelectedDatasetItem] = useState<DatasetSelection | null>(null);
+  const datasetClockRaw = useZurichClock(datasetSettings.enabled.length > 0);
+  const datasetClock = useMemo(
+    () => ({ minute: datasetClockRaw.minute, weekday: new Date(`${datasetClockRaw.date}T12:00:00Z`).getUTCDay() }),
+    [datasetClockRaw],
+  );
+  const datasetLayers = useMemo(() => {
+    const out: { meta: DatasetMeta; items: DatasetItem[] }[] = [];
+    for (const meta of datasetMetas ?? []) {
+      if (!datasetSettings.enabled.includes(meta.id)) continue;
+      const doc = datasetStates[meta.id]?.response?.document;
+      if (!doc) continue;
+      const hidden = new Set(datasetSettings.hiddenCategories[meta.id] ?? []);
+      out.push({ meta, items: doc.items.filter((i) => !hidden.has(i.category)) });
+    }
+    return out;
+  }, [datasetMetas, datasetStates, datasetSettings]);
+  const datasetsBusy = Object.values(datasetStates).some((s) => s.loading || s.response?.refreshing);
 
   useEffect(() => {
     repository.load().then(
@@ -294,7 +332,7 @@ export default function App() {
       <aside className="panel">
         <header className="panel-header">
           <div>
-            <h1>ETH Workspace Occupancy</h1>
+            <h1>ETH Campus Map</h1>
             <p className="muted">
               {visible.libraries.length} workspaces · {totals.free}/{totals.total} seats free
             </p>
@@ -320,6 +358,18 @@ export default function App() {
         {mode === 'admin' && <SaveIndicator state={saveState} />}
 
         <div className="panel-body">
+          {mode === 'view' && datasetLayers.length > 0 && (
+            <DatasetSidebar
+              layers={datasetLayers}
+              selected={selectedDatasetItem}
+              clock={datasetClock}
+              onSelect={(sel, item) => {
+                setSelectedDatasetItem(sel);
+                flyTo({ lat: item.lat, lng: item.lng }, Math.max(zoom, 17));
+              }}
+              onClose={() => setSelectedDatasetItem(null)}
+            />
+          )}
           {selectedRoomInfo && (
             <RoomDetails
               info={selectedRoomInfo}
@@ -491,7 +541,11 @@ export default function App() {
           roomLabels={rooms && roomFeatures.labels}
           selectedEthRoom={selectedRoomInfo?.room.id ?? null}
           onEthRoomClick={rooms && roomFeatures.details ? setSelectedEthRoom : null}
-        />
+        >
+          {mode === 'view' && (
+            <DatasetLayers layers={datasetLayers} clock={datasetClock} selected={selectedDatasetItem} onSelect={setSelectedDatasetItem} />
+          )}
+        </MapView>
         {rooms && (roomFeatures.occupancy || roomFeatures.timeSlider) && (
           <OccupancyLegend
             infos={roomInfos}
@@ -524,16 +578,39 @@ export default function App() {
           }}
           occupancyActive={rooms && roomFeatures.occupancy}
           extraBar={
+            <>
+            <DatasetButton
+              open={datasetPanelOpen}
+              onOpen={(open) => {
+                setDatasetPanelOpen(open);
+                if (open) setRoomPanelOpen(false);
+              }}
+              active={datasetSettings.enabled.length}
+              busy={datasetsBusy}
+            />
             <RoomModeButton
               features={roomFeatures}
               onChange={setRoomFeatures}
               open={roomPanelOpen}
-              onOpen={setRoomPanelOpen}
+              onOpen={(open) => {
+                setRoomPanelOpen(open);
+                if (open) setDatasetPanelOpen(false);
+              }}
               busy={ethResponse?.state === 'running'}
             />
+            </>
           }
           extraPanel={
-            rooms && roomPanelOpen ? (
+            datasetPanelOpen ? (
+              <DatasetPanel
+                metas={datasetMetas}
+                listError={datasetListError}
+                settings={datasetSettings}
+                onChange={setDatasetSettings}
+                states={datasetStates}
+                onReload={reloadDataset}
+              />
+            ) : rooms && roomPanelOpen ? (
               <RoomPanel features={roomFeatures} onChange={setRoomFeatures} response={ethResponse} error={ethError} floorPlans={floorIndex !== null} />
             ) : null
           }
