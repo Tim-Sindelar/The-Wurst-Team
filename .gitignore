@@ -1,2 +1,3 @@
 scraper/polymaps_data/
-occupancy-map-preview/public/floors/__pycache__/
+occupancy-map-preview/public/floors/
+__pycache__/
