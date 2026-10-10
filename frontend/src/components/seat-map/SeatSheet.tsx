@@ -1,11 +1,5 @@
 import { ActionIcon, Button, Text, Title } from '@mantine/core';
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  type PointerEvent,
-  type ReactNode,
-} from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { SeatState } from '../../domain/seat';
 import { Icon } from '../Icon';
 import { SeatChip } from '../SeatChip';
@@ -22,14 +16,12 @@ type SeatSheetProps = {
   onAction: () => void;
   /** The card's height in px, on mount and whenever it changes (for centring seats above it). */
   onHeight?: (height: number) => void;
-  /** Close button, swipe down or Esc: the seat is deselected. */
+  /** Close button or Esc: the seat is deselected. */
   onClose: () => void;
 };
 
-const SWIPE_CLOSE_DISTANCE = 60;
-
 /* Google Maps-style card at the bottom of the room map. It does not dim or
-   block the map: tap another seat and it swaps; tap empty map, X or swipe down to close. */
+   block the map: tap another seat and it swaps; tap empty map or X to close. */
 export function SeatSheet({
   title,
   state,
@@ -41,7 +33,6 @@ export function SeatSheet({
   onClose,
 }: SeatSheetProps) {
   const ref = useRef<HTMLElement>(null);
-  const startY = useRef<number | null>(null);
   const heightRef = useRef(onHeight);
 
   useEffect(() => {
@@ -59,29 +50,6 @@ export function SeatSheet({
     return () => observer.disconnect();
   }, []);
 
-  const setOffset = (dy: number) => {
-    if (ref.current) ref.current.style.translate = dy ? `0 ${dy}px` : '';
-  };
-  const onDown = (event: PointerEvent<HTMLDivElement>) => {
-    startY.current = event.clientY;
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const onMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (startY.current !== null)
-      setOffset(Math.max(0, event.clientY - startY.current));
-  };
-  const onUp = (event: PointerEvent<HTMLDivElement>) => {
-    if (startY.current === null) return;
-    const dy = event.clientY - startY.current;
-    startY.current = null;
-    setOffset(0);
-    if (dy > SWIPE_CLOSE_DISTANCE) onClose();
-  };
-  const onCancel = () => {
-    startY.current = null;
-    setOffset(0);
-  };
-
   return (
     <section
       ref={ref}
@@ -89,13 +57,6 @@ export function SeatSheet({
       aria-live="polite"
       className="absolute inset-x-0 bottom-0 z-2 animate-sheet-up rounded-t-sheet border border-b-0 border-border bg-surface shadow-card"
     >
-      <div
-        className="grid touch-none justify-center py-2 before:h-1 before:w-10 before:rounded-full before:bg-border-strong before:content-['']"
-        onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerCancel={onCancel}
-      />
       <ActionIcon
         className="absolute top-2 right-2"
         aria-label="Close seat details"
@@ -103,7 +64,7 @@ export function SeatSheet({
       >
         <Icon name="close" />
       </ActionIcon>
-      <div className="grid gap-3 px-4 pt-1 pb-4">
+      <div className="grid gap-3 p-4">
         <div className="grid gap-1 pr-11">
           <Title order={3} className="break-words">
             {title}
