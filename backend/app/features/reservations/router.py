@@ -54,8 +54,8 @@ def commit_response(
 
 
 @router.get("/spaces", response_model=SpacesResponse, operation_id="list_spaces")
-def list_spaces(service: Service) -> SpacesResponse:
-    return service.spaces()
+def list_spaces(service: Service, map_room_id: str | None = None) -> SpacesResponse:
+    return service.spaces(map_room_id)
 
 
 @router.get("/spaces/{space_id}", response_model=SpaceResponse, operation_id="get_space")

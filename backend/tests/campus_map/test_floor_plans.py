@@ -43,6 +43,12 @@ def write_plans(folder: Path) -> None:
                 "rings": [[[0, 0, 2, 0, 2, 2]]],
             },
             {"id": "ETH.HG.E.E_041", "name": None, "label": None, "rings": [[[0, 0, 2, 0, 2, 2]]]},
+            {
+                "id": "ETH.HG.E.E_041.1",
+                "name": None,
+                "label": None,
+                "rings": [[[0, 0, 2, 0, 2, 2]]],
+            },
         ],
     }
     (folder / "levels" / "ETH.HG.E.json").write_text(json.dumps(level), encoding="utf-8")
@@ -53,6 +59,9 @@ def test_matches_by_name_then_unit_id(tmp_path: Path) -> None:
     plans = FloorPlans(tmp_path)
     index = plans.index()
     assert index is not None
+    assert index.by_id["ETH.HG.E.E_007"]["lat"] == 47.3000007
+    assert index.by_id["ETH.HG.E.E_041.1"]["unitId"] == "ETH.HG.E.E_041.1"
+    assert "ETH.HG.E.E_041" in index.by_id
     snapshot = {"rooms": [{"id": "HG E 7"}, {"id": "HG E 41"}, {"id": "HG Z 1"}]}
     result = match_rooms(snapshot, index)
     assert [p["unitId"] for p in result["matches"]["HG E 7"]] == ["ETH.HG.E.E_007"]

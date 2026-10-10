@@ -388,6 +388,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -419,6 +423,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -473,6 +478,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -511,6 +520,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -599,6 +609,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -623,6 +637,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -974,22 +989,15 @@
       "CreateSpaceRequest": {
         "additionalProperties": false,
         "properties": {
-          "lat": {
-            "maximum": 90.0,
-            "minimum": -90.0,
-            "title": "Lat",
-            "type": "number"
-          },
           "layout": {
             "additionalProperties": true,
             "title": "Layout",
             "type": "object"
           },
-          "lng": {
-            "maximum": 180.0,
-            "minimum": -180.0,
-            "title": "Lng",
-            "type": "number"
+          "map_room_id": {
+            "minLength": 1,
+            "title": "Map Room Id",
+            "type": "string"
           },
           "name": {
             "maxLength": 200,
@@ -1012,8 +1020,7 @@
         },
         "required": [
           "name",
-          "lat",
-          "lng"
+          "map_room_id"
         ],
         "title": "CreateSpaceRequest",
         "type": "object"
@@ -2658,6 +2665,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -2688,6 +2699,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -2742,6 +2754,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -2758,6 +2774,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -2887,19 +2904,6 @@
       "UpdateSpaceRequest": {
         "additionalProperties": false,
         "properties": {
-          "lat": {
-            "anyOf": [
-              {
-                "maximum": 90.0,
-                "minimum": -90.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lat"
-          },
           "layout": {
             "anyOf": [
               {
@@ -2911,19 +2915,6 @@
               }
             ],
             "title": "Layout"
-          },
-          "lng": {
-            "anyOf": [
-              {
-                "maximum": 180.0,
-                "minimum": -180.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lng"
           },
           "name": {
             "anyOf": [
@@ -3189,6 +3180,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "End Reservation",
@@ -3268,6 +3269,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "List Spaces",
@@ -3355,6 +3366,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Create Space",
@@ -3474,6 +3495,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Update Space",
@@ -3599,6 +3630,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "List Closures",
@@ -3716,6 +3757,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Create Closure",
@@ -3835,6 +3886,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Delete Closure",
@@ -3954,6 +4015,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Replace Opening Hours",
@@ -4045,6 +4116,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Get Space Overview",
@@ -4146,6 +4227,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Create Seat",
@@ -4247,6 +4338,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Get Seat",
@@ -4374,6 +4475,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Update Seat",
@@ -5573,6 +5684,24 @@
     "/api/v1/spaces": {
       "get": {
         "operationId": "list_spaces",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "map_room_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Map Room Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {

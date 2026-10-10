@@ -63,6 +63,7 @@ ReservationAction = Literal["check_in", "extend", "start_break", "return", "end"
 class SpaceSummary(BaseModel):
     id: UUID
     name: str
+    map_room_id: str
     lat: float
     lng: float
     total_seats: int
