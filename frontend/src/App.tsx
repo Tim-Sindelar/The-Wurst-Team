@@ -5,6 +5,7 @@ import { paths } from './routes';
 import { HomeScreen } from './screens/HomeScreen';
 import { MapScreen } from './screens/MapScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { ProfileEditScreen } from './screens/ProfileEditScreen';
 import { ReservationScreen } from './screens/ReservationScreen';
 import { ScanScreen } from './screens/ScanScreen';
 import { SeatMapScreen } from './screens/SeatMapScreen';
@@ -27,6 +28,7 @@ const router = createBrowserRouter(
         { path: paths.scan, element: <ScanScreen /> },
         { path: paths.session, element: <SessionScreen /> },
         { path: paths.profile, element: <ProfileScreen /> },
+        { path: paths.profileEdit, element: <ProfileEditScreen /> },
         ...socialDraftRoutes,
       ],
     },
