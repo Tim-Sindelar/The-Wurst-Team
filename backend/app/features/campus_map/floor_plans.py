@@ -66,9 +66,20 @@ def center_of(origin: list[float], scale: float, rings: list[list[list[float]]])
     return {"lat": round(lat0 + best[2] / scale, 7), "lng": round(lng0 + best[1] / scale, 7)}
 
 
+def room_label(unit_id: str) -> str:
+    """ "ETH.HG.H.H_030.1" -> "HG H 30.1", the room name the frontend shows (roomName)."""
+    _, building, _, *room = unit_id.split(".")
+    return f"{building} {re.sub(r'_0*(?=\d)', ' ', '.'.join(room), count=1)}"
+
+
+def natural_key(text: str) -> list:
+    return [int(part) if part.isdigit() else part.lower() for part in re.split(r"(\d+)", text)]
+
+
 @dataclass
 class PlanIndex:
     stamp: float
+    rooms: list[Place] = field(default_factory=list)
     by_id: dict[str, Place] = field(default_factory=dict)
     by_name: dict[str, list[Place]] = field(default_factory=dict)
     by_unit: dict[str, list[Place]] = field(default_factory=dict)
@@ -98,7 +109,34 @@ def build_plan_index(floors_dir: Path, stamp: float) -> PlanIndex:
             add(out.by_name, room.get("name"), place)
             add(out.by_unit, unit_id_name(room["id"]), place)
             add(out.by_label, room.get("label"), place)
+            if room["id"].count(".") >= 3:
+                out.rooms.append(
+                    {
+                        "id": room["id"],
+                        "name": room_label(room["id"]),
+                        "levelId": info["id"],
+                        "use": room.get("use") or "",
+                        "area": room.get("area") or 0,
+                    }
+                )
     return out
+
+
+def search_rooms(plans: PlanIndex, query: str, limit: int) -> list[Place]:
+    """Rooms of every level whose name or use contains `query`: the exact name first,
+    then names starting with it, each group in natural name order."""
+
+    def normalize(value: str) -> str:
+        return " ".join(value.lower().split())
+
+    term = normalize(query)
+    hits = [r for r in plans.rooms if term in normalize(f"{r['name']} {r['use']}")]
+
+    def rank(room: Place) -> tuple:
+        name = normalize(room["name"])
+        return (0 if name == term else 1 if name.startswith(term) else 2, natural_key(name))
+
+    return sorted(hits, key=rank)[:limit]
 
 
 def match_rooms(snapshot: dict, plans: PlanIndex | None) -> dict:

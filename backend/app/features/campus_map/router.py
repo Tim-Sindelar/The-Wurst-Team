@@ -7,13 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_admin
 from app.database import get_session
-from app.features.campus_map import eth_rooms
+from app.features.campus_map import eth_rooms, floor_plans
 from app.features.campus_map.dataset_cache import AT, DatasetUnavailable, UnknownDataset
 from app.features.campus_map.repository import MAP_STYLE, NAVIGATION, MapRepository
 from app.features.campus_map.schemas import (
     DatasetMeta,
     DatasetResponse,
     EthRoomsResponse,
+    FloorPlanRoom,
     MapStyle,
     NavigationConfig,
     OccupancyData,
@@ -139,6 +140,27 @@ def get_dataset(
     except DatasetUnavailable as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return JSONResponse(body, headers=NO_STORE)
+
+
+# ---- floor plan rooms -----------------------------------------------------------
+
+
+@router.get(
+    "/rooms",
+    response_model=list[FloorPlanRoom],
+    operation_id="search_map_rooms",
+    responses={503: {"model": ErrorResponse}},
+)
+def search_rooms(
+    services: Services,
+    q: Annotated[str, Query(min_length=1, max_length=80, description='e.g. "HG E 1"')],
+    limit: Annotated[int, Query(ge=1, le=50)] = 12,
+) -> list[dict[str, Any]]:
+    """Rooms of every building and floor whose name or use contains `q`."""
+    plans = services.floor_plans.index()
+    if plans is None:
+        raise HTTPException(status_code=503, detail="The floor plans are not available")
+    return floor_plans.search_rooms(plans, q, limit)
 
 
 # ---- ETH rooms ----------------------------------------------------------------

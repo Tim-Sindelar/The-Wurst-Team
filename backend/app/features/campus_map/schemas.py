@@ -337,6 +337,16 @@ class RoomPlace(CamelModel):
     lng: float
 
 
+class FloorPlanRoom(CamelModel):
+    """A room of the floor plans, found by the room search."""
+
+    id: str
+    name: str
+    level_id: str
+    use: str
+    area: float
+
+
 class BookingWindow(CamelModel):
     min: str | None
     max: str | None

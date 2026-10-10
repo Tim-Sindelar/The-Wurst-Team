@@ -1083,6 +1083,35 @@ export type FavouritesResponse = {
 };
 
 /**
+ * FloorPlanRoom
+ *
+ * A room of the floor plans, found by the room search.
+ */
+export type FloorPlanRoom = {
+    /**
+     * Area
+     */
+    area: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Levelid
+     */
+    levelId: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Use
+     */
+    use: string;
+    [key: string]: unknown;
+};
+
+/**
  * FriendRequestCreate
  */
 export type FriendRequestCreate = {
@@ -3598,6 +3627,48 @@ export type SaveMapNavigationResponses = {
 };
 
 export type SaveMapNavigationResponse = SaveMapNavigationResponses[keyof SaveMapNavigationResponses];
+
+export type SearchMapRoomsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         *
+         * e.g. "HG E 1"
+         */
+        q: string;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/map/rooms';
+};
+
+export type SearchMapRoomsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Service Unavailable
+     */
+    503: ErrorResponse;
+};
+
+export type SearchMapRoomsError = SearchMapRoomsErrors[keyof SearchMapRoomsErrors];
+
+export type SearchMapRoomsResponses = {
+    /**
+     * Response Search Map Rooms
+     *
+     * Successful Response
+     */
+    200: Array<FloorPlanRoom>;
+};
+
+export type SearchMapRoomsResponse = SearchMapRoomsResponses[keyof SearchMapRoomsResponses];
 
 export type GetMapStyleData = {
     body?: never;

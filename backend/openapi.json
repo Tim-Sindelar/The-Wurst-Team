@@ -1840,6 +1840,41 @@
         "title": "FavouritesResponse",
         "type": "object"
       },
+      "FloorPlanRoom": {
+        "additionalProperties": true,
+        "description": "A room of the floor plans, found by the room search.",
+        "properties": {
+          "area": {
+            "title": "Area",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "levelId": {
+            "title": "Levelid",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "use": {
+            "title": "Use",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "levelId",
+          "use",
+          "area"
+        ],
+        "title": "FloorPlanRoom",
+        "type": "object"
+      },
       "FriendRequestCreate": {
         "additionalProperties": false,
         "properties": {
@@ -6432,6 +6467,79 @@
           }
         },
         "summary": "Save Navigation",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/map/rooms": {
+      "get": {
+        "description": "Rooms of every building and floor whose name or use contains `q`.",
+        "operationId": "search_map_rooms",
+        "parameters": [
+          {
+            "description": "e.g. \"HG E 1\"",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "description": "e.g. \"HG E 1\"",
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FloorPlanRoom"
+                  },
+                  "title": "Response Search Map Rooms",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Search Rooms",
         "tags": [
           "campus-map"
         ]
