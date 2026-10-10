@@ -57,8 +57,8 @@ cssRenderer.domElement.style.overflow='clip';
 const screenElement=document.createElement('div');screenElement.className='phone-screen';
 const appFrame=document.createElement('iframe');appFrame.title='Study Spaces live booking app';appFrame.allow='camera';
 const requestedApp=new URLSearchParams(location.search).get('app');
-let appUrl='http://localhost:5173/map';
-if(requestedApp){try{const url=new URL(requestedApp);if(['http:','https:'].includes(url.protocol))appUrl=url.href;}catch{ /* Keep the local app if the URL is malformed. */ }}
+let appUrl='http://localhost:5173/';
+if(requestedApp){try{const url=new URL(requestedApp);if(['http:','https:'].includes(url.protocol)){url.pathname=url.pathname.replace(/\/map\/?$/,'/');appUrl=url.href;}}catch{ /* Keep the local app if the URL is malformed. */ }}
 appFrame.src=appUrl;screenElement.append(appFrame);
 appFrame.addEventListener('load',()=>{stage.dataset.appLoaded='true';});
 const island=document.createElement('div');island.className='island';island.setAttribute('aria-hidden','true');screenElement.append(island);
@@ -136,6 +136,8 @@ function go(index,snap=false){
   if(index===10)rolloutStep=current===11?2:0;
   if(index===5){zoomStartPosition.copy(phone.root.position);zoomStartRotation.set(phone.root.rotation.x,phone.root.rotation.y,phone.root.rotation.z);}
   captureCamera();current=Math.max(0,Math.min(11,index));elapsed=0;paused=false;impacts.clear();impactTime=-1000;
+  // Start each live segment on Home; saved bookings are restored by the app.
+  if(current===4||current===11)appFrame.src=appUrl;
   taken.classList.remove('slam');delete stage.dataset.peek;forceDraw=true;renderer.shadowMap.needsUpdate=true;
   delete stage.dataset.holding;
   sets.forEach(root=>{root.visible=false;root.position.set(0,0,0);root.scale.setScalar(1);});

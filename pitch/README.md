@@ -8,7 +8,7 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:5174. The live map mounts immediately, while the scene warms its shaders. Static scenery is batched, pixel density is capped and the 3D renderer stops redrawing once the phone is still. Use `?quality=low` for a forced lower render resolution. The actual app must be running on http://localhost:5173 with its backend. To use another deployment, pass its full URL as an encoded `app` query parameter. The deployment must permit embedding.
+Open http://127.0.0.1:5174. The live app mounts immediately on Home, while the scene warms its shaders. The toilet scene and Q&A each return the app to Home; saved bookings remain available. Static scenery is batched, pixel density is capped and the 3D renderer stops redrawing once the phone is still. Use `?quality=low` for a forced lower render resolution. The actual app must be running on http://localhost:5173 with its backend. To use another deployment, pass its Home URL as an encoded `app` query parameter. Existing URLs ending in `/map` also open Home. The deployment must permit embedding.
 
 ## Presenting
 
@@ -23,7 +23,7 @@ Click once or press Space to play the opening film. No scene-by-scene advances a
 7. Blackout while the video operator switches to the teammate livestream, or show the configured browser feed.
 8. After the teammate checks in and sits down, click the live image or press Right / Space to cut to the closing slides.
 9. Four quick slides: a four-step session explanation with an app screen for each render (scanner first), four students chatting beside the party planner phone, ETH fit with the portrait 3D map on a phone, then admin room setup beside a library and a three-step zoom from One library → Entire ETH → Other universities.
-10. End on Q&A over an imagined happy ETH campus: friends study and chat, while students stroll along varied paths. The same live app remains interactive in a phone at the top right, retaining the demo's state. The campus keeps moving gently until you leave the scene; reduced motion freezes it.
+10. End on Q&A over an imagined happy ETH campus: friends study and chat, while students stroll along varied paths. The live app opens Home in an interactive phone at the top right, restoring the demo's saved booking. The campus keeps moving gently until you leave the scene; reduced motion freezes it.
 
 The live camera starts tight on the teammate's phone showing the reservation, then physically pulls back and follows them into the pitch room. The teammate scans the QR on the demonstration desk and starts studying. There is no rendered lo-fi ending. Stream transport is still to be chosen and rehearsed.
 
