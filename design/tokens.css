@@ -1,0 +1,134 @@
+/* ==========================================================================
+   Design tokens: ETH study-space seat reservation (mock screens)
+   Rule: screens never use hex values or raw px sizes. Use these variables.
+   Dark is the default theme. Light is opt-in via <html data-theme="light">.
+   Colours are estimates read from the ETH EduApp plus ETH brand blue;
+   verify against the real app and correct here, in one place.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* --- Colour: surfaces & text (dark) -------------------------------- */
+  --bg: #2a2420;
+  --surface: #342d28;
+  --surface-2: #3d352f; /* selected rows, inactive controls */
+  --border: #4a413a;
+  --border-strong: #8a7f77; /* input and control outlines, 3.9:1 */
+  --canvas: #211c19; /* page behind the phone column on desktop */
+  --hover: rgb(255 255 255 / 0.08);
+  --text: #f1ece8; /* 13.1:1 on bg */
+  --text-muted: #b5aaa2; /* 6.7:1 on bg */
+
+  /* --- Colour: brand & actions (dark) -------------------------------- */
+  --accent: #6d9de0; /* 5.5:1 on bg */
+  --on-accent: #1d1814; /* 6.3:1 on accent */
+  --danger: #f47a70;
+  --focus: #6d9de0;
+
+  /* --- Colour: status. Only for availability / seat state ------------ */
+  --seat-free: #6fbf73; /* 6.8:1 on bg */
+  --seat-reserved: #b79cf0; /* solid violet fill */
+  --seat-bookable: #f0883e; /* orange, clock badge. 6.1:1 */
+  --seat-occupied: #8a7f77; /* graphic only, never text (3.9:1) */
+  --seat-break: #d3b177; /* bronze fill, distinct from occupied */
+  --seat-yours: var(--accent);
+  --on-seat: #1d1814; /* number on a filled seat */
+
+  --on-seat-muted: #1d1814; /* numbers on occupied seats, 4.5:1 in both themes */
+
+  /* --- Colour: how full a study space is (dot on cards). Not seat state --- */
+  --avail-high: var(--seat-free);
+  --avail-mid: #e0a63a;
+  --avail-none: var(--danger);
+
+  /* --- Camera view: dark in both themes -------------------------------- */
+  --camera-bg: #0b0907;
+  --camera-fg: #ffffff;
+
+  /* --- Type ----------------------------------------------------------- */
+  --font: 'DIN Next LT W05', 'Barlow', ui-sans-serif, system-ui, sans-serif;
+  --fs-label: 0.75rem; /* 12px, uppercase section labels */
+  --fs-small: 0.875rem; /* 14px */
+  --fs-body: 1rem; /* 16px */
+  --fs-title: 1.25rem; /* 20px, card / screen titles */
+  --fs-heading: 1.75rem; /* 28px */
+  --fs-timer: 3.5rem; /* 56px, countdowns, tabular figures */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --ls-label: 0.06em;
+  --lh-tight: 1.2;
+  --lh-body: 1.45;
+
+  /* --- Spacing: 4px base --------------------------------------------- */
+  --sp-1: 0.25rem; /* 4 */
+  --sp-2: 0.5rem; /* 8 */
+  --sp-3: 0.75rem; /* 12 */
+  --sp-4: 1rem; /* 16, screen gutter */
+  --sp-6: 1.5rem; /* 24 */
+  --sp-8: 2rem; /* 32 */
+  --gutter: var(--sp-4);
+
+  /* --- Shape ----------------------------------------------------------- */
+  --radius-card: 7px;
+  --radius-control: 5px; /* buttons, inputs, chips */
+  --radius-seat: 5px;
+  --radius-sheet: 8px; /* top corners of bottom sheets */
+  --overlay: rgb(0 0 0 / 0.6); /* dim layer behind popups */
+  --shadow: 0 1px 3px rgb(0 0 0 / 0.4); /* raised cards, sheets. Faint on dark: the border does the work */
+  --stroke: 1px; /* hairline borders */
+  --stripe: 6px; /* card left status stripe */
+  --icon-stroke: 1.75px;
+
+  /* --- Sizing ---------------------------------------------------------- */
+  --tap-min: 44px; /* minimum touch target */
+  --control-h: 48px; /* buttons, inputs */
+  --screen-w: 390px; /* design width; centre this column on desktop */
+  --map-world-w: 640px; /* full room coordinate canvas */
+  --map-world-h: 760px;
+  --map-viewport-h: 420px; /* pan/zoom window in a phone screen */
+
+  /* --- Motion ---------------------------------------------------------- */
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #faf7f4;
+  --surface: #ffffff;
+  --surface-2: #f1ece7;
+  --border: #d9d0c8;
+  --border-strong: #8a7f77; /* 3.7:1 */
+  --canvas: #efe9e3;
+  --hover: rgb(0 0 0 / 0.06);
+  --text: #2a2420; /* 14.3:1 on bg */
+  --text-muted: #6b6159; /* 5.7:1 on bg */
+
+  --accent: #215caf; /* ETH blue, 6.1:1 on bg */
+  --on-accent: #ffffff; /* 6.5:1 on accent */
+  --danger: #b7352d; /* 5.5:1 on bg */
+  --focus: #215caf;
+
+  --shadow: 0 1px 3px rgb(36 36 36 / 0.08);
+
+  --seat-free: #2e7d32; /* 4.8:1 */
+  --seat-reserved: #6d4bc4; /* 5.7:1 */
+  --seat-bookable: #b45309; /* 4.7:1 */
+  --seat-occupied: #8a7f77; /* graphic only (3.7:1) */
+  --seat-break: #8e6713;
+  --on-seat: #ffffff;
+
+  --avail-mid: #8a5a00;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+  }
+}

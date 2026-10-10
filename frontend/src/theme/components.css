@@ -1,0 +1,253 @@
+/* ==========================================================================
+   Mantine component styles, matching design/base.css.
+   theme.tsx attaches these classes to Mantine's parts; variants come from
+   Mantine's data attributes. They live in the components layer: above
+   Mantine's own styles, below Tailwind utilities, so a screen can still
+   adjust one instance with a utility class.
+   ========================================================================== */
+
+@layer components {
+  /* --- Button: primary, secondary, danger, quiet -------------------------- */
+  .ui-button {
+    @apply h-12 rounded-control border border-transparent px-6 text-body font-semibold no-underline transition-shadow duration-150 ease-standard;
+
+    &:hover:not(:disabled, [data-disabled]) {
+      @apply shadow-[inset_0_0_0_100px_var(--color-hover)];
+    }
+    &[data-variant='primary'] {
+      @apply bg-accent text-on-accent;
+    }
+    &[data-variant='secondary'] {
+      @apply border-accent bg-transparent text-accent;
+    }
+    &[data-variant='danger'] {
+      @apply border-danger bg-transparent text-danger;
+    }
+    &[data-variant='quiet'] {
+      @apply h-11 bg-transparent px-2 text-accent underline underline-offset-3;
+
+      &:hover:not(:disabled, [data-disabled]) {
+        @apply shadow-none;
+      }
+    }
+    &:disabled,
+    &[data-disabled] {
+      @apply cursor-default border-transparent bg-surface-2 text-text-muted;
+    }
+  }
+  /* Two buttons share a sheet row, so trim the side padding. */
+  .ui-sheet-actions .ui-button {
+    @apply px-2;
+  }
+  .ui-button-inner {
+    @apply gap-2;
+  }
+  .ui-button-section {
+    @apply m-0;
+  }
+
+  /* --- ActionIcon: icon (44px), map (32px), camera ------------------------ */
+  .ui-icon-button {
+    @apply rounded-control border-0 bg-transparent text-text;
+
+    &[data-variant='icon'] {
+      @apply size-11 min-h-11 min-w-11;
+    }
+    &[data-variant='map'] {
+      @apply size-8 min-h-8 min-w-8;
+
+      &:disabled {
+        @apply bg-transparent text-text opacity-40;
+      }
+    }
+    &[data-variant='icon'],
+    &[data-variant='map'] {
+      &:hover:not(:disabled) {
+        @apply bg-hover;
+      }
+    }
+    &[data-variant='camera'] {
+      @apply size-11 min-h-11 min-w-11 text-camera-fg;
+
+      &:hover {
+        @apply bg-camera-fg/14;
+      }
+      &[aria-pressed='true'] {
+        @apply bg-camera-fg text-camera-bg;
+      }
+    }
+  }
+
+  /* --- Anchor ------------------------------------------------------------- */
+  .ui-anchor {
+    @apply text-accent underline-offset-3;
+  }
+
+  /* --- Card --------------------------------------------------------------- */
+  .ui-card {
+    @apply grid min-w-0 gap-3 rounded-card border border-border bg-surface p-4 text-text shadow-card;
+  }
+
+  /* --- Badge: seat state chip. The chip sets --state. --------------------- */
+  .ui-chip {
+    @apply inline-flex h-auto w-fit items-center gap-2 overflow-visible rounded-control border px-2 py-1 text-small font-semibold tracking-normal whitespace-nowrap text-text normal-case;
+    border-color: color-mix(in srgb, var(--state) 45%, transparent);
+    background: color-mix(in srgb, var(--state) 14%, var(--color-surface));
+  }
+  .ui-chip-section {
+    @apply m-0 max-h-none;
+  }
+  .ui-chip-label {
+    @apply overflow-visible;
+  }
+
+  /* --- Input (TextInput, search) ------------------------------------------ */
+  .ui-input {
+    @apply h-12 min-h-12 rounded-control border border-border-strong bg-surface text-body text-text;
+
+    &::placeholder {
+      @apply text-text-muted;
+    }
+    &:focus {
+      @apply border-focus outline-2 outline-offset-0 outline-focus outline-solid;
+    }
+  }
+  .ui-input-section {
+    @apply text-text-muted;
+  }
+
+  /* --- Switch: 48 × 28 track, 20px thumb ---------------------------------- */
+  .ui-switch {
+    @apply w-full;
+  }
+  .ui-switch-body {
+    @apply flex min-h-11 items-center justify-between gap-3;
+  }
+  .ui-switch-label-wrapper {
+    @apply flex-1;
+  }
+  .ui-switch-label {
+    @apply p-0 text-body text-text;
+  }
+  .ui-switch-track {
+    @apply border border-border-strong bg-surface-2 [--switch-thumb-bg:var(--color-text-muted)];
+  }
+  .ui-switch-input:checked + .ui-switch-track {
+    @apply border-accent bg-accent [--switch-thumb-bg:var(--color-on-accent)];
+  }
+  .ui-switch-thumb {
+    @apply border-0 transition-[inset-inline-start] duration-150 ease-standard;
+  }
+
+  /* --- Progress (timer bar) ----------------------------------------------- */
+  .ui-progress {
+    @apply h-1.5 rounded-[3px] bg-surface-2;
+  }
+  .ui-progress-section {
+    @apply bg-accent;
+  }
+
+  /* --- Avatar (initials). Sizes md 40px, lg 72px. ------------------------- */
+  .ui-avatar {
+    @apply size-10 min-w-10;
+  }
+  .ui-avatar--lg {
+    @apply size-18 min-w-18;
+  }
+  .ui-avatar-placeholder {
+    @apply border border-border-strong text-small leading-none font-bold text-text;
+    background: color-mix(
+      in srgb,
+      var(--color-accent) 22%,
+      var(--color-surface)
+    );
+  }
+  .ui-avatar-placeholder--lg {
+    @apply text-heading;
+  }
+
+  /* --- Alert: in-page notice with a 6px stripe. info, warning, danger. ---- */
+  .ui-notice {
+    @apply rounded-card border border-l-6 border-border border-l-(--state) bg-surface px-4 py-3 text-text [--state:var(--color-accent)];
+
+    &[data-variant='warning'] {
+      @apply [--state:var(--color-seat-bookable)];
+    }
+    &[data-variant='danger'] {
+      @apply [--state:var(--color-danger)];
+    }
+  }
+  .ui-notice-wrapper {
+    @apply items-start gap-3;
+  }
+  .ui-notice-icon {
+    @apply m-0 size-6 text-text;
+  }
+  .ui-notice-body {
+    @apply min-w-0 gap-1;
+  }
+  .ui-notice-title {
+    @apply text-body font-semibold text-text;
+  }
+  .ui-notice-message {
+    @apply grid gap-1 text-body text-text;
+  }
+
+  /* --- Notification: banner that slides in from the top ------------------- */
+  .ui-banner {
+    @apply gap-3 rounded-card border border-border-strong bg-surface-2 py-3 pr-2 pl-4 shadow-card;
+
+    &::before {
+      @apply hidden;
+    }
+  }
+  .ui-banner-icon {
+    @apply m-0 size-6 rounded-none bg-transparent text-text;
+  }
+  .ui-banner-body {
+    @apply m-0 grid;
+  }
+  .ui-banner-title {
+    @apply m-0 text-body font-semibold text-text;
+  }
+  .ui-banner-description {
+    @apply text-small text-text-muted;
+  }
+  .ui-banner-close {
+    @apply size-11 min-h-11 min-w-11 rounded-control text-text;
+
+    &:hover {
+      @apply bg-hover;
+    }
+    & svg {
+      @apply size-6;
+    }
+  }
+
+  /* --- Popover (seat map colour key) -------------------------------------- */
+  .ui-popover {
+    @apply grid gap-3 rounded-card border border-border-strong bg-surface p-4 text-text shadow-card;
+  }
+
+  /* --- Drawer: decision bottom sheet -------------------------------------- */
+  .ui-sheet-inner {
+    @apply justify-center;
+  }
+  .ui-sheet-overlay {
+    @apply bg-overlay;
+  }
+  .ui-sheet-content {
+    @apply h-auto max-h-[90vh] max-w-phone overflow-auto rounded-t-sheet rounded-b-none border border-b-0 border-border bg-surface text-text shadow-card;
+  }
+  .ui-sheet-body {
+    @apply p-0;
+  }
+  .ui-sheet-title {
+    @apply text-title text-text;
+  }
+
+  /* --- Title -------------------------------------------------------------- */
+  .ui-title {
+    @apply text-text;
+  }
+}

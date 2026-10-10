@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design system · Study Spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="docs.css">
+  <script src="base.js"></script>
+</head>
+<body class="is-doc">
+  <header class="doc-bar">
+    <span class="doc-bar__brand">Study Spaces</span>
+    <nav aria-label="Guide pages">
+      <a href="index.html">Home</a>
+      <a href="design-system.html" aria-current="page">Design system</a>
+      <a href="components.html">Components</a>
+    </nav>
+    <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme">
+      <i class="icon i-sun"></i><i class="icon i-moon"></i>
+    </button>
+  </header>
+
+  <main class="doc">
+    <div class="doc__intro">
+      <p class="t-label">ETH Zürich · Study spaces</p>
+      <h1>Design system</h1>
+      <p class="lead">One set of tokens, shown live. Switch the theme in the top bar and every value on this page updates. The values come straight from <code>tokens.css</code>, so what you see is what the screens use.</p>
+    </div>
+
+    <section>
+      <h2>Colour</h2>
+      <h3>Surfaces and text</h3>
+      <div class="swatches" data-swatches="--canvas,--bg,--surface,--surface-2,--border,--border-strong,--text,--text-muted"></div>
+      <h3>Actions</h3>
+      <div class="swatches" data-swatches="--accent,--on-accent,--danger,--focus"></div>
+      <p class="specimen__note">Accent is the ETH blue, lightened in dark so it stays readable. Danger is for cancel, end and errors only.</p>
+    </section>
+
+    <section>
+      <h2>Seat states</h2>
+      <p class="lead">Six states. Colour is never the only cue: every state also has a shape, a badge or a label.</p>
+      <div class="swatches" data-swatches="--seat-free,--seat-reserved,--seat-bookable,--seat-occupied,--seat-break,--seat-yours,--on-seat"></div>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>On the floor plan</h3>
+          <div class="stage stage--row" style="gap: var(--sp-2)">
+            <button class="seat is-free" type="button" aria-label="Seat 14, free"><span class="seat__body"><span class="seat__num">14</span></span></button>
+            <button class="seat is-reserved" type="button" aria-label="Seat 15, reserved"><span class="seat__body"><span class="seat__num">15</span></span></button>
+            <button class="seat is-occupied" type="button" aria-label="Seat 16, occupied"><span class="seat__body"><span class="seat__num">16</span></span></button>
+            <button class="seat is-bookable" type="button" aria-label="Seat 17, occupied, bookable"><span class="seat__body"><span class="seat__num">17</span></span><span class="seat__badge" aria-hidden="true"><i class="icon icon--sm i-clock"></i></span></button>
+            <button class="seat is-break" type="button" aria-label="Seat 18, on break"><span class="seat__body"><span class="seat__num">18</span></span><span class="seat__badge" aria-hidden="true"><i class="icon icon--sm i-coffee"></i></span></button>
+            <button class="seat is-yours" type="button" aria-label="Seat 19, yours"><span class="seat__body"><span class="seat__num">19</span></span></button>
+          </div>
+          <p class="specimen__note">Seats use solid state colours and visible numbers. Coffee-cup badges mark on-break seats; clock badges mark seats bookable later. Violet = reserved, gray = occupied, bronze = on break, orange = bookable later. A double ring marks yours or selected. State names are available in seat details and the map info panel.</p>
+        </div>
+        <div class="specimen">
+          <h3>Legend</h3>
+          <div class="stage">
+            <div class="legend">
+              <span class="chip is-free">Free</span>
+              <span class="chip is-reserved">Reserved</span>
+              <span class="chip is-occupied">Occupied</span>
+              <span class="chip is-bookable">Bookable</span>
+              <span class="chip is-break">On break</span>
+              <span class="chip is-yours">Yours</span>
+            </div>
+          </div>
+          <p class="specimen__note">Chip text is always the normal text colour. The state colour is only the marker and the outline.</p>
+        </div>
+        <div class="specimen">
+          <h3>How full a study space is</h3>
+          <div class="stage">
+            <span class="avail avail--high">12 free</span>
+            <span class="avail avail--mid">3 free · almost full</span>
+            <span class="avail avail--none">0 free · full</span>
+          </div>
+          <p class="specimen__note">Dot plus words, on the home cards. The amber here is only for this and never appears on seats.</p>
+        </div>
+      </div>
+      <div class="swatches" data-swatches="--avail-high,--avail-mid,--avail-none"></div>
+    </section>
+
+    <section>
+      <h2>Type</h2>
+      <p class="lead">DIN Next LT W05 is ETH's licensed font and is used if it is installed. Everyone else gets Barlow, the closest free match. We never ship DIN files.</p>
+      <div>
+        <div class="type-row"><div><strong>Timer</strong><br><small>56 · Bold · tabular</small></div><p class="t-timer">14:52</p></div>
+        <div class="type-row"><div><strong>Heading</strong><br><small>28 · Bold</small></div><p class="t-heading">HG E 41 · Study hall</p></div>
+        <div class="type-row"><div><strong>Title</strong><br><small>20 · Semibold</small></div><p class="t-title">Seat 14 is free until 16:00</p></div>
+        <div class="type-row"><div><strong>Body</strong><br><small>16 · Regular</small></div><p>Check in by scanning the code on the table.</p></div>
+        <div class="type-row"><div><strong>Small</strong><br><small>14 · Regular</small></div><p class="t-small t-muted">Held for 10 minutes. Check in before it runs out.</p></div>
+        <div class="type-row"><div><strong>Label</strong><br><small>12 · Bold · caps</small></div><p class="t-label">Quiet zone · Power outlet</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Shape, depth and spacing</h2>
+      <div class="shape-demo">
+        <div style="border-radius: var(--radius-card); box-shadow: var(--shadow)">Card<br>7px + shadow</div>
+        <div style="border-radius: var(--radius-control)">Control<br>5px</div>
+        <div style="border-radius: var(--radius-sheet) var(--radius-sheet) 0 0">Sheet<br>8px top</div>
+        <div style="border-left: var(--stripe) solid var(--accent); border-radius: var(--radius-card)">Stripe<br>6px</div>
+      </div>
+      <p class="specimen__note">On dark the shadow is faint, so the thin outline carries the card's shape.</p>
+      <div class="space-bars" aria-label="Spacing steps">
+        <span><i style="--h: var(--sp-1)"></i>4</span>
+        <span><i style="--h: var(--sp-2)"></i>8</span>
+        <span><i style="--h: var(--sp-3)"></i>12</span>
+        <span><i style="--h: var(--sp-4)"></i>16</span>
+        <span><i style="--h: var(--sp-6)"></i>24</span>
+        <span><i style="--h: var(--sp-8)"></i>32</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Icons</h2>
+      <p class="lead">Outline, 24px, 1.75px stroke, drawn in the text colour. Use <code>&lt;i class="icon i-name"&gt;</code>.</p>
+      <div class="stage stage--row" style="gap: var(--sp-6)">
+        <span class="row"><i class="icon i-search"></i> search</span>
+        <span class="row"><i class="icon i-pin"></i> pin</span>
+        <span class="row"><i class="icon i-clock"></i> clock</span>
+        <span class="row"><i class="icon i-coffee"></i> coffee</span>
+        <span class="row"><i class="icon i-qr"></i> qr</span>
+        <span class="row"><i class="icon i-flashlight"></i> flashlight</span>
+        <span class="row"><i class="icon i-close"></i> close</span>
+        <span class="row"><i class="icon i-back"></i> back</span>
+        <span class="row"><i class="icon i-chevron-down"></i> chevron-down</span>
+        <span class="row"><i class="icon i-chevron-right"></i> chevron-right</span>
+        <span class="row"><i class="icon i-check"></i> check</span>
+        <span class="row"><i class="icon i-alert"></i> alert</span>
+        <span class="row"><i class="icon i-info"></i> info</span>
+        <span class="row"><i class="icon i-bell"></i> bell</span>
+        <span class="row"><i class="icon i-home"></i> home</span>
+        <span class="row"><i class="icon i-map"></i> map</span>
+        <span class="row"><i class="icon i-user"></i> user</span>
+        <span class="row"><i class="icon i-seat"></i> seat</span>
+        <span class="row"><i class="icon i-sun"></i> sun</span>
+        <span class="row"><i class="icon i-moon"></i> moon</span>
+        <span class="row"><i class="icon i-plus"></i> plus</span>
+        <span class="row"><i class="icon i-power"></i> power</span>
+        <span class="row"><i class="icon i-star"></i> star</span>
+        <span class="row"><i class="icon i-star-fill"></i> star-fill</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
