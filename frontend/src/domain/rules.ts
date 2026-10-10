@@ -2,7 +2,7 @@
     backend/app/config.py; change both together. */
 export const rules = {
   /** Time to check in once a reservation starts. */
-  checkInMinutes: 15,
+  checkInMinutes: 10,
   /** Length of a session, and of one extension. */
   sessionMinutes: 120,
   /** From here to the end of a session, only its occupant can extend. */

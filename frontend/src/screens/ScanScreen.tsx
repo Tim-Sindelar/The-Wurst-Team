@@ -1,8 +1,9 @@
 import { ActionIcon, Alert, Button, Text, TextInput } from '@mantine/core';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState, type SubmitEvent } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import {
+  adminGetSeatOptions,
   checkInMutation,
   extendReservationMutation,
   returnFromBreakMutation,
@@ -67,6 +68,7 @@ export function ScanScreen() {
   const flowKey: FlowKey = isFlow(from) ? from : 'checkIn';
   const flow = flows[flowKey];
 
+  const queryClient = useQueryClient();
   const refresh = useRefreshBooking();
   const { query, reservation, running } = useMyReservation();
   const checkIn = useMutation(checkInMutation());
@@ -99,6 +101,30 @@ export function ScanScreen() {
       setLeaving(true);
       await refresh();
       navigate(flow.done, { replace: true });
+    } catch (error) {
+      setProblem(apiProblem(error));
+      setBusy(false);
+    }
+  };
+
+  /* Demo only: skip the camera by reading this seat's QR code through the
+     demo admin stub, then go through the normal flow with it. */
+  const skipScan = async () => {
+    if (!reservation || locked.current) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      const { seat } = await queryClient.fetchQuery({
+        ...adminGetSeatOptions({
+          path: {
+            space_id: reservation.space.id,
+            seat_id: reservation.seat.id,
+          },
+          headers: { 'X-Demo-Admin': 'true' },
+        }),
+        staleTime: 0,
+      });
+      await submit(seat.qr_token);
     } catch (error) {
       setProblem(apiProblem(error));
       setBusy(false);
@@ -231,6 +257,15 @@ export function ScanScreen() {
                 Allow camera access, or type the code instead.
               </Text>
             </Alert>
+          )}
+          {import.meta.env.DEV && (
+            <Button
+              variant="quiet"
+              disabled={busy || problem !== null || !reservation}
+              onClick={() => void skipScan()}
+            >
+              Skip scan (demo only)
+            </Button>
           )}
           <form className="flex items-end gap-2 text-left" onSubmit={onSubmit}>
             <TextInput

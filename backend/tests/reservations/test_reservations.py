@@ -128,13 +128,13 @@ def test_extension_uses_config_without_replenishing_break_budget(client, seats, 
 
 def test_check_in_deadline_and_stale_user_cleanup(client, seats, clock, db):
     first = book(client, seats[0]).json()["reservation"]
-    deadline = clock.value + timedelta(minutes=15)
+    deadline = clock.value + timedelta(minutes=10)
     with Session(db) as session:
         before = reservation_states(session, deadline - timedelta(microseconds=1))[0]
         exactly = reservation_states(session, deadline)[0]
         assert before.status == "pending"
         assert exactly.status == "no_show"
-    clock.advance(minutes=15)
+    clock.advance(minutes=10)
     assert client.get("/api/v1/me/reservation").json()["reservation"] is None
     second = book(client, seats[1])
     assert second.status_code == 201, second.text
@@ -144,7 +144,7 @@ def test_check_in_deadline_and_stale_user_cleanup(client, seats, clock, db):
 
 def test_reclaim_no_show_on_same_seat(client, seats, clock):
     first = book(client, seats[0], identity()).json()["reservation"]
-    clock.advance(minutes=15)
+    clock.advance(minutes=10)
     replacement = walk_up(client, seats[0])
     assert replacement.status_code == 200
     assert replacement.json()["reservation"]["id"] != first["id"]
@@ -198,7 +198,7 @@ def test_early_checkout_shifts_full_next_session_and_future_cancel(client, seats
         row = session.get(Reservation, UUID(mine["id"]))
         assert row.starts_at == clock.value
         assert row.ends_at == clock.value + timedelta(minutes=120)
-        assert row.check_in_deadline == clock.value + timedelta(minutes=15)
+        assert row.check_in_deadline == clock.value + timedelta(minutes=10)
         assert row.previous_reservation_id is None
 
 
@@ -220,7 +220,7 @@ def test_break_expiry_handover_without_requests(client, seats, clock, db, delay)
         assert states[UUID(occupant["id"])].status == "ended"
         state = states[UUID(successor["id"])]
         assert state.effective_starts_at == release
-        assert state.effective_check_in_deadline == release + timedelta(minutes=15)
+        assert state.effective_check_in_deadline == release + timedelta(minutes=10)
         assert state.status == ("pending" if delay == 0 else "no_show" if delay == 16 else "ended")
         # Reads did not persist the early shift.
         assert session.get(Reservation, state.id).starts_at == release + timedelta(minutes=5)
@@ -263,7 +263,7 @@ def test_configuration_changes_only_affect_new_deadlines(client, seats, clock, p
     with Session(db) as session:
         shifted = session.get(Reservation, UUID(upcoming["id"]))
         assert shifted.ends_at == clock.value + timedelta(minutes=120)
-        assert shifted.check_in_deadline == clock.value + timedelta(minutes=15)
+        assert shifted.check_in_deadline == clock.value + timedelta(minutes=10)
     fresh = book(client, seats[1], identity()).json()["reservation"]
     assert fresh["break_seconds_remaining"] == 720
     with Session(db) as session:

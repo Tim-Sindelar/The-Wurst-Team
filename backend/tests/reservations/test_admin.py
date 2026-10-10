@@ -411,7 +411,7 @@ def test_safe_admin_handover_and_no_show_cleanup(client, seats, clock):
     shifted = client.get("/api/v1/me/reservation").json()["reservation"]
     assert shifted["starts_at"] == clock.value.isoformat().replace("+00:00", "Z")
     assert shifted["id"] == upcoming["id"]
-    clock.advance(minutes=15)
+    clock.advance(minutes=10)
     # Expired pending reservations do not require force when closing the room.
     assert hours(client, seats, []).status_code == 200
 
@@ -579,7 +579,7 @@ def test_reopening_previews_successor_shift_before_applying(client, seats, clock
     shifted = client.get("/api/v1/me/reservation").json()["reservation"]
     assert shifted["starts_at"] == clock.value.isoformat().replace("+00:00", "Z")
     assert shifted["check_in_deadline"] == (
-        clock.value + timedelta(minutes=15)
+        clock.value + timedelta(minutes=10)
     ).isoformat().replace("+00:00", "Z")
 
 
