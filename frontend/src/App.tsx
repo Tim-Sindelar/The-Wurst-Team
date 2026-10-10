@@ -28,33 +28,33 @@ const socialDraftRoutes = socialEnabled
 const router = createBrowserRouter(
   [
     {
+      path: '/admin',
+      element: <AdminShell />,
+      children: [
+        { index: true, element: <AdminSpacesPage /> },
+        { path: 'new', element: <AdminNewSpacePage /> },
+        { path: 'users', element: <AdminUsersPage /> },
+        { path: 'users/:userId', element: <AdminUserPage /> },
+        { path: 'qr', element: <AdminQrPage /> },
+        {
+          path: 'spaces/:spaceId',
+          element: <AdminSpaceShell />,
+          children: [
+            { index: true, element: <Navigate to="seats" replace /> },
+            { path: 'seats', element: <AdminSeatsPage /> },
+            { path: 'hours', element: <AdminHoursPage /> },
+            { path: 'closures', element: <AdminClosuresPage /> },
+            { path: 'layout', element: <AdminLayoutPage /> },
+            { path: 'qr', element: <AdminQrPage /> },
+            { path: 'settings', element: <AdminSettingsPage /> },
+          ],
+        },
+      ],
+    },
+    {
       element: <AppLayout />,
       children: [
         { path: '/check-in', element: <SeatCheckInPage /> },
-        {
-          path: '/admin',
-          element: <AdminShell />,
-          children: [
-            { index: true, element: <AdminSpacesPage /> },
-            { path: 'new', element: <AdminNewSpacePage /> },
-            { path: 'users', element: <AdminUsersPage /> },
-            { path: 'users/:userId', element: <AdminUserPage /> },
-            { path: 'qr', element: <AdminQrPage /> },
-            {
-              path: 'spaces/:spaceId',
-              element: <AdminSpaceShell />,
-              children: [
-                { index: true, element: <Navigate to="seats" replace /> },
-                { path: 'seats', element: <AdminSeatsPage /> },
-                { path: 'hours', element: <AdminHoursPage /> },
-                { path: 'closures', element: <AdminClosuresPage /> },
-                { path: 'layout', element: <AdminLayoutPage /> },
-                { path: 'qr', element: <AdminQrPage /> },
-                { path: 'settings', element: <AdminSettingsPage /> },
-              ],
-            },
-          ],
-        },
         { path: paths.home, element: <HomeScreen /> },
         { path: paths.map, element: <MapScreen /> },
         { path: '/seats', element: <Navigate to={paths.home} replace /> },

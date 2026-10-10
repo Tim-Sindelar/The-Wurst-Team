@@ -3,13 +3,6 @@ import type { SVGProps } from 'react';
 /* The design's one icon set: 24px outline, 1.75px stroke, drawn in currentColor.
    Add new icons here only, with the same stroke settings. */
 const paths = {
-  user: (
-    <>
-      <circle cx="12" cy="7" r="4" />
-      <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
-    </>
-  ),
-  home: <path d="M3 10l9-7 9 7v11h-7v-7h-4v7H3z" />,
   outlet: (
     <>
       <path d="M7 3v6M17 3v6M5 9h14v4a7 7 0 0 1-14 0zM12 20v2" />
@@ -67,6 +60,7 @@ const paths = {
       <path d="M12 11v5M12 8v.01" />
     </>
   ),
+  home: <path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" />,
   map: (
     <>
       <path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z" />
@@ -100,6 +94,12 @@ const paths = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+    </>
+  ),
   friends: (
     <>
       <circle cx="9" cy="8" r="3" />

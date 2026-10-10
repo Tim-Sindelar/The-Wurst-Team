@@ -15,6 +15,7 @@ from app.features.reservations.models import (
     SpaceOpeningInterval,
     StudySpace,
 )
+from app.features.social.models import Party, PartyMember, SocialUser
 from app.models.favourite import FavouriteSpace
 from app.models.profile import UserProfile
 from tests.reservations.test_admin import ADMIN, room_path
@@ -97,6 +98,27 @@ def test_permanent_delete_removes_owned_data_and_releases_map_room(client, seats
                 ),
             ]
         )
+        session.add(SocialUser(user_id=user_id, fallback_name="Preserved student"))
+        session.flush()
+        archived_party = Party(organizer_id=user_id, name="Archived room party", status="booked")
+        other_party = Party(organizer_id=user_id, name="Other room party", status="booked")
+        session.add_all([archived_party, other_party])
+        session.flush()
+        session.add_all(
+            [
+                PartyMember(
+                    party_id=party.id,
+                    user_id=user_id,
+                    status="accepted",
+                    reservation_id=reservation.id,
+                )
+                for party, reservation in (
+                    (archived_party, histories[0]),
+                    (other_party, histories[-1]),
+                )
+            ]
+        )
+        archived_party_id, other_party_id = archived_party.id, other_party.id
         survivor_id = histories[-1].id
         other_seat_id = other_seat.id
         session.commit()
@@ -127,6 +149,10 @@ def test_permanent_delete_removes_owned_data_and_releases_map_room(client, seats
         assert session.scalar(select(func.count()).select_from(FavouriteSpace)) == 1
         assert session.get(FavouriteSpace, (user_id, other_room_id)) is not None
         assert session.get(UserProfile, user_id).name == "Preserved student"
+        assert session.get(SocialUser, user_id) is not None
+        assert session.get(Party, archived_party_id).status == "booked"
+        assert session.get(PartyMember, (archived_party_id, user_id)).reservation_id is None
+        assert session.get(PartyMember, (other_party_id, user_id)).reservation_id == survivor_id
         assert session.get(MapEntity, ("libraries", "ETH.HG.E.E_007")).data == {"name": "HG E 7"}
 
     recreated = client.post(
