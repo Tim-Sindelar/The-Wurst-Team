@@ -45,6 +45,20 @@ export const isZoneActive = (zone: NavZone, zoom: number) =>
   zoom < zone.activeBelowZoom &&
   (zone.activeFromZoom === null || zoom >= zone.activeFromZoom);
 
+/** The zones are configured on a desktop screen; a phone shows less, so this app zooms one and a half levels less. */
+const PHONE_ZOOM_OFFSET = -1.5;
+
+/** Every zoom value of every zone (target and active range) shifted for phone screens. */
+export const forPhones = (config: NavigationConfig): NavigationConfig => ({
+  zones: config.zones.map((z) => ({
+    ...z,
+    zoom: z.zoom + PHONE_ZOOM_OFFSET,
+    activeBelowZoom: z.activeBelowZoom + PHONE_ZOOM_OFFSET,
+    activeFromZoom:
+      z.activeFromZoom === null ? null : z.activeFromZoom + PHONE_ZOOM_OFFSET,
+  })),
+});
+
 /** Even-odd ray casting over every ring, so holes are excluded. */
 export function outlineContains(
   outline: MultiPolygon,

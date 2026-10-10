@@ -15,14 +15,14 @@ export interface DatasetSettings {
 
 const KEY = 'dataset-settings';
 
-export function loadDatasetSettings(): DatasetSettings | null {
+/** The map always opens with every dataset off; only the hidden categories are remembered. */
+export function loadDatasetSettings(): DatasetSettings {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw
-      ? { enabled: [], hiddenCategories: {}, ...JSON.parse(raw) }
-      : null;
+    const stored = raw ? JSON.parse(raw) : {};
+    return { enabled: [], hiddenCategories: stored.hiddenCategories ?? {} };
   } catch {
-    return null;
+    return { enabled: [], hiddenCategories: {} };
   }
 }
 

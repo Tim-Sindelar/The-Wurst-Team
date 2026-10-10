@@ -39,9 +39,9 @@ const ADMIN_STYLE: L.PathOptions = {
 };
 
 /**
- * Click-to-zoom shortcut: a click inside an active zone flies there. Hit testing
- * runs on map clicks, so markers and workspace outlines (which stop their
- * clicks) keep working on top of a zone.
+ * Click-to-zoom shortcut: a click inside an active zone flies there. It takes
+ * priority over everything drawn on the map (pins, workspace markers and
+ * outlines, rooms); only the map controls keep their clicks.
  */
 export function NavZones({
   config,
@@ -56,21 +56,19 @@ export function NavZones({
 
   const hit = useRef<(e: MouseEvent) => NavZone | null>(() => null);
   hit.current = (e) => {
-    // Map controls (zoom, floor picker, home) and pins keep their own clicks.
+    // Map controls (zoom, floor picker, home) keep their own clicks.
     const target = e.target as Element;
     if (
       !enabled ||
-      target.closest(
-        '.leaflet-control, .floor-picker, .leaflet-marker-icon, .leaflet-popup',
-      )
+      target.closest('.leaflet-control, .floor-picker, .leaflet-popup')
     )
       return null;
     return zoneAt(config, map.mouseEventToLatLng(e), map.getZoom());
   };
 
   // Native capture-phase listeners on the container run before Leaflet's own
-  // handlers on rooms and workspace outlines, so a zone click takes priority
-  // over them (they still get their clicks wherever no zone is active).
+  // handlers on pins, rooms and workspace outlines, so a zone click takes
+  // priority over them (they still get their clicks wherever no zone is active).
   useEffect(() => {
     const container = map.getContainer();
     const onClick = (e: MouseEvent) => {

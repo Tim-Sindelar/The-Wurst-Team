@@ -6,32 +6,19 @@ import {
 import type { OccupancyStyle } from '../map/minimalStyle';
 import type { RoomInfo } from '../roomFeatures';
 
-const SLIDER_MIN = 6 * 60;
-const SLIDER_MAX = 23 * 60 + 45;
-
-/** Map overlay: status colors with room counts and, optionally, the time being shown. */
+/** Map overlay: status colors with room counts and the time being shown (picked in Map › Date and time). */
 export function OccupancyLegend({
   infos,
   colors,
   showColors,
-  minute,
   label,
-  live,
-  showSlider,
-  onMinute,
   note,
 }: {
   infos: RoomInfo[];
   colors: OccupancyStyle;
   showColors: boolean;
-  minute: number;
   /** The time shown, e.g. "Now 14:05" or "Tue 20 Oct 09:00". */
   label: string;
-  /** Following the clock (no time picked). */
-  live: boolean;
-  showSlider: boolean;
-  /** A minute of the day shown, or null to follow the clock again. */
-  onMinute: (minute: number | null) => void;
   /** Replaces the counts, e.g. while there is no data for today. */
   note: string | null;
 }) {
@@ -59,26 +46,6 @@ export function OccupancyLegend({
       )}
       <div className="occ-legend-time">
         <span className="occ-time">{label}</span>
-        {showSlider && (
-          <>
-            <input
-              type="range"
-              min={SLIDER_MIN}
-              max={SLIDER_MAX}
-              step={15}
-              value={Math.min(SLIDER_MAX, Math.max(SLIDER_MIN, minute))}
-              aria-label="Time of day"
-              onChange={(e) => onMinute(Number(e.target.value))}
-            />
-            <button
-              className="btn-ghost"
-              disabled={live}
-              onClick={() => onMinute(null)}
-            >
-              Now
-            </button>
-          </>
-        )}
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ type MapSheetProps = {
   onClose: () => void;
   title: ReactNode;
   children: ReactNode;
+  /** A submenu: shows a back button that returns to its parent sheet. */
+  onBack?: () => void;
   /** The room dashboard: nearly full height instead of fitting its content. */
   tall?: boolean;
 };
@@ -22,6 +24,7 @@ export function MapSheet({
   onClose,
   title,
   children,
+  onBack,
   tall = false,
 }: MapSheetProps) {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -80,7 +83,17 @@ export function MapSheet({
             onPointerUp={onGrabUp}
             onPointerCancel={onGrabCancel}
           />
-          <div className="flex flex-none items-center gap-2 border-b border-border pr-2 pb-2 pl-4">
+          <div
+            className={cx(
+              'flex flex-none items-center gap-2 border-b border-border pr-2 pb-2',
+              onBack ? 'pl-2' : 'pl-4',
+            )}
+          >
+            {onBack && (
+              <ActionIcon aria-label="Back" onClick={onBack}>
+                <Icon name="back" />
+              </ActionIcon>
+            )}
             <Drawer.Title className="min-w-0 flex-1 truncate">
               {title}
             </Drawer.Title>

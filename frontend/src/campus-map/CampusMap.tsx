@@ -9,6 +9,7 @@ import {
   useComputedColorScheme,
 } from '@mantine/core';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { LatLngBoundsLiteral } from 'leaflet';
 import { Link } from 'react-router';
 import { cx } from '../components/cx';
 import { Icon, type IconName } from '../components/Icon';
@@ -45,6 +46,7 @@ import {
 } from './domain/ethRooms';
 import {
   defaultNavigation,
+  forPhones,
   homePositions,
   type NavigationConfig,
 } from './domain/navigation';
@@ -101,6 +103,21 @@ function filterEnabled(data: OccupancyData): OccupancyData {
   };
 }
 
+/** How far outside a campus area's bounding box pins still show, in degrees (~300 m). */
+const AREA_PAD_LAT = 0.0027;
+const AREA_PAD_LNG = 0.004;
+
+/** Whether a point lies near one of the campus areas (Hönggerberg, Zentrum). */
+function nearArea(boxes: LatLngBoundsLiteral[], lat: number, lng: number) {
+  return boxes.some(
+    ([[south, west], [north, east]]) =>
+      lat >= south - AREA_PAD_LAT &&
+      lat <= north + AREA_PAD_LAT &&
+      lng >= west - AREA_PAD_LNG &&
+      lng <= east + AREA_PAD_LNG,
+  );
+}
+
 /** The rooms of a mensa item, if datasets/mensa/rooms.json locates it. */
 function mensaPlace(item: DatasetItem) {
   return (item.details as unknown as MensaDetails).place ?? null;
@@ -148,10 +165,13 @@ export function CampusMap() {
         setData(loaded);
         // Without navigation.json, start with one area per campus.
         fetchNavigation().then(
-          (nav) => setNavigation(nav ?? defaultNavigation(loaded.libraries)),
+          (nav) =>
+            setNavigation(
+              forPhones(nav ?? defaultNavigation(loaded.libraries)),
+            ),
           (err) => {
             console.warn('Navigation config unavailable', err);
-            setNavigation(defaultNavigation(loaded.libraries));
+            setNavigation(forPhones(defaultNavigation(loaded.libraries)));
           },
         );
       },
@@ -234,13 +254,8 @@ export function CampusMap() {
 
   // ---- campus datasets (mensas, transport, sport, weather, ...; served by the backend) ----
   const { list: datasetMetas, error: datasetListError } = useDatasetList();
-  const [storedDatasetSettings, setDatasetSettingsState] =
-    useState<DatasetSettings | null>(loadDatasetSettings);
-  // Until the user changes something, the datasets marked defaultOn are shown.
-  const datasetSettings: DatasetSettings = storedDatasetSettings ?? {
-    enabled: (datasetMetas ?? []).filter((m) => m.defaultOn).map((m) => m.id),
-    hiddenCategories: {},
-  };
+  const [datasetSettings, setDatasetSettingsState] =
+    useState<DatasetSettings>(loadDatasetSettings);
   const setDatasetSettings = (s: DatasetSettings) => {
     setDatasetSettingsState(s);
     saveDatasetSettings(s);
@@ -264,6 +279,14 @@ export function CampusMap() {
     }),
     [view.date, view.minute, live, viewLabel],
   );
+  // Pins only show near the campus areas, so far-off scooters and stops don't clutter the map.
+  const areaBoxes = useMemo(
+    () =>
+      (navigation?.zones ?? [])
+        .filter((z) => z.kind === 'area' && z.outline)
+        .map((z) => outlineBounds(z.outline!)),
+    [navigation],
+  );
   const datasetLayers = useMemo(() => {
     const out: { meta: DatasetMeta; items: DatasetItem[] }[] = [];
     for (const meta of datasetMetas ?? []) {
@@ -273,11 +296,13 @@ export function CampusMap() {
       const hidden = new Set(datasetSettings.hiddenCategories[meta.id] ?? []);
       out.push({
         meta,
-        items: doc.items.filter((i) => !hidden.has(i.category)),
+        items: doc.items.filter(
+          (i) => !hidden.has(i.category) && nearArea(areaBoxes, i.lat, i.lng),
+        ),
       });
     }
     return out;
-  }, [datasetMetas, datasetStates, datasetSettings]);
+  }, [datasetMetas, datasetStates, datasetSettings, areaBoxes]);
   // Mensa rooms (datasets/mensa/rooms.json) are drawn on the floor plans.
   const mensaLayer = datasetLayers.find((l) => l.meta.id === 'mensa') ?? null;
   const mensaRooms = useMemo(() => {
@@ -452,12 +477,6 @@ export function CampusMap() {
     busy?: boolean;
   }[] = [
     {
-      id: 'time',
-      icon: 'clock',
-      label: live ? 'Now' : timeLabel(view, clock.date),
-      active: !live,
-    },
-    {
       id: 'rooms',
       icon: 'door',
       label: 'Live rooms',
@@ -473,11 +492,16 @@ export function CampusMap() {
       active: datasetSettings.enabled.length > 0,
       busy: datasetsBusy,
     },
-    { id: 'map', icon: 'layers', label: 'Map', active: view3d },
+    // The time picker is a submenu of the map options.
+    {
+      id: 'map',
+      icon: 'layers',
+      label: live ? 'Map' : timeLabel(view, clock.date),
+      active: view3d || !live,
+    },
   ];
 
-  const showLegend =
-    rooms && (roomFeatures.occupancy || roomFeatures.timeSlider);
+  const showLegend = rooms && roomFeatures.occupancy;
 
   return (
     <div className="campus-map relative h-dvh w-full overflow-hidden bg-bg">
@@ -557,15 +581,7 @@ export function CampusMap() {
               infos={roomInfos}
               colors={roomStyle}
               showColors={roomFeatures.occupancy}
-              minute={minute}
               label={live ? `Now ${hhmm(minute)}` : timeLabel(view, clock.date)}
-              live={live}
-              showSlider={roomFeatures.timeSlider}
-              onMinute={(m) =>
-                setPickedTime(
-                  m === null ? null : { date: view.date, minute: m },
-                )
-              }
               note={legendNote}
             />
           </div>
@@ -606,7 +622,7 @@ export function CampusMap() {
 
         <nav
           aria-label="Map controls"
-          className="pointer-events-auto grid grid-cols-4 gap-1 rounded-card border border-border bg-surface p-1 shadow-card"
+          className="pointer-events-auto grid grid-cols-3 gap-1 rounded-card border border-border bg-surface p-1 shadow-card"
         >
           {toolbar.map((item) => (
             <button
@@ -640,6 +656,7 @@ export function CampusMap() {
       <MapSheet
         opened={sheet === 'time'}
         onClose={() => setSheet(null)}
+        onBack={() => setSheet('map')}
         title="Date and time"
       >
         <TimePanel
@@ -707,6 +724,20 @@ export function CampusMap() {
         onClose={() => setSheet(null)}
         title="Map"
       >
+        <button
+          type="button"
+          onClick={() => setSheet('time')}
+          className="flex min-h-14 w-full cursor-pointer items-center gap-3 border-0 border-b border-border bg-transparent px-4 text-left text-text hover:bg-hover"
+        >
+          <Icon name="clock" />
+          <span className="grid min-w-0 flex-1">
+            <span className="font-semibold">Date and time</span>
+            <span className="truncate text-label text-text-muted">
+              {live ? 'Now' : timeLabel(view, clock.date)}
+            </span>
+          </span>
+          <Icon name="chevronRight" />
+        </button>
         <div className="grid gap-4 px-4 py-4">
           <div className="grid gap-2">
             <Text size="sm" c="dimmed">

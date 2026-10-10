@@ -1,6 +1,6 @@
 import type { EthRoom, RoomState } from './domain/ethRooms';
 
-/** Live room mode: what it adds to the map and the details sheet, each part switchable. Kept per browser. */
+/** Live room mode: what it adds to the map and the details sheet, each part switchable. Kept per browser, but the map always opens with live rooms off. */
 export interface RoomFeatures {
   /** Master switch: load the ETH room data at all. */
   enabled: boolean;
@@ -12,8 +12,6 @@ export interface RoomFeatures {
   details: boolean;
   /** Side panel list of rooms that are free now, longest free first. */
   freeList: boolean;
-  /** Slider to look at another time of the day shown. */
-  timeSlider: boolean;
   /** Live study space occupancy of the nearby UZH libraries. */
   uzh: boolean;
   /** A free room counts as "booked soon" this many minutes before its next booking. */
@@ -26,7 +24,6 @@ export const DEFAULT_ROOM_FEATURES: RoomFeatures = {
   labels: true,
   details: true,
   freeList: true,
-  timeSlider: true,
   uzh: false,
   soonMinutes: 30,
 };
@@ -48,10 +45,6 @@ export const ROOM_FEATURE_LABELS: Record<
     label: 'Free rooms list',
     hint: 'In the details of a tapped room',
   },
-  timeSlider: {
-    label: 'Time slider',
-    hint: 'Drag through the day shown (pick other days with 🕒)',
-  },
   uzh: {
     label: 'UZH libraries (live)',
     hint: 'Seat occupancy nearby, in the room details',
@@ -65,6 +58,7 @@ export function loadRoomFeatures(): RoomFeatures {
     return {
       ...DEFAULT_ROOM_FEATURES,
       ...JSON.parse(localStorage.getItem(KEY) ?? '{}'),
+      enabled: false,
     };
   } catch {
     return DEFAULT_ROOM_FEATURES;
