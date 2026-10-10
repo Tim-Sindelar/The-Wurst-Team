@@ -2,13 +2,13 @@ import { Icon, type IconName } from '../../components/Icon';
 import geometry from './geometry';
 import type { LayoutItem, RoomGeometry } from './models';
 const seatFill: Record<string, string> = {
-  free: 'fill-seat-free',
-  reserved: 'fill-seat-reserved',
-  occupied: 'fill-seat-occupied',
-  on_break: 'fill-seat-break',
-  break: 'fill-seat-break',
-  claimable: 'fill-seat-bookable',
-  bookable: 'fill-seat-bookable',
+  free: 'fill-seat-free stroke-seat-free',
+  reserved: 'fill-seat-reserved stroke-seat-reserved',
+  occupied: 'fill-seat-occupied stroke-seat-occupied',
+  on_break: 'fill-seat-break stroke-seat-break',
+  break: 'fill-seat-break stroke-seat-break',
+  claimable: 'fill-seat-bookable stroke-seat-bookable',
+  bookable: 'fill-seat-bookable stroke-seat-bookable',
   unavailable: 'fill-seat-occupied opacity-50',
   unknown: 'fill-seat-occupied opacity-50',
 };
@@ -42,6 +42,9 @@ export function RoomScene({
   editor = false,
   scale = 1,
   onSelect,
+  onResize,
+  onRotate,
+  resizeHandles = editor,
 }: {
   room: RoomGeometry;
   objects: LayoutItem[];
@@ -49,6 +52,9 @@ export function RoomScene({
   editor?: boolean;
   scale?: number;
   onSelect?: (id: string) => void;
+  resizeHandles?: boolean;
+  onResize?: (id: string, handle: string, dx: number, dy: number) => void;
+  onRotate?: (id: string, delta: number) => void;
 }) {
   return (
     <>
@@ -146,7 +152,7 @@ export function RoomScene({
                   transform={'rotate(' + -angle + ' 0 ' + labelY + ')'}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-text-muted text-label"
+                  className="fill-text-muted text-small font-bold"
                 >
                   {o.label}
                 </text>
@@ -295,13 +301,20 @@ export function RoomScene({
                   width={32}
                   height={36}
                   rx={5}
+                  strokeWidth={2}
                   className={seatFill[o.state || 'unknown'] || seatFill.unknown}
                 />
                 <g transform={'rotate(' + -angle + ')'}>
                   <text
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    className="fill-on-seat text-label font-bold"
+                    className={
+                      ['occupied', 'unavailable', 'unknown'].includes(
+                        o.state || 'unknown',
+                      )
+                        ? 'fill-on-seat-muted text-small font-bold'
+                        : 'fill-on-seat text-small font-bold'
+                    }
                   >
                     {String(o.number).padStart(2, '0')}
                   </text>
@@ -337,8 +350,8 @@ export function RoomScene({
               <>
                 <path
                   d={'M' + -w / 2 + ' 0H' + w / 2}
-                  className="stroke-surface"
-                  strokeWidth={16}
+                  stroke="transparent"
+                  strokeWidth={24}
                 />
                 <path
                   d={'M' + -w / 2 + ' 0H' + w / 2}
@@ -349,6 +362,11 @@ export function RoomScene({
             )}
             {o.type === 'door' && (
               <>
+                <path
+                  d={'M' + -w / 2 + ' 0H' + w / 2}
+                  className="stroke-surface"
+                  strokeWidth={6}
+                />
                 <path
                   d={'M' + -w / 2 + ' 0H' + w / 2}
                   className="stroke-surface"
@@ -377,45 +395,175 @@ export function RoomScene({
                 />
               </>
             )}
+            {selected === o.id && o.type !== 'row' && (
+              <rect
+                x={-w / 2 - 4}
+                y={['window', 'door'].includes(o.type) ? -8 : -h / 2 - 4}
+                width={w + 8}
+                height={
+                  o.type === 'door' ? w + 16 : o.type === 'window' ? 16 : h + 8
+                }
+                rx={7}
+                className="admin-scene-selection"
+                fill="none"
+                strokeWidth={2}
+                vectorEffect="non-scaling-stroke"
+                pointerEvents="none"
+              />
+            )}
           </g>
         );
       })}
-      {editor &&
+      {resizeHandles &&
         objects
           .filter(
             (o) =>
               o.id === selected && ['table', 'window', 'door'].includes(o.type),
           )
           .flatMap((o) =>
-            (o.type === 'table'
-              ? ['nw', 'ne', 'se', 'sw']
-              : ['start', 'end']
-            ).map((handle) => {
+            (o.type === 'table' ? ['nw', 'ne', 'sw', 'se'] : ['w', 'e']).map(
+              (handle) => {
+                const p = geometry.handlePoint(o, handle);
+                const sx = handle.includes('w') ? -1 : 1;
+                const sy = handle.includes('n')
+                  ? -1
+                  : handle.includes('s')
+                    ? 1
+                    : 0;
+                const notch =
+                  o.type === 'table'
+                    ? 'M-12 4H-2Q4 4 4 -2V-12'
+                    : 'M-3 -9Q6 -9 6 0Q6 9 -3 9';
+                return (
+                  <g
+                    key={handle}
+                    data-item={o.id}
+                    data-resize={handle}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={'Resize ' + (o.label || o.type) + ' ' + handle}
+                    transform={
+                      'translate(' +
+                      p.x +
+                      ' ' +
+                      p.y +
+                      ') rotate(' +
+                      o.angle +
+                      ')'
+                    }
+                    className="admin-resize-handle"
+                    onKeyDown={(e) => {
+                      const delta: Record<string, [number, number]> = {
+                        ArrowLeft: [-16, 0],
+                        ArrowRight: [16, 0],
+                        ArrowUp: [0, -16],
+                        ArrowDown: [0, 16],
+                      };
+                      if (delta[e.key]) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onResize?.(o.id, handle, ...delta[e.key]);
+                      }
+                    }}
+                  >
+                    <circle r={22 / scale} fill="transparent" />
+                    <g
+                      transform={
+                        'scale(' + sx / scale + ' ' + (sy || 1) / scale + ')'
+                      }
+                      pointerEvents="none"
+                    >
+                      <path
+                        d={notch}
+                        className="stroke-surface"
+                        strokeWidth={7}
+                        strokeLinecap="round"
+                        fill="none"
+                      />
+                      <path
+                        d={notch}
+                        className="admin-resize-grip stroke-accent"
+                        strokeWidth={3}
+                        strokeLinecap="round"
+                        fill="none"
+                      />
+                    </g>
+                  </g>
+                );
+              },
+            ),
+          )}
+      {resizeHandles &&
+        objects
+          .filter((o) => o.id === selected && o.type === 'table')
+          .flatMap((o) =>
+            ['nw', 'ne', 'sw', 'se'].map((handle) => {
               const p = geometry.handlePoint(o, handle);
+              const sx = handle.includes('w') ? -1 : 1;
+              const sy = handle.includes('n') ? -1 : 1;
               return (
                 <g
-                  key={handle}
+                  key={'rotate-' + handle}
                   data-item={o.id}
-                  data-resize={handle}
+                  data-rotate={handle}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={'Rotate ' + (o.label || 'table') + ' ' + handle}
+                  className="admin-rotate-handle"
                   transform={
                     'translate(' +
                     p.x +
                     ' ' +
                     p.y +
+                    ') rotate(' +
+                    o.angle +
+                    ') translate(' +
+                    (sx * 32) / scale +
+                    ' ' +
+                    (sy * 32) / scale +
                     ') scale(' +
                     1 / scale +
                     ')'
                   }
-                  className="cursor-nwse-resize"
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onRotate?.(
+                        o.id,
+                        (e.key === 'ArrowLeft' ? -1 : 1) *
+                          (e.shiftKey ? 90 : 15),
+                      );
+                    }
+                  }}
                 >
-                  <circle r={18} fill="transparent" />
-                  <path
-                    d="M-7 7Q7 7 7-7"
-                    className="stroke-text"
-                    strokeWidth={4}
-                    strokeLinecap="round"
-                    fill="none"
-                  />
+                  <title>
+                    Drag to rotate; hold Shift for 15° steps. Left and right
+                    arrow keys rotate 15°, or 90° with Shift.
+                  </title>
+                  <circle r={22} fill="transparent" />
+                  <g
+                    className="admin-rotate-grip"
+                    transform={'scale(' + sx + ' ' + sy + ')'}
+                    pointerEvents="none"
+                  >
+                    <path
+                      d="M-8 8A16 16 0 0 1 8 -8M-12 2L-8 8L-2 4M2 -12L8 -8L4 -2"
+                      fill="none"
+                      className="stroke-surface"
+                      strokeWidth={5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M-8 8A16 16 0 0 1 8 -8M-12 2L-8 8L-2 4M2 -12L8 -8L4 -2"
+                      fill="none"
+                      className="stroke-accent"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
                 </g>
               );
             }),

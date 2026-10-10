@@ -2,7 +2,7 @@
    Design tokens: ETH study-space seat reservation (mock screens)
    Rule: screens never use hex values or raw px sizes. Use these variables.
    Dark is the default theme. Light is opt-in via <html data-theme="light">.
-   Colours are estimates read from the ETH EduApp plus ETH brand blue;
+   Neutral greys sampled from the ETH EduApp (dark) plus ETH brand colours;
    verify against the real app and correct here, in one place.
    ========================================================================== */
 
@@ -10,32 +10,32 @@
   color-scheme: dark;
 
   /* --- Colour: surfaces & text (dark) -------------------------------- */
-  --bg: #2a2420;
-  --surface: #342d28;
-  --surface-2: #3d352f; /* selected rows, inactive controls */
-  --border: #4a413a;
-  --border-strong: #8a7f77; /* input and control outlines, 3.9:1 */
-  --canvas: #211c19; /* page behind the phone column on desktop */
+  --bg: #121212;
+  --surface: #212121;
+  --surface-2: #3c3c3c; /* selected rows, inactive controls */
+  --border: #333333;
+  --border-strong: #808080; /* input and control outlines, 4.7:1 */
+  --canvas: #0a0a0a; /* page behind the phone column on desktop */
   --hover: rgb(255 255 255 / 0.08);
-  --text: #f1ece8; /* 13.1:1 on bg */
-  --text-muted: #b5aaa2; /* 6.7:1 on bg */
+  --text: #ffffff; /* 18.7:1 on bg */
+  --text-muted: #bdbdbd; /* 10:1 on bg */
 
   /* --- Colour: brand & actions (dark) -------------------------------- */
-  --accent: #6d9de0; /* 5.5:1 on bg */
-  --on-accent: #1d1814; /* 6.3:1 on accent */
+  --accent: #6d9de0; /* 6.7:1 on bg */
+  --on-accent: #121212; /* 6.7:1 on accent */
   --danger: #f47a70;
   --focus: #6d9de0;
 
   /* --- Colour: status. Only for availability / seat state ------------ */
-  --seat-free: #6fbf73; /* 6.8:1 on bg */
+  --seat-free: #6fbf73; /* 8.4:1 on bg */
   --seat-reserved: #b79cf0; /* solid violet fill */
-  --seat-bookable: #f0883e; /* orange, clock badge. 6.1:1 */
-  --seat-occupied: #8a7f77; /* graphic only, never text (3.9:1) */
+  --seat-bookable: #f0883e; /* orange, clock badge. 7.4:1 */
+  --seat-occupied: #808080; /* graphic only, never text (4.7:1) */
   --seat-break: #d3b177; /* bronze fill, distinct from occupied */
   --seat-yours: var(--accent);
-  --on-seat: #1d1814; /* number on a filled seat */
+  --on-seat: #121212; /* number on a filled seat */
 
-  --on-seat-muted: #1d1814; /* numbers on occupied seats, 4.5:1 in both themes */
+  --on-seat-muted: #121212; /* numbers on occupied seats, 4.5:1 in both themes */
 
   /* --- Colour: how full a study space is (dot on cards). Not seat state --- */
   --avail-high: var(--seat-free);
@@ -43,7 +43,7 @@
   --avail-none: var(--danger);
 
   /* --- Camera view: dark in both themes -------------------------------- */
-  --camera-bg: #0b0907;
+  --camera-bg: #0a0a0a;
   --camera-fg: #ffffff;
 
   /* --- Type ----------------------------------------------------------- */
@@ -105,19 +105,19 @@
 :root[data-theme='light'] {
   color-scheme: light;
 
-  --bg: #faf7f4;
+  --bg: #f5f5f5;
   --surface: #ffffff;
-  --surface-2: #f1ece7;
-  --border: #d9d0c8;
-  --border-strong: #8a7f77; /* 3.7:1 */
-  --canvas: #efe9e3;
+  --surface-2: #ebebeb;
+  --border: #dcdcdc;
+  --border-strong: #808080; /* 3.6:1 */
+  --canvas: #e8e8e8;
   --hover: rgb(0 0 0 / 0.06);
-  --text: #2a2420; /* 14.3:1 on bg */
-  --text-muted: #6b6159; /* 5.7:1 on bg */
+  --text: #212121; /* 14.8:1 on bg */
+  --text-muted: #616161; /* 5.7:1 on bg */
 
-  --accent: #215caf; /* ETH blue, 6.1:1 on bg */
+  --accent: #215caf; /* ETH blue, 6.0:1 on bg */
   --on-accent: #ffffff; /* 6.5:1 on accent */
-  --danger: #b7352d; /* 5.5:1 on bg */
+  --danger: #b7352d; /* 5.4:1 on bg */
   --focus: #215caf;
 
   --shadow: 0 1px 3px rgb(36 36 36 / 0.08);
@@ -125,7 +125,7 @@
   --seat-free: #2e7d32; /* 4.8:1 */
   --seat-reserved: #6d4bc4; /* 5.7:1 */
   --seat-bookable: #b45309; /* 4.7:1 */
-  --seat-occupied: #8a7f77; /* graphic only (3.7:1) */
+  --seat-occupied: #808080; /* graphic only (3.6:1) */
   --seat-break: #8e6713;
   --on-seat: #ffffff;
 
@@ -139,4 +139,7 @@
   }
 }
 
-:root { --admin-sidebar:15rem; --admin-canvas:36rem; --admin-properties:18rem; --admin-tool:2rem; }
+:root { --admin-sidebar:15rem; --admin-canvas:min(65vh,40rem); --admin-canvas-min:24rem; --admin-properties:16rem; --admin-tool:2rem; }
+
+/* Shared React/admin dimensions (the existing HTML layouts use these same values). */
+:root { --admin-option:1.625rem; --admin-row:4rem; --admin-map:26rem; --admin-dialog:32rem; --admin-form:44rem; --admin-search:24rem; --admin-qr-fields:20rem; --admin-chart:6rem; }

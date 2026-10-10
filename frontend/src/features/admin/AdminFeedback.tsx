@@ -1,5 +1,5 @@
 import { Alert, Text } from '@mantine/core';
-import { DecisionSheet } from '../../components/DecisionSheet';
+import { AdminDialog } from './AdminDialog';
 import { StatusBanner } from '../../components/StatusBanner';
 import type { useAdminAction } from './useAdminAction';
 export function AdminFeedback({
@@ -14,15 +14,18 @@ export function AdminFeedback({
           {action.error}
         </Alert>
       )}
-      <StatusBanner
-        opened={!!action.notice}
-        onClose={() => action.setNotice('')}
-        title="Updated"
-        icon="check"
-      >
-        {action.notice}
-      </StatusBanner>
-      <DecisionSheet
+      {!action.globalNotice && (
+        <StatusBanner
+          placement="admin"
+          opened={!!action.notice}
+          onClose={() => action.setNotice('')}
+          title="Updated"
+          icon="check"
+        >
+          {action.notice}
+        </StatusBanner>
+      )}
+      <AdminDialog
         opened={!!action.conflict}
         onClose={() => action.setConflict(null)}
         title="Apply changes to existing reservations?"
@@ -42,7 +45,7 @@ export function AdminFeedback({
             </Text>
           ))}
         </span>
-      </DecisionSheet>
+      </AdminDialog>
     </>
   );
 }

@@ -139,140 +139,191 @@ export function AdminQrPage() {
     }
   }
   return (
-    <div className="admin-qr-page grid gap-4">
-      <Title order={locked ? 2 : 1}>QR codes</Title>
-      <div className="admin-qr-controls grid gap-3">
-        {locked ? (
-          <Text fw={600}>
-            {room.data?.space.name || 'Loading study place…'}
+    <div className="admin-qr-page admin-page">
+      <header className="admin-page-header admin-qr-controls">
+        <div>
+          <Title order={locked ? 2 : 1}>QR codes</Title>
+          <Text c="dimmed">
+            Generate printable seat labels for a study space.
           </Text>
-        ) : (
-          <NativeSelect
-            label="Study place"
-            value={id}
-            data={
-              spaces.data?.spaces
-                .filter((s) => !s.is_archived)
-                .map((s) => ({ value: s.id, label: s.name })) || []
-            }
+        </div>
+        <Button
+          variant="secondary"
+          disabled={!labels.length}
+          onClick={() => window.print()}
+        >
+          Print / Save PDF
+        </Button>
+      </header>
+      <div className="admin-qr-workspace">
+        <Card className="admin-qr-controls admin-user-card">
+          {locked ? (
+            <div>
+              <span className="text-label font-bold tracking-label text-text-muted uppercase">
+                Study space
+              </span>
+              <Text fw={600}>
+                {room.data?.space.name || 'Loading study place…'}
+              </Text>
+            </div>
+          ) : (
+            <NativeSelect
+              label="Study place"
+              disabled={busy}
+              value={id}
+              data={
+                spaces.data?.spaces
+                  .filter((s) => !s.is_archived)
+                  .map((s) => ({ value: s.id, label: s.name })) || []
+              }
+              onChange={(e) => {
+                setChosen(e.currentTarget.value);
+                setLabels([]);
+                setSelected(null);
+              }}
+            />
+          )}
+          <TextInput
+            label="Student app address"
+            value={address}
+            disabled={busy}
             onChange={(e) => {
-              setChosen(e.currentTarget.value);
+              setAddress(e.currentTarget.value);
               setLabels([]);
-              setSelected(null);
             }}
           />
-        )}
-        <TextInput
-          label="Student app address"
-          value={address}
-          onChange={(e) => {
-            setAddress(e.currentTarget.value);
-            setLabels([]);
-          }}
-        />
-        <div className="flex gap-2">
-          {[3, 4].map((cm) => (
-            <Button
-              key={cm}
-              variant={cm === size ? 'secondary' : 'quiet'}
-              aria-pressed={cm === size}
-              onClick={() => setSize(cm)}
-            >
-              {cm} × {cm} cm
-            </Button>
-          ))}
-        </div>
-        <Text size="sm" c="dimmed">
-          The QR image includes its white margin. Print at 100% / actual size.
-          Room and seat captions sit outside the QR area.
-        </Text>
-        <details>
-          <summary className="cursor-pointer">
-            Choose seats ({target.length})
-          </summary>
-          <div className="grid gap-2 py-3">
-            {seats.map((s) => (
-              <Checkbox
-                key={s.id}
-                label={'Seat ' + s.label}
-                checked={target.some((t) => t.id === s.id)}
-                onChange={(e) => {
-                  const ids = target.map((t) => t.id);
-                  setSelected(
-                    e.currentTarget.checked
-                      ? [...ids, s.id]
-                      : ids.filter((x) => x !== s.id),
-                  );
-                  setLabels([]);
-                }}
-              />
-            ))}
-            <Button
-              variant="quiet"
-              onClick={() => {
-                setSelected([]);
-                setLabels([]);
-              }}
-            >
-              All seats
-            </Button>
+          <div className="grid gap-2">
+            <span className="text-small font-semibold">QR image size</span>
+            <div className="admin-qr-sizes flex flex-wrap gap-2">
+              {[3, 4].map((cm) => (
+                <Button
+                  key={cm}
+                  variant="secondary"
+                  aria-pressed={cm === size}
+                  onClick={() => setSize(cm)}
+                >
+                  {cm} × {cm} cm
+                </Button>
+              ))}
+            </div>
           </div>
-        </details>
-        <div className="flex gap-3">
+          <Text size="sm" c="dimmed">
+            The image includes its white margin. Print at 100% / actual size.
+            Captions sit outside the QR area.
+          </Text>
+          <details>
+            <summary className="cursor-pointer">
+              Choose seats ({target.length})
+            </summary>
+            <div className="grid gap-2 py-3">
+              {seats.map((s) => (
+                <Checkbox
+                  key={s.id}
+                  disabled={busy}
+                  label={'Seat ' + s.label}
+                  checked={target.some((t) => t.id === s.id)}
+                  onChange={(e) => {
+                    const ids = target.map((t) => t.id);
+                    setSelected(
+                      e.currentTarget.checked
+                        ? [...ids, s.id]
+                        : ids.filter((x) => x !== s.id),
+                    );
+                    setLabels([]);
+                  }}
+                />
+              ))}
+              <div className="flex gap-2">
+                <Button
+                  variant="quiet"
+                  disabled={busy}
+                  onClick={() => {
+                    setSelected(seats.map((s) => s.id));
+                    setLabels([]);
+                  }}
+                >
+                  All seats
+                </Button>
+                <Button
+                  variant="quiet"
+                  disabled={busy}
+                  onClick={() => {
+                    setSelected([]);
+                    setLabels([]);
+                  }}
+                >
+                  Clear selection
+                </Button>
+              </div>
+            </div>
+          </details>
           <Button
             disabled={busy || !target.length || room.data?.space.is_archived}
             onClick={() => void generate()}
           >
             {busy ? 'Generating…' : 'Generate labels'}
           </Button>
-          <Button
-            variant="secondary"
-            disabled={!labels.length}
-            onClick={() => window.print()}
+          <Text size="sm" c="dimmed">
+            Labels identify seats. Students need a matching reservation and must
+            confirm check-in.
+          </Text>
+          {(error || room.isError || spaces.isError) && (
+            <Alert variant="danger">
+              {error || errorMessage(room.error || spaces.error)}
+              <Button
+                variant="quiet"
+                onClick={() => {
+                  void room.refetch();
+                  void spaces.refetch();
+                }}
+              >
+                Retry loading seats
+              </Button>
+            </Alert>
+          )}
+        </Card>
+        <Card className="admin-qr-preview">
+          <div className="admin-qr-controls flex flex-wrap items-center justify-between gap-3">
+            <Title order={2}>Print preview</Title>
+            <Text size="sm" c="dimmed">
+              {labels.length} labels · {size} × {size} cm
+            </Text>
+          </div>
+          <div
+            className="admin-qr-labels"
+            style={{ '--admin-qr-size': size + 'cm' } as React.CSSProperties}
           >
-            Print / Save PDF
-          </Button>
-        </div>
-        <Text size="sm" c="dimmed">
-          Labels identify seats. Students still need a matching reservation and
-          must confirm check-in.
-        </Text>
+            {labels.map((l) => (
+              <Card key={l.seatId} className="admin-qr-label">
+                <strong>{l.room}</strong>
+                <Text className="text-title">Seat {l.label}</Text>
+                <img
+                  className="admin-qr-image"
+                  src={
+                    'data:image/svg+xml;charset=utf-8,' +
+                    encodeURIComponent(l.svg)
+                  }
+                  alt={'QR for ' + l.room + ', seat ' + l.label}
+                />
+                <Button
+                  className="admin-qr-controls"
+                  variant="quiet"
+                  onClick={() => download(l)}
+                >
+                  Download SVG
+                </Button>
+              </Card>
+            ))}
+          </div>
+          {!labels.length && (
+            <Text className="admin-qr-controls py-8" c="dimmed">
+              {!seats.length
+                ? 'Add seats in Layout before generating their labels.'
+                : 'Generate labels to see the print layout.'}
+            </Text>
+          )}
+        </Card>
       </div>
-      {(error || room.isError || spaces.isError) && (
-        <Alert variant="danger">
-          {error || errorMessage(room.error || spaces.error)}
-        </Alert>
-      )}
-      <div
-        className="admin-qr-labels"
-        style={{ '--admin-qr-size': size + 'cm' } as React.CSSProperties}
-      >
-        {labels.map((l) => (
-          <Card key={l.seatId} className="admin-qr-label">
-            <strong>{l.room}</strong>
-            <Text className="text-title">Seat {l.label}</Text>
-            <img
-              className="admin-qr-image"
-              src={
-                'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(l.svg)
-              }
-              alt={'QR for ' + l.room + ', seat ' + l.label}
-            />
-            <Button
-              className="admin-qr-controls"
-              variant="quiet"
-              onClick={() => download(l)}
-            >
-              Download SVG
-            </Button>
-          </Card>
-        ))}
-      </div>
-      {!labels.length && (
-        <Text className="admin-qr-controls" c="dimmed">
-          Generate labels to see the print layout.
-        </Text>
-      )}
     </div>
   );
 }

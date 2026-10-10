@@ -22,6 +22,7 @@ export interface RoomGeometry {
     scale: number;
     padding: number;
     axis: string;
+    canvasTransform?: { rotation: number; offsetX: number; offsetY: number };
   };
   mapRef?: {
     workspaceId?: string;

@@ -356,6 +356,26 @@
         "title": "AdminSeatResponse",
         "type": "object"
       },
+      "AdminSpaceDeletedResponse": {
+        "properties": {
+          "deleted_space_id": {
+            "format": "uuid",
+            "title": "Deleted Space Id",
+            "type": "string"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "server_time",
+          "deleted_space_id"
+        ],
+        "title": "AdminSpaceDeletedResponse",
+        "type": "object"
+      },
       "AdminSpaceDetails": {
         "properties": {
           "active_seats": {
@@ -4569,6 +4589,107 @@
           }
         },
         "summary": "Get Space Overview",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/spaces/{space_id}/permanent": {
+      "delete": {
+        "operationId": "admin_permanently_delete_space",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSpaceDeletedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 400 Admin Permanently Delete Space"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Permanently Delete Space",
         "tags": [
           "admin"
         ]

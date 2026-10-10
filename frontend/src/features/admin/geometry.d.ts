@@ -54,6 +54,14 @@ interface Geometry {
     x: number,
     y: number,
   ): LayoutItem[];
+  resizeBy(
+    room: RoomGeometry,
+    items: LayoutItem[],
+    id: string,
+    handle: string,
+    dx: number,
+    dy: number,
+  ): LayoutItem[];
   handlePoint(item: LayoutItem, handle: string): { x: number; y: number };
   overlaps(a: LayoutItem, b: LayoutItem): boolean;
   valid(room: RoomGeometry, item: LayoutItem): boolean;

@@ -5,7 +5,7 @@ from secrets import token_urlsafe
 from uuid import UUID
 
 from fastapi.exceptions import RequestValidationError
-from sqlalchemy import delete, func, or_, select, text
+from sqlalchemy import delete, func, or_, select, text, update
 
 from app.features.campus_map.floor_plans import FloorPlans
 from app.features.reservations.admin_schemas import (
@@ -18,6 +18,7 @@ from app.features.reservations.admin_schemas import (
     AdminSeatDetails,
     AdminSeatOverview,
     AdminSeatResponse,
+    AdminSpaceDeletedResponse,
     AdminSpaceDetails,
     AdminSpaceOverview,
     AdminSpaceOverviewResponse,
@@ -35,6 +36,7 @@ from app.features.reservations.admin_schemas import (
     UpdateSpaceRequest,
 )
 from app.features.reservations.models import (
+    Break,
     Reservation,
     Seat,
     SpaceClosure,
@@ -48,6 +50,7 @@ from app.features.reservations.service import (
     ReservationState,
     reservation_states,
 )
+from app.models.favourite import FavouriteSpace
 from app.models.profile import UserProfile
 
 
@@ -511,6 +514,40 @@ class AdminReservationService(ReservationService):
         room.is_archived = archived
         self.session.flush()
         return self.space_response(room, now, [])
+
+    def permanently_delete_space(self, space_id: UUID) -> AdminSpaceDeletedResponse:
+        room, seats, now = self.lock_space(space_id)
+        if not room.is_archived:
+            raise BookingError(
+                409, "space_not_archived", "Delete this study place before removing it permanently"
+            )
+        seat_ids = [seat.id for seat in seats]
+        if self._live(now, seat_ids=seat_ids):
+            raise BookingError(
+                409,
+                "live_reservations",
+                "End current and upcoming reservations "
+                "before permanently deleting this study place",
+            )
+        reservation_ids = select(Reservation.id).where(Reservation.seat_id.in_(seat_ids))
+        self.session.execute(delete(Break).where(Break.reservation_id.in_(reservation_ids)))
+        # Remove predecessor references first so history chains do not prevent
+        # deletion. Any surviving reservation keeps its own history and identity.
+        self.session.execute(
+            update(Reservation)
+            .where(Reservation.previous_reservation_id.in_(reservation_ids))
+            .values(previous_reservation_id=None)
+        )
+        self.session.execute(delete(Reservation).where(Reservation.seat_id.in_(seat_ids)))
+        self.session.execute(delete(SpaceClosure).where(SpaceClosure.space_id == space_id))
+        self.session.execute(
+            delete(SpaceOpeningInterval).where(SpaceOpeningInterval.space_id == space_id)
+        )
+        self.session.execute(delete(FavouriteSpace).where(FavouriteSpace.space_id == space_id))
+        self.session.execute(delete(Seat).where(Seat.space_id == space_id))
+        self.session.delete(room)
+        self.session.flush()
+        return AdminSpaceDeletedResponse(server_time=now, deleted_space_id=space_id)
 
     def save_layout(self, space_id: UUID, layout: dict, force: bool) -> AdminSpaceOverviewResponse:
         from math import isfinite

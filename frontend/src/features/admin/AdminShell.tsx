@@ -1,50 +1,82 @@
-import { Link, NavLink, Outlet, useParams } from 'react-router';
-import { Alert, Button, Title, Text } from '@mantine/core';
+import { useState } from 'react';
+import { AdminNoticeContext } from './AdminNoticeContext';
+import { StatusBanner } from '../../components/StatusBanner';
+import { AdminSpaceActionsContext } from './AdminSpaceActionsContext';
+import { Link, NavLink, Outlet, useParams, useLocation } from 'react-router';
+import { Alert, Avatar, Button, Title, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import * as queries from '../../api/generated/@tanstack/react-query.gen';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { Icon } from '../../components/Icon';
+import { AdminStateChip } from './AdminStateChip';
 import { adminHeaders, errorMessage } from './useAdminAction';
 export function AdminShell() {
+  const [notice, setNotice] = useState('');
+  const { pathname } = useLocation();
+  const inSpaces =
+    pathname === '/admin' ||
+    pathname === '/admin/new' ||
+    pathname.startsWith('/admin/spaces/');
   return (
-    <div className="admin-frame">
-      <aside className="admin-sidebar">
-        <Link to="/admin" className="grid gap-1 px-3 py-2">
-          <strong className="text-title">Study Spaces</strong>
-          <span className="text-label uppercase text-text-muted">Admin</span>
-        </Link>
-        <nav aria-label="Admin" className="grid gap-1">
-          <NavLink end to="/admin" className="admin-nav">
-            <Icon name="map" />
-            Spaces
-          </NavLink>
-          <NavLink to="/admin/users" className="admin-nav">
-            <Icon name="user" />
-            Users
-          </NavLink>
-          <NavLink to="/admin/qr" className="admin-nav">
-            <Icon name="qr" />
-            QR codes
-          </NavLink>
-        </nav>
-        <div className="mt-auto grid gap-2">
-          <Link to="/" className="admin-nav">
-            <Icon name="home" />
-            Student app
+    <AdminNoticeContext.Provider value={{ notice, setNotice }}>
+      <div className="admin-frame">
+        <aside className="admin-sidebar">
+          <Link to="/admin" className="admin-brand">
+            <strong className="text-title">Study Spaces</strong>
+            <span className="text-label uppercase text-text-muted">Admin</span>
           </Link>
-          <div className="flex items-center justify-between px-3">
-            <Text size="sm">Admin</Text>
-            <ThemeToggle />
+          <nav aria-label="Admin" className="admin-sidebar-nav">
+            <Link
+              to="/admin"
+              className="admin-nav"
+              aria-current={inSpaces ? 'page' : undefined}
+            >
+              <Icon name="map" />
+              Spaces
+            </Link>
+            <NavLink to="/admin/users" className="admin-nav">
+              <Icon name="user" />
+              Users
+            </NavLink>
+            <NavLink to="/admin/qr" className="admin-nav">
+              <Icon name="qr" />
+              QR codes
+            </NavLink>
+          </nav>
+          <div className="admin-sidebar-foot">
+            <Link to="/" className="admin-nav">
+              <Icon name="home" />
+              Student app
+            </Link>
+            <div className="admin-sidebar-user">
+              <Avatar radius="xl">AD</Avatar>
+              <Text size="sm" className="flex-1">
+                Admin
+              </Text>
+              <ThemeToggle />
+            </div>
           </div>
-        </div>
-      </aside>
-      <main className="admin-content">
-        <Outlet />
-      </main>
-    </div>
+        </aside>
+        <main className="admin-content">
+          <Outlet />
+        </main>
+        <StatusBanner
+          placement="admin"
+          opened={!!notice}
+          onClose={() => setNotice('')}
+          title="Updated"
+          icon="check"
+        >
+          {notice}
+        </StatusBanner>
+      </div>
+    </AdminNoticeContext.Provider>
   );
 }
 export function AdminSpaceShell() {
+  const [actionsElement, setActionsElement] = useState<HTMLDivElement | null>(
+    null,
+  );
   const { spaceId } = useParams();
   const query = useQuery(
     queries.adminGetSpaceOverviewOptions({
@@ -64,17 +96,36 @@ export function AdminSpaceShell() {
     );
   const space = query.data.space;
   return (
-    <div className="grid gap-6">
-      <Link to="/admin" className="flex items-center gap-2 text-text-muted">
+    <div className="admin-page">
+      <Link to="/admin" className="admin-crumb">
         <Icon name="back" size="sm" />
         Spaces
       </Link>
-      <header>
-        <Title order={1}>{space.name}</Title>
-        <Text c="dimmed">
-          {space.is_archived ? 'Deleted' : space.is_open ? 'Open' : 'Closed'} ·{' '}
-          {space.timezone}
-        </Text>
+      <header className="admin-page-header">
+        <div>
+          <Title order={1}>{space.name}</Title>
+          <Text c="dimmed">
+            <AdminStateChip
+              label={
+                space.is_archived
+                  ? 'Deleted'
+                  : space.is_open
+                    ? 'Open'
+                    : 'Closed'
+              }
+              tone={
+                !space.is_archived && space.is_open ? 'free' : 'unavailable'
+              }
+            />{' '}
+            · {space.timezone}
+          </Text>
+        </div>
+        <div className="admin-header-actions">
+          <Button variant="secondary" onClick={() => void query.refetch()}>
+            Refresh
+          </Button>
+          <div ref={setActionsElement} className="admin-header-actions" />
+        </div>
       </header>
       <nav className="admin-tabs" aria-label="This space">
         {[
@@ -90,7 +141,9 @@ export function AdminSpaceShell() {
           </NavLink>
         ))}
       </nav>
-      <Outlet context={space} />
+      <AdminSpaceActionsContext.Provider value={actionsElement}>
+        <Outlet context={space} />
+      </AdminSpaceActionsContext.Provider>
     </div>
   );
 }

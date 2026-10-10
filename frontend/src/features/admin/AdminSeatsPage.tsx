@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
 import { Button, Text, TextInput, Title } from '@mantine/core';
 import * as api from '../../api/generated';
-import { DecisionSheet } from '../../components/DecisionSheet';
+import { AdminDialog } from './AdminDialog';
+import { Icon } from '../../components/Icon';
+import { AdminStat } from './AdminStat';
+import { AdminStateChip } from './AdminStateChip';
 import { AdminFeedback } from './AdminFeedback';
 import { adminHeaders, useAdminAction } from './useAdminAction';
 export function AdminSeatsPage() {
@@ -13,8 +16,8 @@ export function AdminSeatsPage() {
     [label, setLabel] = useState(''),
     [ending, setEnding] = useState<api.AdminReservationDetails | null>(null);
   return (
-    <div className="grid gap-4">
-      <div className="flex items-center justify-between">
+    <div className="grid gap-6">
+      <div className="admin-page-header">
         <Title order={2}>Seats and current users</Title>
         <Button
           disabled={space.is_archived}
@@ -26,12 +29,25 @@ export function AdminSeatsPage() {
           Add seat
         </Button>
       </div>
+      <div className="admin-stats" aria-label="Seats now">
+        <AdminStat
+          label="Active seats"
+          value={space.active_seats}
+          detail={'of ' + space.total_seats}
+        />
+        <AdminStat label="Free" value={space.free_seats} />
+        <AdminStat label="Occupied" value={space.occupied_seats} />
+        <AdminStat label="On break" value={space.on_break_seats} />
+      </div>
       <TextInput
-        label="Find seat or user"
+        className="admin-search"
+        aria-label="Find seat or user"
+        placeholder="Find seat or user"
+        leftSection={<Icon name="search" />}
         value={search}
         onChange={(e) => setSearch(e.currentTarget.value)}
       />
-      <div className="overflow-x-auto">
+      <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
@@ -59,11 +75,20 @@ export function AdminSeatsPage() {
                   <tr key={s.id}>
                     <td className="font-semibold">{s.label}</td>
                     <td>
-                      <span className="capitalize">
-                        {s.is_active
-                          ? s.state.replace('_', ' ')
-                          : 'Switched off'}
-                      </span>
+                      <AdminStateChip
+                        tone={s.state}
+                        label={
+                          !s.is_active
+                            ? 'Switched off'
+                            : s.state === 'unavailable'
+                              ? 'Closed'
+                              : s.state === 'claimable'
+                                ? 'Bookable'
+                                : s.state === 'on_break'
+                                  ? 'On break'
+                                  : s.state[0].toUpperCase() + s.state.slice(1)
+                        }
+                      />
                     </td>
                     <td>
                       {r ? (
@@ -106,7 +131,11 @@ export function AdminSeatsPage() {
                           QR code
                         </Button>
                         {r && (
-                          <Button variant="quiet" onClick={() => setEnding(r)}>
+                          <Button
+                            variant="quiet"
+                            className="admin-risky"
+                            onClick={() => setEnding(r)}
+                          >
                             End reservation
                           </Button>
                         )}
@@ -125,7 +154,7 @@ export function AdminSeatsPage() {
         </Text>
       )}
       <AdminFeedback action={action} />
-      <DecisionSheet
+      <AdminDialog
         opened={adding}
         onClose={() => setAdding(false)}
         title="Add a seat"
@@ -152,8 +181,8 @@ export function AdminSeatsPage() {
           onChange={(e) => setLabel(e.currentTarget.value)}
           required
         />
-      </DecisionSheet>
-      <DecisionSheet
+      </AdminDialog>
+      <AdminDialog
         opened={!!ending}
         onClose={() => setEnding(null)}
         title="End this reservation?"
@@ -175,7 +204,7 @@ export function AdminSeatsPage() {
         }}
       >
         {ending?.user.display_name} · seat {ending?.seat.label}
-      </DecisionSheet>
+      </AdminDialog>
     </div>
   );
 }

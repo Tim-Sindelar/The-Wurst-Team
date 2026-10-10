@@ -127,10 +127,11 @@ For proxy authentication configure `ADMIN_USER_IDS` as a JSON array of administr
 | Method | Path (under `/api/v1/admin`) | Purpose |
 | --- | --- | --- |
 | GET | `/spaces` | Rooms with opening status and seat/occupancy counts |
-| POST | `/spaces` | Create a room with name, coordinates, optional layout, timezone, and hours |
+| POST | `/spaces` | Create a study space linked to a canonical map room, with optional layout, timezone and hours |
 | PATCH | `/spaces/{space_id}` | Edit room metadata, layout, or timezone |
 | DELETE | `/spaces/{space_id}` | Archive a study place and preserve its history |
 | POST | `/spaces/{space_id}/restore` | Restore an archived place |
+| DELETE | `/spaces/{space_id}/permanent` | Permanently remove an archived place and its owned data |
 | PUT | `/spaces/{space_id}/layout` | Atomically save placements and numbered seats, preserving bound IDs and QR tokens |
 | GET | `/users` / `/users/{user_id}` | User list, study-time totals and reservation history |
 | PATCH | `/users/{user_id}` | Edit the saved display name |
@@ -144,7 +145,9 @@ For proxy authentication configure `ADMIN_USER_IDS` as a JSON array of administr
 | DELETE | `/spaces/{space_id}/closures/{closure_id}` | Remove a closure |
 | POST | `/reservations/{reservation_id}/end` | End/cancel a booking immediately; repeat safely |
 
-Create a room with `{"name":"Reading room","map_room_id":"ETH.HG.E.E_007"}`. The room ID must exist in the floor-plan catalog; the backend supplies its coordinates. Rooms default to Swiss time (`Europe/Zurich`) and continuous opening, and seats default to active. Existing rooms and seats receive those defaults through the migration. Room creation does not create seats; add them through the seats endpoint with `{"label":"A-1"}`. Editing a room or seat accepts only supplied fields; empty patches and explicit nulls are rejected. There are no hard-delete, ban, or QR-rotation endpoints.
+Create a room with `{"name":"Reading room","map_room_id":"ETH.HG.E.E_007"}`. The room ID must exist in the floor-plan catalog; the backend supplies its coordinates. Rooms default to Swiss time (`Europe/Zurich`) and continuous opening, and seats default to active. Existing rooms and seats receive those defaults through the migration. Room creation does not create seats; add them through the seats endpoint with `{"label":"A-1"}`. Editing a room or seat accepts only supplied fields; empty patches and explicit nulls are rejected. There are no ban or QR-rotation endpoints.
+
+Permanent deletion requires an archived space with no current or upcoming bookings. It atomically removes the space, layout, seats and QR tokens, opening hours, closures, favourites, reservations and their breaks. User profiles, other spaces and the campus map inventory remain. The canonical room can then be registered as a new study space, with new seat IDs and QR tokens. The deleted space and its history cannot be restored.
 
 Opening hours use room-local time, including Zurich daylight-saving changes. Each interval has `weekday` (Monday `0` through Sunday `6`), `start_minute`, and `end_minute` (minutes since midnight, with `1440` representing the end of the day). For example, `{"opening_hours":[{"weekday":0,"start_minute":480,"end_minute":1200}]}` opens Monday 08:00–20:00 and closes every other day. Multiple intervals are supported; adjacent intervals are continuous and overlaps are rejected. Split overnight hours across adjacent weekdays. An empty list closes the room all week.
 
@@ -160,7 +163,7 @@ Overview names come from saved profiles, with `Demo user <UUID>` fallbacks. The 
 
 The HTML mockups stay in `design/admin/`. React feature code lives in `frontend/src/features/admin/` and uses the generated SDK and TanStack Query helpers.
 
-- Spaces: search, create from campus room outlines, settings, archive and restore. Deletion blocks new reservations while preserving seats and history. End live bookings before deleting a place.
+- Spaces: search, create from campus room outlines, settings, archive and restore. Deletion blocks new reservations while preserving seats and history. Under **Show deleted study places**, **Delete permanently** confirms removal of the space and its owned data. End live bookings before deleting a place.
 - Room management: seats and current users, multiple weekly opening intervals, dated room/seat closures, and conflict review before affecting bookings.
 - Layout: table shapes, snapped resizing, upright labels, clockwise numbering, straight and curved seat rows, windows/doors, table and seat features, undo/redo, shortcuts, wheel zoom and middle-button pan. Saves are atomic. Use **Backend seat** on a placed seat to assign an existing QR label. Unassigned positions receive new IDs and tokens; removed positions deactivate their seats and preserve history.
 - Users: search profiles and reservation records, edit display names, review history and study time excluding breaks, and end live bookings. Email, ban and account deletion controls are omitted because the backend does not model them.
@@ -169,6 +172,8 @@ The HTML mockups stay in `design/admin/`. React feature code lives in `frontend/
 Apply the migrations before running this version. Main’s map-room migration requires an empty `study_spaces` table; preserve existing data and plan its migration rather than clearing it automatically. From `backend/`, run `uv run --locked alembic upgrade head` if not using Compose. Schema-version-1 layouts retain campus unit/workspace references in `room.mapRef`, geographic coordinates and approximate metre scale. These link the catalogs; the mobile map's generated inventory remains a separate model and is not rewritten by layout saves.
 
 ### Room borders
+
+Add space uses the same Leaflet/MapLibre renderer, basemaps and backend map styles as the student campus map. Choose a building and floor, click a room or search its label, then create the space. Selection fetches that room’s exact boundary from the backend and projects it into the layout editor at an approximate metre scale. Exact search matches appear first; typing a new query clears the old selection. Registered rooms cannot be created twice. Deleted rooms link to their management controls; restore them to keep their history, or permanently remove them before creating them again.
 
 Room selection requires generated PolyMaps files, which are intentionally untracked. Build them from the public ETH data once:
 

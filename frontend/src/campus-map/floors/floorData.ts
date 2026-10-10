@@ -137,21 +137,78 @@ function decodeLevel(raw: RawLevel): LevelPlan {
 export const levelLabel = (levelId: string) =>
   levelId.slice(levelId.lastIndexOf('.') + 1);
 
-/** Floor letter(s) for a vertical order: the distinct letters of the given levels on it, e.g. "E" or "E/F". */
+/** Legacy lists can show the combined letters on a native floor number. */
 export function floorLabel(floor: number, levels: LevelInfo[]) {
   const labels = [
     ...new Set(levels.filter((l) => l.floor === floor).map((l) => l.label)),
   ].sort();
   return labels.length > 3
-    ? `${labels.slice(0, 2).join('/')}…`
+    ? labels.slice(0, 2).join('/') + '…'
     : labels.join('/') || String(floor);
 }
 
-/** Floor letter shown for a library: its level's letter, else the letters on its vertical order (needs the index). */
+/** One floor letter: an intermediate floor ("FO") counts as its base floor ("F"). */
+export const baseLetter = (label: string) =>
+  label.length > 1 && label.endsWith('O') ? label.slice(0, -1) : label;
+
+/**
+ * The building to name the floors after: the one whose level outlines hold the
+ * point, else the nearest one. Null without levels.
+ */
+export function focusFacility(
+  levels: LevelInfo[],
+  lat: number,
+  lng: number,
+): string | null {
+  const kx = Math.cos((lat * Math.PI) / 180);
+  let best: string | null = null;
+  let bestD = Infinity;
+  for (const l of levels) {
+    const [w, s, e, n] = l.bbox;
+    const dx = Math.max(w - lng, 0, lng - e) * kx;
+    const dy = Math.max(s - lat, 0, lat - n);
+    // Inside several boxes: the smaller box is the closer fit.
+    const d =
+      dx === 0 && dy === 0 ? -1 / ((e - w) * kx * (n - s)) : Math.hypot(dx, dy);
+    if (d < bestD) [best, bestD] = [l.facilityId, d];
+  }
+  return best;
+}
+
+/**
+ * A single floor letter for a floor number: the letter the building in focus
+ * uses for it, else the one most buildings among `levels` use. Floor numbers
+ * stay as they are (per building, from the room names); only the label is
+ * picked, since buildings letter the same storey differently.
+ */
+export function singleFloorLabel(
+  floor: number,
+  levels: LevelInfo[],
+  focus: string | null,
+): string {
+  const on = levels.filter((l) => l.floor === floor);
+  const own = on.find((l) => l.facilityId === focus);
+  if (own) return baseLetter(own.label);
+  const votes = new Map<string, number>();
+  for (const l of on) {
+    const letter = baseLetter(l.label);
+    votes.set(letter, (votes.get(letter) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  let bestVotes = 0;
+  for (const [letter, n] of [...votes].sort(([a], [b]) => a.localeCompare(b)))
+    if (n > bestVotes) [best, bestVotes] = [letter, n];
+  return best ?? String(floor);
+}
+
+/** Floor letter shown for a library: its level's letter, else its building's letter for its floor (needs the index). */
 export const libraryFloorLabel = (
-  lib: { floor: number; levelId?: string | null },
+  lib: { floor: number; levelId?: string | null; facilityId?: string | null },
   levels: LevelInfo[] = [],
-) => (lib.levelId ? levelLabel(lib.levelId) : floorLabel(lib.floor, levels));
+) =>
+  lib.levelId
+    ? baseLetter(levelLabel(lib.levelId))
+    : singleFloorLabel(lib.floor, levels, lib.facilityId ?? null);
 
 export const intersects = (
   b: LevelInfo['bbox'],
@@ -264,4 +321,21 @@ export async function outlineFromRooms(
       coordinates: polys as MultiPolygon['coordinates'],
     };
   }
+}
+
+/** Fetch the exact native room boundary; failures remain retryable in admin. */
+export async function loadRoomOutline(roomId: string): Promise<MultiPolygon> {
+  const levelId = roomId.split('.').slice(0, 3).join('.');
+  const rooms = await loadRoomOutlines(levelId);
+  const coordinates = rooms[roomId];
+  if (!coordinates?.length) {
+    roomOutlineCache.delete(levelId);
+    throw new Error(
+      'No outline is available for this room. Choose another room.',
+    );
+  }
+  return {
+    type: 'MultiPolygon',
+    coordinates: coordinates as MultiPolygon['coordinates'],
+  };
 }

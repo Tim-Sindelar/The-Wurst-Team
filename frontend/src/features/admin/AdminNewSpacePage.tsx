@@ -1,34 +1,35 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { lazy, Suspense, useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router';
 import {
   Alert,
   Button,
+  Card,
   NativeSelect,
   Text,
   TextInput,
   Title,
 } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
-import { MapContainer, Polygon, Tooltip, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
 import {
   loadFloorIndex,
   loadLevel,
+  loadRoomOutline,
   roomName,
   type Room,
 } from '../../campus-map/floors/floorData';
+import type { RoomRef } from '../../campus-map/domain/types';
+import { assertOccupancyData } from '../../campus-map/domain/validate';
+import { outlineBounds } from '../../campus-map/map/geo';
+import { Icon } from '../../components/Icon';
 import * as api from '../../api/generated';
 import * as q from '../../api/generated/@tanstack/react-query.gen';
 import { AdminFeedback } from './AdminFeedback';
+import { searchRooms } from './roomSearch';
+const AdminRoomMap = lazy(() =>
+  import('./AdminRoomMap').then((module) => ({ default: module.AdminRoomMap })),
+);
 import { adminHeaders, errorMessage, useAdminAction } from './useAdminAction';
 import { projectRoom, documentFor } from './layoutDocument';
-function FitFloor({ points }: { points: [number, number][] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (points.length) map.fitBounds(points, { padding: [20, 20] });
-  }, [map, points]);
-  return null;
-}
 export function AdminNewSpacePage({
   existingSpaceId,
   existingMapRoomId,
@@ -39,82 +40,126 @@ export function AdminNewSpacePage({
   const action = useAdminAction(),
     navigate = useNavigate();
   const index = useQuery({
-    queryKey: ['admin-floor-index'],
+    queryKey: ['campus-floor-index'],
     queryFn: loadFloorIndex,
     staleTime: Infinity,
   });
   const [facility, setFacility] = useState(
-      existingMapRoomId?.split('.').slice(0, 2).join('.') || 'ETH.HG',
-    ),
-    [level, setLevel] = useState(
-      existingMapRoomId?.split('.').slice(0, 3).join('.') || 'ETH.HG.E',
-    ),
-    [search, setSearch] = useState(''),
-    [picked, setPicked] = useState<Room | null>(null),
-    [timezone, setTimezone] = useState('Europe/Zurich');
+    existingMapRoomId?.split('.').slice(0, 2).join('.') || 'ETH.HG',
+  );
+  const [level, setLevel] = useState(
+    existingMapRoomId?.split('.').slice(0, 3).join('.') || 'ETH.HG.E',
+  );
+  const [picked, setPicked] = useState<string | null>(
+    existingMapRoomId || null,
+  );
+  const [search, setSearch] = useState(
+    existingMapRoomId ? roomName(existingMapRoomId) : '',
+  );
+  const [activeResult, setActiveResult] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [timezone, setTimezone] = useState('Europe/Zurich');
+  const [nonce, setNonce] = useState(0);
   const floor = useQuery({
-    queryKey: ['admin-floor', level],
+    queryKey: ['campus-floor', level],
     queryFn: () => loadLevel(level),
     enabled: !!level,
     staleTime: Infinity,
   });
-  useEffect(() => {
-    if (existingMapRoomId && floor.data)
-      setPicked(
-        floor.data.rooms.find((r) => r.id === existingMapRoomId) || null,
-      );
-  }, [existingMapRoomId, floor.data]);
-  const workspaces = useQuery(q.getMapWorkspacesOptions());
+  const outline = useQuery({
+    queryKey: ['campus-room-outline', picked],
+    queryFn: () => loadRoomOutline(picked!),
+    enabled: !!picked,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const workspaces = useQuery({
+    ...q.getMapWorkspacesOptions(),
+    select: assertOccupancyData,
+  });
   const spaces = useQuery(q.adminListSpacesOptions({ headers: adminHeaders }));
+  const info = index.data?.levels.find((l) => l.id === level);
   const levels =
     index.data?.levels.filter((l) => l.facilityId === facility) || [];
-  const rooms =
-    floor.data?.rooms.filter(
-      (r) =>
-        (!existingMapRoomId || r.id === existingMapRoomId) &&
-        (roomName(r.id) + ' ' + r.use)
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-    ) || [];
-  const points =
-    floor.data?.rooms.flatMap((r) => r.rings.flatMap((poly) => poly.flat())) ||
-    [];
-  async function create() {
-    if (!picked) return;
-    const info = index.data?.levels.find((l) => l.id === level);
-    if (!info) return;
-    let room;
+  const registered = spaces.data?.spaces.find(
+    (s) => s.map_room_id === picked && s.id !== existingSpaceId,
+  );
+  const usedRooms = new Set(
+    spaces.data?.spaces
+      .filter((s) => s.id !== existingSpaceId)
+      .map((s) => s.map_room_id),
+  );
+  const matches = searchRooms(
+    (floor.data?.rooms || []).filter(
+      (r) => !existingMapRoomId || r.id === existingMapRoomId,
+    ),
+    search,
+    (r) => roomName(r.id),
+  ).slice(0, 12);
+  const target = useMemo(() => {
+    const bounds =
+      outline.data && picked
+        ? outlineBounds(outline.data)
+        : info
+          ? ([
+              [info.bbox[1], info.bbox[0]],
+              [info.bbox[3], info.bbox[2]],
+            ] as [[number, number], [number, number]])
+          : null;
+    if (!bounds) return null;
+    return {
+      ...(outline.data && picked ? { bounds } : {}),
+      position: {
+        lat: (bounds[0][0] + bounds[1][0]) / 2,
+        lng: (bounds[0][1] + bounds[1][1]) / 2,
+      },
+      zoom: 18.25,
+      nonce,
+    };
+  }, [outline.data, picked, info, nonce]);
+  const geometry = useMemo(() => {
+    if (!picked || !outline.data || !info) return null;
     try {
-      room = projectRoom(
-        {
-          id: picked.id,
-          name: roomName(picked.id),
-          levelId: level,
-          facilityId: facility,
-          floor: info.floor,
-          workspaceId: workspaces.data?.libraries.find((w) =>
-            w.rooms.includes(picked.id),
-          )?.id,
-        },
-        {
-          type: 'MultiPolygon',
-          coordinates: picked.rings.map((poly) =>
-            poly.map((ring) => {
-              const pairs = ring.map(([lat, lng]) => [lng, lat]);
-              if (pairs.length && String(pairs[0]) !== String(pairs.at(-1)))
-                pairs.push(pairs[0]);
-              return pairs;
-            }),
-          ),
-        },
-      );
+      return {
+        room: projectRoom(
+          {
+            id: picked,
+            name: roomName(picked),
+            levelId: info.id,
+            facilityId: info.facilityId,
+            floor: info.floor,
+            workspaceId: workspaces.data?.libraries.find((w) =>
+              w.rooms.includes(picked),
+            )?.id,
+          },
+          outline.data,
+        ),
+        error: null,
+      };
     } catch (e) {
-      await action.run(() => Promise.reject(e), '');
-      return;
+      return { room: null, error: errorMessage(e) };
     }
+  }, [picked, outline.data, info, workspaces.data]);
+  function clearSelection() {
+    setPicked(null);
+    setSearch('');
+    setActiveResult(0);
+  }
+  function choose(room: Room | RoomRef) {
+    if (existingMapRoomId && room.id !== existingMapRoomId) return;
+    setFacility(room.id.split('.').slice(0, 2).join('.'));
+    setLevel(room.id.split('.').slice(0, 3).join('.'));
+    setPicked(room.id);
+    setSearch(roomName(room.id));
+    setNonce((n) => n + 1);
+    setSearchOpen(false);
+  }
+  async function create() {
+    if (!picked || !geometry?.room || registered || !spaces.data) return;
+    const room = geometry.room;
     await action.run(async () => {
       const body = {
-        name: roomName(picked.id),
+        name: roomName(picked),
         timezone,
         layout: documentFor(room, []) as unknown as Record<string, unknown>,
       };
@@ -127,168 +172,305 @@ export function AdminNewSpacePage({
           })
         : await api.adminCreateSpace({
             headers: adminHeaders,
-            body: { ...body, map_room_id: picked.id },
+            body: { ...body, map_room_id: picked },
             throwOnError: true,
           });
       navigate('/admin/spaces/' + result.data.space.id + '/layout');
     }, 'Study place created.');
   }
-  const registered =
-    picked &&
-    spaces.data?.spaces.some(
-      (s) => s.map_room_id === picked.id && s.id !== existingSpaceId,
-    );
   return (
-    <div className="grid gap-4">
-      <Title order={1}>
-        {existingSpaceId ? 'Link a room border' : 'Add study place'}
-      </Title>
-      <Text c="dimmed">
-        Choose a room from the campus floor plans. Its real outline and scale
-        will be used in the layout editor.
-      </Text>
-      {index.isError && (
-        <Alert variant="danger">
-          {errorMessage(index.error)}
-          <Button variant="quiet" onClick={() => void index.refetch()}>
-            Retry floor plans
-          </Button>
-        </Alert>
+    <div className="admin-page">
+      {!existingSpaceId && (
+        <Link to="/admin" className="admin-crumb">
+          <Icon name="back" size="sm" />
+          Spaces
+        </Link>
       )}
-      <div className="grid gap-3 md:grid-cols-2">
-        <NativeSelect
-          label="Building"
-          disabled={!!existingSpaceId}
-          data={
-            index.data?.facilities.map((f) => ({
-              value: f.id,
-              label: f.name,
-            })) || []
-          }
-          value={facility}
-          onChange={(e) => {
-            const id = e.currentTarget.value;
-            setFacility(id);
-            setLevel(
-              index.data?.levels.find((l) => l.facilityId === id)?.id || '',
-            );
-            setPicked(null);
-          }}
-        />
-        <NativeSelect
-          label="Floor"
-          disabled={!!existingSpaceId}
-          data={levels.map((l) => ({ value: l.id, label: l.label }))}
-          value={level}
-          onChange={(e) => {
-            setLevel(e.currentTarget.value);
-            setPicked(null);
-          }}
-        />
-      </div>
-      <TextInput
-        label="Find room"
-        placeholder="HG E 1.1"
-        value={search}
-        onChange={(e) => setSearch(e.currentTarget.value)}
-      />
-      {floor.isPending ? (
-        <Text>Loading room borders…</Text>
-      ) : floor.isError ? (
-        <Alert variant="danger">
-          {errorMessage(floor.error)}
-          <Button variant="quiet" onClick={() => void floor.refetch()}>
-            Retry
-          </Button>
-        </Alert>
-      ) : (
-        <div className="admin-picker-grid">
-          <div className="admin-room-map">
-            <MapContainer
-              center={[47.376, 8.548]}
-              zoom={18}
-              className="h-full w-full"
-              attributionControl={false}
-            >
-              <FitFloor points={points} />
-              {floor.data.rooms.map((r) => (
-                <Polygon
-                  key={r.id}
-                  positions={r.rings}
-                  pathOptions={{
-                    color:
-                      r.id === picked?.id
-                        ? 'var(--color-accent)'
-                        : 'var(--color-border-strong)',
-                    fillColor:
-                      r.id === picked?.id
-                        ? 'var(--color-accent)'
-                        : 'var(--color-surface-2)',
-                    fillOpacity: 0.7,
-                    weight: 1,
-                  }}
-                  eventHandlers={{
-                    click: () => {
-                      if (!existingMapRoomId || r.id === existingMapRoomId)
-                        setPicked(r);
-                    },
-                  }}
-                >
-                  <Tooltip>
-                    {roomName(r.id)} · {r.use}
-                  </Tooltip>
-                </Polygon>
-              ))}
-            </MapContainer>
-          </div>
-          <div className="admin-room-results">
-            {rooms.map((r) => (
-              <button
-                type="button"
-                key={r.id}
-                className="admin-room-choice"
-                aria-pressed={r.id === picked?.id}
-                onClick={() => setPicked(r)}
-              >
-                <strong>{roomName(r.id)}</strong>
-                <span className="text-small text-text-muted">
-                  {r.use} · {Math.round(r.area)} m²
-                </span>
-              </button>
-            ))}
-            {!rooms.length && <Text>No matching rooms.</Text>}
-          </div>
+      <header className="admin-page-header">
+        <div>
+          <Title order={existingSpaceId ? 2 : 1}>
+            {existingSpaceId ? 'Link a room border' : 'Add space'}
+          </Title>
+          <Text c="dimmed">
+            Choose a room, then arrange its tables and seats.
+          </Text>
         </div>
-      )}
-      <NativeSelect
-        label="Time zone"
-        data={['Europe/Zurich', 'Europe/Berlin', 'UTC']}
-        value={timezone}
-        onChange={(e) => setTimezone(e.currentTarget.value)}
-      />
-      <Text>
-        {picked ? roomName(picked.id) + ' selected' : 'No room selected'}
-      </Text>
-      {registered && (
-        <Alert>
-          This room is already registered. Restore its study place if it was
-          deleted.
-        </Alert>
-      )}
-      <div className="flex gap-3">
-        <Button variant="secondary" onClick={() => navigate('/admin')}>
-          Cancel
-        </Button>
-        <Button
-          disabled={!picked || action.busy || !!registered}
-          onClick={() => void create()}
+      </header>
+      <div className="admin-create-grid">
+        <Card className="admin-room-picker grid gap-4 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Title order={2}>Select a room</Title>
+            <Text size="sm" c="dimmed">
+              {info
+                ? info.facilityId.replace('ETH.', '') + ' · Floor ' + info.label
+                : 'Campus map'}
+            </Text>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <NativeSelect
+              label="Building"
+              disabled={!!existingSpaceId || !index.data}
+              data={
+                index.data?.facilities.map((f) => ({
+                  value: f.id,
+                  label: f.name,
+                })) || []
+              }
+              value={facility}
+              onChange={(e) => {
+                const id = e.currentTarget.value;
+                setFacility(id);
+                setLevel(
+                  index.data?.levels.find(
+                    (l) => l.facilityId === id && l.floor === 0,
+                  )?.id ||
+                    index.data?.levels.find((l) => l.facilityId === id)?.id ||
+                    '',
+                );
+                clearSelection();
+                setNonce((n) => n + 1);
+              }}
+            />
+            <NativeSelect
+              label="Floor"
+              disabled={!!existingSpaceId || !index.data}
+              data={levels.map((l) => ({ value: l.id, label: l.label }))}
+              value={level}
+              onChange={(e) => {
+                setLevel(e.currentTarget.value);
+                clearSelection();
+                setNonce((n) => n + 1);
+              }}
+            />
+          </div>
+          {index.isPending || workspaces.isPending ? (
+            <Text>Loading campus map…</Text>
+          ) : index.isError || workspaces.isError ? (
+            <Alert variant="danger">
+              The campus map could not be loaded.{' '}
+              <Button
+                variant="quiet"
+                onClick={() => {
+                  void index.refetch();
+                  void workspaces.refetch();
+                }}
+              >
+                Retry campus map
+              </Button>
+            </Alert>
+          ) : (
+            <Suspense fallback={<Text>Loading campus map…</Text>}>
+              <AdminRoomMap
+                data={workspaces.data}
+                index={index.data}
+                floor={info?.floor ?? 0}
+                target={target}
+                selectedId={picked}
+                levelId={level}
+                onPick={choose}
+                onFloorChange={(n) => {
+                  setLevel(levels.find((l) => l.floor === n)?.id || '');
+                  clearSelection();
+                  setNonce((v) => v + 1);
+                }}
+              />
+            </Suspense>
+          )}
+          <Text size="sm" c="dimmed" role="status">
+            {picked
+              ? outline.isFetching
+                ? 'Loading ' + roomName(picked) + ' outline…'
+                : geometry?.room
+                  ? roomName(picked) +
+                    ' selected · ' +
+                    geometry.room.measurements.widthMeters.toFixed(1) +
+                    ' × ' +
+                    geometry.room.measurements.heightMeters.toFixed(1) +
+                    ' m'
+                  : roomName(picked) + ' selected'
+              : 'No room selected.'}
+          </Text>
+        </Card>
+        <form
+          className="admin-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void create();
+          }}
         >
-          {existingSpaceId
-            ? 'Link room and edit layout'
-            : 'Create space and edit layout'}
-        </Button>
+          <Title order={2}>Space details</Title>
+          <div
+            className="admin-room-search grid gap-2"
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget))
+                setSearchOpen(false);
+            }}
+          >
+            <TextInput
+              type="search"
+              label="Search rooms"
+              placeholder="Search room number or type"
+              leftSection={<Icon name="search" />}
+              value={search}
+              disabled={!!existingMapRoomId}
+              autoComplete="off"
+              aria-controls="room-search-results"
+              aria-expanded={searchOpen && !picked && matches.length > 0}
+              onFocus={() => {
+                if (!picked) setSearchOpen(true);
+              }}
+              aria-activedescendant={
+                !picked && matches[activeResult]
+                  ? 'room-result-' + matches[activeResult].id
+                  : undefined
+              }
+              onChange={(e) => {
+                setSearch(e.currentTarget.value);
+                setSearchOpen(true);
+                setPicked(null);
+                setActiveResult(0);
+              }}
+              onKeyDown={(e) => {
+                if (picked || !matches.length) return;
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setActiveResult(
+                    (v) =>
+                      (v + (e.key === 'ArrowDown' ? 1 : -1) + matches.length) %
+                      matches.length,
+                  );
+                }
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  choose(matches[activeResult] || matches[0]);
+                }
+              }}
+            />
+            {!picked && searchOpen && (
+              <div
+                id="room-search-results"
+                className="admin-room-results"
+                role="listbox"
+                aria-label="Matching rooms"
+              >
+                {floor.isPending ? (
+                  <Text size="sm">Loading rooms…</Text>
+                ) : floor.isError ? (
+                  <Alert variant="danger">
+                    Room list unavailable.{' '}
+                    <Button
+                      variant="quiet"
+                      onClick={() => void floor.refetch()}
+                    >
+                      Retry rooms
+                    </Button>
+                  </Alert>
+                ) : (
+                  matches.map((r) => (
+                    <button
+                      key={r.id}
+                      id={'room-result-' + r.id}
+                      type="button"
+                      role="option"
+                      className="admin-room-choice"
+                      aria-selected={matches[activeResult]?.id === r.id}
+                      onClick={() => choose(r)}
+                    >
+                      <strong>{roomName(r.id)}</strong>
+                      <span className="text-small text-text-muted">
+                        {usedRooms.has(r.id)
+                          ? 'Already registered'
+                          : r.use +
+                            (r.area ? ' · ' + Math.round(r.area) + ' m²' : '')}
+                      </span>
+                    </button>
+                  ))
+                )}
+                {!floor.isPending && !floor.isError && !matches.length && (
+                  <Text size="sm" c="dimmed">
+                    No matching rooms on this floor.
+                  </Text>
+                )}
+              </div>
+            )}
+            <Text size="sm" c="dimmed">
+              Search for a room or select it on the map.
+            </Text>
+            {picked && !existingMapRoomId && (
+              <Button variant="quiet" onClick={clearSelection}>
+                Choose another room
+              </Button>
+            )}
+          </div>
+          <NativeSelect
+            label="Time zone"
+            data={['Europe/Zurich', 'Europe/Berlin', 'UTC']}
+            value={timezone}
+            onChange={(e) => setTimezone(e.currentTarget.value)}
+          />
+          <Text size="sm" c="dimmed">
+            Next, place tables, seats, windows and doors inside the room
+            boundary.
+          </Text>
+          {(outline.isError || geometry?.error) && (
+            <Alert variant="danger">
+              {geometry?.error || 'The room outline could not be loaded.'}
+              {outline.isError && (
+                <Button variant="quiet" onClick={() => void outline.refetch()}>
+                  Retry outline
+                </Button>
+              )}
+            </Alert>
+          )}
+          {registered && (
+            <Alert>
+              This room is already registered
+              {registered.is_archived
+                ? ' and was deleted. Restore it from Spaces.'
+                : '.'}
+              <Button
+                variant="quiet"
+                component={Link}
+                to={'/admin/spaces/' + registered.id + '/settings'}
+              >
+                {registered.is_archived
+                  ? 'Restore study place'
+                  : 'Manage study place'}
+              </Button>
+            </Alert>
+          )}
+          {spaces.isError && (
+            <Alert variant="danger">
+              Existing spaces could not be checked.{' '}
+              <Button variant="quiet" onClick={() => void spaces.refetch()}>
+                Retry
+              </Button>
+            </Alert>
+          )}
+          <div className="admin-form-actions">
+            <Button variant="secondary" component={Link} to="/admin">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={
+                !geometry?.room ||
+                outline.isFetching ||
+                action.busy ||
+                !!registered ||
+                !spaces.data
+              }
+            >
+              {action.busy
+                ? 'Creating…'
+                : existingSpaceId
+                  ? 'Link room and edit layout'
+                  : 'Create space'}
+            </Button>
+          </div>
+          <AdminFeedback action={action} />
+        </form>
       </div>
-      <AdminFeedback action={action} />
     </div>
   );
 }

@@ -17,6 +17,7 @@ from app.features.reservations.admin_schemas import (
     AdminConflictResponse,
     AdminReservationResponse,
     AdminSeatResponse,
+    AdminSpaceDeletedResponse,
     AdminSpaceOverviewResponse,
     AdminSpaceResponse,
     AdminSpacesResponse,
@@ -234,6 +235,17 @@ def end_reservation(reservation_id: UUID, service: Service) -> AdminReservationR
 )
 def archive_space(space_id: UUID, service: Service) -> AdminSpaceResponse:
     response = service.archive_space(space_id, True)
+    service.session.commit()
+    return response
+
+
+@router.delete(
+    "/spaces/{space_id}/permanent",
+    response_model=AdminSpaceDeletedResponse,
+    operation_id="admin_permanently_delete_space",
+)
+def permanently_delete_space(space_id: UUID, service: Service) -> AdminSpaceDeletedResponse:
+    response = service.permanently_delete_space(space_id)
     service.session.commit()
     return response
 

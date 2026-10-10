@@ -77,6 +77,13 @@ const geometry = (() => {
   function sourcePoint(room, x, y) {
     const t = room.sourceTransform;
     if (!t) throw Error('This room has no coordinate transform.');
+    if (t.canvasTransform) {
+      const a = (t.canvasTransform.rotation * Math.PI) / 180;
+      const dx = x - t.canvasTransform.offsetX,
+        dy = y - t.canvasTransform.offsetY;
+      x = dx * Math.cos(a) + dy * Math.sin(a);
+      y = -dx * Math.sin(a) + dy * Math.cos(a);
+    }
     return {
       x: t.originX + (x - t.padding) / t.scale,
       y:
@@ -178,7 +185,9 @@ const geometry = (() => {
         best = {
           x: px,
           y: py,
-          angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+          angle:
+            (Math.atan2(dy, dx) * 180) / Math.PI +
+            (contains(r, px - (dy / len) * 4, py + (dx / len) * 4) ? 0 : 180),
           distance,
         };
     });
@@ -617,7 +626,7 @@ const geometry = (() => {
       if (
         !slot ||
         Math.hypot(slot.x - seat.x, slot.y - seat.y) > 0.01 ||
-        Math.abs((((slot.angle - seat.angle) % 360) + 360) % 360) > 0.01
+        Math.abs(((slot.angle - seat.angle + 540) % 360) - 180) > 0.01
       )
         throw Error('Seats must use a fixed position around a table.');
     }
@@ -923,6 +932,7 @@ const geometry = (() => {
       throw Error('Use dimensions from 24 to 300.');
     if (next.type === 'door' || next.type === 'window') {
       const wall = wallPoint(r, next.x, next.y, next.width);
+      if (!wall) throw Error('No wall is long enough for this size.');
       Object.assign(next, { x: wall.x, y: wall.y, angle: wall.angle });
     }
 

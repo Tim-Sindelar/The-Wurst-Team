@@ -11,6 +11,7 @@ import {
   Drawer,
   Input,
   Notification,
+  Modal,
   Popover,
   Progress,
   Switch,
@@ -199,6 +200,16 @@ export const theme = createTheme({
       },
     }),
 
+    Modal: Modal.extend({
+      classNames: {
+        overlay: 'ui-dialog-overlay',
+        content: 'ui-dialog-content',
+        header: 'ui-dialog-header',
+        title: 'ui-dialog-title',
+        body: 'ui-dialog-body',
+        close: 'ui-dialog-close',
+      },
+    }),
     Title: Title.extend({
       classNames: { root: 'ui-title' },
     }),

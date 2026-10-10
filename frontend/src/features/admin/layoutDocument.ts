@@ -1,5 +1,6 @@
 import type { MultiPolygon } from 'geojson';
 import geometry from './geometry';
+import { alignLayoutWalls } from './layoutOrientation';
 import type { LayoutDocument, LayoutItem, RoomGeometry } from './models';
 export function readLayout(value: unknown): LayoutDocument | null {
   if (!value || typeof value !== 'object') return null;
@@ -20,8 +21,9 @@ export function readLayout(value: unknown): LayoutDocument | null {
     throw Error(
       'This layout is missing room measurements. Link its room border again.',
     );
-  geometry.assertLayout(v.room, v.objects);
-  return v;
+  const aligned = alignLayoutWalls(v);
+  geometry.assertLayout(aligned.room, aligned.objects);
+  return aligned;
 }
 export function projectRoom(
   ref: {
@@ -56,17 +58,22 @@ export function projectRoom(
         (lat - origin.lat) * metersLat,
       ]),
   });
-  return {
-    ...room,
-    mapRef: {
-      unitId: ref.id,
-      levelId: ref.levelId,
-      facilityId: ref.facilityId,
-      floor: ref.floor,
-      workspaceId: ref.workspaceId,
+  return alignLayoutWalls({
+    schemaVersion: 1,
+    unitsPerMeter: geometry.UNITS_PER_METER,
+    objects: [],
+    room: {
+      ...room,
+      mapRef: {
+        unitId: ref.id,
+        levelId: ref.levelId,
+        facilityId: ref.facilityId,
+        floor: ref.floor,
+        workspaceId: ref.workspaceId,
+      },
+      georeference: { origin, metersLat, metersLng },
     },
-    georeference: { origin, metersLat, metersLng },
-  };
+  }).room;
 }
 export function documentFor(
   room: RoomGeometry,

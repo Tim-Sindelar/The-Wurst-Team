@@ -60,6 +60,12 @@ import {
   type ZurichTime,
 } from './domain/viewTime';
 import { loadFloorIndex, type FloorIndex } from './floors/floorData';
+import {
+  alignedFloor,
+  alignFloorIndex,
+  facilityOfLevel,
+  letterOffsets,
+} from './map/buildingGroups';
 import type { MensaRoom } from './map/FloorLayer';
 import { MapView, type FlyTarget } from './map/MapView';
 import { outlineBounds } from './map/geo';
@@ -131,10 +137,35 @@ function mensaPlace(item: DatasetItem) {
 export function CampusMap() {
   const theme = useComputedColorScheme('dark');
 
-  const [data, setData] = useState<OccupancyData | null>(null);
+  const [rawData, setData] = useState<OccupancyData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [navigation, setNavigation] = useState<NavigationConfig | null>(null);
-  const [floorIndex, setFloorIndex] = useState<FloorIndex | null>(null);
+  const [rawFloorIndex, setFloorIndex] = useState<FloorIndex | null>(null);
+  // Shared map groups use the main building's floor letters. Native room IDs
+  // and coordinates remain unchanged; only the displayed floor numbers shift.
+  const offsets = useMemo(
+    () => (rawFloorIndex ? letterOffsets(rawFloorIndex) : null),
+    [rawFloorIndex],
+  );
+  const floorIndex = useMemo(
+    () =>
+      rawFloorIndex && offsets ? alignFloorIndex(rawFloorIndex, offsets) : null,
+    [rawFloorIndex, offsets],
+  );
+  const data = useMemo(
+    () =>
+      rawData && offsets
+        ? {
+            ...rawData,
+            libraries: rawData.libraries.map((l) =>
+              l.floor === null
+                ? l
+                : { ...l, floor: alignedFloor(offsets, l.facilityId, l.floor) },
+            ),
+          }
+        : rawData,
+    [rawData, offsets],
+  );
   const [floor, setFloor] = useState(0);
   const [zoom, setZoom] = useState(0);
   const [flyTarget, setFlyTarget] = useState<FlyTarget | null>(null);
@@ -373,7 +404,7 @@ export function CampusMap() {
     } else if (next.kind === 'dataset' && next.datasetId === 'mensa') {
       const item = datasetItem(next);
       const place = item && mensaPlace(item);
-      if (place) setFloor(place.floor);
+      if (place) setFloor(alignedFloor(offsets, place.facilityId, place.floor));
     }
   };
   const clearTarget = () => {
@@ -403,7 +434,9 @@ export function CampusMap() {
     setDashboardOpen(false);
     const place = ethResponse?.matches[id]?.[0];
     if (place) {
-      setFloor(place.floor);
+      setFloor(
+        alignedFloor(offsets, facilityOfLevel(place.levelId), place.floor),
+      );
       flyTo({ lat: place.lat, lng: place.lng }, 20);
     }
   };
@@ -411,7 +444,7 @@ export function CampusMap() {
     setTarget({ kind: 'dataset', ...sel });
     setDashboardOpen(false);
     const place = sel.datasetId === 'mensa' ? mensaPlace(item) : null;
-    if (place) setFloor(place.floor);
+    if (place) setFloor(alignedFloor(offsets, place.facilityId, place.floor));
     flyTo({ lat: item.lat, lng: item.lng }, Math.max(zoom, place ? 19 : 17));
   };
 

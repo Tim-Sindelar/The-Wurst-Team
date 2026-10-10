@@ -26,14 +26,10 @@ import {
   type OccupancyStyle,
   type PartKey,
 } from './minimalStyle';
-import {
-  hhmm,
-  ROOM_STATUS_LABELS,
-  BOOKING_KIND_LABELS,
-} from '../domain/ethRooms';
 import type { RoomInfo } from '../roomFeatures';
+import { liftRings, type BuildingGroup } from './buildingGroups';
 
-/** Rooms are drawn from this zoom level on, walls and doors from LINE_ZOOM. */
+/** Rooms are drawn from this zoom level on (unless `roomZoom` says otherwise), walls and doors from LINE_ZOOM. */
 export const ROOM_ZOOM = 18;
 export const LINE_ZOOM = 19;
 const LABEL_ZOOM = 19;
@@ -128,12 +124,10 @@ interface Props {
   theme: Theme;
   index: FloorIndex;
   floor: number;
+  /** Admin keeps intermediate levels separate even when they share a floor number. */
+  pickingLevelId?: string;
   /** PolyMaps room id → library id, for highlighting and selecting library rooms. */
   libraryRooms: Map<string, string>;
-  /** Library id → name, for the room tooltip of the normal map. */
-  libraryNames: ReadonlyMap<string, string>;
-  /** Admin mode: tooltips show every room's details instead of the workspace name. */
-  showRoomDetails: boolean;
   selectedLibraryId: string | null;
   onSelectLibrary: (libraryId: string) => void;
   /** Room selection mode (admin): clicking any room toggles it instead of selecting its workspace. */
@@ -152,10 +146,18 @@ interface Props {
   selectedEthRoom: string | null;
   /** Clicking an ETH room; null when room details are off. */
   onEthRoomClick: ((ethId: string) => void) | null;
-  /** Mensa rooms (datasets/mensa/rooms.json), separate from the workspace rooms; empty when the mensa layer is off. */
+  /** Mensa rooms (datasets/mensa/rooms.json): all of them while the mensa layer is on, else only those of a workspace. */
   mensaRooms: ReadonlyMap<string, MensaRoom>;
   selectedMensaId: string | null;
   onSelectMensa: (mensaId: string) => void;
+  /** 3D view: this group's part of the floor is drawn `dLat` degrees further north, with the group's outline (see Floors3D). */
+  lift: { group: BuildingGroup; dLat: number } | null;
+  /** 3D view on: only the lifted group draws its floor; every other building is just its footprint. */
+  stackOnly: boolean;
+  /** 3D view on: the groups drawn as footprints, their 3D outline flat in place (see buildingGroups). */
+  footprints: readonly BuildingGroup[];
+  /** Rooms are drawn from this zoom on; default ROOM_ZOOM. */
+  roomZoom?: number;
 }
 
 /** A PolyMaps room belonging to a mensa. */
@@ -182,9 +184,8 @@ export function FloorLayer({
   theme,
   index,
   floor,
+  pickingLevelId,
   libraryRooms,
-  libraryNames,
-  showRoomDetails,
   selectedLibraryId,
   onSelectLibrary,
   picking,
@@ -199,6 +200,10 @@ export function FloorLayer({
   mensaRooms,
   selectedMensaId,
   onSelectMensa,
+  lift,
+  stackOnly,
+  footprints,
+  roomZoom = ROOM_ZOOM,
 }: Props) {
   const map = useMap();
   const [view, setView] = useState(() => ({
@@ -266,16 +271,25 @@ export function FloorLayer({
     return () => void group.remove();
   }, [map, index, renderers, theme, minimal, radius, minSize]);
 
+  const isLifted = (facilityId: string) =>
+    !!lift && lift.group.facilityIds.has(facilityId);
+
+  const stackGroup = lift?.group ?? null;
   const floorLevels = useMemo(
-    () => index.levels.filter((l) => l.floor === floor),
-    [index, floor],
+    () =>
+      index.levels.filter(
+        (l) =>
+          l.floor === floor &&
+          (!pickingLevelId ||
+            l.facilityId !== pickingLevelId.split('.').slice(0, 2).join('.') ||
+            l.id === pickingLevelId) &&
+          (!stackOnly || !!stackGroup?.facilityIds.has(l.facilityId)),
+      ),
+    [index, floor, pickingLevelId, stackOnly, stackGroup],
   );
 
-  // Outlines of the levels on the selected floor.
-  useEffect(() => {
-    if (view.zoom < OUTLINE_ZOOM || (minimal && !minimal.parts.levels.show))
-      return;
-    const style = minimal
+  const levelStyle = (): L.PathOptions =>
+    minimal
       ? partPathOptions(minimal, 'levels')
       : {
           color: BUILDING_STYLE[theme].levelColor,
@@ -283,9 +297,42 @@ export function FloorLayer({
           fillColor: BUILDING_STYLE[theme].levelFill,
           fillOpacity: 0.9,
         };
+
+  // In 3D, the footprints of the groups not stacked, at every zoom.
+  useEffect(() => {
+    if (!footprints.length || (minimal && !minimal.parts.levels.show)) return;
+    const style = levelStyle();
     const group = L.layerGroup(
-      floorLevels
-        .map((l) => outlineToLatLngs(l.outline))
+      footprints
+        .map((g) => g.outline())
+        .filter((polys) => !polygonsSmallerThan(polys, minSize))
+        .map((polys) =>
+          L.polygon(roundPolygons(polys, radius), {
+            renderer: renderers.buildings,
+            interactive: false,
+            ...style,
+          }),
+        ),
+    ).addTo(map);
+    return () => void group.remove();
+  }, [map, footprints, renderers, theme, minimal, radius, minSize]);
+
+  // Outlines of the levels on the selected floor.
+  useEffect(() => {
+    if (view.zoom < OUTLINE_ZOOM || (minimal && !minimal.parts.levels.show))
+      return;
+    const style = levelStyle();
+    // A lifted group shows its floor's merged outline instead of its levels' own.
+    const lifted = lift && floorLevels.some((l) => isLifted(l.facilityId));
+    const group = L.layerGroup(
+      [
+        ...floorLevels
+          .filter((l) => !isLifted(l.facilityId))
+          .map((l) => outlineToLatLngs(l.outline)),
+        ...(lifted
+          ? [liftRings(lift.group.floorOutline(floor), lift.dLat)]
+          : []),
+      ]
         .filter((polys) => !polygonsSmallerThan(polys, minSize))
         .map((polys) =>
           L.polygon(roundPolygons(polys, radius), {
@@ -298,10 +345,12 @@ export function FloorLayer({
     return () => void group.remove();
   }, [
     map,
+    floor,
     floorLevels,
     renderers,
     theme,
     view.zoom >= OUTLINE_ZOOM,
+    lift,
     minimal,
     radius,
     minSize,
@@ -309,7 +358,7 @@ export function FloorLayer({
 
   // Rooms and lines of the levels in view, loaded on demand.
   const visibleIds = useMemo(() => {
-    if (view.zoom < ROOM_ZOOM) return [];
+    if (view.zoom < roomZoom) return [];
     const b = view.bounds.pad(0.2);
     const box = {
       west: b.getWest(),
@@ -317,8 +366,16 @@ export function FloorLayer({
       east: b.getEast(),
       north: b.getNorth(),
     };
-    return floorLevels.filter((l) => intersects(l.bbox, box)).map((l) => l.id);
-  }, [floorLevels, view]);
+    return floorLevels
+      .filter((l) => {
+        const d = isLifted(l.facilityId) ? lift!.dLat : 0;
+        return intersects(
+          [l.bbox[0], l.bbox[1] + d, l.bbox[2], l.bbox[3] + d],
+          box,
+        );
+      })
+      .map((l) => l.id);
+  }, [floorLevels, view, lift, roomZoom]);
   const visibleKey = visibleIds.join('|');
 
   const [plans, setPlans] = useState<Map<string, LevelPlan>>(new Map());
@@ -335,6 +392,20 @@ export function FloorLayer({
       cancelled = true;
     };
   }, [visibleKey]);
+
+  // The plans as drawn: the lifted group's moved north.
+  const shownPlans = useMemo(() => {
+    if (!lift) return plans;
+    const out = new Map<string, LevelPlan>();
+    for (const [id, plan] of plans)
+      out.set(
+        id,
+        lift.group.levels.some((l) => l.id === id)
+          ? liftPlan(plan, lift.dLat)
+          : plan,
+      );
+    return out;
+  }, [plans, lift]);
 
   // Callbacks change every render; the layers read them through a ref.
   const handlers = useRef({
@@ -371,7 +442,7 @@ export function FloorLayer({
     roomLayers.current = new Map();
     const libraryRings = new Map<string, [number, number][][][]>();
     for (const id of visibleIds) {
-      const plan = plans.get(id);
+      const plan = shownPlans.get(id);
       const level = levelsById.get(id);
       if (!plan || !level) continue;
       for (const room of plan.rooms) {
@@ -396,7 +467,12 @@ export function FloorLayer({
             picking,
             !!(eth && occupancyStyle),
           )
-            ? mensaStyle(mensa!, selectedMensaId)
+            ? mensaStyle(
+                mensa!,
+                libraryId && libraryId === selectedLibraryId
+                  ? mensa!.mensaId
+                  : selectedMensaId,
+              )
             : roomLayerStyle(
                 theme,
                 room.kind,
@@ -407,46 +483,26 @@ export function FloorLayer({
                 picking,
               )),
         });
-        // Normal map: only rooms of an enabled workspace get a tooltip, showing the workspace name.
-        // Admin mode keeps the room details, they are needed to pick rooms.
         const name = room.name || room.id;
-        const title =
-          room.label && room.label !== name ? `${room.label} · ${name}` : name;
-        const workspaceName = libraryId
-          ? libraryNames.get(libraryId)
-          : undefined;
-        const names = [workspaceName, mensa?.name].filter(
-          (n): n is string => !!n,
-        );
-        const tip = showRoomDetails
-          ? `<strong>${escapeHtml(title)}</strong><br>${escapeHtml(room.use || 'Raum')}${room.area ? ` · ${room.area} m²` : ''}`
-          : names.length
-            ? `${names.map((n) => `<strong>${escapeHtml(n)}</strong>`).join('<br>')}${mensa ? `<br>${escapeHtml(name)}` : ''}`
-            : null;
-        if (eth) {
-          // Built when shown, so it tells the status at the time being displayed.
+        if (picking) {
+          const title =
+            room.label && room.label !== name
+              ? room.label + ' · ' + name
+              : name;
           poly.bindTooltip(
-            () => {
-              const info = ethRef.current?.get(room.id);
-              return info
-                ? ethTooltip(
-                    info,
-                    libraryId ? libraryNames.get(libraryId) : undefined,
-                  )
-                : (tip ?? escapeHtml(title));
-            },
+            '<strong>' +
+              escapeHtml(title) +
+              '</strong><br>' +
+              escapeHtml(room.use || 'Raum') +
+              (room.area ? ' · ' + room.area + ' m²' : ''),
             { sticky: true, direction: 'top', offset: [0, -6] },
           );
-        } else if (tip)
-          poly.bindTooltip(tip, {
-            sticky: true,
-            direction: 'top',
-            offset: [0, -6],
-          });
+        }
         poly.on('click', (e) => {
           const h = handlers.current;
           if (h.picking) {
             L.DomEvent.stop(e);
+            if (pickingLevelId && level.id !== pickingLevelId) return;
             h.onPickRoom({
               id: room.id,
               name,
@@ -479,7 +535,8 @@ export function FloorLayer({
           mensa,
         });
         roomGroup.addLayer(poly);
-        if (libraryId)
+        // A workspace room that is also a mensa room keeps the mensa's color, outside the workspace fill.
+        if (libraryId && !(mensa && !picking))
           (
             libraryRings.get(libraryId) ??
             libraryRings.set(libraryId, []).get(libraryId)!
@@ -532,11 +589,11 @@ export function FloorLayer({
   }, [
     map,
     renderers,
-    plans,
+    shownPlans,
     visibleKey,
     libraryRooms,
-    libraryNames,
-    showRoomDetails,
+    picking,
+    pickingLevelId,
     levelsById,
     theme,
     radius,
@@ -561,7 +618,12 @@ export function FloorLayer({
           picking,
           !!(info && occupancyStyle),
         )
-          ? mensaStyle(mensa!, selectedMensaId)
+          ? mensaStyle(
+              mensa!,
+              libraryId && libraryId === selectedLibraryId
+                ? mensa!.mensaId
+                : selectedMensaId,
+            )
           : info && occupancyStyle && !picked
             ? occupancyPath(
                 occupancyStyle,
@@ -616,7 +678,7 @@ export function FloorLayer({
   }, [
     selectedLibraryId,
     pickedRooms,
-    plans,
+    shownPlans,
     visibleKey,
     libraryRooms,
     theme,
@@ -638,7 +700,7 @@ export function FloorLayer({
     const group = L.layerGroup().addTo(map);
     const best = new Map<string, { room: Room; area: number }>();
     for (const id of visibleIds) {
-      for (const room of plans.get(id)?.rooms ?? []) {
+      for (const room of shownPlans.get(id)?.rooms ?? []) {
         const info = ethRef.current?.get(room.id);
         if (!info) continue;
         const prev = best.get(info.room.id);
@@ -664,7 +726,7 @@ export function FloorLayer({
       );
     }
     return () => void group.remove();
-  }, [map, showLabels, plans, visibleKey, ethKey]);
+  }, [map, showLabels, shownPlans, visibleKey, ethKey]);
 
   const showLines = view.zoom >= LINE_ZOOM;
   // Line geometry per level and layer: simplified, parallel edges merged, small pieces dropped, corners rounded.
@@ -676,7 +738,7 @@ export function FloorLayer({
     const out = new Map<string, [LineLayer, L.LatLngTuple[][]][]>();
     if (!showLines) return out;
     for (const id of visibleIds) {
-      const plan = plans.get(id);
+      const plan = shownPlans.get(id);
       if (!plan) continue;
       out.set(
         id,
@@ -698,7 +760,7 @@ export function FloorLayer({
     }
     return out;
   }, [
-    plans,
+    shownPlans,
     visibleKey,
     showLines,
     radius,
@@ -735,6 +797,27 @@ export function FloorLayer({
   return null;
 }
 
+const liftedPlans = new WeakMap<LevelPlan, { dLat: number; plan: LevelPlan }>();
+
+/** A plan moved `dLat` degrees north. */
+function liftPlan(plan: LevelPlan, dLat: number): LevelPlan {
+  const cached = liftedPlans.get(plan);
+  if (cached?.dLat === dLat) return cached.plan;
+  const lines: LevelPlan['lines'] = {};
+  for (const [layer, list] of Object.entries(plan.lines) as [
+    LineLayer,
+    [number, number][][],
+  ][])
+    lines[layer] = liftRings([list], dLat)[0];
+  const out = {
+    ...plan,
+    rooms: plan.rooms.map((r) => ({ ...r, rings: liftRings(r.rings, dLat) })),
+    lines,
+  };
+  liftedPlans.set(plan, { dLat, plan: out });
+  return out;
+}
+
 const SELECTED_ROOM: Record<Theme, string> = {
   light: '#1c2430',
   dark: '#ffffff',
@@ -759,38 +842,10 @@ export function occupancyPath(
   };
 }
 
-function ethTooltip({ room, state }: RoomInfo, workspace?: string) {
-  const seats =
-    room.seats != null
-      ? `${room.seats} seats`
-      : room.workplaces != null
-        ? `${room.workplaces} workplaces`
-        : null;
-  const lines = [
-    `<strong>${escapeHtml(room.id)}</strong> · ${escapeHtml(room.type)}${seats ? ` · ${seats}` : ''}`,
-  ];
-  if (workspace) lines.push(escapeHtml(workspace));
-  const what = (b: NonNullable<RoomInfo['state']['current']>) =>
-    escapeHtml(b.title || BOOKING_KIND_LABELS[b.kind]);
-  if (state.status === 'busy' && state.current)
-    lines.push(
-      `${ROOM_STATUS_LABELS.busy} until ${hhmm(state.until)}: ${what(state.current)}`,
-    );
-  else if (state.status === 'closed')
-    lines.push(`${ROOM_STATUS_LABELS.closed} until ${hhmm(state.until)}`);
-  else if (state.status === 'unknown') lines.push(ROOM_STATUS_LABELS.unknown);
-  else
-    lines.push(
-      state.until >= 1440
-        ? 'Free for the rest of the day'
-        : `Free until ${hhmm(state.until)}${state.next ? `: ${what(state.next)}` : ''}`,
-    );
-  return lines.join('<br>');
-}
-
 /**
- * Whether a room is drawn as a mensa room. Rooms that also belong to a workspace (study space outside
- * meal times) or show a live booking status keep that look unless their mensa is selected.
+ * Whether a room is drawn as a mensa room. A workspace that is also a mensa (study space outside meal
+ * times) is always drawn in the mensa's color; rooms showing a live booking status keep that look unless
+ * their mensa is selected.
  */
 export function asMensaRoom(
   mensa: MensaRoom | null,
@@ -801,7 +856,7 @@ export function asMensaRoom(
   occupancy: boolean,
 ) {
   if (!mensa || picked || picking) return false;
-  return mensa.mensaId === selectedMensaId || (!libraryId && !occupancy);
+  return mensa.mensaId === selectedMensaId || !!libraryId || !occupancy;
 }
 
 /** A mensa room, in the mensa dataset's color: tinted, outlined when its mensa is selected. */

@@ -192,6 +192,20 @@ export type AdminSeatResponse = {
 };
 
 /**
+ * AdminSpaceDeletedResponse
+ */
+export type AdminSpaceDeletedResponse = {
+    /**
+     * Deleted Space Id
+     */
+    deleted_space_id: string;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
  * AdminSpaceDetails
  */
 export type AdminSpaceDetails = {
@@ -2570,6 +2584,58 @@ export type AdminGetSpaceOverviewResponses = {
 };
 
 export type AdminGetSpaceOverviewResponse = AdminGetSpaceOverviewResponses[keyof AdminGetSpaceOverviewResponses];
+
+export type AdminPermanentlyDeleteSpaceData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}/permanent';
+};
+
+export type AdminPermanentlyDeleteSpaceErrors = {
+    /**
+     * Response 400 Admin Permanently Delete Space
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
+};
+
+export type AdminPermanentlyDeleteSpaceError = AdminPermanentlyDeleteSpaceErrors[keyof AdminPermanentlyDeleteSpaceErrors];
+
+export type AdminPermanentlyDeleteSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceDeletedResponse;
+};
+
+export type AdminPermanentlyDeleteSpaceResponse = AdminPermanentlyDeleteSpaceResponses[keyof AdminPermanentlyDeleteSpaceResponses];
 
 export type AdminRestoreSpaceData = {
     body?: never;

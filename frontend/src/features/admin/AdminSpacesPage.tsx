@@ -1,18 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router';
-import {
-  Alert,
-  Button,
-  Card,
-  Checkbox,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Alert, Button, Checkbox, Text, TextInput, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import * as q from '../../api/generated/@tanstack/react-query.gen';
 import * as api from '../../api/generated';
-import { DecisionSheet } from '../../components/DecisionSheet';
+import { AdminDialog } from './AdminDialog';
+import { Icon } from '../../components/Icon';
+import { AdminStat } from './AdminStat';
+import { AdminStateChip } from './AdminStateChip';
 import { AdminFeedback } from './AdminFeedback';
 import { adminHeaders, errorMessage, useAdminAction } from './useAdminAction';
 export function AdminSpacesPage() {
@@ -20,7 +15,11 @@ export function AdminSpacesPage() {
   const action = useAdminAction();
   const [search, setSearch] = useState(''),
     [showDeleted, setShowDeleted] = useState(false),
-    [deleting, setDeleting] = useState<api.AdminSpaceSummary | null>(null);
+    [deleting, setDeleting] = useState<api.AdminSpaceSummary | null>(null),
+    [permanentlyDeleting, setPermanentlyDeleting] =
+      useState<api.AdminSpaceSummary | null>(null),
+    [permanentBusy, setPermanentBusy] = useState(false);
+  const busy = action.busy || permanentBusy;
   const active = (query.data?.spaces || []).filter((s) => !s.is_archived);
   const spaces = (query.data?.spaces || []).filter(
     (s) =>
@@ -28,17 +27,25 @@ export function AdminSpacesPage() {
       s.name.toLowerCase().includes(search.toLowerCase()),
   );
   return (
-    <div className="grid gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className="admin-page">
+      <header className="admin-page-header">
         <div>
           <Title order={1}>Study spaces</Title>
           <Text c="dimmed">Live spaces, seats and reservations.</Text>
         </div>
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => void query.refetch()}>
+        <div className="admin-header-actions">
+          <Button
+            variant="secondary"
+            leftSection={<Icon name="check" size="sm" />}
+            onClick={() => void query.refetch()}
+          >
             Refresh
           </Button>
-          <Button component={Link} to="/admin/new">
+          <Button
+            component={Link}
+            to="/admin/new"
+            leftSection={<Icon name="plus" size="sm" />}
+          >
             Add space
           </Button>
         </div>
@@ -50,30 +57,41 @@ export function AdminSpacesPage() {
           ['Occupied', active.reduce((n, s) => n + s.occupied_seats, 0)],
           ['On break', active.reduce((n, s) => n + s.on_break_seats, 0)],
         ].map(([label, value]) => (
-          <Card key={label} className="p-4">
-            <Text size="sm" c="dimmed">
-              {label}
-            </Text>
-            <strong className="text-heading">{value}</strong>
-          </Card>
+          <AdminStat
+            key={label}
+            label={String(label)}
+            value={value}
+            detail={
+              label === 'Free seats'
+                ? 'of ' +
+                  active.reduce((n, s) => n + s.active_seats, 0) +
+                  ' active'
+                : undefined
+            }
+          />
         ))}
       </div>
-      <TextInput
-        label="Search spaces"
-        value={search}
-        onChange={(e) => setSearch(e.currentTarget.value)}
-      />
-      <Checkbox
-        label="Show deleted study places"
-        checked={showDeleted}
-        onChange={(e) => setShowDeleted(e.currentTarget.checked)}
-      />
+      <div className="admin-toolbar">
+        <TextInput
+          className="admin-search"
+          aria-label="Search spaces"
+          placeholder="Search spaces"
+          leftSection={<Icon name="search" />}
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+        />
+        <Checkbox
+          label="Show deleted study places"
+          checked={showDeleted}
+          onChange={(e) => setShowDeleted(e.currentTarget.checked)}
+        />
+      </div>
       {query.isPending ? (
         <Text>Loading study spaces…</Text>
       ) : query.isError ? (
         <Alert variant="danger">{errorMessage(query.error)}</Alert>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
@@ -87,7 +105,24 @@ export function AdminSpacesPage() {
                   'On break',
                   'Actions',
                 ].map((t) => (
-                  <th key={t}>{t}</th>
+                  <th
+                    key={t}
+                    className={
+                      [
+                        'Seats',
+                        'Active',
+                        'Free',
+                        'Occupied',
+                        'On break',
+                      ].includes(t)
+                        ? 'num'
+                        : t === 'Actions'
+                          ? 'actions'
+                          : undefined
+                    }
+                  >
+                    {t}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -96,7 +131,7 @@ export function AdminSpacesPage() {
                 <tr key={s.id}>
                   <td>
                     <Link
-                      className="font-semibold"
+                      className="admin-table-link whitespace-nowrap"
                       to={'/admin/spaces/' + s.id + '/seats'}
                     >
                       {s.name}
@@ -106,15 +141,26 @@ export function AdminSpacesPage() {
                     </Text>
                   </td>
                   <td>
-                    {s.is_archived ? 'Deleted' : s.is_open ? 'Open' : 'Closed'}
+                    <AdminStateChip
+                      label={
+                        s.is_archived
+                          ? 'Deleted'
+                          : s.is_open
+                            ? 'Open'
+                            : 'Closed'
+                      }
+                      tone={
+                        !s.is_archived && s.is_open ? 'free' : 'unavailable'
+                      }
+                    />
                   </td>
-                  <td>{s.total_seats}</td>
-                  <td>{s.active_seats}</td>
-                  <td>{s.free_seats}</td>
-                  <td>{s.occupied_seats}</td>
-                  <td>{s.on_break_seats}</td>
+                  <td className="num">{s.total_seats}</td>
+                  <td className="num">{s.active_seats}</td>
+                  <td className="num">{s.free_seats}</td>
+                  <td className="num">{s.occupied_seats}</td>
+                  <td className="num">{s.on_break_seats}</td>
                   <td>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         variant="quiet"
                         component={Link}
@@ -123,25 +169,40 @@ export function AdminSpacesPage() {
                         Manage
                       </Button>
                       {s.is_archived ? (
-                        <Button
-                          disabled={action.busy}
-                          variant="quiet"
-                          onClick={() =>
-                            void action.run(
-                              () =>
-                                api.adminRestoreSpace({
-                                  headers: adminHeaders,
-                                  path: { space_id: s.id },
-                                  throwOnError: true,
-                                }),
-                              'Study place restored.',
-                            )
-                          }
-                        >
-                          Restore
-                        </Button>
+                        <>
+                          <Button
+                            disabled={busy}
+                            variant="quiet"
+                            onClick={() =>
+                              void action.run(
+                                () =>
+                                  api.adminRestoreSpace({
+                                    headers: adminHeaders,
+                                    path: { space_id: s.id },
+                                    throwOnError: true,
+                                  }),
+                                'Study place restored.',
+                              )
+                            }
+                          >
+                            Restore
+                          </Button>
+                          <Button
+                            disabled={busy}
+                            variant="quiet"
+                            className="admin-risky"
+                            onClick={() => setPermanentlyDeleting(s)}
+                          >
+                            Delete permanently
+                          </Button>
+                        </>
                       ) : (
-                        <Button variant="quiet" onClick={() => setDeleting(s)}>
+                        <Button
+                          variant="quiet"
+                          className="admin-risky"
+                          disabled={busy}
+                          onClick={() => setDeleting(s)}
+                        >
                           Delete
                         </Button>
                       )}
@@ -156,16 +217,22 @@ export function AdminSpacesPage() {
           )}
         </div>
       )}
+      <Text size="sm" c="dimmed">
+        Free means nobody has reserved the seat or is using it right now.
+        Switched-off and closed seats never count as free. Occupied counts
+        checked-in sessions only.
+      </Text>
       <AdminFeedback action={action} />
-      <DecisionSheet
+      <AdminDialog
         opened={!!deleting}
+        busy={action.busy}
         onClose={() => setDeleting(null)}
         title={'Delete ' + deleting?.name + '?'}
         safeLabel="Keep study place"
         actionLabel={action.busy ? 'Deleting…' : 'Delete study place'}
         actionTone="danger"
         onConfirm={() => {
-          if (deleting)
+          if (deleting && !busy)
             void action.run(
               () =>
                 api.adminArchiveSpace({
@@ -180,7 +247,70 @@ export function AdminSpacesPage() {
       >
         Its seats, layout and reservation history are preserved. End live
         reservations first.
-      </DecisionSheet>
+      </AdminDialog>
+      {permanentlyDeleting && (
+        <PermanentDeleteDialog
+          space={permanentlyDeleting}
+          onClose={() => setPermanentlyDeleting(null)}
+          onBusyChange={setPermanentBusy}
+        />
+      )}
     </div>
+  );
+}
+
+function PermanentDeleteDialog({
+  space,
+  onClose,
+  onBusyChange,
+}: {
+  space: api.AdminSpaceSummary;
+  onClose: () => void;
+  onBusyChange: (busy: boolean) => void;
+}) {
+  const action = useAdminAction();
+  const inFlight = useRef(false);
+  async function confirm() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    onBusyChange(true);
+    try {
+      await action.run(
+        () =>
+          api.adminPermanentlyDeleteSpace({
+            headers: adminHeaders,
+            path: { space_id: space.id },
+            throwOnError: true,
+          }),
+        'Study space permanently deleted.',
+        onClose,
+      );
+    } finally {
+      inFlight.current = false;
+      onBusyChange(false);
+    }
+  }
+  return (
+    <AdminDialog
+      opened
+      busy={action.busy}
+      onClose={onClose}
+      title={'Permanently delete ' + space.name + '?'}
+      safeLabel="Keep deleted space"
+      actionLabel={action.busy ? 'Deleting…' : 'Delete permanently'}
+      actionTone="danger"
+      onConfirm={() => void confirm()}
+    >
+      <Text>
+        This permanently removes the study space, its layout, seats and
+        reservation history. Existing seat QR links will stop working. It cannot
+        be restored. The campus room remains available to create again.
+      </Text>
+      {action.error && (
+        <Alert variant="danger" role="alert">
+          {action.error}
+        </Alert>
+      )}
+    </AdminDialog>
   );
 }

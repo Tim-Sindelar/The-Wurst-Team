@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { AdminNoticeContext } from './AdminNoticeContext';
 import type { ReservationImpact } from '../../api/generated';
 export const adminHeaders = import.meta.env.DEV
   ? { 'X-Demo-Admin': 'true' }
@@ -15,13 +16,16 @@ export function errorMessage(error: unknown): string {
 }
 export function useAdminAction() {
   const cache = useQueryClient();
+  const notifications = useContext(AdminNoticeContext);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [notice, setNotice] = useState(''),
+    [localNotice, setLocalNotice] = useState(''),
     [conflict, setConflict] = useState<{
       impacts: ReservationImpact[];
       retry: () => void;
     } | null>(null);
+  const notice = notifications?.notice ?? localNotice;
+  const setNotice = notifications?.setNotice ?? setLocalNotice;
   async function run(
     action: (force: boolean) => Promise<unknown>,
     message: string,
@@ -55,5 +59,14 @@ export function useAdminAction() {
       setBusy(false);
     }
   }
-  return { run, busy, error, notice, setNotice, conflict, setConflict };
+  return {
+    run,
+    busy,
+    error,
+    notice,
+    setNotice,
+    conflict,
+    setConflict,
+    globalNotice: !!notifications,
+  };
 }

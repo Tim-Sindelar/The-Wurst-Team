@@ -9,7 +9,7 @@ import {
   Title,
 } from '@mantine/core';
 import * as api from '../../api/generated';
-import { DecisionSheet } from '../../components/DecisionSheet';
+import { AdminDialog } from './AdminDialog';
 import { AdminFeedback } from './AdminFeedback';
 import { adminHeaders, useAdminAction } from './useAdminAction';
 export function AdminSettingsPage() {
@@ -30,7 +30,7 @@ function SettingsForm({ space }: { space: api.AdminSpaceOverview }) {
   return (
     <div className="grid gap-6">
       <form
-        className="grid max-w-phone gap-4"
+        className="admin-form admin-form-narrow"
         onSubmit={(e) => {
           e.preventDefault();
           void action.run(
@@ -63,7 +63,7 @@ function SettingsForm({ space }: { space: api.AdminSpaceOverview }) {
           Location and room border come from the campus room chosen when
           creating this study place.
         </Text>
-        <div className="flex gap-3">
+        <div className="admin-form-actions">
           <Button
             type="button"
             variant="secondary"
@@ -79,7 +79,7 @@ function SettingsForm({ space }: { space: api.AdminSpaceOverview }) {
           </Button>
         </div>
       </form>
-      <Card className="grid gap-3 p-4">
+      <Card className="admin-user-card admin-form-narrow">
         <Title order={2}>
           {space.is_archived ? 'Restore study place' : 'Delete study place'}
         </Title>
@@ -111,7 +111,7 @@ function SettingsForm({ space }: { space: api.AdminSpaceOverview }) {
         )}
       </Card>
       <AdminFeedback action={action} />
-      <DecisionSheet
+      <AdminDialog
         opened={deleting}
         onClose={() => setDeleting(false)}
         title={'Delete ' + space.name + '?'}
@@ -133,7 +133,7 @@ function SettingsForm({ space }: { space: api.AdminSpaceOverview }) {
       >
         End current and upcoming reservations before deleting. You can restore
         this place from the spaces list.
-      </DecisionSheet>
+      </AdminDialog>
     </div>
   );
 }

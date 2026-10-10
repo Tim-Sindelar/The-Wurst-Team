@@ -4,7 +4,7 @@ Mock screens for the ETH study-space seat reservation app. Plain HTML + CSS, no 
 Values live in `tokens.css`. **This file says how to use them.** If a rule and a screen disagree, fix the screen.
 
 ## Direction
-- Copy the visual language of the ETH EduApp: warm dark brown, uppercase labels, outline icons. Soft shapes (7px cards, 5px controls) with a light shadow, thin outline kept on every card.
+- Copy the visual language of the ETH EduApp: neutral charcoal and grey in dark mode, white and grey in light mode, uppercase labels, outline icons. Soft shapes (7px cards, 5px controls) with a light shadow, thin outline kept on every card.
 - App name on screens is a placeholder: **Study Spaces**. One word to change later.
 - Components come from the shared set (button, chip, tab, input, search, dropdown, toggle, checkbox, notice, table card, seat marker, break timer, QR check-in, modal, app header, bottom navigation). Reuse them; do not restyle per screen.
 - Phone first, 390px wide. On desktop, centre a 390px column. Do not stretch.
@@ -168,7 +168,7 @@ Notifications are push banners, not screens. Mock at most as a banner component:
 
 ## Admin dashboard (desktop)
 For the people who run the study spaces. Lives in `admin/`, loads `tokens.css`, `base.css` and `admin.css`.
-**Same look as the student app:** the same tokens, colours, fonts, seat-state meanings and the same two kinds of popup. Only the layout changes, because it is for a laptop.
+**Same look as the student app:** the same tokens, colours, fonts, seat-state meanings and the same two kinds of popup. React and HTML previews share main’s neutral surface palette in both themes, with ETH blue for actions and the shared seat-state colours. Only the layout changes, because it is for a laptop.
 
 ### Layout
 - **Desktop first.** Designed for 1280px and wider. It must not break on a phone (the side menu becomes a top bar under 900px), but it is not optimised for one.
@@ -241,3 +241,15 @@ Use the backend's demo spaces so the mockups match what will be wired later: "Ha
 Select a room on the sample backend-style floor map, name it and create the space. Creation opens its furniture editor. The backend-owned polygon remains fixed; tables, seats, windows and doors are editable local objects. Windows and doors snap to walls. Seats and tables use the phone map's dimensions, numbering and design tokens. Save layout persists furniture and recalculates seat totals. This mockup makes no backend calls and does not modify the React student fixture.
 
 The furniture editor is the Layout tab inside the original room menu. Spaces > Manage opens Seats with current occupants and reservations; Opening hours, Closures and Settings remain available. Create space enters Layout directly, and all room tabs preserve the selected space ID.
+
+The React layout editor aligns the main room walls with the canvas axes while retaining the native map coordinates and physical scale. Table shapes and seat features stay in a separate row under the tools inside the map column. The inspector sits alongside that column. Resize corners use the HTML template’s mirrored blue notches, and newly placed seats show the Free colour before saving.
+
+The React Layout inspector uses a compact Selected item heading, grouped properties, feature toggle buttons and quiet Rotate/Remove actions. General room information sits in a horizontal card below the layout canvas, with the room label, type, timezone, dimensions and polygon floor area, marking approximate measurements. The scale and Phone map style notes remain there; the card stacks on narrow screens. Seat numbering is read-only; table features apply to attached and newly added seats.
+
+Wheel scrolling anywhere inside the layout canvas, including its map controls, only zooms the room and never scrolls the page. Scrolling outside the canvas scrolls the page normally. Zoom retains the point under the pointer and stays within the editor's zoom limits.
+
+Placement tools also allow dragging existing furniture without switching to Select. Clicking empty space places the chosen object. The Seat tool still adds seats around tables and row guides; feature tools still apply features. Moving a table carries its seats and retains boundary, overlap and Undo behavior.
+
+Selected tables rotate by dragging just outside a corner, where the cursor changes to curved arrows. The corner notches still resize. Rotation keeps attached seats in their slots and labels upright, respects room boundaries and overlap rules, and creates one Undo step per drag. Shift snaps a drag to 15° steps; Esc cancels it. Focused rotation handles support left/right arrows for 15° steps, or 90° with Shift.
+
+The React Spaces list shows Restore and Delete permanently for archived spaces when Show deleted study places is enabled. Permanent deletion uses the shared danger dialog, names the space and explains that its layout, seats, QR links and reservation history cannot be restored. Confirmation controls and dismissal are disabled while the request runs; failures remain visible inside the dialog. The backend only permits archived spaces without live bookings and retains the campus room inventory so the room can be created again.

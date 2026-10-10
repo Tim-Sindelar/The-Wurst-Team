@@ -192,6 +192,11 @@ class AdminSpaceResponse(UTCResponse):
     reservation_impacts: list[ReservationImpact]
 
 
+class AdminSpaceDeletedResponse(UTCResponse):
+    server_time: datetime
+    deleted_space_id: UUID
+
+
 class AdminSeatResponse(UTCResponse):
     server_time: datetime
     seat: AdminSeatDetails

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Campus map. Ported from occupancy-map-preview/src/styles.css (view mode
-   only) and scoped to the map screen (.campus-map) and the sheets it opens
+   only) and scoped to the map screen, admin room picker, and their sheets
    (.campus-map-ui, rendered in portals). The map's own colour names point at
    the design tokens, so both themes follow the rest of the app. The colours
    drawn on the map itself come from the backend's map style (/api/v1/map/style).
@@ -11,7 +11,7 @@
    ========================================================================== */
 
 @layer components {
-  :is(.campus-map, .campus-map-ui) {
+  :is(.campus-map, .campus-map-ui, .admin-room-map) {
     --bg: var(--color-bg);
     --panel: var(--color-surface);
     --text: var(--color-text);
@@ -877,7 +877,7 @@
   }
 
   /* ---- the map itself ---------------------------------------------------- */
-  .campus-map {
+  :is(.campus-map, .admin-room-map) {
     .map {
       height: 100%;
       width: 100%;
@@ -1057,7 +1057,9 @@
     }
 
     /* floor picker: a column of 44px buttons on the right edge */
-    .floor-picker {
+    /* Floor wheel: a scroll-snapping column, the selected floor in the
+       middle band; the floors above and below fade out. */
+    .floor-wheel {
       position: absolute;
       z-index: 1000;
       right: 12px;
@@ -1065,69 +1067,73 @@
       transform: translateY(-50%);
       display: flex;
       flex-direction: column;
-      max-height: 46%;
-      overflow-y: auto;
-      overscroll-behavior: contain;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
+      overflow: hidden;
     }
-    .floor-picker .floor-title {
+    .floor-wheel .floor-title {
       padding: 6px 6px 4px;
       font-size: var(--text-label);
       color: var(--muted);
       text-align: center;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
     }
-    .floor-picker button {
-      border: 0;
-      border-top: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      min-width: 48px;
-      min-height: 44px;
-      padding: 6px 8px;
-      cursor: pointer;
-      font-weight: 600;
+    .floor-wheel-window {
+      position: relative;
+      width: 52px;
     }
-    .floor-picker button[aria-pressed='true'] {
-      background: var(--accent);
-      color: var(--on-accent);
-    }
-    .floor-picker button.has-library:not([aria-pressed='true']) {
-      color: var(--accent);
-    }
-    .floor-picker button.has-library::after {
+    /* The middle band, where the selected floor comes to rest. */
+    .floor-wheel-window::before {
       content: '';
-      display: inline-block;
-      width: 5px;
-      height: 5px;
-      margin-left: 3px;
-      border-radius: 50%;
-      background: currentColor;
-      vertical-align: middle;
-    }
-    /* The floor name pill sits under the top bar, out of the bottom controls' way. */
-    .floor-status {
       position: absolute;
-      z-index: 1000;
-      left: 50%;
-      top: calc(76px + env(safe-area-inset-top));
-      transform: translateX(-50%);
-      max-width: calc(100% - 140px);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      background: rgb(28 36 48 / 0.85);
-      color: #fff;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: var(--text-label);
+      inset-inline: 4px;
+      top: 50%;
+      height: 40px;
+      transform: translateY(-50%);
+      border-radius: var(--radius-control);
+      background: var(--accent);
       pointer-events: none;
     }
-
+    .floor-wheel-track {
+      position: relative;
+      height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+      mask-image: linear-gradient(
+        to bottom,
+        transparent,
+        #000 30%,
+        #000 70%,
+        transparent
+      );
+    }
+    .floor-wheel-track::-webkit-scrollbar {
+      display: none;
+    }
+    .floor-wheel-track button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 44px;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      font-size: var(--text-body);
+      cursor: pointer;
+      scroll-snap-align: center;
+    }
+    .floor-wheel-track button[aria-pressed='true'] {
+      color: var(--on-accent);
+    }
     .room-label {
       display: flex;
       flex-direction: column;
@@ -1232,6 +1238,11 @@
       align-items: center;
       min-height: 40px;
     }
+    .leaflet-bar a:focus-visible,
+    .leaflet-control-layers-toggle:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: -2px;
+    }
     .leaflet-control-zoom {
       display: none;
     }
@@ -1272,7 +1283,7 @@
     }
   }
 
-  [data-mantine-color-scheme='dark'] .campus-map {
+  [data-mantine-color-scheme='dark'] :is(.campus-map, .admin-room-map) {
     .leaflet-container {
       background: #14171c;
     }
@@ -1283,6 +1294,13 @@
     .maplibregl-canvas {
       filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95);
     }
+  }
+
+  .admin-room-map .leaflet-top {
+    top: 0;
+  }
+  .admin-room-map .leaflet-control-zoom {
+    display: block;
   }
 
   /* Room photo viewer (RoomDetails renders it into <body>). */
