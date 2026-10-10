@@ -2,46 +2,35 @@ import {
   ActionIcon,
   Alert,
   Button,
-  SegmentedControl,
+  Slider,
   Switch,
   Text,
   Title,
   useComputedColorScheme,
 } from '@mantine/core';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { LatLngBoundsLiteral } from 'leaflet';
 import { Link } from 'react-router';
-import { cx } from '../components/cx';
-import { Icon, type IconName } from '../components/Icon';
+import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
+import { Icon } from '../components/Icon';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { paths } from '../routes';
-import { FreeRooms } from './components/FreeRooms';
 import { LiveRooms } from './components/LiveRooms';
 import { OccupancyLegend } from './components/OccupancyLegend';
-import { RoomPanel } from './components/RoomControls';
 import { RoomDetails } from './components/RoomDetails';
 import { RoomPhotos } from './components/RoomPhotos';
-import { TimePanel, timeLabel } from './components/TimeControls';
-import { UzhPanel } from './components/UzhPanel';
 import { WorkspaceDetails } from './components/WorkspaceDetails';
 import { WorkspaceList } from './components/WorkspaceList';
 import { guessEthId } from './data/ethRoomsRepository';
 import { repository } from './data/repository';
 import { fetchNavigation } from './data/navigationRepository';
-import { useDebounced } from './data/useDebounced';
 import { useEthRooms, useZurichClock } from './data/useEthRooms';
-import { DatasetPanel } from './datasets/DatasetControls';
 import { DatasetItemDetails } from './datasets/DatasetItemDetails';
 import { DatasetLayers, type DatasetSelection } from './datasets/DatasetLayers';
 import type { Clock } from './datasets/present';
 import type { DatasetItem, DatasetMeta, MensaDetails } from './datasets/types';
-import {
-  loadDatasetSettings,
-  saveDatasetSettings,
-  useDatasetList,
-  useDatasets,
-  type DatasetSettings,
-} from './datasets/useDatasets';
+import { useDatasetList, useDatasets } from './datasets/useDatasets';
 import { useMensaItems } from './datasets/useMensaItems';
 import {
   hhmm,
@@ -57,31 +46,30 @@ import {
 } from './domain/navigation';
 import { occupancyOf } from './domain/operations';
 import { WORKSPACE_KIND_LABELS, type OccupancyData } from './domain/types';
-import {
-  datasetAt,
-  dayLabel,
-  weekdayOf,
-  zurichInstant,
-  type ZurichTime,
-} from './domain/viewTime';
+import { datasetAt, weekdayOf } from './domain/viewTime';
 import { loadFloorIndex, type FloorIndex } from './floors/floorData';
 import type { MensaRoom } from './map/FloorLayer';
 import { MapView, type FlyTarget } from './map/MapView';
+import { ModeControl } from './map/ModeControl';
 import { outlineBounds } from './map/geo';
 import {
   DEFAULT_MINIMAL,
   fetchStandardStyles,
   type MinimalStyles,
-  type RenderMode,
 } from './map/minimalStyle';
 import { MapSheet } from './MapSheet';
 import {
-  loadRoomFeatures,
-  saveRoomFeatures,
-  type RoomFeatures,
-  type RoomInfo,
-} from './roomFeatures';
-import { readStored, writeStored } from './storage';
+  bookableLibraryIds,
+  load3d,
+  loadMapMode,
+  MAP_MODE_LABELS,
+  MAP_MODES,
+  MODE_DATASETS,
+  save3d,
+  saveMapMode,
+  type MapMode,
+} from './mapMode';
+import { DEFAULT_ROOM_FEATURES, type RoomInfo } from './roomFeatures';
 import { sameTarget, type MapTarget } from './target';
 import { EMPTY_SELECTION, type Selection } from './state';
 
@@ -92,14 +80,22 @@ const NO_DATA: RoomState = {
   until: 1440,
 };
 
-type Sheet = 'workspaces' | 'time' | 'rooms' | 'datasets' | 'map' | null;
+type Sheet = 'workspaces' | 'mode' | null;
 
 /** From this zoom on the map shows workspaces closely enough to color the mensa ones. */
 const MENSA_ZOOM = 16;
 
-/** Only workspaces switched on in the map editor are shown. */
-function filterEnabled(data: OccupancyData): OccupancyData {
-  const libraries = data.libraries.filter((l) => l.enabled);
+/** Live rooms show everything but the UZH libraries (no longer switchable). */
+const ROOM_FEATURES = { ...DEFAULT_ROOM_FEATURES, enabled: true };
+
+const NO_MENSAS: ReadonlyMap<string, MensaRoom> = new Map();
+
+/** Only the workspaces `keep` lets through, with their tables and seats. */
+function keepLibraries(
+  data: OccupancyData,
+  keep: (lib: OccupancyData['libraries'][number]) => boolean,
+): OccupancyData {
+  const libraries = data.libraries.filter(keep);
   const ids = new Set(libraries.map((l) => l.id));
   const tables = data.tables.filter((t) => ids.has(t.libraryId));
   const tableIds = new Set(tables.map((t) => t.id));
@@ -148,19 +144,13 @@ export function CampusMap() {
   const [flyTarget, setFlyTarget] = useState<FlyTarget | null>(null);
   const [styles, setStyles] = useState<MinimalStyles>(DEFAULT_MINIMAL);
 
-  const [renderMode, setRenderModeState] = useState<RenderMode>(() =>
-    readStored('render-mode') === 'detailed' ? 'detailed' : 'minimal',
-  );
-  const setRenderMode = (mode: RenderMode) => {
-    setRenderModeState(mode);
-    writeStored('render-mode', mode);
-  };
-  const [view3d, setView3dState] = useState(
-    () => readStored('view-3d') === '1',
-  );
+  // What the map shows (the slider behind the layers button); all else stays off.
+  const [mode, setModeState] = useState<MapMode>(loadMapMode);
+  // The 3D floor stack, switched in the same sheet; on by default.
+  const [view3d, setView3dState] = useState(load3d);
   const setView3d = (on: boolean) => {
     setView3dState(on);
-    writeStored('view-3d', on ? '1' : '0');
+    save3d(on);
   };
 
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -194,14 +184,22 @@ export function CampusMap() {
     );
   }, []);
 
-  // ---- live room mode (ETH room bookings) ----
-  const [roomFeatures, setRoomFeaturesState] =
-    useState<RoomFeatures>(loadRoomFeatures);
-  const setRoomFeatures = (f: RoomFeatures) => {
-    setRoomFeaturesState(f);
-    saveRoomFeatures(f);
-  };
-  const rooms = roomFeatures.enabled;
+  // ---- the bookable study spaces (the home screen's), for the study mode ----
+  const spacesQuery = useQuery(listSpacesOptions());
+  const bookable = useMemo(
+    () =>
+      data && spacesQuery.data
+        ? bookableLibraryIds(
+            spacesQuery.data.spaces,
+            data.libraries.filter((l) => l.enabled),
+          )
+        : null,
+    [data, spacesQuery.data],
+  );
+
+  // ---- live rooms (ETH room bookings), on outside the study mode ----
+  const roomFeatures = ROOM_FEATURES;
+  const rooms = mode !== 'study';
 
   /* Workspace and mensa popups show the booking status and photos of their ETH
      rooms even with live rooms off: the room data is fetched the first time
@@ -215,21 +213,17 @@ export function CampusMap() {
       setEthWanted(true);
   }, [target]);
 
-  // ---- the time shown: now, or a date and time picked (Zurich) ----
+  // ---- the time shown: always now (Zurich) ----
   const clock = useZurichClock(true);
-  const [pickedTime, setPickedTime] = useState<ZurichTime | null>(null);
-  const live = pickedTime === null;
-  const view = pickedTime ?? clock;
-  const minute = view.minute;
-  const viewLabel = live ? 'now' : timeLabel(view, clock.date);
+  const minute = clock.minute;
 
   const { response: ethResponse, error: ethError } = useEthRooms(
     rooms || ethWanted,
-    view.date === clock.date ? null : view.date,
+    null,
   );
   const snapshot = ethResponse?.snapshot ?? null;
   // Right after midnight the snapshot is still yesterday's until the next fetch.
-  const dayMismatch = !!snapshot && snapshot.date !== view.date;
+  const dayMismatch = !!snapshot && snapshot.date !== clock.date;
   const roomInfos = useMemo<RoomInfo[]>(
     () =>
       snapshot
@@ -286,32 +280,24 @@ export function CampusMap() {
     return [...new Set(ids.filter((id): id is string => !!id))];
   };
 
-  // ---- campus datasets (mensas, transport, sport, weather, ...; served by the backend) ----
-  const { list: datasetMetas, error: datasetListError } = useDatasetList();
-  const [datasetSettings, setDatasetSettingsState] =
-    useState<DatasetSettings>(loadDatasetSettings);
-  const setDatasetSettings = (s: DatasetSettings) => {
-    setDatasetSettingsState(s);
-    saveDatasetSettings(s);
-  };
-  // Datasets are fetched for a picked time once it stops changing.
-  const datasetTime = useDebounced(pickedTime, 500);
-  const datasetAtOf = (meta: DatasetMeta) =>
-    datasetAt(meta, datasetTime, clock);
-  const { states: datasetStates, reload: reloadDataset } = useDatasets(
+  // ---- campus datasets (ASVZ sport and mensas in the campus mode; served by the backend) ----
+  const { list: datasetMetas } = useDatasetList();
+  const enabledDatasets = MODE_DATASETS[mode];
+  const datasetAtOf = (meta: DatasetMeta) => datasetAt(meta, null, clock);
+  const { states: datasetStates } = useDatasets(
     datasetMetas,
-    datasetSettings.enabled,
+    enabledDatasets,
     datasetAtOf,
   );
   const datasetClock = useMemo<Clock>(
     () => ({
-      minute: view.minute,
-      weekday: weekdayOf(view.date),
-      ms: live ? Date.now() : zurichInstant(view),
-      live,
-      label: viewLabel,
+      minute: clock.minute,
+      weekday: weekdayOf(clock.date),
+      ms: Date.now(),
+      live: true,
+      label: 'now',
     }),
-    [view.date, view.minute, live, viewLabel],
+    [clock.date, clock.minute],
   );
   // Pins only show near the campus areas, so far-off scooters and stops don't clutter the map.
   const areaBoxes = useMemo(
@@ -324,25 +310,24 @@ export function CampusMap() {
   const datasetLayers = useMemo(() => {
     const out: { meta: DatasetMeta; items: DatasetItem[] }[] = [];
     for (const meta of datasetMetas ?? []) {
-      if (!datasetSettings.enabled.includes(meta.id)) continue;
+      if (!enabledDatasets.includes(meta.id)) continue;
       const doc = datasetStates[meta.id]?.response?.document;
       if (!doc) continue;
-      const hidden = new Set(datasetSettings.hiddenCategories[meta.id] ?? []);
       out.push({
         meta,
-        items: doc.items.filter(
-          (i) => !hidden.has(i.category) && nearArea(areaBoxes, i.lat, i.lng),
-        ),
+        items: doc.items.filter((i) => nearArea(areaBoxes, i.lat, i.lng)),
       });
     }
     return out;
-  }, [datasetMetas, datasetStates, datasetSettings, areaBoxes]);
+  }, [datasetMetas, datasetStates, enabledDatasets, areaBoxes]);
   // Mensa rooms (datasets/mensa/rooms.json) are drawn on the floor plans.
   const mensaLayer = datasetLayers.find((l) => l.meta.id === 'mensa') ?? null;
   /* Workspaces that are also a mensa get the mensa's color with the mensa
-     layer off too, so the mensa items are fetched (once) when the map is
-     zoomed in or something is selected. */
-  const lazyMensaItems = useMensaItems(zoom >= MENSA_ZOOM || target !== null);
+     layer off too (not in the study mode), so the mensa items are fetched
+     (once) when the map is zoomed in or something is selected. */
+  const lazyMensaItems = useMensaItems(
+    mode !== 'study' && (zoom >= MENSA_ZOOM || target !== null),
+  );
   const mensaMeta = datasetMetas?.find((m) => m.id === 'mensa') ?? null;
   const mensaItems =
     datasetStates.mensa?.response?.document?.items ?? lazyMensaItems;
@@ -387,9 +372,6 @@ export function CampusMap() {
         }
     return out;
   }, [mensaLayer, data, mensaWorkspaces, mensaOfRoom]);
-  const datasetsBusy = Object.values(datasetStates).some(
-    (s) => s.loading || s.response?.refreshing,
-  );
 
   if (loadError)
     return (
@@ -406,7 +388,11 @@ export function CampusMap() {
       </FullScreenNote>
     );
 
-  const visible = filterEnabled(data);
+  // The study mode shows only the workspaces of the bookable study spaces.
+  const visible = keepLibraries(
+    data,
+    (l) => l.enabled && (mode !== 'study' || !!bookable?.has(l.id)),
+  );
   const style = styles[theme];
   const roomStyle = style.occupancy;
 
@@ -445,6 +431,12 @@ export function CampusMap() {
   const clearTarget = () => {
     setTarget(null);
     setDashboardOpen(false);
+  };
+  const setMode = (next: MapMode) => {
+    if (next === mode) return;
+    setModeState(next);
+    saveMapMode(next);
+    clearTarget();
   };
 
   /* Choosing something from a list in a menu: select it, close the menu and
@@ -502,20 +494,14 @@ export function CampusMap() {
     ? (mensaItems?.find((i) => i.id === workspaceMensaId) ?? null)
     : null;
 
-  const bookingsOf =
-    view.date === clock.date
-      ? "today's bookings"
-      : `the bookings of ${dayLabel(view.date, clock.date)}`;
   const legendNote = !snapshot
     ? ethResponse?.state === 'running'
-      ? `Fetching ${bookingsOf} from ETH… ${ethResponse.done} / ${ethResponse.total || '?'}`
-      : ethResponse?.state === 'error' && !live
-        ? ethResponse.error
-        : ethError || ethResponse?.error
-          ? 'Room data unavailable, see Rooms'
-          : 'Loading room data…'
+      ? `Fetching today's bookings from ETH… ${ethResponse.done} / ${ethResponse.total || '?'}`
+      : ethError || ethResponse?.error
+        ? 'Room data unavailable right now'
+        : 'Loading room data…'
     : dayMismatch
-      ? `Fetching ${bookingsOf}…`
+      ? "Fetching today's bookings…"
       : null;
 
   // ---- the card for the current selection ----
@@ -540,44 +526,6 @@ export function CampusMap() {
     };
   }
 
-  const toolbar: {
-    id: Exclude<Sheet, null>;
-    icon: IconName;
-    label: string;
-    active: boolean;
-    busy?: boolean;
-  }[] = [
-    {
-      id: 'workspaces',
-      icon: 'search',
-      label: 'Workspaces',
-      active: false,
-    },
-    {
-      id: 'rooms',
-      icon: 'door',
-      label: 'Live rooms',
-      active: rooms,
-      busy: ethResponse?.state === 'running',
-    },
-    {
-      id: 'datasets',
-      icon: 'pin',
-      label: datasetSettings.enabled.length
-        ? `Campus data (${datasetSettings.enabled.length})`
-        : 'Campus data',
-      active: datasetSettings.enabled.length > 0,
-      busy: datasetsBusy,
-    },
-    // The time picker is a submenu of the map options.
-    {
-      id: 'map',
-      icon: 'layers',
-      label: live ? 'Map' : timeLabel(view, clock.date),
-      active: view3d || !live,
-    },
-  ];
-
   const showLegend = rooms && roomFeatures.occupancy;
 
   return (
@@ -599,7 +547,7 @@ export function CampusMap() {
             });
         }}
         onZoomChange={setZoom}
-        minimal={renderMode === 'minimal' ? style : null}
+        minimal={style}
         view3d={view3d ? style.view3d : null}
         navigation={navigation}
         homePositions={homePositions(data.libraries)}
@@ -612,8 +560,8 @@ export function CampusMap() {
             ? (id) => tap({ kind: 'room', id })
             : null
         }
-        mensaRooms={mensaRooms}
-        mensaWorkspaces={mensaWorkspaces}
+        mensaRooms={mode === 'study' ? NO_MENSAS : mensaRooms}
+        mensaWorkspaces={mode === 'study' ? NO_MENSAS : mensaWorkspaces}
         selectedMensaId={
           selectedDatasetItem?.datasetId === 'mensa'
             ? selectedDatasetItem.itemId
@@ -623,6 +571,7 @@ export function CampusMap() {
           tap({ kind: 'dataset', datasetId: 'mensa', itemId })
         }
       >
+        <ModeControl onOpen={() => setSheet('mode')} />
         <DatasetLayers
           layers={datasetLayers}
           clock={datasetClock}
@@ -659,7 +608,7 @@ export function CampusMap() {
               infos={roomInfos}
               colors={roomStyle}
               showColors={roomFeatures.occupancy}
-              label={live ? `Now ${hhmm(minute)}` : timeLabel(view, clock.date)}
+              label={`Now ${hhmm(minute)}`}
               note={legendNote}
             />
           </div>
@@ -698,107 +647,77 @@ export function CampusMap() {
           </div>
         )}
 
+        {mode === 'study' && spacesQuery.isError && (
+          <div className="pointer-events-auto">
+            <Alert variant="danger" title="Couldn't load the study spaces">
+              The map shows them once they load again.
+            </Alert>
+          </div>
+        )}
+
         <nav
           aria-label="Map controls"
-          className="pointer-events-auto grid grid-cols-4 gap-1 rounded-card border border-border bg-surface p-1 shadow-card"
+          className="pointer-events-auto rounded-card border border-border bg-surface p-1 shadow-card"
         >
-          {toolbar.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-expanded={sheet === item.id}
-              onClick={() => setSheet(sheet === item.id ? null : item.id)}
-              className={cx(
-                'relative flex min-h-14 min-w-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-control border-0 bg-transparent px-1 text-label text-text-muted hover:bg-hover',
-                item.active && 'bg-surface-2 text-text',
-              )}
-            >
-              <Icon name={item.icon} />
-              <span className="max-w-full truncate">{item.label}</span>
-              {(item.active || item.busy) && (
-                <span
-                  aria-hidden="true"
-                  className={cx(
-                    'live-dot absolute top-2 right-[calc(50%-18px)]',
-                    item.active && 'is-on',
-                    item.busy && 'is-busy',
-                  )}
-                />
-              )}
-            </button>
-          ))}
+          <button
+            type="button"
+            aria-expanded={sheet === 'workspaces'}
+            onClick={() =>
+              setSheet(sheet === 'workspaces' ? null : 'workspaces')
+            }
+            className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-control border-0 bg-transparent px-3 text-body text-text hover:bg-hover"
+          >
+            <Icon name="search" />
+            <span className="truncate">
+              {mode === 'study' ? 'Study spaces' : 'Workspaces'}
+            </span>
+          </button>
         </nav>
       </div>
 
-      {/* Settings sheets (the preview's map overlay panels) */}
+      {/* Map view: what the map shows */}
       <MapSheet
-        opened={sheet === 'time'}
+        opened={sheet === 'mode'}
         onClose={() => setSheet(null)}
-        onBack={() => setSheet('map')}
-        title="Date and time"
+        title="Map view"
       >
-        <TimePanel
-          view={pickedTime}
-          now={clock}
-          onChange={setPickedTime}
-          metas={datasetMetas}
-          enabledDatasets={datasetSettings.enabled}
-          rooms={rooms}
-          roomWindow={ethResponse?.window ?? null}
-        />
-      </MapSheet>
-
-      <MapSheet
-        opened={sheet === 'rooms'}
-        onClose={() => setSheet(null)}
-        title="Live rooms"
-      >
-        <div className="border-b border-border px-4 py-3">
+        <div className="grid gap-4 px-4 py-4">
+          <Slider
+            className="mx-10 mb-8"
+            min={0}
+            max={MAP_MODES.length - 1}
+            step={1}
+            value={MAP_MODES.indexOf(mode)}
+            onChange={(i) => setMode(MAP_MODES[i])}
+            thumbLabel="Map view"
+            marks={MAP_MODES.map((m, i) => ({
+              value: i,
+              label: MAP_MODE_LABELS[m].label,
+            }))}
+          />
+          <Text size="sm" c="dimmed">
+            {MAP_MODE_LABELS[mode].hint}
+          </Text>
           <Switch
-            label="Show ETH room bookings on the map"
-            checked={rooms}
-            onChange={(e) =>
-              setRoomFeatures({
-                ...roomFeatures,
-                enabled: e.currentTarget.checked,
-              })
-            }
+            label="3D: stack the floors of the building in focus"
+            checked={view3d}
+            onChange={(e) => setView3d(e.currentTarget.checked)}
           />
+          {mode === 'study' && spacesQuery.isError && (
+            <Alert variant="danger" title="Couldn't load the study spaces">
+              The map shows them once they load again.
+            </Alert>
+          )}
+          <Button variant="secondary" onClick={() => setSheet(null)}>
+            Done
+          </Button>
         </div>
-        {rooms ? (
-          <RoomPanel
-            features={roomFeatures}
-            onChange={setRoomFeatures}
-            response={ethResponse}
-            error={ethError}
-            floorPlans={floorIndex !== null}
-          />
-        ) : (
-          <p className="note px-4 py-3">
-            Colors the lecture and seminar rooms by today's bookings: free,
-            booked soon, in use or closed. Tap a room for its schedule.
-          </p>
-        )}
-        {rooms && roomFeatures.freeList && snapshot && !dayMismatch && (
-          <FreeRooms
-            infos={roomInfos}
-            minute={minute}
-            when={live ? 'now' : `at ${viewLabel}`}
-            colors={roomStyle}
-            onMap={placedRooms}
-            selectedId={selectedRoomInfo?.room.id ?? null}
-            onSelect={showEthRoom}
-          />
-        )}
-        {rooms && roomFeatures.uzh && (
-          <UzhPanel picked={live ? null : viewLabel} />
-        )}
       </MapSheet>
 
       <MapSheet
         opened={sheet === 'workspaces'}
         onClose={() => setSheet(null)}
-        title="Workspaces"
+        title={mode === 'study' ? 'Study spaces' : 'Workspaces'}
       >
         <WorkspaceList
           data={visible}
@@ -806,72 +725,6 @@ export function CampusMap() {
           levels={floorIndex?.levels ?? []}
           onSelectLibrary={(lib) => showLibrary(lib.id)}
         />
-      </MapSheet>
-
-      <MapSheet
-        opened={sheet === 'datasets'}
-        onClose={() => setSheet(null)}
-        title="Campus data"
-      >
-        <DatasetPanel
-          metas={datasetMetas}
-          listError={datasetListError}
-          settings={datasetSettings}
-          onChange={setDatasetSettings}
-          states={datasetStates}
-          onReload={reloadDataset}
-          picked={live ? null : viewLabel}
-        />
-      </MapSheet>
-
-      <MapSheet
-        opened={sheet === 'map'}
-        onClose={() => setSheet(null)}
-        title="Map"
-      >
-        <button
-          type="button"
-          onClick={() => setSheet('time')}
-          className="flex min-h-14 w-full cursor-pointer items-center gap-3 border-0 border-b border-border bg-transparent px-4 text-left text-text hover:bg-hover"
-        >
-          <Icon name="clock" />
-          <span className="grid min-w-0 flex-1">
-            <span className="font-semibold">Date and time</span>
-            <span className="truncate text-label text-text-muted">
-              {live ? 'Now' : timeLabel(view, clock.date)}
-            </span>
-          </span>
-          <Icon name="chevronRight" />
-        </button>
-        <div className="grid gap-4 px-4 py-4">
-          <div className="grid gap-2">
-            <Text size="sm" c="dimmed">
-              Floor plans
-            </Text>
-            <SegmentedControl
-              fullWidth
-              value={renderMode}
-              onChange={(v) => setRenderMode(v as RenderMode)}
-              data={[
-                { value: 'minimal', label: 'Simple' },
-                { value: 'detailed', label: 'Detailed' },
-              ]}
-            />
-          </div>
-          <Switch
-            label="3D: stack the floors of the building in focus"
-            checked={view3d}
-            onChange={(e) => setView3d(e.currentTarget.checked)}
-          />
-          <Text size="sm" c="dimmed">
-            Switch the base map (clean, streets, satellite) with the layers
-            button on the map. Pinch to zoom; the house button shows both
-            campuses again.
-          </Text>
-          <Button variant="secondary" onClick={() => setSheet(null)}>
-            Done
-          </Button>
-        </div>
       </MapSheet>
 
       {/* The popup of what is selected, opened by tapping it on the map */}

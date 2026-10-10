@@ -25,8 +25,7 @@ interface Props {
  * Floor wheel: the floors of the buildings in view, top floor first, scrolled
  * so the selected one sits in the middle. Scrolling the wheel picks the floor
  * that comes to rest in the middle; tapping a floor picks it too. Each floor
- * shows one letter, the one the building in focus uses for it. Plus a status
- * pill naming the levels on the selected floor.
+ * shows one letter, the one the building in focus uses for it.
  */
 export function FloorPicker({ index, floor, libraries, onChange }: Props) {
   const map = useMap();
@@ -62,31 +61,18 @@ export function FloorPicker({ index, floor, libraries, onChange }: Props) {
       .map((l) => l.floor as number),
   );
 
-  const here = inView.filter((l) => l.floor === floor);
-  const names = here
-    .slice(0, 4)
-    .map((l) => `${l.facilityId.replace(/^ETH\./, '')} ${l.label}`);
-  const status = here.length
-    ? `${names.join(', ')}${here.length > names.length ? ` +${here.length - names.length}` : ''}`
-    : 'No floor plans on this floor here';
-
   // Zoomed out over a whole campus the floors mean little, and the wheel
   // would cover the map on a phone.
   if (map.getZoom() < SHOW_FROM_ZOOM) return null;
 
   return (
-    <>
-      <FloorWheel
-        floors={floors}
-        floor={floor}
-        labelOf={labelOf}
-        marked={libraryFloors}
-        onChange={onChange}
-      />
-      <div className="floor-status">
-        Floor {labelOf(floor)} · {status}
-      </div>
-    </>
+    <FloorWheel
+      floors={floors}
+      floor={floor}
+      labelOf={labelOf}
+      marked={libraryFloors}
+      onChange={onChange}
+    />
   );
 }
 

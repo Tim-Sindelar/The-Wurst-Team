@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ethFileUrl,
@@ -57,19 +57,12 @@ export function RoomPhotos({
     <>
       <div className="room-photos">
         {photos.map((img, i) => (
-          <button
+          <PhotoThumb
             key={`${img.room}/${img.id}`}
-            type="button"
-            className="room-photo"
-            onClick={() => setOpen(i)}
-            aria-label={`Show photo ${i + 1} of ${img.room} larger`}
-          >
-            <img
-              src={ethFileUrl(img.id)}
-              alt={img.altText || img.filename || `Photo of ${img.room}`}
-              loading="lazy"
-            />
-          </button>
+            photo={img}
+            onOpen={() => setOpen(i)}
+            label={`Show photo ${i + 1} of ${img.room} larger`}
+          />
         ))}
       </div>
       {open !== null && photos[open] && (
@@ -82,6 +75,51 @@ export function RoomPhotos({
         />
       )}
     </>
+  );
+}
+
+/**
+ * One photo of the strip. ETH only has full-size photos (~250 KB each), so the
+ * image is only asked for once its placeholder is on screen: `loading="lazy"`
+ * would fetch the whole horizontal strip at once.
+ */
+function PhotoThumb({
+  photo,
+  label,
+  onOpen,
+}: {
+  photo: Photo;
+  label: string;
+  onOpen: () => void;
+}) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || shown) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) setShown(true);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [shown]);
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className="room-photo"
+      onClick={onOpen}
+      aria-label={label}
+    >
+      {shown ? (
+        <img
+          src={ethFileUrl(photo.id)}
+          alt={photo.altText || photo.filename || `Photo of ${photo.room}`}
+        />
+      ) : (
+        <span className="room-photo-placeholder" />
+      )}
+    </button>
   );
 }
 

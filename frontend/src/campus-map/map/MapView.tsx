@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import L from 'leaflet';
 import {
-  LayersControl,
   MapContainer,
   Marker,
   Polygon,
   ScaleControl,
-  TileLayer,
   useMap,
   useMapEvents,
 } from 'react-leaflet';
@@ -225,8 +223,11 @@ export function MapView(props: Props) {
     return lib ? liftOf(lib.facilityId, lib.floor) : 0;
   };
 
+  // In 3D, a workspace shows only on its own floor; flat, the other floors' show too.
+  const shown = (lib: { floor: number | null }) =>
+    !props.view3d || onFloor(lib);
   const outlinedLibraries = data.libraries
-    .filter((l) => outlineOf(l))
+    .filter((l) => shown(l) && outlineOf(l))
     .sort((a, b) => drawOrder(a) - drawOrder(b));
 
   // Computed once: the initial view frames all workspaces, enabled or not (both campuses).
@@ -251,22 +252,8 @@ export function MapView(props: Props) {
       tapTolerance={15}
       className="map"
     >
-      <LayersControl position="topright">
-        <LayersControl.BaseLayer checked name="Clean">
-          <VectorBasemap style="positron" labels={labels} />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Streets">
-          <VectorBasemap style="bright" labels={labels} />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Satellite">
-          <TileLayer
-            url="https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg"
-            attribution='&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'
-            maxNativeZoom={20}
-            maxZoom={MAX_ZOOM}
-          />
-        </LayersControl.BaseLayer>
-      </LayersControl>
+      {/* Always the clean base map. */}
+      <VectorBasemap style="positron" labels={labels} />
       <AttributionText />
       <BasemapOpacity opacity={minimal ? minimal.basemapOpacity : 1} />
       <ScaleControl imperial={false} />
@@ -314,12 +301,6 @@ export function MapView(props: Props) {
               onFloorChange={props.onFloorChange}
               style={props.view3d}
               minimal={minimal}
-              libraryRooms={libraryRooms}
-              selectedLibraryId={selection.libraryId}
-              ethRooms={props.ethRooms}
-              occupancyStyle={props.occupancyStyle}
-              mensaRooms={props.mensaRooms}
-              selectedMensaId={props.selectedMensaId}
             />
           )}
           <FloorPicker
@@ -423,7 +404,7 @@ export function MapView(props: Props) {
 
       {/* Pins only for libraries without an outline; the outline itself marks the others. */}
       {data.libraries.map((lib) => {
-        if (outlineOf(lib)) return null;
+        if (!shown(lib) || outlineOf(lib)) return null;
         const occ = occupancyOf(data, lib.id);
         return (
           <Marker

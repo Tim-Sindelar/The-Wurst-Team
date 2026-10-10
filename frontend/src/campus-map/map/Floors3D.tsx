@@ -1,45 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { useMap, useMapEvents } from 'react-leaflet';
+import { intersects, type FloorIndex } from '../floors/floorData';
 import {
-  intersects,
-  loadLevel,
-  type FloorIndex,
-  type LevelInfo,
-  type LevelPlan,
-  type LineLayer,
-} from '../floors/floorData';
-import {
-  dropSmallLines,
-  mergeParallelEdges,
   partPathOptions,
   polygonsSmallerThan,
-  roundLines,
   roundPolygons,
   type MinimalStyle,
-  type OccupancyStyle,
   type View3DStyle,
 } from './minimalStyle';
-import {
-  asMensaRoom,
-  BUILDING_STYLE,
-  LINE_PART,
-  LINE_STYLE,
-  LINE_ZOOM,
-  mensaStyle,
-  occupancyPath,
-  ROOM_ZOOM,
-  roomStyle,
-  type MensaRoom,
-  type Theme,
-} from './FloorLayer';
-import type { RoomInfo } from '../roomFeatures';
+import { BUILDING_STYLE, type Theme } from './FloorLayer';
 import { floorLift, STACK_ZOOM, type BuildingGroup } from './buildingGroups';
 import {
   addRing,
   BASE_ZOOM,
   drawBatch,
-  paintKey,
   paintOf,
   projectRing,
   projectX,
@@ -55,28 +30,30 @@ import {
 // floors are stacked, each moved north by `spacing` meters per floor above the
 // group's ground floor, so the ground floor matches the building footprints of
 // the map. Every floor gets the same outline, the group's whole footprint.
-// The selected floor is drawn (lifted the same way) by FloorLayer, so it keeps
-// its clicks, markers and outlines; the other floors are drawn here with the
-// same styles, each on a scratch canvas faded as a whole (so overlapping shapes
-// don't add up their alpha). Floors below sit under the selected one, floors
-// above lie over it. An outline around the stack (the footprint swept from the
-// lowest to the highest floor shown) ties the floors together.
+// Only the selected floor shows its plan: it is drawn (lifted the same way) by
+// FloorLayer, with its rooms, workspaces, pins and whatever else is switched on,
+// and keeps its clicks. Every floor below it is drawn here as that outline
+// alone, styled as a level outline and faded by its distance to the selected
+// floor. Nothing is drawn above the selected floor (the floor wheel goes up
+// there). An outline around the stack (the footprint swept from the lowest floor to the selected one) ties
+// the floors together.
 //
-// Speed: nothing here is a Leaflet path. Geometry is projected once per level
-// and kept; paths of one paint are merged into one Path2D, rebuilt only when
-// the styles change; panning and zooming just redraw those through a canvas
-// transform (see sceneCanvas.ts).
+// Speed: nothing here is a Leaflet path. The outline is projected once per
+// group and kept as one Path2D, rebuilt only when the styles change; panning
+// and zooming just redraw it through a canvas transform (see sceneCanvas.ts).
 //
-// The part of another floor that sticks out from under the selected one (the
-// front of the floors below, the back of the floors above) is a click target:
-// clicking it switches to that floor. Click-to-zoom zones and everything else
+// The part of a floor below that sticks out from under the selected one is a
+// click target: clicking it switches to that floor. Click-to-zoom zones and everything else
 // clickable (rooms, pins, workspace outlines, dataset items) come first.
 
 const LABEL_ZOOM = 18;
 
+// A floor far down the stack still keeps this share of the nearest floor's opacity.
+const MIN_FADE = 0.35;
+
 const SHELL_PANE = ['floor-3d-shell', 338] as const;
 const BELOW_PANE = ['floor-3d-below', 345] as const;
-const ABOVE_PANE = ['floor-3d-above', 365] as const;
+const LABEL_PANE = ['floor-3d-labels', 365] as const;
 
 interface Props {
   theme: Theme;
@@ -86,26 +63,14 @@ interface Props {
   floor: number;
   onFloorChange: (floor: number) => void;
   style: View3DStyle;
-  /** The plans are drawn as the selected floor is (see FloorLayer). */
+  /** The outlines are styled as the selected floor's level outline (see FloorLayer). */
   minimal: MinimalStyle | null;
-  libraryRooms: Map<string, string>;
-  selectedLibraryId: string | null;
-  ethRooms: ReadonlyMap<string, RoomInfo> | null;
-  occupancyStyle: OccupancyStyle | null;
-  mensaRooms: ReadonlyMap<string, MensaRoom>;
-  selectedMensaId: string | null;
 }
 
-/** What room and line paints depend on; a new object means the cached batches are stale. */
+/** What the outline paint depends on; a new object means the cached batch is stale. */
 interface Paint {
   theme: Theme;
   minimal: MinimalStyle | null;
-  libraryRooms: Map<string, string>;
-  selectedLibraryId: string | null;
-  ethRooms: ReadonlyMap<string, RoomInfo> | null;
-  occupancyStyle: OccupancyStyle | null;
-  mensaRooms: ReadonlyMap<string, MensaRoom>;
-  selectedMensaId: string | null;
 }
 
 interface Scene {
@@ -113,14 +78,10 @@ interface Scene {
   style: View3DStyle;
   paint: Paint;
   stack: Stack;
-  /** Other floors drawn (the selected one is FloorLayer's), ascending. */
+  /** Floors drawn below the selected one (which is FloorLayer's), ascending. */
   floors: number[];
-  /** Lowest and highest floor of the stack, the selected one included. */
+  /** Lowest floor of the stack. */
   lo: number;
-  hi: number;
-  /** Levels of the other floors drawn. */
-  levels: LevelInfo[];
-  plans: ReadonlyMap<string, LevelPlan>;
 }
 
 /** Projected shape: origin and bounds in BASE_ZOOM pixels, geometry relative to the origin. */
@@ -135,18 +96,10 @@ interface Placed {
 /** The group's outline, projected. */
 interface Stack extends Placed {
   group: BuildingGroup;
-  /** Outer rings (shell, roof). */
+  /** Outer rings, for the shell. */
   rings: Flat[];
-  roof: Path2D;
   /** Every polygon with its holes, for clicks. */
   hit: Path2D;
-}
-
-interface LevelDrawable {
-  paint: Paint;
-  plan: LevelPlan | undefined;
-  rooms: Batch[] | null;
-  lines: Batch[] | null;
 }
 
 export function Floors3D({
@@ -157,12 +110,6 @@ export function Floors3D({
   onFloorChange,
   style,
   minimal,
-  libraryRooms,
-  selectedLibraryId,
-  ethRooms,
-  occupancyStyle,
-  mensaRooms,
-  selectedMensaId,
 }: Props) {
   const map = useMap();
   const [view, setView] = useState(() => ({
@@ -175,20 +122,10 @@ export function Floors3D({
 
   const stack = useMemo(() => (group ? buildStack(group) : null), [group]);
 
-  // Floors of the group shown, apart from the selected one.
+  // Every floor of the group below the selected one.
   const floors = useMemo(
-    () =>
-      (group?.floors ?? []).filter(
-        (f) =>
-          f !== floor &&
-          Math.abs(f - floor) <= style.range &&
-          (style.showAbove || f < floor),
-      ),
-    [group, floor, style.range, style.showAbove],
-  );
-  const levels = useMemo(
-    () => (group?.levels ?? []).filter((l) => floors.includes(l.floor)),
-    [group, floors],
+    () => (group?.floors ?? []).filter((f) => f < floor),
+    [group, floor],
   );
 
   const box = useMemo(() => {
@@ -201,104 +138,34 @@ export function Floors3D({
     };
   }, [view]);
 
-  // Plans of the levels in view (after their lift), loaded on demand.
-  const loadIds =
-    group && view.zoom >= ROOM_ZOOM
-      ? levels
-          .filter((l) => {
-            const d = floorLift(group, l.floor, style.spacing);
-            return intersects(
-              [l.bbox[0], l.bbox[1] + d, l.bbox[2], l.bbox[3] + d],
-              box,
-            );
-          })
-          .map((l) => l.id)
-      : [];
-  const loadKey = loadIds.join('|');
-  const [plans, setPlans] = useState<ReadonlyMap<string, LevelPlan>>(new Map());
-  useEffect(() => {
-    let cancelled = false;
-    const missing = loadIds.filter((id) => !plans.has(id));
-    // One state update for the whole batch, not one rebuild per file.
-    Promise.all(
-      missing.map((id) =>
-        loadLevel(id).catch(
-          (err) => void console.warn(`Floor plan ${id} failed to load`, err),
-        ),
-      ),
-    ).then((loaded) => {
-      if (cancelled || !loaded.some(Boolean)) return;
-      setPlans((prev) => {
-        const next = new Map(prev);
-        for (const p of loaded) if (p) next.set(p.id, p);
-        return next;
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [loadKey]);
-
   // A slider of the 3D section must not count as a change of the plan styles.
   const minimalKey = minimal
     ? JSON.stringify({ ...minimal, view3d: null })
     : '';
-  const paint = useMemo<Paint>(
-    () => ({
-      theme,
-      minimal,
-      libraryRooms,
-      selectedLibraryId,
-      ethRooms,
-      occupancyStyle,
-      mensaRooms,
-      selectedMensaId,
-    }),
-    [
-      theme,
-      minimalKey,
-      libraryRooms,
-      selectedLibraryId,
-      ethRooms,
-      occupancyStyle,
-      mensaRooms,
-      selectedMensaId,
-    ],
-  );
+  const paint = useMemo<Paint>(() => ({ theme, minimal }), [theme, minimalKey]);
 
   const scene = useRef<Scene | null>(null);
-  const drawables = useRef(new Map<string, LevelDrawable>());
 
   const layers = useMemo(() => {
-    const below = sceneCanvas(BELOW_PANE[0], (ctx, v) =>
-      drawFloors(ctx, v, 'below'),
-    );
-    const above = sceneCanvas(ABOVE_PANE[0], (ctx, v) =>
-      drawFloors(ctx, v, 'above'),
-    );
     const shell = sceneCanvas(SHELL_PANE[0], drawShell);
-    return [shell, below, above];
+    const below = sceneCanvas(BELOW_PANE[0], drawFloors);
+    const labels = sceneCanvas(LABEL_PANE[0], drawLabels);
+    return [shell, below, labels];
 
-    function drawFloors(
-      ctx: CanvasRenderingContext2D,
-      v: SceneView,
-      side: 'below' | 'above',
-    ) {
+    function drawFloors(ctx: CanvasRenderingContext2D, v: SceneView) {
       const sc = scene.current;
       if (!sc || v.zoom < STACK_ZOOM) return;
       const st = sc.stack;
       const r = v.ratio;
       const s = v.scale;
-      const rooms = v.zoom >= ROOM_ZOOM;
-      const lines = rooms && v.zoom >= LINE_ZOOM && sc.style.ghostLines;
+      // Every floor below is the group's outline alone.
       const slab = outlineBatch(st.group, sc.paint);
-      for (const f of sc.floors) {
-        if (side === 'below' ? f > sc.floor : f < sc.floor) continue;
-        const dy = liftPx(sc, f) * s;
-        if (!onCanvas(st.box, dy, v)) continue;
-        const off = v.scratch();
-        // Every floor has the group's whole outline, its rooms on top.
-        if (slab) {
+      if (slab)
+        for (const f of sc.floors) {
+          const dy = liftPx(sc, f) * s;
+          if (!onCanvas(st.box, dy, v)) continue;
+          // On a scratch canvas faded as a whole, so fill and stroke don't add up their alpha.
+          const off = v.scratch();
           off.setTransform(
             r * s,
             0,
@@ -308,87 +175,53 @@ export function Floors3D({
             r * (st.oy * s + v.offsetY - dy),
           );
           drawBatch(off, slab, s);
+          // Fades with the distance, but never so far that the lowest floors vanish.
+          const fade = Math.max(
+            sc.style.falloff ** (sc.floor - f - 1),
+            MIN_FADE,
+          );
+          ctx.globalAlpha = sc.style.ghostOpacity * fade;
+          ctx.drawImage(off.canvas, 0, 0);
         }
-        if (rooms)
-          for (const level of sc.levels) {
-            if (level.floor !== f) continue;
-            const placed = placeLevel(level);
-            const d = drawableOf(sc, level, rooms, lines);
-            off.setTransform(
-              r * s,
-              0,
-              0,
-              r * s,
-              r * (placed.ox * s + v.offsetX),
-              r * (placed.oy * s + v.offsetY - dy),
-            );
-            for (const b of d.rooms ?? []) drawBatch(off, b, s);
-            if (lines) for (const b of d.lines ?? []) drawBatch(off, b, s);
-          }
-        const alpha =
-          sc.style.ghostOpacity *
-          sc.style.falloff ** (Math.abs(f - sc.floor) - 1);
-        ctx.globalAlpha = alpha;
-        ctx.drawImage(off.canvas, 0, 0);
-      }
-      if (side === 'above') drawTop(ctx, v, sc);
     }
 
-    /** Roof edge and floor letters, over the whole stack. */
-    function drawTop(ctx: CanvasRenderingContext2D, v: SceneView, sc: Scene) {
-      const st = sc.style;
+    /** Floor letters next to the stack, over the selected floor. */
+    function drawLabels(ctx: CanvasRenderingContext2D, v: SceneView) {
+      const sc = scene.current;
+      if (!sc || !sc.floors.length || !sc.style.floorLabels) return;
+      if (v.zoom < Math.max(STACK_ZOOM, LABEL_ZOOM)) return;
       const b = sc.stack;
-      const labels = st.floorLabels && v.zoom >= LABEL_ZOOM;
-      if (!(st.shell && st.roof) && !labels) return;
-      const r = v.ratio;
       const s = v.scale;
       const lo = liftPx(sc, sc.lo) * s;
-      const hi = liftPx(sc, sc.hi) * s;
+      const hi = liftPx(sc, sc.floor) * s;
       if (!onCanvas(b.box, lo, v, hi - lo)) return;
-      if (st.shell && st.roof && sc.hi > sc.floor) {
-        ctx.setTransform(
-          r * s,
-          0,
-          0,
-          r * s,
-          r * (b.ox * s + v.offsetX),
-          r * (b.oy * s + v.offsetY - hi),
+      const css = getComputedStyle(document.documentElement);
+      ctx.setTransform(v.ratio, 0, 0, v.ratio, 0, 0);
+      const x = b.box[2] * s + v.offsetX + 6;
+      const yMid = ((b.box[1] + b.box[3]) / 2) * s + v.offsetY;
+      const shown = b.group.floors.includes(sc.floor)
+        ? [...sc.floors, sc.floor]
+        : sc.floors;
+      for (const f of shown)
+        drawLabel(
+          ctx,
+          css,
+          b.group.labels.get(f) ?? String(f),
+          x,
+          yMid - liftPx(sc, f) * s,
+          f === sc.floor,
         );
-        ctx.globalAlpha = st.shellOpacity;
-        ctx.strokeStyle = st.shellColor;
-        ctx.lineWidth = st.shellWeight / s;
-        ctx.lineJoin = 'round';
-        ctx.stroke(b.roof);
-      }
-      if (labels && sc.floors.length) {
-        const css = getComputedStyle(document.documentElement);
-        ctx.setTransform(r, 0, 0, r, 0, 0);
-        const x = b.box[2] * s + v.offsetX + 6;
-        const yMid = ((b.box[1] + b.box[3]) / 2) * s + v.offsetY;
-        const shown = b.group.floors.includes(sc.floor)
-          ? [...sc.floors, sc.floor]
-          : sc.floors;
-        for (const f of shown)
-          drawLabel(
-            ctx,
-            css,
-            b.group.labels.get(f) ?? String(f),
-            x,
-            yMid - liftPx(sc, f) * s,
-            f === sc.floor,
-          );
-      }
     }
 
     /** Outline of the stack: the union of its footprint at the lowest and highest floor and the band between. */
     function drawShell(ctx: CanvasRenderingContext2D, v: SceneView) {
       const sc = scene.current;
-      if (!sc || !sc.style.shell || v.zoom < STACK_ZOOM || sc.lo === sc.hi)
+      if (!sc || !sc.style.shell || v.zoom < STACK_ZOOM || sc.lo === sc.floor)
         return;
       const b = sc.stack;
       const s = v.scale;
       const lo = liftPx(sc, sc.lo) * s;
-      const hi = liftPx(sc, sc.hi) * s;
+      const hi = liftPx(sc, sc.floor) * s;
       if (!onCanvas(b.box, lo, v, hi - lo)) return;
       const path = new Path2D();
       for (const ring of b.rings) {
@@ -438,29 +271,10 @@ export function Floors3D({
         ctx.fill(path);
       }
     }
-
-    function drawableOf(
-      sc: Scene,
-      level: LevelInfo,
-      rooms: boolean,
-      lines: boolean,
-    ): LevelDrawable {
-      const plan = sc.plans.get(level.id);
-      let d = drawables.current.get(level.id);
-      if (!d || d.paint !== sc.paint || d.plan !== plan) {
-        d = { paint: sc.paint, plan, rooms: null, lines: null };
-        drawables.current.set(level.id, d);
-      }
-      if (rooms && plan && !d.rooms)
-        d.rooms = roomBatches(level, plan, sc.paint);
-      if (lines && plan && !d.lines)
-        d.lines = lineBatches(level, plan, sc.paint);
-      return d;
-    }
   }, []);
 
   useEffect(() => {
-    for (const [name, z] of [SHELL_PANE, BELOW_PANE, ABOVE_PANE]) {
+    for (const [name, z] of [SHELL_PANE, BELOW_PANE, LABEL_PANE]) {
       if (map.getPane(name)) continue;
       const pane = map.createPane(name);
       pane.style.zIndex = String(z);
@@ -472,25 +286,18 @@ export function Floors3D({
 
   // Redraw (no rebuild) whenever something drawn changes.
   useEffect(() => {
-    const all = stack?.group.floors.includes(floor)
-      ? [...floors, floor]
-      : floors;
-    scene.current =
-      stack && all.length
-        ? {
-            floor,
-            style,
-            paint,
-            stack,
-            floors,
-            lo: Math.min(...all),
-            hi: Math.max(...all),
-            levels,
-            plans,
-          }
-        : null;
+    scene.current = stack
+      ? {
+          floor,
+          style,
+          paint,
+          stack,
+          floors,
+          lo: floors.length ? floors[0] : floor,
+        }
+      : null;
     for (const l of layers) l.redraw();
-  }, [layers, floor, style, paint, stack, floors, levels, plans]);
+  }, [layers, floor, style, paint, stack, floors]);
 
   // Clicking a floor that sticks out of the stack switches to it.
   const switchTo = useRef(onFloorChange);
@@ -583,7 +390,7 @@ export function Floors3D({
 
 /**
  * The floor whose sticking-out part is at a container point: none inside the selected floor; else the
- * nearest floor below that contains the point (the front of the stack), failing that the nearest above.
+ * nearest floor below that contains the point (the front of the stack).
  */
 function floorAt(sc: Scene, map: L.Map, p: L.Point): number | null {
   const s = 2 ** (map.getZoom() - BASE_ZOOM);
@@ -598,13 +405,10 @@ function floorAt(sc: Scene, map: L.Map, p: L.Point): number | null {
     return hitContext().isPointInPath(st.hit, x - st.ox, ly - st.oy);
   };
   if (st.group.floors.includes(sc.floor) && inside(sc.floor)) return null;
-  let best: { floor: number; rank: number } | null = null;
-  for (const f of sc.floors) {
-    const rank = f < sc.floor ? sc.floor - f : 1000 + f - sc.floor;
-    if (best && rank >= best.rank) continue;
-    if (inside(f)) best = { floor: f, rank };
-  }
-  return best?.floor ?? null;
+  // Nearest first.
+  for (let i = sc.floors.length - 1; i >= 0; i--)
+    if (inside(sc.floors[i])) return sc.floors[i];
+  return null;
 }
 
 let hitCtx: CanvasRenderingContext2D | null = null;
@@ -641,13 +445,6 @@ function place(
   };
 }
 
-const placedLevels = new Map<string, Placed>();
-function placeLevel(level: LevelInfo): Placed {
-  let p = placedLevels.get(level.id);
-  if (!p) placedLevels.set(level.id, (p = place(...level.bbox)));
-  return p;
-}
-
 const stacks = new WeakMap<BuildingGroup, Stack>();
 function buildStack(group: BuildingGroup): Stack {
   let st = stacks.get(group);
@@ -655,12 +452,10 @@ function buildStack(group: BuildingGroup): Stack {
   const p = place(...group.bbox);
   const latlngs = group.outline();
   const rings = latlngs.map((poly) => projectRing(poly[0], p.ox, p.oy));
-  const roof = new Path2D();
-  for (const r of rings) addRing(roof, r, true);
   const hit = new Path2D();
   for (const rs of projectPolys(latlngs, p))
     for (const r of rs) addRing(hit, r, true);
-  stacks.set(group, (st = { ...p, group, rings, roof, hit }));
+  stacks.set(group, (st = { ...p, group, rings, hit }));
   return st;
 }
 
@@ -713,14 +508,6 @@ function drawLabel(
 
 /** Projected geometry, kept across style changes (keyed by what shapes it). */
 const outlineGeom = new Map<string, { key: string; polys: Flat[][] }>();
-const roomGeom = new WeakMap<
-  LevelPlan,
-  { key: string; rooms: { polys: Flat[][]; small: boolean }[] }
->();
-const lineGeom = new WeakMap<
-  LevelPlan,
-  { key: string; lines: [LineLayer, Flat[]][] }
->();
 
 const geometryKey = (m: MinimalStyle | null) =>
   `${m?.cornerRadius ?? 0}|${m?.minSize ?? 0}`;
@@ -777,92 +564,4 @@ function outlineBatch(group: BuildingGroup, paint: Paint): Batch | null {
   const out = g.polys.length ? batch(g.polys, paintOf(opts, true), true) : null;
   outlineBatches.set(group, { paint, batch: out });
   return out;
-}
-
-/** Rooms grouped by paint, in the order the paints first appear (as the plan draws them). */
-function roomBatches(level: LevelInfo, plan: LevelPlan, paint: Paint): Batch[] {
-  const m = paint.minimal;
-  const key = geometryKey(m);
-  let g = roomGeom.get(plan);
-  if (!g || g.key !== key) {
-    const placed = placeLevel(level);
-    const rooms = plan.rooms.map((room) => ({
-      polys: projectPolys(
-        roundPolygons(room.rings, m?.cornerRadius ?? 0),
-        placed,
-      ),
-      small: polygonsSmallerThan(room.rings, m?.minSize ?? 0),
-    }));
-    roomGeom.set(plan, (g = { key, rooms }));
-  }
-  const groups = new Map<
-    string,
-    { paint: Omit<Batch, 'path'>; polys: Flat[][] }
-  >();
-  plan.rooms.forEach((room, i) => {
-    const libraryId = paint.libraryRooms.get(room.id) ?? null;
-    const eth = paint.ethRooms?.get(room.id) ?? null;
-    const mensa = paint.mensaRooms.get(room.id) ?? null;
-    if (!libraryId && !mensa && !eth && g.rooms[i].small) return;
-    const opts = asMensaRoom(
-      mensa,
-      libraryId,
-      paint.selectedMensaId,
-      false,
-      false,
-      !!(eth && paint.occupancyStyle),
-    )
-      ? mensaStyle(mensa!, paint.selectedMensaId)
-      : eth && paint.occupancyStyle
-        ? occupancyPath(paint.occupancyStyle, eth, false)
-        : roomStyle(
-            paint.theme,
-            room.kind,
-            libraryId,
-            paint.selectedLibraryId,
-            false,
-            paint.minimal,
-            false,
-          );
-    const p = paintOf(opts, true);
-    // Invisible click targets of the selected floor have no use here.
-    if (!p.fill && !p.stroke) return;
-    const k = paintKey(p);
-    (
-      groups.get(k) ?? groups.set(k, { paint: p, polys: [] }).get(k)!
-    ).polys.push(...g.rooms[i].polys);
-  });
-  return [...groups.values()].map((x) => batch(x.polys, x.paint, true));
-}
-
-function lineBatches(level: LevelInfo, plan: LevelPlan, paint: Paint): Batch[] {
-  const m = paint.minimal;
-  const key = `${geometryKey(m)}|${m?.mergeDistance ?? 0}|${m?.mergeAngle ?? 0}`;
-  let g = lineGeom.get(plan);
-  if (!g || g.key !== key) {
-    const placed = placeLevel(level);
-    const lines = (
-      Object.entries(plan.lines) as [LineLayer, [number, number][][]][]
-    ).map(([layer, list]): [LineLayer, Flat[]] => {
-      const merged =
-        m && m.mergeDistance > 0
-          ? mergeParallelEdges(list, m.mergeDistance, m.mergeAngle)
-          : list;
-      return [
-        layer,
-        roundLines(
-          dropSmallLines(merged, m?.minSize ?? 0),
-          m?.cornerRadius ?? 0,
-        ).map((l) => projectRing(l, placed.ox, placed.oy)),
-      ];
-    });
-    lineGeom.set(plan, (g = { key, lines }));
-  }
-  return g.lines.flatMap(([layer, lines]) => {
-    if (!lines.length || (m && !m.parts[LINE_PART[layer]].show)) return [];
-    const opts = m
-      ? partPathOptions(m, LINE_PART[layer])
-      : LINE_STYLE[paint.theme][layer];
-    return [batch([lines], paintOf(opts, false), false)];
-  });
 }

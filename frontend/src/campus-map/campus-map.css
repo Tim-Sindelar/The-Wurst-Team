@@ -508,6 +508,12 @@
       min-width: 80px;
       object-fit: cover;
     }
+    /* Until a photo is on screen: the size of a 4:3 photo, so only the ones in view load. */
+    .room-photo-placeholder {
+      display: block;
+      width: 160px;
+      height: 120px;
+    }
     .day-bar {
       position: relative;
       margin-bottom: 4px;
@@ -1183,25 +1189,6 @@
       border-radius: 50%;
       background: currentColor;
     }
-    /* The floor name pill sits under the top bar, out of the bottom controls' way. */
-    .floor-status {
-      position: absolute;
-      z-index: 1000;
-      left: 50%;
-      top: calc(76px + env(safe-area-inset-top));
-      transform: translateX(-50%);
-      max-width: calc(100% - 140px);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      background: rgb(28 36 48 / 0.85);
-      color: #fff;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: var(--text-label);
-      pointer-events: none;
-    }
-
     .room-label {
       display: flex;
       flex-direction: column;
@@ -1297,14 +1284,11 @@
       width: 44px;
       height: 44px;
     }
-    .leaflet-control-layers-expanded {
-      padding: 8px 12px;
-      font-size: var(--text-small);
-    }
-    .leaflet-control-layers-base label {
-      display: flex;
-      align-items: center;
-      min-height: 40px;
+    /* The layers button opens the map view sheet (ModeControl). */
+    .leaflet-bar a:focus-visible,
+    .leaflet-control-layers-toggle:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: -2px;
     }
     .leaflet-control-zoom {
       display: none;
@@ -1349,9 +1333,6 @@
   [data-mantine-color-scheme='dark'] .campus-map {
     .leaflet-container {
       background: #14171c;
-    }
-    .leaflet-control-layers-separator {
-      border-top-color: var(--border);
     }
     /* OpenFreeMap has no dark style: invert the light one in dark theme. */
     .maplibregl-canvas {

@@ -7,33 +7,6 @@ const MAX_POLL_MS = 10 * 60_000;
 const REFRESHING_POLL_MS = 3_000;
 const RETRY_MS = 60_000;
 
-/** Which datasets are on and which amenity categories are hidden. Kept per browser. */
-export interface DatasetSettings {
-  enabled: string[];
-  hiddenCategories: Record<string, string[]>;
-}
-
-const KEY = 'dataset-settings';
-
-/** The map always opens with every dataset off; only the hidden categories are remembered. */
-export function loadDatasetSettings(): DatasetSettings {
-  try {
-    const raw = localStorage.getItem(KEY);
-    const stored = raw ? JSON.parse(raw) : {};
-    return { enabled: [], hiddenCategories: stored.hiddenCategories ?? {} };
-  } catch {
-    return { enabled: [], hiddenCategories: {} };
-  }
-}
-
-export function saveDatasetSettings(s: DatasetSettings) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(s));
-  } catch {
-    // Storage blocked: the setting just isn't remembered.
-  }
-}
-
 export function useDatasetList() {
   const [list, setList] = useState<DatasetMeta[] | null>(null);
   const [error, setError] = useState<string | null>(null);
