@@ -142,7 +142,7 @@ check_name "$url" 'Persists across releases'
 package "$pr_sha" "$preview"
 bash "$preview/deploy.sh" "$pr_sha" "$pr"
 [[ "$(readlink -f "$scratch/previews/pr-$pr/current")" == "$preview" ]]
-check_spaces "$url/pr/$pr" 2
+check_spaces "$url/pr/$pr" 12
 check_spaces "$url" 0
 check_social_mode "$url/pr/$pr" false
 check_social_mode "$url" false
