@@ -120,6 +120,11 @@ class Localizer:
                 out['debug'] = dbg
             return out
 
+        level = (q.prior or {}).get('levelId')
+        if level and level not in self.db.level_index:
+            # Another floor of a mapped building (HG J above the HG E map): its images can't match.
+            mapped = ', '.join(sorted(self.db.level_index))
+            return done({'ok': False, 'reason': f'{level} is not in the visual map (mapped here: {mapped})'})
         cands = self.candidates(q.prior)
         if q.prior:
             x, y = self.db.to_local(q.prior['lng'], q.prior['lat'])
