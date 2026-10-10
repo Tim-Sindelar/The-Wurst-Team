@@ -12,6 +12,7 @@ const paths = {
   back: <path d="M15 5l-7 7 7 7" />,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   chevronRight: <path d="M9 5l7 7-7 7" />,
+  chevronUp: <path d="M5 15l7-7 7 7" />,
   clock: (
     <>
       <circle cx="12" cy="12" r="9" />

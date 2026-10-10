@@ -19,6 +19,8 @@ interface Props {
   homeBounds: L.LatLngBounds | undefined;
   /** Admin: show the hover outline with the zone name. The normal view only changes the cursor. */
   showHints: boolean;
+  /** The "show both campuses" button. */
+  homeButton: boolean;
 }
 
 const HOVER_STYLE: L.PathOptions = {
@@ -49,6 +51,7 @@ export function NavZones({
   highlightedZoneId,
   homeBounds,
   showHints,
+  homeButton,
 }: Props) {
   const map = useMap();
   const [hover, setHover] = useState<NavZone | null>(null);
@@ -111,7 +114,7 @@ export function NavZones({
     map.getContainer().classList.toggle('nav-hover', hover !== null);
   }, [map, hover]);
 
-  useHomeControl(homeBounds);
+  useHomeControl(homeButton ? homeBounds : undefined);
 
   const highlighted = config.zones.find(
     (z) => z.id === highlightedZoneId && z.outline,

@@ -96,6 +96,8 @@ interface Props {
   onSelectMensa: (mensaId: string) => void;
   /** 3D view: the other floors stacked around the selected one; null when off. */
   view3d: View3DStyle | null;
+  /** The "show both campuses" button; off where the page puts its own there. */
+  homeButton?: boolean;
   /** More map layers (the campus datasets), rendered inside the map. */
   children?: ReactNode;
 }
@@ -305,6 +307,7 @@ export function MapView(props: Props) {
           highlightedZoneId={null}
           homeBounds={initialBounds}
           showHints={false}
+          homeButton={props.homeButton ?? true}
         />
       )}
 

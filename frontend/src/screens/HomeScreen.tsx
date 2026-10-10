@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
+import { HomeMap } from '../components/HomeMap';
 import { Icon } from '../components/Icon';
 import { Screen, ScreenMain } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
@@ -139,24 +140,9 @@ export function HomeScreen() {
           </ul>
         )}
 
-        <Card
-          component={Link}
-          to={paths.map}
-          className="no-underline hover:shadow-[inset_0_0_0_100px_var(--color-hover),var(--shadow-card)]"
-        >
-          <div className="flex items-center gap-3">
-            <Icon name="map" size="lg" className="flex-none text-accent" />
-            <div className="grid min-w-0 flex-1 gap-1">
-              <Title order={2} className="text-title">
-                Campus map
-              </Title>
-              <Text size="sm" c="dimmed">
-                Workspaces, free rooms, mensas and transport on the floor plans
-              </Text>
-            </div>
-            <Icon name="chevronRight" />
-          </div>
-        </Card>
+        {/* TODO(remove): the /map route and its full-screen CampusMap are kept
+            for now. See docs/todo-remove-map-route.md. */}
+        <HomeMap />
       </ScreenMain>
     </Screen>
   );
