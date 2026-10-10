@@ -121,6 +121,39 @@ test('search matches the name anywhere, ignoring case and padding', () => {
   assert.equal(filterSpaces(spaces, 'zzz').length, 0);
 });
 
+test('search is forgiving: typos, word order, partial words, accents', () => {
+  const spaces = [
+    space('Demo: HG E 51', false),
+    space('Demo: CAB E 11.1', false),
+    space('Demo: Baubibliothek HIL E 2.1', false),
+    space('Café Zürich', false),
+  ];
+  const find = (query: string) =>
+    filterSpaces(spaces, query).map((item) => item.name);
+  assert.deepEqual(find('bauibliothek'), ['Demo: Baubibliothek HIL E 2.1']);
+  assert.deepEqual(find('baubib'), ['Demo: Baubibliothek HIL E 2.1']);
+  assert.deepEqual(find('11 cab'), ['Demo: CAB E 11.1']);
+  assert.deepEqual(find('cabe11'), ['Demo: CAB E 11.1']);
+  assert.deepEqual(find('zurich cafe'), ['Café Zürich']);
+  assert.deepEqual(find('xyzq'), []);
+});
+
+test('search ranks the closest match first', () => {
+  const spaces = [
+    space('Library annex', false),
+    space('Main library', false),
+    space('Libary', false),
+  ];
+  assert.deepEqual(
+    filterSpaces(spaces, 'library').map((item) => item.name),
+    ['Library annex', 'Main library', 'Libary'],
+  );
+  assert.deepEqual(
+    filterSpaces(spaces, 'main lib').map((item) => item.name),
+    ['Main library'],
+  );
+});
+
 test('favourites keep their order', () => {
   const spaces = [
     space('A', false),
