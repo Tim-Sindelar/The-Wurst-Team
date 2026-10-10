@@ -1,12 +1,17 @@
+from base64 import b64decode
+from io import BytesIO
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from PIL import Image
+from sqlalchemy.orm import Session
 from starlette.requests import Request
 
 from app.auth import get_current_user
 from app.config import Settings, get_settings
+from app.database import get_session
 from app.main import app
 
 
@@ -83,9 +88,14 @@ def test_proxy_rejects_demo_admin_privileges(override, allow_header):
 
 
 @pytest.fixture
-def profile_client():
+def profile_client(db):
+    def test_session():
+        with Session(db) as session:
+            yield session
+
     settings = Settings(_env_file=None, auth_mode="proxy")
     app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_session] = test_session
     try:
         with TestClient(app) as client:
             yield client, settings
@@ -109,6 +119,7 @@ def test_proxy_profile(profile_client, headers, name):
         "id": "42d57044-31ad-52df-a975-b5a625501b3f",
         "name": name,
         "email": "student@ethz.ch",
+        "photo_url": None,
     }
     assert response.headers["Cache-Control"] == "no-store"
 
@@ -133,5 +144,155 @@ def test_demo_profile(profile_client, allow_header):
         "id": str(other if allow_header else settings.dummy_user_id),
         "name": "Demo user",
         "email": None,
+        "photo_url": None,
     }
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def photo_bytes(format="PNG", size=(320, 160)):
+    output = BytesIO()
+    Image.new("RGB", size, "red").save(output, format=format)
+    return output.getvalue()
+
+
+@pytest.mark.parametrize("mode", ["demo", "proxy"])
+def test_profile_edits_persist_without_changing_identity(profile_client, mode):
+    client, settings = profile_client
+    settings.auth_mode = mode
+    owner = {"X-User-Id": "student@ethz.ch", "X-User-Name": "Original Name"}
+    original = client.get("/api/v1/me", headers=owner).json()
+    response = client.patch("/api/v1/me", headers=owner, data={"name": "  New Name  "})
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.json() == {**original, "name": "New Name"}
+    assert client.get("/api/v1/me", headers=owner).json() == response.json()
+    other = {"X-User-Id": "other@ethz.ch", "X-Demo-User-Id": str(uuid4())}
+    assert client.get("/api/v1/me", headers=other).json()["name"] != "New Name"
+    assert client.patch("/api/v1/me", headers=other, data={"name": "Other"}).status_code == 200
+    assert client.get("/api/v1/me", headers=owner).json()["name"] == "New Name"
+
+
+@pytest.mark.parametrize("format", ["JPEG", "PNG", "WEBP"])
+def test_profile_photo_upload_preserve_replace_and_remove(profile_client, format):
+    client, _settings = profile_client
+    owner = {"X-User-Id": "student@ethz.ch"}
+    response = client.patch(
+        "/api/v1/me",
+        headers=owner,
+        data={"name": "My profile"},
+        files={"photo": ("../../photo", photo_bytes(format), "application/octet-stream")},
+    )
+    assert response.status_code == 200
+    saved = response.json()
+    assert client.get("/api/v1/me", headers=owner).json() == saved
+    with Image.open(BytesIO(b64decode(saved["photo_url"].split(",")[1]))) as photo:
+        assert photo.format == "PNG"
+        assert photo.size == (256, 128)
+        assert not photo.getexif()
+    renamed = client.patch("/api/v1/me", headers=owner, data={"name": "Renamed"})
+    assert renamed.json()["photo_url"] == saved["photo_url"]
+    replaced = client.patch(
+        "/api/v1/me",
+        headers=owner,
+        data={"name": "Renamed"},
+        files={"photo": ("new.png", photo_bytes(size=(64, 64)), "image/png")},
+    )
+    assert replaced.status_code == 200
+    assert replaced.json()["photo_url"] != saved["photo_url"]
+    other = client.get("/api/v1/me", headers={"X-User-Id": "other@ethz.ch"})
+    assert other.json()["photo_url"] is None
+    removed = client.patch(
+        "/api/v1/me", headers=owner, data={"name": "Renamed", "remove_photo": "true"}
+    )
+    assert removed.status_code == 200
+    assert client.get("/api/v1/me", headers=owner).json()["photo_url"] is None
+
+
+@pytest.mark.parametrize("name", ["", "   ", "a" * 81])
+def test_profile_rejects_invalid_name(profile_client, name):
+    client, _settings = profile_client
+    owner = {"X-User-Id": "student@ethz.ch"}
+    original = client.get("/api/v1/me", headers=owner).json()
+    response = client.patch("/api/v1/me", headers=owner, data={"name": name})
+    assert response.status_code in {400, 422}
+    assert client.get("/api/v1/me", headers=owner).json() == original
+
+
+@pytest.mark.parametrize(
+    "data, status",
+    [(b"not an image", 400), (b"<svg></svg>", 400), (b"a" * (2 * 1024 * 1024 + 1), 413)],
+    ids=["invalid", "svg", "oversized"],
+)
+def test_profile_rejects_invalid_photo_atomically(profile_client, data, status):
+    client, _settings = profile_client
+    owner = {"X-User-Id": "student@ethz.ch"}
+    original = client.get("/api/v1/me", headers=owner).json()
+    response = client.patch(
+        "/api/v1/me",
+        headers=owner,
+        data={"name": "Should not save"},
+        files={"photo": ("photo.png", data, "image/png")},
+    )
+    assert response.status_code == status
+    assert client.get("/api/v1/me", headers=owner).json() == original
+
+
+def test_profile_update_requires_identity(profile_client):
+    client, _settings = profile_client
+    assert client.patch("/api/v1/me", data={"name": "Nobody"}).status_code == 401
+
+
+def test_profile_rejects_large_dimensions(profile_client):
+    client, _settings = profile_client
+    response = client.patch(
+        "/api/v1/me",
+        headers={"X-User-Id": "student@ethz.ch"},
+        data={"name": "Student"},
+        files={"photo": ("large.png", photo_bytes(size=(4001, 4000)), "image/png")},
+    )
+    assert response.status_code == 400
+    assert "16 megapixels" in response.json()["detail"]
+
+
+def test_profile_photo_orientation_and_metadata(profile_client):
+    client, _settings = profile_client
+    output = BytesIO()
+    metadata = Image.Exif()
+    metadata[274] = 6
+    metadata[315] = "Private metadata"
+    Image.new("RGB", (320, 160), "blue").save(output, format="JPEG", exif=metadata)
+    response = client.patch(
+        "/api/v1/me",
+        headers={"X-User-Id": "student@ethz.ch"},
+        data={"name": "Student"},
+        files={"photo": ("portrait.jpg", output.getvalue(), "image/jpeg")},
+    )
+    assert response.status_code == 200
+    with Image.open(BytesIO(b64decode(response.json()["photo_url"].split(",")[1]))) as photo:
+        assert photo.size == (128, 256)
+        assert not photo.info
+
+
+def test_profile_cannot_edit_identity(profile_client):
+    client, _settings = profile_client
+    owner = {"X-User-Id": "student@ethz.ch", "X-Demo-User-Id": str(uuid4())}
+    original = client.get("/api/v1/me", headers=owner).json()
+    response = client.patch(
+        "/api/v1/me",
+        headers=owner,
+        data={"name": "New name", "id": str(uuid4()), "email": "other@ethz.ch"},
+    )
+    assert response.status_code == 200
+    assert response.json()["id"] == original["id"]
+    assert response.json()["email"] == original["email"]
+
+
+def test_profile_rejects_conflicting_photo_changes(profile_client):
+    client, _settings = profile_client
+    response = client.patch(
+        "/api/v1/me",
+        headers={"X-User-Id": "student@ethz.ch"},
+        data={"name": "Student", "remove_photo": "true"},
+        files={"photo": ("photo.png", photo_bytes(), "image/png")},
+    )
+    assert response.status_code == 400

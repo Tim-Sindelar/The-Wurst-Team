@@ -42,7 +42,7 @@ The flowchart shows successful check-in and extension paths. Verification failur
 
 ## Authentication
 
-The implemented backend trusts the managed hackathon proxy, which handles Switch edu-ID login and supplies `X-User-Id`. That email maps to a stable UUID for reservation ownership; the app has no separate login page or users table. The frontend profile and home avatar fetch the current identity from `/api/v1/me`; local demo mode shows a demo account. Logout is not implemented. Frontend reservation/QR flows remain mocked; real check-in routing and resuming the intended check-in after login still need implementation and verification.
+The implemented backend trusts the managed hackathon proxy, which handles Switch edu-ID login and supplies `X-User-Id`. That email maps to a stable UUID for reservation ownership; the app has no separate login page. The frontend profile and home avatar fetch the current identity from `/api/v1/me`; local demo mode starts with a demo account. Users can edit their display name and upload or remove a photo, then save both to `user_profiles`; email and booking identity remain unchanged. Logout is not implemented. Frontend reservation/QR flows remain mocked; real check-in routing and resuming the intended check-in after login still need implementation and verification.
 
 ## 1. Find and reserve a seat
 

@@ -56,7 +56,7 @@ breaks
   returned_at                 timestamptz, nullable
 ```
 
-`user_id` is a stable UUIDv5 derived from the trusted proxy's `X-User-Id` email; there is no users table. Explicit demo mode supplies dummy UUIDs for local development. QR tokens are opaque and separate from seat identity. Layouts remain empty objects until the frontend contract is defined.
+`user_id` is a stable UUIDv5 derived from the trusted proxy's `X-User-Id` email. Explicit demo mode supplies dummy UUIDs for local development. Optional display customizations live in `user_profiles`: `id` (the same UUID, primary key), `name` (varchar(80)), and `photo` (nullable bytea containing a resized, metadata-free PNG). A row is created on the first profile save; reservations do not require one. Email and credentials are not stored, and profile edits never change reservation ownership. QR tokens are opaque and separate from seat identity. Layouts remain empty objects until the frontend contract is defined.
 
 `previous_reservation_id` identifies the checked-in occupant on the same seat preceding an upcoming reservation. It lets the state calculation recognize early handover. Once activation timestamps are persisted, the link is cleared. A reservation must be activated before it can be checked in and have a successor of its own, so unresolved handovers do not form chains.
 

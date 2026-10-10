@@ -21,3 +21,4 @@ class UserResponse(BaseModel):
     id: UUID
     name: str
     email: str | None
+    photo_url: str | None = None

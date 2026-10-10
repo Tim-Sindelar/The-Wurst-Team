@@ -407,7 +407,8 @@ def test_migration_round_trip(db):
             connection.scalar(
                 text(
                     "SELECT count(*) FROM pg_tables WHERE schemaname = current_schema() "
-                    "AND tablename IN ('study_spaces', 'seats', 'reservations', 'breaks')"
+                    "AND tablename IN "
+                    "('study_spaces', 'seats', 'reservations', 'breaks', 'user_profiles')"
                 )
             )
             == 0
@@ -415,3 +416,4 @@ def test_migration_round_trip(db):
     migrate(db)
     with db.connect() as connection:
         assert connection.scalar(text("SELECT count(*) FROM reservation_states")) == 0
+        assert connection.scalar(text("SELECT count(*) FROM user_profiles")) == 0

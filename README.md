@@ -102,9 +102,18 @@ Use http://localhost:8000/docs to explore the API. `POST /api/v1/reservations` a
 
 `GET /api/v1/me/reservation` returns the current or upcoming booking, effective deadlines, remaining break allowance, and available actions. Its `reservation` is null when there is no live booking. Reservation actions are `POST /api/v1/reservations/{id}/extend`, `/break`, `/return`, and `/end`. Space endpoints expose availability without returning user identities or QR tokens.
 
-Authentication defaults to `AUTH_MODE=proxy`: the trusted `X-User-Id` email maps to a stable UUIDv5 using a fixed application namespace. Missing or empty identity returns 401 on user-specific endpoints; demo headers are ignored. Do not change the namespace, as that would change reservation ownership. No users table or custom login is needed.
+Authentication defaults to `AUTH_MODE=proxy`: the trusted `X-User-Id` email maps to a stable UUIDv5 using a fixed application namespace. Missing or empty identity returns 401 on user-specific endpoints; demo headers are ignored. Do not change the namespace, as that would change reservation ownership. Login still belongs to the proxy; the optional `user_profiles` table stores only display customizations, not credentials or email addresses.
 
-`GET /api/v1/me` returns `{id, name, email}` using that same reservation identity. Proxy mode percent-decodes `X-User-Name`, falling back to the email if the name is absent. Demo mode returns `Demo user` with a null email, shown as `Local demo account` in the frontend. Responses are not HTTP-cacheable. The frontend uses this endpoint in both modes, with loading/error states and a reload action; it never supplies identity headers or stores auth tokens. Logout is not implemented.
+`GET /api/v1/me` returns `{id, name, email, photo_url}` using that same reservation identity. Unless a display name has been saved, proxy mode percent-decodes `X-User-Name`, falling back to the email if the name is absent; demo mode returns `Demo user`. Demo email is null, shown as `Local demo account`. `photo_url` is a PNG data URL or null. Responses are not HTTP-cacheable. The frontend uses this endpoint in both modes, with loading/error states and a reload action; it never supplies identity headers or stores auth tokens. Logout is not implemented.
+
+On Profile, edit the display name, choose/preview or remove a photo, then press **Save changes**. `PATCH /api/v1/me` accepts multipart form fields: `name` (1–80 characters after trimming, input capped at 80), optional `photo`, and optional `remove_photo=true`. Omit `photo` to keep the current picture. Edits are saved together and can only affect the authenticated user's profile; email, UUID, and reservation ownership never change. Photos must be actual JPEG, PNG, or WebP images, at most 2 MiB and 16 megapixels. The backend corrects orientation, resizes to fit 256×256, and re-encodes to PNG without source metadata. Profile data persists in PostgreSQL; no upload directory or storage service is needed.
+
+To test locally, rebuild with `docker compose up -d --build --wait backend` (installs upload dependencies and applies the migration), open http://localhost:5173/profile, save a name/photo, and refresh. Check the home avatar too. Demo users share `DUMMY_USER_ID` by default; use a different `X-Demo-User-Id` through the API to check profile isolation. In demo mode, an API upload looks like:
+
+```sh
+curl -X PATCH http://localhost:8000/api/v1/me \
+  -F 'name=My display name' -F 'photo=@/path/to/photo.png'
+```
 
 Local Compose and `backend/.env.example` enable `AUTH_MODE=demo`. In this development-only mode, requests use `DUMMY_USER_ID`; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. To use proxy mode with Compose, run `AUTH_MODE=proxy docker compose up -d` (the service environment takes precedence over `backend/.env`).
 
@@ -176,5 +185,7 @@ The production frontend is written to `frontend/dist/`. A deployment must serve 
 ```sh
 docker compose up -d --build --wait backend
 ```
+
+This also installs image-upload dependencies and applies the `user_profiles` migration. Keep the existing PostgreSQL volume (do not use `docker compose down -v`); it holds both reservations and profile photos. Rebuild and publish the frontend with `npm run build --prefix frontend`. Outside Compose, install locked dependencies and run `alembic upgrade head` before restarting the backend. No new auth setting or photo-storage configuration is required.
 
 This switches authentication, not web hosting. Keep the managed address authenticated, forward `/api` on the same origin with `X-User-Id` and `X-User-Name` intact, and block direct public access to the backend/app. No frontend auth setting or identity injection is needed. At the managed URL, verify that Profile shows your actual name/email; use a second account to confirm a different identity. Actual edu-ID login requires the managed proxy; local tests simulate its headers. Admin access remains demo-only.

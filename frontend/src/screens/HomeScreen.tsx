@@ -27,7 +27,7 @@ const forcedState = (value: string | null): BookingState | null =>
     : null;
 
 export function HomeScreen() {
-  const { initials, isPending, isError } = useCurrentUser();
+  const { user, initials, isPending, isError } = useCurrentUser();
   const { seat, booking } = useMockBooking();
   const [params] = useSearchParams();
   const state = forcedState(params.get('state')) ?? booking;
@@ -46,7 +46,9 @@ export function HomeScreen() {
               aria-busy={isPending}
               className="-mr-0.5"
             >
-              <Avatar aria-hidden="true">{initials}</Avatar>
+              <Avatar src={user?.photo_url} aria-hidden="true">
+                {initials}
+              </Avatar>
             </ActionIcon>
           </div>
         </div>
