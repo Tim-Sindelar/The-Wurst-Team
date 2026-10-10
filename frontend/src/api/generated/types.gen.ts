@@ -268,6 +268,10 @@ export type AdminSpaceDetails = {
      */
     opening_hours: Array<OpeningInterval>;
     /**
+     * Photo Url
+     */
+    photo_url?: string | null;
+    /**
      * Timezone
      */
     timezone: string;
@@ -343,6 +347,10 @@ export type AdminSpaceOverview = {
      * Opening Hours
      */
     opening_hours: Array<OpeningInterval>;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Seats
      */
@@ -435,6 +443,10 @@ export type AdminSpaceSummary = {
      * On Break Seats
      */
     on_break_seats: number;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Timezone
      */
@@ -2245,6 +2257,10 @@ export type SpaceDetail = {
      */
     opening_hours: Array<OpeningInterval>;
     /**
+     * Photo Url
+     */
+    photo_url?: string | null;
+    /**
      * Seats
      */
     seats: Array<SeatAvailability>;
@@ -2301,6 +2317,10 @@ export type SpaceSummary = {
      * Name
      */
     name: string;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Timezone
      */

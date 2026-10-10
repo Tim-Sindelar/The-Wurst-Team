@@ -10,7 +10,8 @@ export type StudySpace = {
   availability: Availability;
   availabilityText: string;
   favourite: boolean;
-  /** The room's photo, once the API has one. Without it the card stays plain. */
+  /** The API path of the space's ETH room photo, if ETH has one. Without it the card
+     stays plain. */
   photoUrl?: string;
 };
 
@@ -45,6 +46,7 @@ export function toStudySpace(
     freeSeats: space.free_seats,
     favourite,
     ...describeAvailability(space.free_seats, space.total_seats, space.is_open),
+    photoUrl: space.photo_url ?? undefined,
   };
 }
 

@@ -6,4 +6,8 @@ client.setConfig({
     import.meta.env.BASE_URL.replace(/\/$/, ''),
 });
 
+/** A URL for a path on our API ("/api/v1/..."), under the app's base URL (PR previews). */
+export const apiUrl = (path: string) =>
+  `${client.getConfig().baseUrl ?? ''}${path}`;
+
 export { client };

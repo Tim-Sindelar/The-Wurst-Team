@@ -1,5 +1,6 @@
 import { ActionIcon, Anchor, Card, Title } from '@mantine/core';
 import { Link } from 'react-router';
+import { apiUrl } from '../api/client';
 import type { StudySpace } from '../domain/space';
 import { seatMapPath } from '../routes';
 import { AvailabilityLabel } from './AvailabilityLabel';
@@ -46,7 +47,7 @@ export function SpaceCard({
         >
           <div
             className="absolute inset-0 scale-105 bg-cover bg-center blur-[2px]"
-            style={{ backgroundImage: `url(${photoUrl})` }}
+            style={{ backgroundImage: `url("${apiUrl(photoUrl)}")` }}
           />
           <div className="absolute inset-0 bg-photo-scrim" />
         </div>
