@@ -203,16 +203,26 @@ export function RoomScene({
                       const a = (-angle * Math.PI) / 180,
                         dx = s.x - o.x,
                         dy = s.y - o.y;
+                      const cx = dx * Math.cos(a) - dy * Math.sin(a),
+                        cy = dx * Math.sin(a) + dy * Math.cos(a);
+                      /* A seat-sized hit area: the dot alone is too small to click. */
                       return (
-                        <circle
+                        <g
                           key={s.slot}
-                          cx={dx * Math.cos(a) - dy * Math.sin(a)}
-                          cy={dx * Math.sin(a) + dy * Math.cos(a)}
-                          r={4}
-                          className="fill-camera-fg stroke-border-strong"
+                          data-slot={s.slot}
+                          data-x={s.x}
+                          data-y={s.y}
+                          className="admin-seat-slot"
                         >
-                          <title>Seat position</title>
-                        </circle>
+                          <title>Add a seat here</title>
+                          <circle cx={cx} cy={cy} r={16} fill="transparent" />
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={4}
+                            className="fill-camera-fg stroke-border-strong"
+                          />
+                        </g>
                       );
                     })}
               </>

@@ -379,6 +379,9 @@
   .admin-scene-item {
     @apply cursor-grab outline-none;
   }
+  .admin-seat-slot {
+    @apply cursor-copy;
+  }
   .admin-scene-table {
     @apply fill-surface-2 stroke-border-strong;
   }

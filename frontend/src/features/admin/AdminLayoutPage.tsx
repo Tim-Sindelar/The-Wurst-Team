@@ -275,6 +275,29 @@ function LayoutEditor({
         }
       return;
     }
+    // A free seat position next to a table always adds a seat there,
+    // whichever furniture tool is active.
+    const slot = (e.target as Element).closest<SVGElement>('[data-slot]');
+    if (slot && !resize && !rotate) {
+      try {
+        const next = geometry.place(
+          room,
+          current,
+          'seat',
+          Number(slot.dataset.x),
+          Number(slot.dataset.y),
+          crypto.randomUUID(),
+        );
+        change(next);
+        setSelected(
+          next.find((o) => !current.some((old) => old.id === o.id))?.id || null,
+        );
+        setMessage('Seat added.');
+      } catch (e) {
+        setMessage(e instanceof Error ? e.message : 'Cannot place a seat here');
+      }
+      return;
+    }
     // Clicking a seat dot while a table tool is active switches to seat mode.
     if (
       targetItem?.type === 'seat' &&
