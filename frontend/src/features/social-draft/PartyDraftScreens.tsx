@@ -52,12 +52,6 @@ export function PartiesDraftScreen() {
         Find a room, choose seats, and book together. Everyone checks in at
         their own seat.
       </Text>
-      {activeParty && (
-        <Alert title="One active party at a time">
-          Leave or cancel your current party before creating or joining another.
-          Pending invitations can wait.
-        </Alert>
-      )}
       {invitations.length > 0 && (
         <SectionLabel>Invitations · {invitations.length}</SectionLabel>
       )}
@@ -393,18 +387,20 @@ export function PartyDraftScreen() {
         </>
       }
     >
-      {member.status === 'invited' && conflictingParty && (
-        <Alert title="You already have an active party">
-          Leave or cancel {conflictingParty.name} before joining this one.{' '}
-          <Button
-            variant="secondary"
-            component={Link}
-            to={partyPath(conflictingParty.id)}
-          >
-            View your party
-          </Button>
-        </Alert>
-      )}
+      {party.status === 'open' &&
+        member.status === 'invited' &&
+        conflictingParty && (
+          <Alert title="You already have an active party">
+            Leave or cancel {conflictingParty.name} before joining this one.{' '}
+            <Button
+              variant="secondary"
+              component={Link}
+              to={partyPath(conflictingParty.id)}
+            >
+              View your party
+            </Button>
+          </Alert>
+        )}
       <Card component="section" aria-label="Party summary">
         <Title order={2} className="text-heading break-words">
           {party.name}

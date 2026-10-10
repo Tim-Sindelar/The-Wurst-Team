@@ -49,6 +49,8 @@ Only one joined active party per person is permitted. Open membership consumes t
 party consumes it while that person’s reservation/session is live. Invitations never consume a slot.
 Leave/cancel or finish/expire your reservation before creating/joining another. The reducer enforces
 the rule too; direct create URLs show a disabled action and a link to the current party.
+The limit notice appears only on a blocked create screen or an open invitation conflicting with
+the current party. The parties list and current party have no blanket limit reminder.
 The parties list separates invitations from the current joined party. Cancelled parties are hidden, including
 in the hub count. A checked-in seat surviving cancellation stays accessible as Your ongoing session.
 Cancellation retains the saved party and independent reservations; hiding it does not delete data.
