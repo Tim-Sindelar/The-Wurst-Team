@@ -1,4 +1,4 @@
-import { ActionIcon, Popover } from '@mantine/core';
+import { ActionIcon, Button, Popover } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
 import { roomGeometry, roomTables, type MapSeat } from '../../domain/room';
@@ -22,6 +22,10 @@ type SeatMapProps = {
   onSelect: (seatId: string) => void;
   /** The empty map was tapped. */
   onDeselect: () => void;
+  /** Top-right text button: picks a free seat. Leave out to hide it. */
+  onChooseFree?: () => void;
+  /** No free seat to choose: the button stays but is disabled. */
+  chooseFreeDisabled?: boolean;
   /** Height in px of what covers the bottom of the map (the seat sheet). */
   bottomInset?: number;
 };
@@ -33,6 +37,8 @@ export function SeatMap({
   selected,
   onSelect,
   onDeselect,
+  onChooseFree,
+  chooseFreeDisabled = false,
   bottomInset = 0,
 }: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -183,6 +189,18 @@ export function SeatMap({
           </Popover.Dropdown>
         </Popover>
       </div>
+
+      {onChooseFree && (
+        <div className="absolute top-3 right-3 z-1" data-map-info>
+          <Button
+            variant="map"
+            disabled={chooseFreeDisabled}
+            onClick={onChooseFree}
+          >
+            Choose any free seat
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

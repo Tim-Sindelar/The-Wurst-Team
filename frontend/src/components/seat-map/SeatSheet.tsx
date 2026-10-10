@@ -20,7 +20,7 @@ type SeatSheetProps = {
 
 const SWIPE_CLOSE_DISTANCE = 60;
 
-/* Google Maps-style card at the bottom of the room map (the screen stacks it under the dice button). It does not dim or
+/* Google Maps-style card at the bottom of the room map. It does not dim or
    block the map: tap another seat and it swaps; tap empty map, X or swipe down to close. */
 export function SeatSheet({
   title,
@@ -62,7 +62,7 @@ export function SeatSheet({
       ref={ref}
       aria-label="Selected seat"
       aria-live="polite"
-      className="pointer-events-auto relative animate-sheet-up self-stretch rounded-t-sheet border border-b-0 border-border bg-surface shadow-card"
+      className="absolute inset-x-0 bottom-0 z-2 animate-sheet-up rounded-t-sheet border border-b-0 border-border bg-surface shadow-card"
     >
       <div
         className="grid touch-none justify-center py-2 before:h-1 before:w-10 before:rounded-full before:bg-border-strong before:content-['']"

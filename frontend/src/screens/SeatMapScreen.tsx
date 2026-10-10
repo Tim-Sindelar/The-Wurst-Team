@@ -16,7 +16,6 @@ import {
   ScreenHeader,
   ScreenMain,
 } from '../components/Screen';
-import { DiceButton } from '../components/seat-map/DiceButton';
 import { SeatMap } from '../components/seat-map/SeatMap';
 import { SeatSheet } from '../components/seat-map/SeatSheet';
 import { apiProblem } from '../domain/booking';
@@ -234,6 +233,8 @@ export function SeatMapScreen() {
             selected={seat?.id ?? null}
             onSelect={setPicked}
             onDeselect={() => setPicked(null)}
+            onChooseFree={ownSeatId === null ? chooseAnyFree : undefined}
+            chooseFreeDisabled={!seats.some((item) => item.state === 'free')}
             bottomInset={SHEET_INSET}
           />
         ) : (
@@ -244,30 +245,22 @@ export function SeatMapScreen() {
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-2 flex flex-col items-end gap-3">
-          {ownSeatId === null && (
-            <DiceButton
-              disabled={!seats.some((item) => item.state === 'free')}
-              onRoll={chooseAnyFree}
-            />
-          )}
-          {seat && (
-            <SeatSheet
-              key={seat.id}
-              title={`Seat ${seat.label}`}
-              state={seat.state}
-              detail={`${space.name} · ${seatDetail}`}
-              actionLabel={actionLabel}
-              actionDisabled={!own && !canReserve}
-              onAction={() =>
-                own
-                  ? navigate(running ? paths.session : paths.reservation)
-                  : setSheetOpen(true)
-              }
-              onClose={() => setPicked(null)}
-            />
-          )}
-        </div>
+        {seat && (
+          <SeatSheet
+            key={seat.id}
+            title={`Seat ${seat.label}`}
+            state={seat.state}
+            detail={`${space.name} · ${seatDetail}`}
+            actionLabel={actionLabel}
+            actionDisabled={!own && !canReserve}
+            onAction={() =>
+              own
+                ? navigate(running ? paths.session : paths.reservation)
+                : setSheetOpen(true)
+            }
+            onClose={() => setPicked(null)}
+          />
+        )}
       </main>
 
       <DecisionSheet

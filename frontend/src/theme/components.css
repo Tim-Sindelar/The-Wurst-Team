@@ -23,6 +23,14 @@
     &[data-variant='danger'] {
       @apply border-danger bg-transparent text-danger;
     }
+    /* Text button floating on a map, the same 32px height and look as the map's icon buttons. */
+    &[data-variant='map'] {
+      @apply h-8 border-border-strong bg-surface px-3 text-small text-text shadow-card;
+
+      &:disabled {
+        @apply opacity-40;
+      }
+    }
     &[data-variant='quiet'] {
       @apply h-11 bg-transparent px-2 text-accent underline underline-offset-3;
 
@@ -46,7 +54,7 @@
     @apply m-0;
   }
 
-  /* --- ActionIcon: icon (44px), map (32px), fab (56px), camera ------------------------ */
+  /* --- ActionIcon: icon (44px), map (32px), camera ------------------------ */
   .ui-icon-button {
     @apply rounded-control border-0 bg-transparent text-text;
 
@@ -58,14 +66,6 @@
 
       &:disabled {
         @apply bg-transparent text-text opacity-40;
-      }
-    }
-    /* Floating action on a map: no box, the 3D die is the button (64px target). */
-    &[data-variant='fab'] {
-      @apply size-16 min-h-16 min-w-16 rounded-full;
-
-      &:disabled {
-        @apply opacity-40;
       }
     }
     &[data-variant='icon'],
