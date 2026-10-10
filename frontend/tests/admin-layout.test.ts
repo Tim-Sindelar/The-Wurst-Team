@@ -162,3 +162,52 @@ test('doors open into the room for either native polygon winding', () => {
     }
   }
 });
+
+test('rooms keep pillar holes through alignment and accept furniture over them', () => {
+  // A 10 m square turned 27° with a 1 m pillar in the middle.
+  const radians = (27 * Math.PI) / 180;
+  const turn = (ring: number[][]) =>
+    ring.map(([x, y]) => [
+      x * Math.cos(radians) - y * Math.sin(radians),
+      x * Math.sin(radians) + y * Math.cos(radians),
+    ]);
+  const square = (x0: number, size: number) =>
+    turn([
+      [x0, x0],
+      [x0 + size, x0],
+      [x0 + size, x0 + size],
+      [x0, x0 + size],
+    ]);
+  const { room } = alignLayoutWalls({
+    schemaVersion: 1,
+    unitsPerMeter: 64,
+    objects: [],
+    room: geometry.roomFromCoordinates({
+      id: 'pillar',
+      label: 'HG E 1',
+      coordinateUnit: 'm',
+      coordinateAxis: 'cartesian',
+      boundary: square(0, 10),
+      holes: [square(4.5, 1)],
+    }),
+  });
+  close(room.measurements.areaSquareMeters, 99);
+  assert.equal(room.holes?.length, 1);
+  const hole = room.holes![0];
+  // Aligned to the walls, the pillar is an axis-parallel 1 m square in the middle.
+  const xs = hole.map(([x]) => x),
+    ys = hole.map(([, y]) => y);
+  close(Math.max(...xs) - Math.min(...xs), 64);
+  close(Math.max(...ys) - Math.min(...ys), 64);
+  close((Math.max(...xs) + Math.min(...xs)) / 2, room.width / 2);
+  close((Math.max(...ys) + Math.min(...ys)) / 2, room.height / 2);
+  const objects = geometry.place(
+    room,
+    [],
+    'table',
+    room.width / 2,
+    room.height / 2,
+    'table-a',
+  );
+  assert.equal(objects.length, 1);
+});

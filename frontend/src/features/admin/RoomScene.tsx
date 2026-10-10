@@ -63,7 +63,8 @@ export function RoomScene({
   return (
     <>
       <path
-        d={path(room.points)}
+        d={[room.points, ...(room.holes ?? [])].map(path).join('')}
+        fillRule="evenodd"
         className="fill-surface stroke-border-strong"
         strokeWidth={2}
       />

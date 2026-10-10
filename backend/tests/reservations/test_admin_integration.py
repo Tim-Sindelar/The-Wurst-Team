@@ -135,11 +135,15 @@ def test_admin_user_history_and_study_time_excludes_breaks(client, seats, clock)
     assert client.patch(path, headers=ADMIN, json={"name": " "}).status_code == 422
 
 
-@pytest.mark.parametrize("change", ["boundary", "dimensions", "numbering", "binding", "parent"])
+@pytest.mark.parametrize(
+    "change", ["boundary", "hole", "dimensions", "numbering", "binding", "parent"]
+)
 def test_layout_rejects_invalid_geometry_without_writes(client, seats, change):
     proposed = layout(seats[0].id)
     if change == "boundary":
         proposed["room"]["points"] = [[0, 0], [1, 1], [2, 2]]
+    elif change == "hole":
+        proposed["room"]["holes"] = [[[600, 600], [700, 600]]]
     elif change == "dimensions":
         proposed["objects"][0]["width"] = -1
     elif change == "numbering":
@@ -151,6 +155,16 @@ def test_layout_rejects_invalid_geometry_without_writes(client, seats, change):
     response = client.put(room_path(seats) + "/layout", headers=ADMIN, json={"layout": proposed})
     assert response.status_code == 400
     assert client.get(room_path(seats) + "/overview", headers=ADMIN).json()["space"]["layout"] == {}
+
+
+def test_layout_keeps_room_holes_without_checking_furniture(client, seats):
+    proposed = layout(seats[0].id)
+    # The pillar sits under the table: avoiding it is up to the admin.
+    pillar = [[300, 290], [340, 290], [340, 310], [300, 310]]
+    proposed["room"]["holes"] = [pillar]
+    response = client.put(room_path(seats) + "/layout", headers=ADMIN, json={"layout": proposed})
+    assert response.status_code == 200, response.text
+    assert response.json()["space"]["layout"]["room"]["holes"] == [pillar]
 
 
 def test_room_binding_is_unique_and_archive_restore_preserves_link(client, seats):

@@ -36,14 +36,21 @@ export function projectRoom(
   },
   outline: MultiPolygon,
 ): RoomGeometry {
-  if (outline.coordinates.length !== 1 || outline.coordinates[0].length !== 1)
+  if (outline.coordinates.length !== 1)
     throw Error(
-      'Choose one room without holes. Multi-wing layouts need separate rooms.',
+      'Choose a room in one piece. Multi-wing layouts need separate rooms.',
     );
-  const ring = outline.coordinates[0][0];
+  const [ring, ...holes] = outline.coordinates[0];
   const origin = { lng: ring[0][0], lat: ring[0][1] };
   const metersLat = (6371008.8 * Math.PI) / 180,
     metersLng = metersLat * Math.cos((origin.lat * Math.PI) / 180);
+  const toMeters = (r: number[][]) =>
+    r
+      .slice(0, -1)
+      .map(([lng, lat]) => [
+        (lng - origin.lng) * metersLng,
+        (lat - origin.lat) * metersLat,
+      ]);
   const room = geometry.roomFromCoordinates({
     id: ref.id,
     label: ref.name,
@@ -51,12 +58,8 @@ export function projectRoom(
     coordinateUnit: 'm',
     coordinateAxis: 'cartesian',
     approximate: true,
-    boundary: ring
-      .slice(0, -1)
-      .map(([lng, lat]) => [
-        (lng - origin.lng) * metersLng,
-        (lat - origin.lat) * metersLat,
-      ]),
+    boundary: toMeters(ring),
+    ...(holes.length ? { holes: holes.map(toMeters) } : {}),
   });
   return alignLayoutWalls({
     schemaVersion: 1,

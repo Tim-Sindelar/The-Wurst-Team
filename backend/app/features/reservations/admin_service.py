@@ -584,21 +584,27 @@ class AdminReservationService(ReservationService):
                     400, "invalid_layout", "Room dimensions must be finite and positive"
                 )
         points = boundary["points"]
-        if len(points) > 10000 or any(
+        # Holes (pillars, shafts) are drawn only; furniture is not checked against them.
+        holes = boundary.get("holes", [])
+        if not isinstance(holes, list) or any(not isinstance(h, list) or len(h) < 3 for h in holes):
+            raise BookingError(400, "invalid_layout", "Check room hole coordinates")
+        if len(points) + sum(len(h) for h in holes) > 10000 or any(
             not isinstance(p, list)
             or len(p) != 2
             or any(type(v) not in {int, float} or not isfinite(v) for v in p)
-            for p in points
+            for ring in (points, *holes)
+            for p in ring
         ):
             raise BookingError(400, "invalid_layout", "Check room outline coordinates")
-        if (
+        if any(
             abs(
                 sum(
                     a[0] * b[1] - b[0] * a[1]
-                    for a, b in zip(points, points[1:] + points[:1], strict=True)
+                    for a, b in zip(ring, ring[1:] + ring[:1], strict=True)
                 )
             )
             < 0.001
+            for ring in (points, *holes)
         ):
             raise BookingError(400, "invalid_layout", "Room outline must enclose an area")
         self.validate_map_binding(layout, space_id)

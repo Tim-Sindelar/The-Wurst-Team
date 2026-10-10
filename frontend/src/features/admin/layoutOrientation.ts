@@ -55,6 +55,9 @@ export function alignLayoutWalls(document: LayoutDocument): LayoutDocument {
     room: {
       ...room,
       points: room.points.map(([x, y]) => translate(x, y)),
+      ...(room.holes && {
+        holes: room.holes.map((hole) => hole.map(([x, y]) => translate(x, y))),
+      }),
       width: maxX - minX + padding * 2,
       height: maxY - minY + padding * 2,
       measurements: {

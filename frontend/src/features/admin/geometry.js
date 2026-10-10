@@ -4,19 +4,23 @@ const geometry = (() => {
   const UNITS_PER_METER = 64;
   function roomFromCoordinates(data) {
     const boundary = data.boundary || data.points;
-    if (
-      !Array.isArray(boundary) ||
-      boundary.length < 3 ||
-      boundary.some(
+    // Holes (pillars, shafts) are drawn but not checked: placing around them is up to the admin.
+    const holes = data.holes || [];
+    const ring = (r) =>
+      Array.isArray(r) &&
+      r.length >= 3 &&
+      r.every(
         (p) =>
-          !Array.isArray(p) ||
-          p.length !== 2 ||
-          p.some((v) => !Number.isFinite(v)),
-      )
-    )
+          Array.isArray(p) &&
+          p.length === 2 &&
+          p.every((v) => Number.isFinite(v)),
+      );
+    if (!ring(boundary))
       throw Error(
         'Use a room boundary with at least three finite coordinate pairs.',
       );
+    if (!Array.isArray(holes) || !holes.every(ring))
+      throw Error('Use holes with at least three finite coordinate pairs.');
     const metersPerUnit =
       { m: 1, cm: 0.01, mm: 0.001 }[data.coordinateUnit] ??
       (data.coordinateUnit === 'plan' ? data.metersPerUnit : undefined);
@@ -30,10 +34,10 @@ const geometry = (() => {
       maxY = Math.max(...boundary.map((p) => p[1]));
     const widthMeters = (maxX - originX) * metersPerUnit,
       heightMeters = (maxY - originY) * metersPerUnit;
-    const areaSquareMeters =
+    const ringArea = (r) =>
       (Math.abs(
-        boundary.reduce((sum, [x, y], i) => {
-          const [nx, ny] = boundary[(i + 1) % boundary.length];
+        r.reduce((sum, [x, y], i) => {
+          const [nx, ny] = r[(i + 1) % r.length];
           return (
             sum +
             (x - originX) * (ny - originY) -
@@ -43,18 +47,27 @@ const geometry = (() => {
       ) /
         2) *
       metersPerUnit ** 2;
-    if (widthMeters <= 0 || heightMeters <= 0 || areaSquareMeters <= 0)
+    const outerArea = ringArea(boundary);
+    const areaSquareMeters = holes.reduce(
+      (area, hole) => area - ringArea(hole),
+      outerArea,
+    );
+    if (widthMeters <= 0 || heightMeters <= 0 || outerArea <= 0)
       throw Error('The room boundary must enclose an area.');
     const scale = metersPerUnit * UNITS_PER_METER,
       padding = 28;
-    const points = boundary.map(([x, y]) => [
-      padding + (x - originX) * scale,
-      padding +
-        (data.coordinateAxis === 'cartesian' ? maxY - y : y - originY) * scale,
-    ]);
+    const toCanvas = (r) =>
+      r.map(([x, y]) => [
+        padding + (x - originX) * scale,
+        padding +
+          (data.coordinateAxis === 'cartesian' ? maxY - y : y - originY) *
+            scale,
+      ]);
+    const points = toCanvas(boundary);
     return {
       ...data,
       points,
+      ...(holes.length ? { holes: holes.map(toCanvas) } : {}),
       width: widthMeters * UNITS_PER_METER + padding * 2,
       height: heightMeters * UNITS_PER_METER + padding * 2,
       measurements: {

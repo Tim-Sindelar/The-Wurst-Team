@@ -8,6 +8,8 @@ export interface RoomGeometry {
   width: number;
   height: number;
   points: [number, number][];
+  /** Inner rings (pillars, shafts). Drawn only: furniture isn't checked against them. */
+  holes?: [number, number][][];
   measurements: {
     unitsPerMeter: number;
     widthMeters: number;
