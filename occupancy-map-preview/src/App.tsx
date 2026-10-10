@@ -23,8 +23,11 @@ import {
 } from './map/minimalStyle';
 import { EMPTY_SELECTION, type Mode, type PlacingKind, type SaveState, type Selection } from './state';
 import { loadRoomFeatures, saveRoomFeatures, type RoomFeatures, type RoomInfo } from './roomFeatures';
-import { roomStateAt, type RoomState } from './domain/ethRooms';
+import { hhmm, roomStateAt, type RoomState } from './domain/ethRooms';
+import { datasetAt, dayLabel, weekdayOf, zurichInstant, type ZurichTime } from './domain/viewTime';
 import { useEthRooms, useZurichClock } from './data/useEthRooms';
+import { useDebounced } from './data/useDebounced';
+import { TimeButton, TimePanel, timeLabel } from './components/TimeControls';
 import { RoomModeButton, RoomPanel } from './components/RoomControls';
 import { OccupancyLegend } from './components/OccupancyLegend';
 import { RoomDetails } from './components/RoomDetails';
@@ -33,8 +36,10 @@ import { UzhPanel } from './components/UzhPanel';
 import { DatasetLayers, type DatasetSelection } from './datasets/DatasetLayers';
 import { DatasetButton, DatasetPanel } from './datasets/DatasetControls';
 import { DatasetSidebar } from './datasets/DatasetSidebar';
+import type { Clock } from './datasets/present';
 import { loadDatasetSettings, saveDatasetSettings, useDatasetList, useDatasets, type DatasetSettings } from './datasets/useDatasets';
-import type { DatasetItem, DatasetMeta } from './datasets/types';
+import type { DatasetItem, DatasetMeta, MensaDetails } from './datasets/types';
+import type { MensaRoom } from './map/FloorLayer';
 
 const SAVE_DEBOUNCE_MS = 400;
 const NO_DATA: RoomState = { status: 'unknown', current: null, next: null, until: 1440 };
@@ -114,18 +119,23 @@ export default function App() {
     setRoomFeaturesState(f);
     saveRoomFeatures(f);
   };
-  const [roomPanelOpen, setRoomPanelOpen] = useState(false);
+  /** The map overlay panel that is open (one at a time). */
+  const [openPanel, setOpenPanel] = useState<'time' | 'datasets' | 'rooms' | null>(null);
   const rooms = roomFeatures.enabled;
-  const { response: ethResponse, error: ethError } = useEthRooms(rooms);
-  const clock = useZurichClock(rooms);
-  // A time of today picked with the slider; null follows the clock.
-  const [pickedMinute, setPickedMinute] = useState<number | null>(null);
-  const live = !roomFeatures.timeSlider || pickedMinute === null;
-  const minute = live ? clock.minute : pickedMinute!;
+
+  // ---- the time shown: now, or a date and time picked (Zurich) ----
+  const clock = useZurichClock(true);
+  const [pickedTime, setPickedTime] = useState<ZurichTime | null>(null);
+  const live = pickedTime === null;
+  const view = pickedTime ?? clock;
+  const minute = view.minute;
+  const viewLabel = live ? 'now' : timeLabel(view, clock.date);
+
+  const { response: ethResponse, error: ethError } = useEthRooms(rooms, view.date === clock.date ? null : view.date);
   const [selectedEthRoom, setSelectedEthRoom] = useState<string | null>(null);
   const snapshot = ethResponse?.snapshot ?? null;
   // Right after midnight the snapshot is still yesterday's until the next fetch.
-  const dayMismatch = !!snapshot && snapshot.date !== clock.date;
+  const dayMismatch = !!snapshot && snapshot.date !== view.date;
   const roomInfos = useMemo<RoomInfo[]>(
     () =>
       snapshot
@@ -155,13 +165,14 @@ export default function App() {
     setDatasetSettingsState(s);
     saveDatasetSettings(s);
   };
-  const { states: datasetStates, reload: reloadDataset } = useDatasets(datasetMetas, datasetSettings.enabled);
-  const [datasetPanelOpen, setDatasetPanelOpen] = useState(false);
+  // Datasets are fetched for a picked time once it stops changing (e.g. clicking through the hours).
+  const datasetTime = useDebounced(pickedTime, 500);
+  const datasetAtOf = (meta: DatasetMeta) => datasetAt(meta, datasetTime, clock);
+  const { states: datasetStates, reload: reloadDataset } = useDatasets(datasetMetas, datasetSettings.enabled, datasetAtOf);
   const [selectedDatasetItem, setSelectedDatasetItem] = useState<DatasetSelection | null>(null);
-  const datasetClockRaw = useZurichClock(datasetSettings.enabled.length > 0);
-  const datasetClock = useMemo(
-    () => ({ minute: datasetClockRaw.minute, weekday: new Date(`${datasetClockRaw.date}T12:00:00Z`).getUTCDay() }),
-    [datasetClockRaw],
+  const datasetClock = useMemo<Clock>(
+    () => ({ minute: view.minute, weekday: weekdayOf(view.date), ms: live ? Date.now() : zurichInstant(view), live, label: viewLabel }),
+    [view.date, view.minute, live, viewLabel],
   );
   const datasetLayers = useMemo(() => {
     const out: { meta: DatasetMeta; items: DatasetItem[] }[] = [];
@@ -174,6 +185,18 @@ export default function App() {
     }
     return out;
   }, [datasetMetas, datasetStates, datasetSettings]);
+  // Mensa rooms (datasets/mensa/rooms.json) are drawn on the floor plans apart from the workspace rooms.
+  const mensaLayer = datasetLayers.find((l) => l.meta.id === 'mensa') ?? null;
+  const mensaRooms = useMemo(() => {
+    const out = new Map<string, MensaRoom>();
+    if (mode !== 'view' || !mensaLayer) return out;
+    for (const item of mensaLayer.items) {
+      for (const roomId of mensaPlace(item)?.rooms ?? []) {
+        out.set(roomId, { mensaId: item.id, name: item.name, color: mensaLayer.meta.color });
+      }
+    }
+    return out;
+  }, [mensaLayer, mode]);
   const datasetsBusy = Object.values(datasetStates).some((s) => s.loading || s.response?.refreshing);
 
   useEffect(() => {
@@ -257,6 +280,16 @@ export default function App() {
     else flyTo(lib.position, lib.rooms.length ? 20 : 19);
   };
 
+  /** Selects a campus dataset item; a mensa with rooms also switches to its floor. */
+  const selectDatasetItem = (sel: DatasetSelection, item: DatasetItem, fly: boolean) => {
+    setSelectedDatasetItem(sel);
+    const place = sel.datasetId === 'mensa' ? mensaPlace(item) : null;
+    if (place) setFloor(place.floor);
+    if (fly) flyTo({ lat: item.lat, lng: item.lng }, Math.max(zoom, place ? 19 : 17));
+  };
+  const datasetItem = (sel: DatasetSelection) =>
+    datasetLayers.find((l) => l.meta.id === sel.datasetId)?.items.find((i) => i.id === sel.itemId) ?? null;
+
   /** Opens a room's details (if that feature is on) and flies to it, on its floor. */
   const showEthRoom = (id: string) => {
     if (roomFeatures.details) setSelectedEthRoom(id);
@@ -268,14 +301,17 @@ export default function App() {
   };
   const selectedRoomInfo = rooms && roomFeatures.details && selectedEthRoom ? roomInfoById.get(selectedEthRoom) ?? null : null;
   const roomStyle = minimalStyles[theme].occupancy;
+  const bookingsOf = view.date === clock.date ? "today's bookings" : `the bookings of ${dayLabel(view.date, clock.date)}`;
   const legendNote = !snapshot
     ? ethResponse?.state === 'running'
-      ? `Fetching today's bookings from ETH… ${ethResponse.done} / ${ethResponse.total || '?'}`
-      : ethError || ethResponse?.error
-        ? 'Room data unavailable, see Rooms ▾'
-        : 'Loading room data…'
+      ? `Fetching ${bookingsOf} from ETH… ${ethResponse.done} / ${ethResponse.total || '?'}`
+      : ethResponse?.state === 'error' && !live
+        ? ethResponse.error
+        : ethError || ethResponse?.error
+          ? 'Room data unavailable, see Rooms ▾'
+          : 'Loading room data…'
     : dayMismatch
-      ? "Today's bookings are being fetched…"
+      ? `Fetching ${bookingsOf}…`
       : null;
 
   const switchMode = (m: Mode) => {
@@ -363,10 +399,7 @@ export default function App() {
               layers={datasetLayers}
               selected={selectedDatasetItem}
               clock={datasetClock}
-              onSelect={(sel, item) => {
-                setSelectedDatasetItem(sel);
-                flyTo({ lat: item.lat, lng: item.lng }, Math.max(zoom, 17));
-              }}
+              onSelect={(sel, item) => selectDatasetItem(sel, item, true)}
               onClose={() => setSelectedDatasetItem(null)}
             />
           )}
@@ -384,14 +417,14 @@ export default function App() {
             <FreeRooms
               infos={roomInfos}
               minute={minute}
-              live={live}
+              when={live ? 'now' : `at ${viewLabel}`}
               colors={roomStyle}
               onMap={placedRooms}
               selectedId={selectedRoomInfo?.room.id ?? null}
               onSelect={showEthRoom}
             />
           )}
-          {rooms && roomFeatures.uzh && <UzhPanel />}
+          {rooms && roomFeatures.uzh && <UzhPanel picked={live ? null : viewLabel} />}
           {mode === 'view' ? (
             <ViewerPanel
               data={visible}
@@ -541,9 +574,24 @@ export default function App() {
           roomLabels={rooms && roomFeatures.labels}
           selectedEthRoom={selectedRoomInfo?.room.id ?? null}
           onEthRoomClick={rooms && roomFeatures.details ? setSelectedEthRoom : null}
+          mensaRooms={mensaRooms}
+          selectedMensaId={selectedDatasetItem?.datasetId === 'mensa' ? selectedDatasetItem.itemId : null}
+          onSelectMensa={(itemId) => {
+            const sel = { datasetId: 'mensa', itemId };
+            const item = datasetItem(sel);
+            if (item) selectDatasetItem(sel, item, false);
+          }}
         >
           {mode === 'view' && (
-            <DatasetLayers layers={datasetLayers} clock={datasetClock} selected={selectedDatasetItem} onSelect={setSelectedDatasetItem} />
+            <DatasetLayers
+              layers={datasetLayers}
+              clock={datasetClock}
+              selected={selectedDatasetItem}
+              onSelect={(sel) => {
+                const item = datasetItem(sel);
+                if (item) selectDatasetItem(sel, item, false);
+              }}
+            />
           )}
         </MapView>
         {rooms && (roomFeatures.occupancy || roomFeatures.timeSlider) && (
@@ -552,9 +600,10 @@ export default function App() {
             colors={roomStyle}
             showColors={roomFeatures.occupancy}
             minute={minute}
+            label={live ? `Now ${hhmm(minute)}` : timeLabel(view, clock.date)}
             live={live}
             showSlider={roomFeatures.timeSlider}
-            onMinute={setPickedMinute}
+            onMinute={(m) => setPickedTime(m === null ? null : { date: view.date, minute: m })}
             note={legendNote}
           />
         )}
@@ -579,29 +628,34 @@ export default function App() {
           occupancyActive={rooms && roomFeatures.occupancy}
           extraBar={
             <>
+            <TimeButton view={pickedTime} now={clock} open={openPanel === 'time'} onOpen={(open) => setOpenPanel(open ? 'time' : null)} />
             <DatasetButton
-              open={datasetPanelOpen}
-              onOpen={(open) => {
-                setDatasetPanelOpen(open);
-                if (open) setRoomPanelOpen(false);
-              }}
+              open={openPanel === 'datasets'}
+              onOpen={(open) => setOpenPanel(open ? 'datasets' : null)}
               active={datasetSettings.enabled.length}
               busy={datasetsBusy}
             />
             <RoomModeButton
               features={roomFeatures}
               onChange={setRoomFeatures}
-              open={roomPanelOpen}
-              onOpen={(open) => {
-                setRoomPanelOpen(open);
-                if (open) setDatasetPanelOpen(false);
-              }}
+              open={openPanel === 'rooms'}
+              onOpen={(open) => setOpenPanel(open ? 'rooms' : openPanel === 'rooms' ? null : openPanel)}
               busy={ethResponse?.state === 'running'}
             />
             </>
           }
           extraPanel={
-            datasetPanelOpen ? (
+            openPanel === 'time' ? (
+              <TimePanel
+                view={pickedTime}
+                now={clock}
+                onChange={setPickedTime}
+                metas={datasetMetas}
+                enabledDatasets={datasetSettings.enabled}
+                rooms={rooms}
+                roomWindow={ethResponse?.window ?? null}
+              />
+            ) : openPanel === 'datasets' ? (
               <DatasetPanel
                 metas={datasetMetas}
                 listError={datasetListError}
@@ -609,8 +663,9 @@ export default function App() {
                 onChange={setDatasetSettings}
                 states={datasetStates}
                 onReload={reloadDataset}
+                picked={live ? null : viewLabel}
               />
-            ) : rooms && roomPanelOpen ? (
+            ) : rooms && openPanel === 'rooms' ? (
               <RoomPanel features={roomFeatures} onChange={setRoomFeatures} response={ethResponse} error={ethError} floorPlans={floorIndex !== null} />
             ) : null
           }
@@ -628,4 +683,9 @@ function SaveIndicator({ state }: { state: SaveState }) {
     error: 'Save failed — check the dev server console',
   }[state];
   return <div className={`save save-${state}`}>{text}</div>;
+}
+
+/** The rooms of a mensa item, if rooms.json locates it. */
+function mensaPlace(item: DatasetItem) {
+  return (item.details as unknown as MensaDetails).place ?? null;
 }

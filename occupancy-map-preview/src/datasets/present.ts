@@ -30,7 +30,23 @@ const CATEGORY_GLYPHS: Record<string, string> = {
   'bike-repair': '🔧',
 };
 
-export const glyphOf = (meta: DatasetMeta, item: DatasetItem) => CATEGORY_GLYPHS[item.category] ?? meta.glyph;
+/** The time the datasets are shown for. */
+export interface Clock {
+  /** Minute of the day and weekday (0 = Sunday), Zurich. */
+  minute: number;
+  weekday: number;
+  /** The same as an instant. */
+  ms: number;
+  /** Following the clock (no time picked). */
+  live: boolean;
+  /** "now", "Tue 20 Oct 09:00" */
+  label: string;
+}
+
+/** Live-only datasets show now even when another time is picked: flag them. */
+export const showsNowOnly = (meta: DatasetMeta, clock: Clock) => !clock.live && (meta.time?.support ?? 'live') === 'live';
+
+export const glyphOf =(meta: DatasetMeta, item: DatasetItem) => CATEGORY_GLYPHS[item.category] ?? meta.glyph;
 
 export const toMinute = (hhmm: string | null | undefined) => {
   const m = /^(\d{1,2})[:.](\d{2})/.exec(hhmm ?? '');
@@ -61,7 +77,7 @@ export interface PinLook {
   small: boolean;
 }
 
-export function pinLook(meta: DatasetMeta, item: DatasetItem, clock: { minute: number; weekday: number }): PinLook {
+export function pinLook(meta: DatasetMeta, item: DatasetItem, clock: Clock): PinLook {
   const look: PinLook = { glyph: glyphOf(meta, item), badge: null, dimmed: false, small: false };
   switch (meta.id) {
     case 'weather': {
@@ -78,7 +94,7 @@ export function pinLook(meta: DatasetMeta, item: DatasetItem, clock: { minute: n
     }
     case 'transport': {
       const d = item.details as unknown as TransportDetails;
-      const next = d.departures?.map((x) => minutesUntil(x.expected ?? x.time)).find((m) => m !== null && m >= 0);
+      const next = d.departures?.map((x) => minutesUntil(x.expected ?? x.time, clock.ms)).find((m) => m !== null && m >= 0);
       if (next != null) look.badge = `${next}′`;
       break;
     }

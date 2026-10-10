@@ -7,7 +7,7 @@ import type { Mode, PlacingKind, Selection } from '../state';
 import { libraryIcon, occupancyLevel, seatIcon, tableIcon, type OccupancyLevel } from './icons';
 import { outlineToLatLngs } from './geo';
 import { OutlineEditor } from './OutlineEditor';
-import { FloorLayer, type Theme } from './FloorLayer';
+import { FloorLayer, type MensaRoom, type Theme } from './FloorLayer';
 import { VectorBasemap, OPENFREEMAP_ATTRIBUTION } from './VectorBasemap';
 import { FloorPicker } from './FloorPicker';
 import { libraryFloorLabel, levelName, loadLibraryOutlineRoomKeys, loadLibraryOutlines, outlineFromRooms, roomsKey, type FloorIndex } from '../floors/floorData';
@@ -80,6 +80,10 @@ interface Props {
   roomLabels: boolean;
   selectedEthRoom: string | null;
   onEthRoomClick: ((ethId: string) => void) | null;
+  /** Mensa rooms (see FloorLayer), apart from the workspaces. */
+  mensaRooms: ReadonlyMap<string, MensaRoom>;
+  selectedMensaId: string | null;
+  onSelectMensa: (mensaId: string) => void;
   /** More map layers (the campus datasets), rendered inside the map. */
   children?: ReactNode;
 }
@@ -206,6 +210,9 @@ export function MapView(props: Props) {
             roomLabels={props.roomLabels}
             selectedEthRoom={props.selectedEthRoom}
             onEthRoomClick={props.onEthRoomClick}
+            mensaRooms={props.mensaRooms}
+            selectedMensaId={props.selectedMensaId}
+            onSelectMensa={props.onSelectMensa}
           />
           <FloorPicker index={props.floorIndex} floor={floor} libraries={data.libraries} onChange={props.onFloorChange} />
         </>

@@ -5,5 +5,10 @@
   "glyph": "🍽",
   "color": "#d9822b",
   "ttlSeconds": 3600,
-  "defaultOn": true
+  "defaultOn": true,
+  "time": {
+    "support": "partial",
+    "resolution": "day",
+    "note": "ETH menus for past weeks and as far ahead as published (usually the next week). UZH only publishes today's menu."
+  }
 }

@@ -200,7 +200,7 @@ export function ethRoomsApi(opts: Options): Plugin {
         const index = await planIndex();
         let match = { matches: {}, unmatched: body.snapshot?.rooms.map((r) => r.id) ?? [] } as ReturnType<typeof matchRooms>;
         if (body.snapshot) {
-          const key = `${body.snapshot.fetchedAt}|${index?.stamp ?? 'none'}`;
+          const key = `${body.snapshot.date}|${body.snapshot.fetchedAt}|${index?.stamp ?? 'none'}`;
           if (matched?.key !== key) matched = { key, value: matchRooms(body.snapshot, index) };
           match = matched.value;
         }

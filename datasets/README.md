@@ -24,9 +24,24 @@ python3 datasets/test_fetchers.py                       # offline parser tests
 
 The map (`occupancy-map-preview`) runs the fetchers on demand through `server/datasetsApi.ts` and caches the results in `occupancy-map-preview/data/cache/datasets/`. A new dataset only needs a folder with `dataset.json` and `fetch.py`; give it a details view in `src/datasets/DatasetSidebar.tsx` if the generic one isn't enough.
 
+## Other dates and times
+
+`fetch.py --at 2026-10-20T14:00` (Zurich time) fetches the data for that time instead of now; the map asks for it with `GET /api/datasets/<id>?at=...` when a time is picked with 🕒, and caches it in `data/cache/datasets/at/<id>/`. Each `dataset.json` says under `time` how far its source supports this (`support`: `full`, `partial` or `live`; `resolution`: times that give the same data; `note`: shown on the map). Checked against the live APIs on 2026-10-10:
+
+| Dataset | Other times | What works |
+|---|---|---|
+| `asvz/` | ✓ any time | `event_search?date=YYYY-MM-DD HH:MM` lists lessons from then on, past and future |
+| `mensa/` | ◐ partly | ETH Gastro: past weeks and as far ahead as published (usually next week). **UZH food2050 has `todayOffer` only**: no menus for other days |
+| `transport/` | ◐ partly | `stationboard?datetime=` gives the timetable from about a week back to the end of the timetable year (mid-December); **no delays** except around now |
+| `weather/` | ◐ partly | Open-Meteo forecast API (`start_hour`/`end_hour`) from 92 days back to 16 days ahead, the archive API before that; **nothing beyond 16 days ahead** |
+| `shared-mobility/` | ✕ now only | sharedmobility.ch has **no history and no forecast**: always shows now |
+| `amenities/` | ✕ now only | Today's OpenStreetMap data, **no history** (positions hardly change) |
+
+Outside the map's datasets: ETH room bookings (`eth_room_dashboard.py`) work for any day in ETH's booking window (about a year back and ahead); the UZH library seat occupancy is **live only**.
+
 ## Notes on the data
 
-- **Positions.** Mensa positions are building-level, taken from the PolyMaps building positions in `occupancy-map-preview/data/generated.json` where the building is known (e.g. Clausiusbar CLA D 5, Archimedes GLC E 16, Alumni quattro Lounge HIL D 57.2, food market HPH). Where the building is unconfirmed (UZH locations, Rice Up!, Tannenbar, ...), the item is flagged `approximate` and drawn with a dashed border. Transport stops get their exact coordinates from the live API.
+- **Positions.** The ETH mensas are assigned to their PolyMaps rooms in `mensa/rooms.json` (room as listed by the ETH Gastro facilities API, e.g. Mensa Polyterrasse MM B 79, food market HPR D 70.1). The fetcher takes position, floor and rooms from there, and the map tints those rooms on the floor plan. This is kept apart from the workspaces in `occupancy-map-preview/data/overrides.json`. Some mensa rooms are also workspaces (study space outside meal times), and these are drawn as the workspace unless the mensa is selected. Mensas without a room (all UZH ones, and Mendokoro since HPI has no plans) are flagged `approximate` and drawn with a dashed border. Transport stops get their exact coordinates from the live API.
 - **IDs.** ETH facility ids and UZH food2050 location ids/kitchen slugs come from the open-source ETH/UZH mensa app ([famoser/Mensa](https://github.com/famoser/Mensa)). The ASVZ Polyterrasse/Fluntern facility ids come from [fbuetler/asvz-bot](https://github.com/fbuetler/asvz-bot).
 - **Not verified against the live APIs yet.** The parsers are written against the documented/observed response shapes and covered by fixture tests, but the cloud environment they were built in could not reach the APIs. Run each `fetch.py` once on a normal connection and check `errors`. The ASVZ field names are the least certain.
 - **ASVZ.** Only reads the public schedule. Enrolling stays on schalter.asvz.ch; ASVZ's fair play rules forbid enrollment bots.

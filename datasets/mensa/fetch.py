@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Today's menus of the ETH and UZH mensas.
+"""Menus of the ETH and UZH mensas, today's or (--at) another day's.
 
 ETH:  ETH Gastro API (Cookpit), the one ethz.ch's menu pages use:
       https://idapps.ethz.ch/cookpit-pub-services/v1/weeklyrotas?client-id=ethz-wcms&lang=en&rs-first=0&rs-size=50&valid-after=<monday>
       -> weekly-rota-array[] (facility-id, valid-from/-to, day-of-week-array[] ->
          opening-hour-array[] -> meal-time-array[] -> line-array[] -> meal)
 UZH:  ZFV food2050 GraphQL API, location(id) -> kitchens[slug] -> todayOffer.
+      Today only: other days have no UZH menus.
 
-    python datasets/mensa/fetch.py [--out file.json]
+    python datasets/mensa/fetch.py [--out file.json] [--at 2026-10-20T12:00]
 """
 
 import datetime as dt
@@ -100,15 +101,17 @@ def uzh_meals(location_data, kitchen, lang="en"):
     return meals
 
 
-def build():
+def build(at=None):
     conf = lib.load_local(__file__, "locations.json")["locations"]
-    today = lib.zurich_now().date()
+    rooms = lib.load_local(__file__, "rooms.json")["mensas"]
+    real_today = lib.zurich_now().date()
+    today = at.date() if at else real_today
     monday = today - dt.timedelta(days=today.weekday())
     errors, sources = [], [ETH_ROTAS, UZH_API]
 
     rotas = None
     try:
-        rotas = lib.http_json(ETH_ROTAS, {"client-id": "ethz-wcms", "lang": "en", "rs-first": 0, "rs-size": 50,
+        rotas = lib.http_json(ETH_ROTAS, {"client-id": "ethz-wcms", "lang": "en", "rs-first": 0, "rs-size": 200,
                                          "valid-after": monday.isoformat()}).get("weekly-rota-array") or []
     except Exception as err:
         errors.append(lib.error_text("ETH menus", err))
@@ -116,8 +119,9 @@ def build():
     uzh_cache = {}
     items = []
     for loc in conf:
+        place = rooms.get(loc["id"])
         details = {"provider": loc["provider"], "building": loc.get("building"), "date": today.isoformat(),
-                   "mealTimes": loc.get("mealTimes", []), "menus": None, "hours": None}
+                   "mealTimes": loc.get("mealTimes", []), "menus": None, "hours": None, "place": room_place(place)}
         if loc["provider"] == "eth" and rotas is not None:
             menus, hours = [], []
             for fid in loc["facilityIds"]:
@@ -126,6 +130,10 @@ def build():
                 hours += h
             details["menus"] = merge_meal_times(menus)
             details["hours"] = hours
+        elif loc["provider"] == "uzh" and today != real_today:
+            if "uzh-day" not in uzh_cache:
+                uzh_cache["uzh-day"] = None
+                errors.append(f"UZH menus: only today's menu is published, not {today.isoformat()}'s")
         elif loc["provider"] == "uzh":
             lid = loc["locationId"]
             if lid not in uzh_cache:
@@ -145,16 +153,23 @@ def build():
         items.append({
             "id": loc["id"],
             "name": loc["name"],
-            "lat": loc["lat"],
-            "lng": loc["lng"],
-            "approximate": loc.get("approximate", False),
+            "lat": place["position"]["lat"] if place else loc["lat"],
+            "lng": place["position"]["lng"] if place else loc["lng"],
+            "approximate": False if place else loc.get("approximate", False),
             "category": loc["provider"],
             "campus": loc.get("campus"),
-            "subtitle": " · ".join(x for x in [loc.get("building"), ", ".join(f"{t['from']}–{t['to']}" for t in loc.get("mealTimes", []))] if x),
+            "subtitle": " · ".join(x for x in [place["room"] if place else loc.get("building"), ", ".join(f"{t['from']}–{t['to']}" for t in loc.get("mealTimes", []))] if x),
             "url": loc.get("url"),
             "details": details,
         })
     return items, sources, errors
+
+
+def room_place(place):
+    """The mensa's rooms from rooms.json (handled apart from the workspaces), or None."""
+    if not place:
+        return None
+    return {k: place[k] for k in ("room", "facilityId", "levelId", "floor", "rooms", "levels")}
 
 
 def merge_meal_times(menus):

@@ -471,3 +471,19 @@ span.chip { cursor: default; }
 .ds-hours { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0; }
 .ds-hours > div { display: flex; flex-direction: column; align-items: center; min-width: 38px; font-size: 12px; }
 .ds-raw { white-space: pre-wrap; max-height: 240px; overflow: auto; }
+
+/* Time picker (render bar) and the time flags on datasets */
+.time-toggle.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.time-inputs { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.time-inputs input { font: inherit; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
+.time-inputs button:disabled { opacity: 0.45; cursor: default; }
+.time-sources { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.time-sources li { display: grid; grid-template-columns: 18px 1fr; gap: 6px; align-items: start; }
+.time-sources li > span:last-child { display: flex; flex-direction: column; gap: 1px; }
+.time-sources li.is-off { opacity: 0.55; }
+.support { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; }
+.support-full { background: var(--free); }
+.support-partial { background: var(--low); }
+.support-live { background: var(--unknown); }
+.time-flag { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #fff; background: var(--unknown); vertical-align: 1px; }
+.time-flag.is-partial { background: var(--low); }

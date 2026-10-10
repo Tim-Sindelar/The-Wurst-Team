@@ -7,6 +7,8 @@ providers in one API; see github.com/SFOE/sharedmobility):
     -> results[] {id, geometry {x: lng, y: lat}, attributes {provider_id,
        vehicle_type, pickup_type, station_name, available, ...}}
 
+There is no history or forecast: --at is ignored, the vehicles are always the current ones.
+
     python datasets/shared-mobility/fetch.py [--out file.json]
 """
 
@@ -61,7 +63,7 @@ def item_of(r, area):
     }
 
 
-def build():
+def build(at=None):
     areas = lib.load_local(__file__, "areas.json")["areas"]
     items, errors, seen = [], [], set()
     for area in areas:

@@ -12,7 +12,7 @@ export interface RoomFeatures {
   details: boolean;
   /** Side panel list of rooms that are free now, longest free first. */
   freeList: boolean;
-  /** Slider to look at another time of today. */
+  /** Slider to look at another time of the day shown. */
   timeSlider: boolean;
   /** Live study space occupancy of the nearby UZH libraries. */
   uzh: boolean;
@@ -36,7 +36,7 @@ export const ROOM_FEATURE_LABELS: Record<Exclude<keyof RoomFeatures, 'enabled' |
   labels: { label: 'Room labels', hint: 'Room number and seats, from zoom 19' },
   details: { label: 'Room details on click', hint: 'Photos, schedule, equipment' },
   freeList: { label: 'Free rooms list', hint: 'In the side panel' },
-  timeSlider: { label: 'Time slider', hint: 'See any time of today' },
+  timeSlider: { label: 'Time slider', hint: 'Drag through the day shown (pick other days with 🕒)' },
   uzh: { label: 'UZH libraries (live)', hint: 'Seat occupancy nearby, in the side panel' },
 };
 

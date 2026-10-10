@@ -71,6 +71,8 @@ export interface EthRoomsResponse {
   unmatched: string[];
   /** False when the floor plans (public/floors) haven't been generated. */
   floorPlans: boolean;
+  /** First and last day ETH has bookings for (YYYY-MM-DD); null if unknown. */
+  window: { min: string | null; max: string | null } | null;
 }
 
 /**

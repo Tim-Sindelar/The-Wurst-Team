@@ -2,7 +2,7 @@ import L from 'leaflet';
 import { useState } from 'react';
 import { Marker, Tooltip, useMapEvents } from 'react-leaflet';
 import type { DatasetItem, DatasetMeta } from './types';
-import { pinLook, type PinLook } from './present';
+import { pinLook, showsNowOnly, type Clock, type PinLook } from './present';
 
 export interface DatasetSelection {
   datasetId: string;
@@ -16,7 +16,7 @@ interface Layer {
 
 interface Props {
   layers: Layer[];
-  clock: { minute: number; weekday: number };
+  clock: Clock;
   selected: DatasetSelection | null;
   onSelect: (sel: DatasetSelection) => void;
 }
@@ -82,6 +82,12 @@ export function DatasetLayers({ layers, clock, selected, onSelect }: Props) {
                   <>
                     <br />
                     <span className="muted">Approximate position</span>
+                  </>
+                )}
+                {showsNowOnly(meta, clock) && (
+                  <>
+                    <br />
+                    <span className="error-text">Live only: now, not {clock.label}</span>
                   </>
                 )}
               </Tooltip>

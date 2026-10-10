@@ -5,5 +5,10 @@
   "glyph": "🏃",
   "color": "#1f9e6e",
   "ttlSeconds": 900,
-  "defaultOn": false
+  "defaultOn": false,
+  "time": {
+    "support": "full",
+    "resolution": "hour",
+    "note": "Lessons from the chosen time on, past and future (as far as ASVZ has scheduled them)."
+  }
 }

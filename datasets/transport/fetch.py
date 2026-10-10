@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Live departures at the stops near the campuses.
+"""Live departures at the stops near the campuses, from now or (--at) another time.
 
 Source: transport.opendata.ch (Swiss public transport API, no key):
-    https://transport.opendata.ch/v1/stationboard?station=<name>&limit=<n>
+    https://transport.opendata.ch/v1/stationboard?station=<name>&limit=<n>[&datetime=YYYY-MM-DD HH:MM]
+    The timetable reaches about a week back and to the end of the current
+    timetable year (December); delays only exist around now.
     -> station.coordinate {x: lat, y: lng}, stationboard[] {category, number,
        to, stop {departure, delay, platform, prognosis}}
 
-    python datasets/transport/fetch.py [--out file.json]
+    python datasets/transport/fetch.py [--out file.json] [--at 2026-10-20T14:00]
 """
 
 import os
@@ -47,20 +49,25 @@ def coordinate(board):
     return lat, lng
 
 
-def build():
+def build(at=None):
     stops = lib.load_local(__file__, "stops.json")["stops"]
     errors = []
+    params = {"limit": LIMIT}
+    if at:
+        params["datetime"] = at.strftime("%Y-%m-%d %H:%M")
 
     def one(stop):
         if not stop.get("station"):
             return stop, None, None
         try:
-            return stop, lib.http_json(API, {"station": stop["station"], "limit": LIMIT}), None
+            return stop, lib.http_json(API, {"station": stop["station"], **params}), None
         except Exception as err:
             return stop, None, lib.error_text(stop["name"], err)
 
     with ThreadPoolExecutor(max_workers=6) as pool:
         results = list(pool.map(one, stops))
+    if at and not any(board and board.get("stationboard") for _s, board, _e in results):
+        errors.append(f"Timetable: no departures on {at:%Y-%m-%d} (it reaches about a week back and to the end of the timetable year)")
 
     items = []
     for stop, board, err in results:

@@ -66,6 +66,21 @@ class Fetchers(unittest.TestCase):
         self.assertEqual([m["name"] for m in unten[1]["meals"]], ["Soup"])
         clausius = next(i for i in items if i["id"] == "eth-clausiusbar")
         self.assertEqual(clausius["details"]["menus"], [])
+        # Rooms from rooms.json: position, room and floor come from there; mensas without an entry keep theirs.
+        self.assertEqual(poly["details"]["place"]["rooms"], ["ETH.MM.B.B_079"])
+        self.assertEqual((poly["details"]["place"]["floor"], poly["approximate"]), (-2, False))
+        self.assertTrue(poly["subtitle"].startswith("MM B 79"))
+        self.assertIsNone(next(i for i in items if i["id"] == "uzh-untere-mensa")["details"]["place"])
+
+    def test_mensa_rooms_file(self):
+        mod = load("mensa")
+        ids = {loc["id"] for loc in mod.lib.load_local(mod.__file__, "locations.json")["locations"]}
+        for mid, place in mod.lib.load_local(mod.__file__, "rooms.json")["mensas"].items():
+            self.assertIn(mid, ids)
+            self.assertTrue(place["rooms"], mid)
+            self.assertEqual(place["levelId"], ".".join(place["rooms"][0].split(".")[:3]), mid)
+            self.assertTrue(place["levelId"].startswith(place["facilityId"] + "."), mid)
+            self.assertEqual(set(place["levels"]), {".".join(r.split(".")[:3]) for r in place["rooms"]}, mid)
 
     def test_transport(self):
         mod = load("transport")
@@ -127,6 +142,51 @@ class Fetchers(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual([(i["category"], i["name"], i["campus"]) for i in items],
                          [("supermarket", "Coop", "Hönggerberg"), ("water", "Drinking water", "Zentrum")])
+
+
+class AtTime(unittest.TestCase):
+    """--at: the time is passed on to the sources that support it."""
+
+    def test_zurich_time(self):
+        lib = load("weather").lib
+        self.assertEqual(lib.zurich_time("2026-10-20T14:00").utcoffset(), dt.timedelta(hours=2))
+        self.assertEqual(lib.zurich_time("2026-12-20T14:00").utcoffset(), dt.timedelta(hours=1))
+
+    def test_transport_and_asvz_pass_the_time(self):
+        for name, key, answer in [("transport", "datetime", {"stationboard": []}), ("asvz", "date", {"results": []})]:
+            mod = load(name)
+            seen = []
+            with mock.patch.object(mod.lib, "http_json", lambda url, params=None, **k: seen.append(params) or answer):
+                mod.build(mod.lib.zurich_time("2026-10-20T14:00"))
+            self.assertTrue(seen, name)
+            self.assertTrue(all(p[key] == "2026-10-20 14:00" for p in seen), name)
+
+    def test_mensa_other_day(self):
+        mod = load("mensa")
+        day = mod.lib.zurich_now().date() + dt.timedelta(days=3)
+        seen = []
+        with mock.patch.object(mod.lib, "http_json", lambda url, params=None, **k: seen.append(url) or {"weekly-rota-array": []}):
+            items, _s, errors = mod.build(mod.lib.zurich_time(f"{day.isoformat()}T12:00"))
+        self.assertEqual(seen, [mod.ETH_ROTAS])  # UZH only publishes today's menu: not asked
+        self.assertEqual(len(errors), 1)
+        uzh = next(i for i in items if i["category"] == "uzh")
+        self.assertIsNone(uzh["details"]["menus"])
+        self.assertEqual(next(i for i in items if i["category"] == "eth")["details"]["date"], day.isoformat())
+
+    def test_weather_sources(self):
+        mod = load("weather")
+        places = mod.lib.load_local(mod.__file__, "places.json")["places"]
+        now = mod.lib.zurich_now()
+        at = lambda days: now + dt.timedelta(days=days)  # noqa: E731
+        self.assertEqual(mod.query(places, None)[0], mod.API)
+        self.assertEqual(mod.query(places, at(-30))[0], mod.API)
+        self.assertEqual(mod.query(places, at(10))[0], mod.API)
+        self.assertEqual(mod.query(places, at(-200))[0], mod.ARCHIVE)
+        with self.assertRaises(ValueError):
+            mod.query(places, at(30))
+        w = {"hourly": {"time": ["2026-10-20T13:00", "2026-10-20T14:00"], "temperature_2m": [9, 10], "weather_code": [3, 61]}}
+        current, hourly = mod.at_hours(w, mod.lib.zurich_time("2026-10-20T14:30"))
+        self.assertEqual((current["temperature_2m"], current["time"], hourly["time"]), (10, "2026-10-20T14:00", ["2026-10-20T14:00"]))
 
 
 if __name__ == "__main__":

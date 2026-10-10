@@ -13,5 +13,10 @@ async function getJson<T>(url: string): Promise<T> {
 
 export const fetchDatasetList = () => getJson<DatasetMeta[]>(BASE);
 
-export const fetchDataset = (id: string, refresh = false) =>
-  getJson<DatasetResponse>(`${BASE}/${encodeURIComponent(id)}${refresh ? '?refresh=1' : ''}`);
+/** `at`: a Zurich time, YYYY-MM-DDTHH:MM; null for now. */
+export function fetchDataset(id: string, refresh = false, at: string | null = null) {
+  const q = new URLSearchParams();
+  if (refresh) q.set('refresh', '1');
+  if (at) q.set('at', at);
+  return getJson<DatasetResponse>(`${BASE}/${encodeURIComponent(id)}${q.size ? `?${q}` : ''}`);
+}

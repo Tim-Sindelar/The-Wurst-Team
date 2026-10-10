@@ -23,6 +23,11 @@ occupancy-map-preview/data/cache/eth-rooms.json) and fetched again from ETH
 at most once an hour, or when the day changed. Every fetch is logged with its
 timestamp to the same path with a .log suffix.
 
+/api/snapshot?date=YYYY-MM-DD does the same for another day, within the
+window ETH has bookings for (/min-max-allocation-date, about a year back and
+ahead). Those are kept next to the snapshot file in <name>-days/<date>.json;
+past days are fetched once, today and later days hourly like today.
+
 ETH Room Info endpoints used (base: https://ethz.ch/bin/ethz/roominfo?path=):
     /rooms                                   room list incl. equipment fields
     /types&lang=en                           room type codes -> English names
@@ -325,11 +330,11 @@ def snapshot_room(r, allocations, date, type_names, error=None):
     }
 
 
-def build_snapshot(progress):
-    """Every room with its bookings for today (Zurich), as the map consumes it."""
+def build_snapshot(progress, date=None):
+    """Every room with its bookings for `date` (default today, Zurich), as the map consumes it."""
     started = time.time()
     meta = get_meta()
-    date = zurich_now().date().isoformat()
+    date = date or zurich_now().date().isoformat()
     type_names = {t.get("typecode"): t.get("type") for t in meta["types"]}
     rooms = meta["rooms"]
     progress["total"], progress["done"] = len(rooms), 0
@@ -378,13 +383,19 @@ def snapshot_age(snap, now=None):
     return (now - fetched).total_seconds()
 
 
-def snapshot_stale(snap, now=None):
-    """Older than an hour, from another day, or missing."""
+def snapshot_stale(snap, now=None, date=None):
+    """Missing, for another day than `date` (default today), or older than an hour.
+    Bookings of past days don't change any more, so those never get old."""
     if not snap:
         return True
     now = now or zurich_now()
+    today = now.date().isoformat()
+    if snap.get("date") != (date or today):
+        return True
+    if date and date < today:
+        return False
     age = snapshot_age(snap, now)
-    return age is None or age >= SNAPSHOT_TTL or snap.get("date") != now.date().isoformat()
+    return age is None or age >= SNAPSHOT_TTL
 
 
 def write_snapshot(path, snap):
@@ -396,20 +407,22 @@ def write_snapshot(path, snap):
 
 
 def log_fetch(path, line):
-    """Appends one line per ETH fetch, starting with its timestamp, to <snapshot>.log."""
+    """Appends one line per ETH fetch, starting with its timestamp, to `path`."""
     try:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        with open(os.path.splitext(path)[0] + ".log", "a", encoding="utf-8") as f:
+        with open(path, "a", encoding="utf-8") as f:
             f.write(f"{zurich_now().isoformat(timespec='seconds')}\t{line}\n")
     except OSError:
         pass
 
 
 class Snapshots:
-    """The snapshot file plus at most one background refresh at a time."""
+    """The snapshot file of one day (None: whatever day it is) plus at most one background refresh at a time."""
 
-    def __init__(self, path):
+    def __init__(self, path, date=None, log_path=None):
         self.path = path
+        self.date = date
+        self.log_path = log_path or os.path.splitext(path)[0] + ".log"
         self.lock = threading.Lock()
         self.value = read_snapshot(path)
         self.running = False
@@ -420,14 +433,14 @@ class Snapshots:
     def refresh(self):
         """Fetches from ETH and stores the result; keeps the old snapshot on failure."""
         try:
-            snap = build_snapshot(self.progress)
+            snap = build_snapshot(self.progress, self.date)
             write_snapshot(self.path, snap)
-            log_fetch(self.path, f"ok\tdate={snap['date']}\trooms={len(snap['rooms'])}"
+            log_fetch(self.log_path, f"ok\tdate={snap['date']}\trooms={len(snap['rooms'])}"
                                  f"\terrors={snap['errors']}\tseconds={snap['fetchSeconds']}")
             with self.lock:
                 self.value, self.error = snap, None
         except Exception as e:
-            log_fetch(self.path, f"failed\t{type(e).__name__}: {e}")
+            log_fetch(self.log_path, f"failed\t{type(e).__name__}: {e}" + (f"\tdate={self.date}" if self.date else ""))
             with self.lock:
                 self.error, self.failed_at = f"{type(e).__name__}: {e}", time.time()
         finally:
@@ -436,13 +449,16 @@ class Snapshots:
 
     def status(self, background=True):
         """Current snapshot and refresh state; starts a refresh when it is stale."""
+        def stale(s):
+            return snapshot_stale(s, date=self.date)
+
         with self.lock:
             # Another process (e.g. a cron --snapshot run) may have written a newer file.
-            if snapshot_stale(self.value):
+            if stale(self.value):
                 on_disk = read_snapshot(self.path)
-                if on_disk and not snapshot_stale(on_disk):
+                if on_disk and not stale(on_disk):
                     self.value = on_disk
-            start = (snapshot_stale(self.value) and not self.running
+            start = (stale(self.value) and not self.running
                      and time.time() - self.failed_at >= SNAPSHOT_RETRY)
             if start:
                 self.running, self.progress = True, {"done": 0, "total": 0}
@@ -454,19 +470,52 @@ class Snapshots:
         with self.lock:
             snap = self.value
             age = snapshot_age(snap) if snap else None
+            final = bool(self.date and self.date < zurich_now().date().isoformat())
             return {
-                "state": "running" if self.running else "error" if self.error and snapshot_stale(snap) else "ok",
+                "state": "running" if self.running else "error" if self.error and stale(snap) else "ok",
                 "done": self.progress["done"],
                 "total": self.progress["total"],
                 "error": self.error,
-                "stale": snapshot_stale(snap),
+                "stale": stale(snap),
                 "ageSeconds": None if age is None else round(age),
-                "nextFetchInSeconds": None if age is None else max(0, round(SNAPSHOT_TTL - age)),
+                "nextFetchInSeconds": None if age is None or final else max(0, round(SNAPSHOT_TTL - age)),
                 "snapshot": snap,
             }
 
 
 snapshots = None  # set in main()
+_day_snapshots = {}
+_day_lock = threading.Lock()
+DAY_SNAPSHOTS_KEPT = 30
+
+
+def booking_window():
+    """First and last day ETH has bookings for, e.g. {"min": "2026-02-21", "max": "2027-02-21"}."""
+    try:
+        mm = get_meta()["minmax"]
+        return {"min": mm.get("minDateLoad"), "max": mm.get("maxDateLoad")}
+    except Exception:
+        return None
+
+
+def snapshot_status(date=None):
+    """/api/snapshot: today's snapshot, or the one of `date` (kept in <snapshot>-days/<date>.json)."""
+    window = booking_window()
+    if not date or date == zurich_now().date().isoformat():
+        return {**snapshots.status(), "window": window}
+    if window and window["min"] and window["max"] and not window["min"] <= date <= window["max"]:
+        return {"state": "error", "done": 0, "total": 0, "stale": True, "ageSeconds": None,
+                "nextFetchInSeconds": None, "snapshot": None, "window": window,
+                "error": f"ETH has room bookings from {window['min']} to {window['max']} only"}
+    with _day_lock:
+        day = _day_snapshots.pop(date, None)
+        if day is None:
+            folder = os.path.splitext(snapshots.path)[0] + "-days"
+            day = Snapshots(os.path.join(folder, f"{date}.json"), date, snapshots.log_path)
+        _day_snapshots[date] = day  # most recently used last
+        for old in [d for d, snap in _day_snapshots.items() if not snap.running][:-DAY_SNAPSHOTS_KEPT]:
+            del _day_snapshots[old]
+    return {**day.status(), "window": window}
 
 
 # --------------------------------------------------------------------------- #
@@ -572,7 +621,10 @@ class Handler(BaseHTTPRequestHandler):
             elif url.path == "/api/uzh":
                 self._send(200, uzh_occupancy())
             elif url.path == "/api/snapshot":
-                self._send(200, snapshots.status())
+                date = q.get("date") or None
+                if date and not DATE_RE.match(date):
+                    return self._bad("date must be YYYY-MM-DD")
+                self._send(200, snapshot_status(date))
             else:
                 self._send(404, {"error": "not found"})
         except Exception as e:

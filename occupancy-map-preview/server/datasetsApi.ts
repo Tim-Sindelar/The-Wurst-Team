@@ -11,6 +11,9 @@ import type { DatasetDocument, DatasetMeta, DatasetResponse } from '../src/datas
 // dataset's ttlSeconds, and answers from the cache meanwhile:
 //   GET /api/datasets         → DatasetMeta[]
 //   GET /api/datasets/<id>    → DatasetResponse (?refresh=1 forces a fetch)
+//   ?at=2026-10-20T14:00      → the data at that Zurich time (fetch.py --at), cached
+//                               apart in data/cache/datasets/at/<id>/. Datasets whose
+//                               dataset.json says time.support "live" answer with now.
 
 interface Options {
   /** The datasets folder (one subfolder per dataset). */
@@ -20,6 +23,11 @@ interface Options {
 }
 
 const ID = /^[a-z0-9][a-z0-9-]*$/;
+const AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+/** Documents for a time over a day ago don't change any more: kept this long. */
+const PAST_TTL_SECONDS = 30 * 86400;
+/** Documents kept per dataset in cache/datasets/at/<id>/. */
+const AT_KEPT = 40;
 const FETCH_TIMEOUT_MS = 120_000;
 /** After a failed fetch, wait this long before running the fetcher again. */
 const RETRY_MS = 60_000;
@@ -58,28 +66,45 @@ export function datasetsApi(opts: Options): Plugin {
     }
   }
 
-  const cacheFile = (id: string) => path.join(opts.cacheDir, `${id}.json`);
+  const atDir = (id: string) => path.join(opts.cacheDir, 'at', id);
+  const cacheFile = (id: string, at: string | null) =>
+    at ? path.join(atDir(id), `${at.replace(':', '')}.json`) : path.join(opts.cacheDir, `${id}.json`);
+  /** Key of `running` and `lastError`: one per dataset and time. */
+  const keyOf = (id: string, at: string | null) => (at ? `${id}@${at}` : id);
 
-  async function readCache(id: string): Promise<DatasetDocument | null> {
+  async function readCache(id: string, at: string | null): Promise<DatasetDocument | null> {
     try {
-      return JSON.parse(await fs.readFile(cacheFile(id), 'utf8')) as DatasetDocument;
+      return JSON.parse(await fs.readFile(cacheFile(id, at), 'utf8')) as DatasetDocument;
     } catch {
       return null;
     }
   }
 
-  /** Runs datasets/<id>/fetch.py into the cache; one run per dataset at a time. */
-  function refresh(id: string): Promise<void> {
-    const current = running.get(id);
+  /** Keeps the newest AT_KEPT documents of a dataset in cache/datasets/at/<id>/. */
+  async function pruneAt(id: string) {
+    const dir = atDir(id);
+    const files = await Promise.all(
+      (await fs.readdir(dir))
+        .filter((f) => f.endsWith('.json'))
+        .map(async (f) => ({ f, t: (await fs.stat(path.join(dir, f))).mtimeMs })),
+    );
+    for (const { f } of files.sort((a, b) => b.t - a.t).slice(AT_KEPT)) await fs.rm(path.join(dir, f), { force: true });
+  }
+
+  /** Runs datasets/<id>/fetch.py [--at] into the cache; one run per dataset and time at a time. */
+  function refresh(id: string, at: string | null): Promise<void> {
+    const key = keyOf(id, at);
+    const current = running.get(key);
     if (current) return current;
     const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
     const script = path.join(opts.dir, id, 'fetch.py');
+    const args = [script, '--out', cacheFile(id, at), ...(at ? ['--at', at] : [])];
     const run = fs
-      .mkdir(opts.cacheDir, { recursive: true })
+      .mkdir(path.dirname(cacheFile(id, at)), { recursive: true })
       .then(
         () =>
           new Promise<void>((resolve, reject) => {
-            execFile(python, [script, '--out', cacheFile(id)], { timeout: FETCH_TIMEOUT_MS }, (err, _stdout, stderr) => {
+            execFile(python, args, { timeout: FETCH_TIMEOUT_MS }, (err, _stdout, stderr) => {
               if (stderr.trim()) console.warn(stderr.trim().split('\n').map((l) => `[datasets] ${l}`).join('\n'));
               if (err) reject(new Error(`${id}/fetch.py failed: ${stderr.trim().split('\n').pop() || err.message}`));
               else resolve();
@@ -87,38 +112,47 @@ export function datasetsApi(opts: Options): Plugin {
           }),
       )
       .then(
-        () => void lastError.delete(id),
-        (err: Error) => void lastError.set(id, { at: Date.now(), message: err.message }),
+        () => {
+          lastError.delete(key);
+          if (at) return pruneAt(id).catch(() => {});
+        },
+        (err: Error) => void lastError.set(key, { at: Date.now(), message: err.message }),
       )
-      .finally(() => running.delete(id));
-    running.set(id, run);
+      .finally(() => running.delete(key));
+    running.set(key, run);
     return run;
   }
 
-  async function respond(id: string, force: boolean): Promise<[number, DatasetResponse | { error: string }]> {
+  async function respond(id: string, force: boolean, askedAt: string | null): Promise<[number, DatasetResponse | { error: string }]> {
     const meta = await readMeta(id);
     if (!meta) return [404, { error: `Unknown dataset ${id}` }];
-    let doc = await readCache(id);
+    // Live-only sources answer with now, whatever time was asked for.
+    const at = askedAt && meta.time?.support !== 'live' ? askedAt : null;
+    const key = keyOf(id, at);
+    // Over a day in the past (whatever the time zone), the data doesn't change any more.
+    const ttl = at && Date.parse(`${at}:00Z`) < Date.now() - 86_400_000 ? PAST_TTL_SECONDS : meta.ttlSeconds;
+    let doc = await readCache(id, at);
     const age = (d: DatasetDocument | null) => (d ? (Date.now() - Date.parse(d.fetchedAt)) / 1000 : Infinity);
-    const failed = lastError.get(id);
+    const failed = lastError.get(key);
     const mayRetry = !failed || Date.now() - failed.at > RETRY_MS || force;
-    if ((force || age(doc) > meta.ttlSeconds) && mayRetry) {
-      const run = refresh(id);
+    if ((force || age(doc) > ttl) && mayRetry) {
+      const run = refresh(id, at);
       // Without a cached copy (or when asked to), wait for the fetch; otherwise answer stale data now.
       if (!doc || force) {
         await run;
-        doc = await readCache(id);
+        doc = await readCache(id, at);
       }
     }
-    if (!doc) return [502, { error: lastError.get(id)?.message ?? `No data for ${id} yet` }];
+    if (!doc) return [502, { error: lastError.get(key)?.message ?? `No data for ${id} yet` }];
     return [
       200,
       {
         meta,
         document: doc,
+        at,
         ageSeconds: Math.round(age(doc)),
-        refreshing: running.has(id),
-        lastError: lastError.get(id)?.message ?? null,
+        refreshing: running.has(key),
+        lastError: lastError.get(key)?.message ?? null,
       },
     ];
   }
@@ -130,7 +164,9 @@ export function datasetsApi(opts: Options): Plugin {
     try {
       const rest = url.pathname.slice('/api/datasets'.length).replace(/^\/|\/$/g, '');
       if (!rest) return sendJson(res, 200, await listMetas());
-      const [status, body] = await respond(rest, url.searchParams.get('refresh') === '1');
+      const at = url.searchParams.get('at');
+      if (at && !AT.test(at)) return sendJson(res, 400, { error: 'at must be YYYY-MM-DDTHH:MM (Zurich time)' });
+      const [status, body] = await respond(rest, url.searchParams.get('refresh') === '1', at);
       sendJson(res, status, body);
     } catch (err) {
       sendJson(res, 500, { error: err instanceof Error ? err.message : String(err) });

@@ -5,5 +5,10 @@
   "glyph": "🚋",
   "color": "#2b6cd9",
   "ttlSeconds": 60,
-  "defaultOn": true
+  "defaultOn": true,
+  "time": {
+    "support": "partial",
+    "resolution": "minute",
+    "note": "Timetable from about a week back to the end of the timetable year (December). Delays only around now."
+  }
 }

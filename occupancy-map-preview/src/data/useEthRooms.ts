@@ -7,22 +7,25 @@ const PROGRESS_MS = 2_000;
 const RETRY_MS = 30_000;
 
 /**
- * The ETH room data while `enabled`. Asking is cheap: the server answers from
- * its snapshot file and only goes to ETH when that is an hour old, so this
- * polls every few minutes (faster while a fetch is running, and right when the
- * next update is due).
+ * The ETH room data of `date` (null: today) while `enabled`. Asking is cheap:
+ * the server answers from its snapshot file and only goes to ETH when that is
+ * an hour old, so this polls every few minutes (faster while a fetch is
+ * running, and right when the next update is due).
  */
-export function useEthRooms(enabled: boolean) {
+export function useEthRooms(enabled: boolean, date: string | null) {
   const [response, setResponse] = useState<EthRoomsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!enabled) return;
+    // Another day's bookings must not be shown for this one.
+    setResponse(null);
+    setError(null);
     let cancelled = false;
     let timer: number | undefined;
     const load = async () => {
       let delay = POLL_MS;
       try {
-        const r = await fetchEthRooms();
+        const r = await fetchEthRooms(date);
         if (cancelled) return;
         setResponse(r);
         setError(null);
@@ -40,7 +43,7 @@ export function useEthRooms(enabled: boolean) {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [enabled]);
+  }, [enabled, date]);
   return { response: enabled ? response : null, error: enabled ? error : null };
 }
 

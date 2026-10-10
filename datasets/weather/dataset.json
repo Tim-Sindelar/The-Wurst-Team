@@ -5,5 +5,10 @@
   "glyph": "☀",
   "color": "#e0a020",
   "ttlSeconds": 900,
-  "defaultOn": true
+  "defaultOn": true,
+  "time": {
+    "support": "partial",
+    "resolution": "hour",
+    "note": "Recorded weather for any past time, forecast up to 16 days ahead."
+  }
 }

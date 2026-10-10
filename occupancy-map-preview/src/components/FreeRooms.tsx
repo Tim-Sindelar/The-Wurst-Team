@@ -6,10 +6,11 @@ import type { RoomInfo } from '../roomFeatures';
 const PAGE = 30;
 
 /** Side panel list of ETH rooms that are free at the time shown, the longest free first. */
-export function FreeRooms({ infos, minute, live, colors, onMap, selectedId, onSelect }: {
+export function FreeRooms({ infos, minute, when, colors, onMap, selectedId, onSelect }: {
   infos: RoomInfo[];
   minute: number;
-  live: boolean;
+  /** "now", "at Tue 20 Oct 09:00" */
+  when: string;
   colors: OccupancyStyle;
   /** ETH ids of the rooms found on the floor plans. */
   onMap: ReadonlySet<string>;
@@ -37,7 +38,7 @@ export function FreeRooms({ infos, minute, live, colors, onMap, selectedId, onSe
     <details className="panel-section collapsible" open>
       <summary>
         <h2>
-          Free rooms {live ? 'now' : `at ${hhmm(minute)}`} <span className="muted">({free.length})</span>
+          Free rooms {when} <span className="muted">({free.length})</span>
         </h2>
       </summary>
       <div className="free-filters">

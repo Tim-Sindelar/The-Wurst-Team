@@ -2,11 +2,12 @@
 """Next ASVZ lessons per sport center.
 
 Source: the JSON search behind asvz.ch's Sportfahrplan:
-    https://asvz.ch/asvz_api/event_search?_format=json&limit=<n>[&f[0]=facility:<id>]
+    https://asvz.ch/asvz_api/event_search?_format=json&limit=<n>[&f[0]=facility:<id>][&date=YYYY-MM-DD HH:MM]
+    `date` (Zurich time) lists the lessons from then on, past days included.
     -> results[] {title, sport_name, facility_name, from_date, to_date, url, ...}
 Field names vary a little between ASVZ releases, so the parsing is lenient.
 
-    python datasets/asvz/fetch.py [--out file.json]
+    python datasets/asvz/fetch.py [--out file.json] [--at 2026-10-20T18:00]
 """
 
 import os
@@ -54,12 +55,15 @@ def lesson(r):
     }
 
 
-def build():
+def build(at=None):
     facilities = lib.load_local(__file__, "facilities.json")["facilities"]
     errors = []
     by_facility = {f["id"]: [] for f in facilities}
+    params = {"_format": "json", "limit": ALL}
+    if at:
+        params["date"] = at.strftime("%Y-%m-%d %H:%M")
     try:
-        data = lib.http_json(API, {"_format": "json", "limit": ALL})
+        data = lib.http_json(API, params)
         results = data.get("results") if isinstance(data, dict) else data
         for r in results or []:
             l = lesson(r)

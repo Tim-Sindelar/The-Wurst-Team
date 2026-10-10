@@ -11,12 +11,7 @@ import type {
   WeatherDetails,
 } from './types';
 import type { DatasetSelection } from './DatasetLayers';
-import { glyphOf, mensaOpenAt, minutesUntil } from './present';
-
-export interface Clock {
-  minute: number;
-  weekday: number;
-}
+import { glyphOf, mensaOpenAt, minutesUntil, showsNowOnly, type Clock } from './present';
 
 interface Layer {
   meta: DatasetMeta;
@@ -50,6 +45,7 @@ export function DatasetSidebar({ layers, selected, clock, onSelect, onClose }: {
             <h2>
               <span className="ds-swatch" style={{ background: meta.color }}>{meta.glyph}</span> {meta.title}{' '}
               <span className="muted">({items.length})</span>
+              <TimeFlag meta={meta} clock={clock} />
             </h2>
           </summary>
           {items.length > LIST_LIMIT ? (
@@ -61,6 +57,14 @@ export function DatasetSidebar({ layers, selected, clock, onSelect, onClose }: {
       ))}
     </>
   );
+}
+
+/** On another time than now: "now only" for live-only datasets, "partly" for partial ones. */
+function TimeFlag({ meta, clock }: { meta: DatasetMeta; clock: Clock }) {
+  if (clock.live) return null;
+  if (showsNowOnly(meta, clock)) return <span className="time-flag" title={meta.time?.note ?? 'Live data only'}>now only</span>;
+  if (meta.time?.support === 'partial') return <span className="time-flag is-partial" title={meta.time.note}>partly</span>;
+  return null;
 }
 
 function GroupedList({ meta, items, clock, selected, onSelect }: {
@@ -88,7 +92,7 @@ function GroupedList({ meta, items, clock, selected, onSelect }: {
                 <li key={it.id}>
                   <button className={`list-item${active ? ' is-active' : ''}`} onClick={() => onSelect({ datasetId: meta.id, itemId: it.id }, it)}>
                     <span className="list-title">
-                      {open !== null && <i className={`status-dot ${open ? 'is-open' : 'is-closed'}`} title={open ? 'Serving now' : 'Not serving now'} />}
+                      {open !== null && <i className={`status-dot ${open ? 'is-open' : 'is-closed'}`} title={`${open ? 'Serving' : 'Not serving'} ${clock.live ? 'now' : `at ${clock.label}`}`} />}
                       {glyphOf(meta, it)} {it.name}
                     </span>
                     {it.subtitle && <span className="muted ds-sub">{it.subtitle}</span>}
@@ -129,7 +133,10 @@ function Summary({ items }: { items: DatasetItem[] }) {
 function ItemDetails({ meta, item, clock, onClose }: { meta: DatasetMeta; item: DatasetItem; clock: Clock; onClose: () => void }) {
   // The details sit above the lists: bring them into view when another item is picked.
   const ref = useRef<HTMLElement>(null);
-  useEffect(() => ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), [meta.id, item.id]);
+  // Braces: newer browsers return a Promise from scrollIntoView, which must not become the effect's cleanup.
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [meta.id, item.id]);
   return (
     <section ref={ref} className="panel-section ds-details">
       <div className="section-head">
@@ -139,13 +146,15 @@ function ItemDetails({ meta, item, clock, onClose }: { meta: DatasetMeta; item: 
           </h2>
           {item.subtitle && <p className="note">{item.subtitle}</p>}
           {item.approximate && <p className="note">Position on the map is approximate.</p>}
+          {showsNowOnly(meta, clock) && <p className="note error-text">Live data only: this is now, not {clock.label}.</p>}
+          {!clock.live && meta.time?.support === 'partial' && <p className="note">At {clock.label}. {meta.time.note}</p>}
         </div>
         <button className="btn-icon" aria-label="Close" onClick={onClose}>
           ×
         </button>
       </div>
       {meta.id === 'mensa' && <MensaView d={item.details as unknown as MensaDetails} clock={clock} />}
-      {meta.id === 'transport' && <TransportView d={item.details as unknown as TransportDetails} />}
+      {meta.id === 'transport' && <TransportView d={item.details as unknown as TransportDetails} clock={clock} />}
       {meta.id === 'asvz' && <AsvzView d={item.details as unknown as AsvzDetails} />}
       {meta.id === 'shared-mobility' && <MobilityView d={item.details as unknown as MobilityDetails} />}
       {meta.id === 'weather' && <WeatherView d={item.details as unknown as WeatherDetails} />}
@@ -167,12 +176,12 @@ function MensaView({ d, clock }: { d: MensaDetails; clock: Clock }) {
   return (
     <>
       <p className="note">
-        <i className={`status-dot ${open ? 'is-open' : 'is-closed'}`} /> {open ? 'Serving now' : 'Not serving now'} ·{' '}
+        <i className={`status-dot ${open ? 'is-open' : 'is-closed'}`} /> {open ? 'Serving' : 'Not serving'} {clock.live ? 'now' : `at ${clock.label}`} ·{' '}
         {d.mealTimes.map((t) => `${t.name} ${t.from}–${t.to}`).join(', ')}
         {d.building ? ` · ${d.building}` : ''}
       </p>
-      {d.menus === null && <p className="note error-text">Today's menu could not be loaded.</p>}
-      {d.menus?.length === 0 && <p className="note">No menu published for today.</p>}
+      {d.menus === null && <p className="note error-text">The menu of {d.date} could not be loaded.</p>}
+      {d.menus?.length === 0 && <p className="note">No menu published for {d.date}.</p>}
       {d.menus?.map((m, i) => (
         <div key={i} className="ds-menu">
           <h3>
@@ -206,10 +215,10 @@ const formatPrice = (p: number | string | null) => {
   return n == null || Number.isNaN(n) ? '' : `CHF ${n.toFixed(2)}`;
 };
 
-function TransportView({ d }: { d: TransportDetails }) {
+function TransportView({ d, clock }: { d: TransportDetails; clock: Clock }) {
   if (d.kind === 'shuttle') return <p className="note">{d.note}</p>;
-  if (!d.departures) return <p className="note error-text">Live departures could not be loaded.</p>;
-  const now = Date.now();
+  if (!d.departures) return <p className="note error-text">Departures could not be loaded.</p>;
+  const now = clock.ms;
   const upcoming = d.departures.filter((x) => (minutesUntil(x.expected ?? x.time, now) ?? 0) >= -1);
   if (!upcoming.length) return <p className="note">No departures listed.</p>;
   return (

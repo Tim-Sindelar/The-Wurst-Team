@@ -5,7 +5,10 @@ import { zurichTime } from '../domain/ethRooms';
 const REFRESH_MS = 5 * 60_000;
 
 /** Live study space occupancy of the UZH libraries (sensor based), the nearest public live seat data. */
-export function UzhPanel() {
+export function UzhPanel({ picked }: {
+  /** The time picked on the map, if not now: this data is live only. */
+  picked: string | null;
+}) {
   const [data, setData] = useState<{ fetchedAt: string; source: string; locations: UzhLocation[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(() => {
@@ -26,8 +29,11 @@ export function UzhPanel() {
   return (
     <details className="panel-section collapsible" open>
       <summary>
-        <h2>UZH libraries <span className="muted">(live)</span></h2>
+        <h2>
+          UZH libraries {picked ? <span className="time-flag" title="Live sensor data only: no history, no forecast">now only</span> : <span className="muted">(live)</span>}
+        </h2>
       </summary>
+      {picked && <p className="note error-text">Live data only: this is the occupancy now, not {picked}.</p>}
       {error && <p className="note error-text">{error}</p>}
       {!data && !error && <p className="note">Loading…</p>}
       {data && (

@@ -98,12 +98,24 @@ interface Props {
   selectedEthRoom: string | null;
   /** Clicking an ETH room; null when room details are off. */
   onEthRoomClick: ((ethId: string) => void) | null;
+  /** Mensa rooms (datasets/mensa/rooms.json), separate from the workspace rooms; empty when the mensa layer is off. */
+  mensaRooms: ReadonlyMap<string, MensaRoom>;
+  selectedMensaId: string | null;
+  onSelectMensa: (mensaId: string) => void;
+}
+
+/** A PolyMaps room belonging to a mensa. */
+export interface MensaRoom {
+  mensaId: string;
+  name: string;
+  color: string;
 }
 
 interface RoomLayer {
   poly: L.Polygon;
   kind: RoomKind;
   libraryId: string | null;
+  mensa: MensaRoom | null;
 }
 
 /**
@@ -112,7 +124,7 @@ interface RoomLayer {
  * use, library rooms highlighted) plus walls, doors and stairs. Level files
  * are loaded lazily for the levels in view.
  */
-export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, showRoomDetails, selectedLibraryId, onSelectLibrary, picking, pickedRooms, onPickRoom, minimal, ethRooms, occupancyStyle, roomLabels, selectedEthRoom, onEthRoomClick }: Props) {
+export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, showRoomDetails, selectedLibraryId, onSelectLibrary, picking, pickedRooms, onPickRoom, minimal, ethRooms, occupancyStyle, roomLabels, selectedEthRoom, onEthRoomClick, mensaRooms, selectedMensaId, onSelectMensa }: Props) {
   const map = useMap();
   const [view, setView] = useState(() => ({ bounds: map.getBounds(), zoom: map.getZoom() }));
   useMapEvents({ moveend: () => setView({ bounds: map.getBounds(), zoom: map.getZoom() }) });
@@ -198,8 +210,8 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
   }, [visibleKey]);
 
   // Callbacks change every render; the layers read them through a ref.
-  const handlers = useRef({ onSelectLibrary, onPickRoom, picking, onEthRoomClick });
-  handlers.current = { onSelectLibrary, onPickRoom, picking, onEthRoomClick };
+  const handlers = useRef({ onSelectLibrary, onPickRoom, picking, onEthRoomClick, onSelectMensa });
+  handlers.current = { onSelectLibrary, onPickRoom, picking, onEthRoomClick, onSelectMensa };
   // Statuses change every minute; the layers only rebuild when the set of ETH rooms changes,
   // tooltips and styles read the current statuses through this ref.
   const ethRef = useRef(ethRooms);
@@ -220,20 +232,25 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
       for (const room of plan.rooms) {
         const libraryId = libraryRooms.get(room.id) ?? null;
         const eth = ethRef.current?.get(room.id) ?? null;
-        // Workspace and ETH rooms stay regardless of size, they are click targets.
-        if (!libraryId && !eth && polygonsSmallerThan(room.rings, minSize)) continue;
+        const mensa = mensaRooms.get(room.id) ?? null;
+        // Workspace, mensa and ETH rooms stay regardless of size, they are click targets.
+        if (!libraryId && !mensa && !eth && polygonsSmallerThan(room.rings, minSize)) continue;
         const poly = L.polygon(roundPolygons(room.rings, radius), {
           renderer: renderers.rooms,
-          ...roomLayerStyle(theme, room.kind, libraryId, selectedLibraryId, pickedRooms.has(room.id), minimal, picking),
+          ...(asMensaRoom(mensa, libraryId, selectedMensaId, pickedRooms.has(room.id), picking, !!(eth && occupancyStyle))
+            ? mensaStyle(mensa!, selectedMensaId)
+            : roomLayerStyle(theme, room.kind, libraryId, selectedLibraryId, pickedRooms.has(room.id), minimal, picking)),
         });
         // Normal map: only rooms of an enabled workspace get a tooltip, showing the workspace name.
         // Admin mode keeps the room details, they are needed to pick rooms.
         const name = room.name || room.id;
         const title = room.label && room.label !== name ? `${room.label} · ${name}` : name;
+        const workspaceName = libraryId ? libraryNames.get(libraryId) : undefined;
+        const names = [workspaceName, mensa?.name].filter((n): n is string => !!n);
         const tip = showRoomDetails
           ? `<strong>${escapeHtml(title)}</strong><br>${escapeHtml(room.use || 'Raum')}${room.area ? ` · ${room.area} m²` : ''}`
-          : libraryId && libraryNames.get(libraryId)
-            ? `<strong>${escapeHtml(libraryNames.get(libraryId)!)}</strong>`
+          : names.length
+            ? `${names.map((n) => `<strong>${escapeHtml(n)}</strong>`).join('<br>')}${mensa ? `<br>${escapeHtml(name)}` : ''}`
             : null;
         if (eth) {
           // Built when shown, so it tells the status at the time being displayed.
@@ -263,9 +280,10 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
             const info = ethRef.current?.get(room.id);
             if (info && h.onEthRoomClick) h.onEthRoomClick(info.room.id);
             if (libraryId) h.onSelectLibrary(libraryId);
+            else if (mensa) h.onSelectMensa(mensa.mensaId);
           }
         });
-        roomLayers.current.set(room.id, { poly, kind: room.kind, libraryId });
+        roomLayers.current.set(room.id, { poly, kind: room.kind, libraryId, mensa });
         roomGroup.addLayer(poly);
         if (libraryId) (libraryRings.get(libraryId) ?? libraryRings.set(libraryId, []).get(libraryId)!).push(...room.rings);
       }
@@ -292,14 +310,16 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
     }
     return () => void roomGroup.remove();
     // Selection changes are applied by restyling below instead of rebuilding.
-  }, [map, renderers, plans, visibleKey, libraryRooms, libraryNames, showRoomDetails, levelsById, theme, radius, minSize, ethKey]);
+  }, [map, renderers, plans, visibleKey, libraryRooms, libraryNames, showRoomDetails, levelsById, theme, radius, minSize, ethKey, mensaRooms]);
 
   useEffect(() => {
-    for (const [roomId, { poly, kind, libraryId }] of roomLayers.current) {
+    for (const [roomId, { poly, kind, libraryId, mensa }] of roomLayers.current) {
       const picked = pickedRooms.has(roomId);
       const info = ethRooms?.get(roomId);
       poly.setStyle(
-        info && occupancyStyle && !picked
+        asMensaRoom(mensa, libraryId, selectedMensaId, picked, picking, !!(info && occupancyStyle))
+          ? mensaStyle(mensa!, selectedMensaId)
+          : info && occupancyStyle && !picked
           ? occupancyPath(occupancyStyle, info, info.room.id === selectedEthRoom)
           : info && info.room.id === selectedEthRoom && !picked
             ? { ...roomLayerStyle(theme, kind, libraryId, selectedLibraryId, picked, minimal, picking), stroke: true, color: SELECTED_ROOM[theme], weight: 2.5, opacity: 1 }
@@ -309,7 +329,11 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
     for (const [libraryId, fill] of fillLayers.current) {
       fill.setStyle(roomStyle(theme, 'library', libraryId, selectedLibraryId, false, minimal, picking));
     }
-  }, [selectedLibraryId, pickedRooms, plans, visibleKey, libraryRooms, theme, minimal, picking, radius, ethRooms, occupancyStyle, selectedEthRoom, ethKey]);
+    // The selected mensa's rooms go above the workspace fills, so rooms shared with a workspace show the mensa.
+    for (const { poly, mensa } of roomLayers.current.values()) {
+      if (mensa && mensa.mensaId === selectedMensaId && !picking) poly.bringToFront();
+    }
+  }, [selectedLibraryId, pickedRooms, plans, visibleKey, libraryRooms, theme, minimal, picking, radius, ethRooms, occupancyStyle, selectedEthRoom, ethKey, mensaRooms, selectedMensaId]);
 
   // Room number and seats on each ETH room in view (one label per room, on its largest part).
   const showLabels = roomLabels && view.zoom >= LABEL_ZOOM && !!ethRooms;
@@ -413,6 +437,29 @@ function ethTooltip({ room, state }: RoomInfo, workspace?: string) {
   else if (state.status === 'unknown') lines.push(ROOM_STATUS_LABELS.unknown);
   else lines.push(state.until >= 1440 ? 'Free for the rest of the day' : `Free until ${hhmm(state.until)}${state.next ? `: ${what(state.next)}` : ''}`);
   return lines.join('<br>');
+}
+
+/**
+ * Whether a room is drawn as a mensa room. Rooms that also belong to a workspace (study space outside
+ * meal times) or show a live booking status keep that look unless their mensa is selected.
+ */
+function asMensaRoom(mensa: MensaRoom | null, libraryId: string | null, selectedMensaId: string | null, picked: boolean, picking: boolean, occupancy: boolean) {
+  if (!mensa || picked || picking) return false;
+  return mensa.mensaId === selectedMensaId || (!libraryId && !occupancy);
+}
+
+/** A mensa room, in the mensa dataset's color: tinted, outlined when its mensa is selected. */
+function mensaStyle(mensa: MensaRoom, selectedMensaId: string | null): L.PolylineOptions {
+  const selected = mensa.mensaId === selectedMensaId;
+  return {
+    ...DETAILED_PATH,
+    stroke: true,
+    color: mensa.color,
+    weight: selected ? 2.5 : 1,
+    opacity: selected ? 1 : 0.7,
+    fillColor: mensa.color,
+    fillOpacity: selected ? 0.5 : 0.28,
+  };
 }
 
 /** Style of a room's own polygon: workspace rooms are only hit targets, their fill comes from the merged shape. */

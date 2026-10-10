@@ -4,6 +4,7 @@
 Source: Overpass API (OpenStreetMap, ODbL):
     POST https://overpass-api.de/api/interpreter  data=<query>
 One query covers every category and area; ways are reduced to their center.
+Always today's OpenStreetMap data: --at is ignored.
 
     python datasets/amenities/fetch.py [--out file.json]
 """
@@ -47,7 +48,7 @@ def nearest_area(lat, lng, areas):
     return min(areas, key=lambda a: (a["lat"] - lat) ** 2 + (a["lng"] - lng) ** 2)["name"]
 
 
-def build():
+def build(at=None):
     conf = lib.load_local(__file__, "categories.json")
     q = query(conf)
     data, errors = None, []

@@ -5,6 +5,7 @@ Every fetcher prints (or writes with --out) one JSON document:
     {
       "dataset": "<name>",
       "fetchedAt": "<ISO time, UTC>",
+      "at": "<the Zurich time asked for with --at, or null for now>",
       "sources": ["<url>", ...],
       "errors": ["<what failed>", ...],
       "items": [ { "id", "name", "lat", "lng", "approximate", "category",
@@ -14,6 +15,10 @@ Every fetcher prints (or writes with --out) one JSON document:
 Items always come from the checked-in location files, so the map has
 something to show offline; the live parts (menus, departures, ...) go into
 "details" and anything that fails to load is listed in "errors".
+
+`--at 2026-10-20T14:00` (Zurich time) asks for the data at another time:
+build(at) gets it as an aware datetime (None for now). Each dataset.json says
+under "time" how far its source supports that.
 
 Stdlib only.
 """
@@ -57,6 +62,15 @@ def now_iso():
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 
 
+def _zurich_offset(utc):
+    """CET/CEST offset at a UTC time by the EU rule (summer time from the last Sunday
+    of March to the last Sunday of October, 01:00 UTC), for systems without tzdata."""
+    def last_sunday(month):
+        d = dt.datetime(utc.year, month, 31, 1, tzinfo=dt.timezone.utc)
+        return d - dt.timedelta(days=(d.weekday() + 1) % 7)
+    return dt.timezone(dt.timedelta(hours=2 if last_sunday(3) <= utc < last_sunday(10) else 1))
+
+
 def zurich_now():
     """Current time in Zurich (CET/CEST), without needing tzdata."""
     try:
@@ -64,12 +78,18 @@ def zurich_now():
         return dt.datetime.now(ZoneInfo("Europe/Zurich"))
     except Exception:
         utc = dt.datetime.now(dt.timezone.utc)
-        # EU rule: summer time from the last Sunday of March to the last Sunday of October, 01:00 UTC.
-        def last_sunday(month):
-            d = dt.datetime(utc.year, month, 31, 1, tzinfo=dt.timezone.utc)
-            return d - dt.timedelta(days=(d.weekday() + 1) % 7)
-        offset = 2 if last_sunday(3) <= utc < last_sunday(10) else 1
-        return utc.astimezone(dt.timezone(dt.timedelta(hours=offset)))
+        return utc.astimezone(_zurich_offset(utc))
+
+
+def zurich_time(text):
+    """'2026-10-20T14:00' (Zurich wall time) -> aware datetime."""
+    local = dt.datetime.fromisoformat(text).replace(tzinfo=None, second=0, microsecond=0)
+    try:
+        from zoneinfo import ZoneInfo
+        return local.replace(tzinfo=ZoneInfo("Europe/Zurich"))
+    except Exception:
+        # Guess the offset from the time read as UTC; only off for an hour on the switch nights.
+        return local.replace(tzinfo=_zurich_offset(local.replace(tzinfo=dt.timezone.utc) - dt.timedelta(hours=1)))
 
 
 def load_local(file_path, name):
@@ -83,12 +103,14 @@ def error_text(what, err):
 
 
 def main(dataset, build):
-    """Run `build() -> (items, sources, errors)` and write the document."""
+    """Run `build(at) -> (items, sources, errors)` and write the document."""
     parser = argparse.ArgumentParser(description=f"Fetch the {dataset} dataset")
     parser.add_argument("--out", help="write here instead of stdout")
+    parser.add_argument("--at", type=zurich_time, help="Zurich time to fetch the data for, e.g. 2026-10-20T14:00 (default: now)")
     args = parser.parse_args()
-    items, sources, errors = build()
-    doc = {"dataset": dataset, "fetchedAt": now_iso(), "sources": sources, "errors": errors, "items": items}
+    items, sources, errors = build(args.at)
+    at = args.at.strftime("%Y-%m-%dT%H:%M") if args.at else None
+    doc = {"dataset": dataset, "fetchedAt": now_iso(), "at": at, "sources": sources, "errors": errors, "items": items}
     text = json.dumps(doc, ensure_ascii=False, indent=1)
     if args.out:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
@@ -97,6 +119,6 @@ def main(dataset, build):
             f.write(text)
         os.replace(tmp, args.out)
     else:
-        sys.stdout.write(text + "\n")
+        sys.stdout.buffer.write((text + "\n").encode("utf-8"))  # not the console code page (Windows)
     for e in errors:
         print(f"[{dataset}] {e}", file=sys.stderr)

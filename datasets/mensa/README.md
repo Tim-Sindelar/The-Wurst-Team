@@ -3,6 +3,7 @@
 ETH and UZH mensas with today's menus, prices and opening hours.
 
 - Locations: `locations.json`
+- Rooms of the ETH mensas (PolyMaps unit ids, floor, position): `rooms.json`
 - Refreshed every 60 min by the map server (on by default).
 
 ## Source
