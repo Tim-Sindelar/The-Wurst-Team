@@ -20,7 +20,12 @@ declare global {
     /** Set by the native shell so the page can tell the bridge is there. */
     polymapsNativeBridge?: boolean;
     /** The Android shell's JavaScript interface (polymaps-ar/android). */
-    PolymapsAndroid?: { status(): string };
+    PolymapsAndroid?: {
+      status(): string;
+      /** Android app >= 0.2: SuperPoint on the phone (see src/vps/superpoint.ts). */
+      superPoint?(id: number, grayBase64: string, width: number, height: number, maxKeypoints: number): void;
+    };
+    polymapsSuperPoint?: (id: number, result: string | null, backend: string, ms: number, error: string | null) => void;
   }
 }
 

@@ -4,12 +4,14 @@
  * CAB) and returns the camera's position and full orientation. The image itself never leaves the
  * phone; a request is ~260 KiB for 1024 keypoints.
  */
-import { SuperPointExtractor, toGray, type Features } from './superpoint';
+import { NativeSuperPointExtractor, SuperPointExtractor, toGray, type Features } from './superpoint';
 import { encodeRequest, type LocalizeRequest, type LocalizeResponse } from './protocol';
 
 /** Longer side of the image the features are computed on. */
 export const FEATURE_MAX_SIDE = 640;
 export const MAX_KEYPOINTS = 1024;
+/** ?vpsBackend=wasm|webgpu: the browser's ONNX Runtime even in the Android app (comparison). */
+const FORCE_WEB = typeof location !== 'undefined' && /^(wasm|webgpu)$/.test(new URLSearchParams(location.search).get('vpsBackend') ?? '');
 
 /**
  * Focal length in video pixels for an overlay with vertical field of view `fovDeg` drawn over a
@@ -37,7 +39,7 @@ export interface VpsResult extends LocalizeResponse {
 }
 
 export class VpsClient {
-  private extractor: Promise<SuperPointExtractor> | null = null;
+  private extractor: Promise<SuperPointExtractor | NativeSuperPointExtractor> | null = null;
 
   constructor(
     /** Relative to the page: the model is served with the app, the endpoint by the VPS server. */
@@ -46,9 +48,12 @@ export class VpsClient {
   ) {}
 
   /** Loads the network (~5 MB, cached by the browser). */
-  load(): Promise<SuperPointExtractor> {
+  load(): Promise<SuperPointExtractor | NativeSuperPointExtractor> {
     if (!this.extractor) {
-      this.extractor = SuperPointExtractor.load(this.modelUrl);
+      // In the Android app: the phone's own ONNX Runtime (NNAPI / all CPU cores), ~10x the WebView's WASM.
+      this.extractor = NativeSuperPointExtractor.available() && !FORCE_WEB
+        ? Promise.resolve(new NativeSuperPointExtractor())
+        : SuperPointExtractor.load(this.modelUrl);
       this.extractor.catch(() => (this.extractor = null));
     }
     return this.extractor;

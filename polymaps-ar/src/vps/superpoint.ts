@@ -118,8 +118,9 @@ export class SuperPointRunner {
   static async create(modelUrl: string, forceWasm = false): Promise<SuperPointRunner> {
     const ort = await import('onnxruntime-web');
     ort.env.wasm.proxy = false;
-    // Threads need SharedArrayBuffer, i.e. a cross-origin isolated page.
-    ort.env.wasm.numThreads = globalThis.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 1) : 1;
+    // Single-threaded: threads need a cross-origin isolated page, and onnxruntime's thread pool
+    // didn't start inside a worker in tests. Phones in the Android app use NativeSuperPointExtractor.
+    ort.env.wasm.numThreads = 1;
     const providers = !forceWasm && (await hasWebGpu()) ? ['webgpu', 'wasm'] : ['wasm'];
     const session = await ort.InferenceSession.create(modelUrl, { executionProviders: providers, graphOptimizationLevel: 'all' });
     return new SuperPointRunner(ort, session, providers[0]);
@@ -143,6 +144,66 @@ export class SuperPointRunner {
 const FORCE_WASM = typeof location !== 'undefined' && new URLSearchParams(location.search).get('vpsBackend') === 'wasm';
 
 type Reply = { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string };
+
+/**
+ * SuperPoint in the Android app (android/.../NativeSuperPoint.java): ONNX Runtime on the phone's
+ * accelerator (NNAPI) or all big CPU cores (XNNPACK), instead of the WebView's single-threaded
+ * WebAssembly. Same network and post-processing; the frame goes to the app as base64 grey bytes.
+ */
+export class NativeSuperPointExtractor {
+  backend = 'native';
+  private static pending = new Map<number, { resolve: (f: Features) => void; reject: (e: Error) => void; width: number; height: number }>();
+  private static nextId = 1;
+
+  static available(): boolean {
+    return typeof window !== 'undefined' && typeof window.PolymapsAndroid?.superPoint === 'function';
+  }
+
+  constructor() {
+    window.polymapsSuperPoint = (id, result, backend, ms, error) => {
+      const p = NativeSuperPointExtractor.pending.get(id);
+      NativeSuperPointExtractor.pending.delete(id);
+      if (!p) return;
+      this.backend = `${backend}, ${ms} ms in the app`;
+      if (!result) return p.reject(new Error(error ?? 'native SuperPoint failed'));
+      p.resolve(decodeNative(result, p.width, p.height));
+    };
+  }
+
+  extract(gray: Float32Array, width: number, height: number, maxKeypoints: number): Promise<Features> {
+    const bytes = new Uint8Array(gray.length);
+    for (let i = 0; i < gray.length; i++) bytes[i] = Math.round(gray[i] * 255);
+    const id = NativeSuperPointExtractor.nextId++;
+    return new Promise((resolve, reject) => {
+      NativeSuperPointExtractor.pending.set(id, { resolve, reject, width, height });
+      window.PolymapsAndroid!.superPoint!(id, toBase64(bytes), width, height, maxKeypoints);
+    });
+  }
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+/** i32 n | f32 keypoints (n x 2) | f32 scores (n) | i8 descriptors (n x 256, x 256). */
+export function decodeNative(b64: string, width: number, height: number): Features {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const view = new DataView(bytes.buffer);
+  const n = view.getInt32(0, true);
+  const keypoints = new Float32Array(2 * n);
+  const scores = new Float32Array(n);
+  let o = 4;
+  for (let i = 0; i < 2 * n; i++, o += 4) keypoints[i] = view.getFloat32(o, true);
+  for (let i = 0; i < n; i++, o += 4) scores[i] = view.getFloat32(o, true);
+  const q = new Int8Array(bytes.buffer, o, n * DESCRIPTOR_DIM);
+  const descriptors = new Float32Array(n * DESCRIPTOR_DIM);
+  for (let i = 0; i < descriptors.length; i++) descriptors[i] = q[i] / 256;
+  return { width, height, keypoints, scores, descriptors };
+}
 
 /**
  * SuperPoint for the page: runs in a Web Worker so the AR view keeps rendering while a frame is

@@ -17,13 +17,17 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.util.Base64;
 import android.util.Log;
+import android.os.SystemClock;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 import android.window.OnBackInvokedDispatcher;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * The web app in a WebView, plus the native beacon scan it can't do itself. The page sees
@@ -39,6 +43,9 @@ public class MainActivity extends Activity implements BeaconScanner.Listener {
     private BeaconScanner scanner;
     private PermissionRequest pendingCameraRequest;
     private String lastError;
+    /** SuperPoint for the page's visual fix, loaded on first use, one frame at a time. */
+    private NativeSuperPoint superPoint;
+    private final ExecutorService superPointThread = Executors.newSingleThreadExecutor();
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -126,6 +133,7 @@ public class MainActivity extends Activity implements BeaconScanner.Listener {
     @Override
     protected void onDestroy() {
         scanner.stop();
+        superPointThread.shutdownNow();
         webView.destroy();
         super.onDestroy();
     }
@@ -209,6 +217,33 @@ public class MainActivity extends Activity implements BeaconScanner.Listener {
         @JavascriptInterface
         public String status() {
             return lastError == null ? "scanning, " + scanner.totalFrames() + " beacon frames so far" : lastError;
+        }
+
+        /**
+         * SuperPoint on a grayscale frame (base64, width x height bytes). Returns at once; the result
+         * arrives as window.polymapsSuperPoint(id, base64 | null, backend, ms, error)
+         * (format: NativeSuperPoint.extract).
+         */
+        @JavascriptInterface
+        public void superPoint(int id, String grayBase64, int width, int height, int maxKeypoints) {
+            superPointThread.execute(() -> {
+                String result = null, error = null, backend = "native";
+                long t0 = SystemClock.elapsedRealtime();
+                try {
+                    if (superPoint == null) superPoint = new NativeSuperPoint(MainActivity.this);
+                    byte[] out = superPoint.extract(Base64.decode(grayBase64, Base64.DEFAULT), width, height, maxKeypoints);
+                    result = Base64.encodeToString(out, Base64.NO_WRAP);
+                    backend = superPoint.backend(width, height);
+                } catch (Throwable e) {
+                    Log.e("PolymapsAR", "SuperPoint", e);
+                    error = e.toString();
+                }
+                long ms = SystemClock.elapsedRealtime() - t0;
+                String js = "window.polymapsSuperPoint && window.polymapsSuperPoint(" + id + ","
+                        + (result == null ? "null" : "'" + result + "'") + ",'" + backend + "'," + ms + ","
+                        + (error == null ? "null" : org.json.JSONObject.quote(error)) + ")";
+                webView.post(() -> webView.evaluateJavascript(js, null));
+            });
         }
     }
 }

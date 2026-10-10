@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Quaternion, Vector3 } from 'three';
-import { sampleDescriptors, selectKeypoints } from '../src/vps/superpoint';
+import { decodeNative, sampleDescriptors, selectKeypoints } from '../src/vps/superpoint';
 import { DESC_SCALE, encodeRequest } from '../src/vps/protocol';
 import { focalFromFov, fovFromFocal } from '../src/vps/client';
 import { headingCorrection } from '../src/vps/fusion';
@@ -51,6 +51,24 @@ describe('SuperPoint post-processing', () => {
     const desc = sampleDescriptors(f32('descriptors.f32'), c, h, w, new Float32Array(expected.keypoints.flat()));
     const clipped = desc.filter((v) => Math.abs(v * DESC_SCALE) > 127).length;
     expect(clipped / desc.length).toBeLessThan(0.001);
+  });
+});
+
+describe('native SuperPoint result', () => {
+  it('decodes the packed keypoints, scores and int8 descriptors of the Android app', () => {
+    const n = 2;
+    const buf = new ArrayBuffer(4 + n * 12 + n * 256);
+    const v = new DataView(buf);
+    v.setInt32(0, n, true);
+    [10, 20, 30, 40].forEach((x, i) => v.setFloat32(4 + 4 * i, x, true));
+    [0.5, 0.25].forEach((x, i) => v.setFloat32(20 + 4 * i, x, true));
+    new Int8Array(buf, 28, n * 256).fill(16);
+    const b64 = Buffer.from(buf).toString('base64');
+    const f = decodeNative(b64, 640, 480);
+    expect(Array.from(f.keypoints)).toEqual([10, 20, 30, 40]);
+    expect(Array.from(f.scores)).toEqual([0.5, 0.25]);
+    expect(f.descriptors.length).toBe(512);
+    expect(f.descriptors[300]).toBe(0.0625);
   });
 });
 

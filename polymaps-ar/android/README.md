@@ -10,12 +10,16 @@ preselects the "Native bridge" source.
 |---|---|
 | `BeaconScanner.java` | BLE scan filtered to the PolyMaps UUID, mean RSSI per beacon per second |
 | `MainActivity.java` | WebView, permissions (Nearby devices, Location, Camera), camera and geolocation for the page |
+| `NativeSuperPoint.java` | SuperPoint for the page's visual fix (`PolymapsAndroid.superPoint`): ONNX Runtime on NNAPI (GPU / AI unit, fp16) or XNNPACK (4 CPU threads), whichever is faster on the first frame and agrees with the CPU. The WebView itself only has single-threaded WebAssembly (~10 s per frame on a Moto g86) |
 | `build.ps1` | Downloads the SDK and Gradle on first run, builds, installs on a USB-debugging phone |
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File build.ps1                               # opens https://02.hackathon.ethz.ch/ar/
 powershell -ExecutionPolicy Bypass -File build.ps1 -AppUrl http://localhost:5444/  # a dev server, via adb reverse tcp:5444 tcp:5444
 ```
+
+The APK is arm64 only (onnxruntime's native libraries are ~35 MB per ABI); the model is copied from
+`../public/vps/superpoint.onnx` at build time. `adb logcat -s SuperPoint` shows the backend timings.
 
 Without USB debugging: the VM serves the latest build at https://02.hackathon.ethz.ch/ar-android.apk
 (open it on the phone, allow installing from the browser).
