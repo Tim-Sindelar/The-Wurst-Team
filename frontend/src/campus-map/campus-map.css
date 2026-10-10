@@ -1239,14 +1239,6 @@
     .leaflet-control-attribution a {
       color: var(--accent);
     }
-    .leaflet-control-scale {
-      margin-bottom: 4px;
-    }
-    .leaflet-control-scale-line {
-      background: color-mix(in srgb, var(--panel) 80%, transparent);
-      color: var(--text);
-      border-color: var(--muted);
-    }
     .leaflet-tooltip {
       background: var(--panel);
       color: var(--text);
