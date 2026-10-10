@@ -6,5 +6,6 @@ const demoPhotoCount = 6;
 export function roomPhotoUrl(spaceId: string): string {
   let hash = 0;
   for (const char of spaceId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return `/demo-rooms/${(hash % demoPhotoCount) + 1}.jpg`;
+  // Relative to the app base so PR previews (served under /pr/<n>/) find them too.
+  return `${import.meta.env.BASE_URL}demo-rooms/${(hash % demoPhotoCount) + 1}.jpg`;
 }
