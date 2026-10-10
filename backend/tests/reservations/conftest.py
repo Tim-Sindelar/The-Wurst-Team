@@ -1,6 +1,8 @@
+import json
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -31,8 +33,31 @@ def clock(monkeypatch: pytest.MonkeyPatch) -> Clock:
 
 
 @pytest.fixture
-def policy() -> Settings:
-    return Settings(_env_file=None, auth_mode="demo")
+def policy(tmp_path: Path) -> Settings:
+    floors = tmp_path / "floors"
+    (floors / "levels").mkdir(parents=True)
+    (floors / "index.json").write_text(
+        json.dumps({"levels": [{"id": "ETH.HG.E", "floor": 0}]}), encoding="utf-8"
+    )
+    (floors / "levels" / "ETH.HG.E.json").write_text(
+        json.dumps(
+            {
+                "origin": [8.5, 47.3],
+                "scale": 1e6,
+                "rooms": [
+                    {"id": room_id, "name": name, "rings": [[[0, 0, 10, 0, 10, 10, 0, 10]]]}
+                    for room_id, name in (
+                        ("ETH.HG.E.E_007", "HG E 7"),
+                        ("ETH.HG.E.E_041.1", None),
+                        ("ETH.HG.E.E_051", "HG E 51"),
+                        ("ETH.HIL.E.E_002.1", None),
+                    )
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return Settings(_env_file=None, auth_mode="demo", map_floors_dir=floors)
 
 
 @pytest.fixture
@@ -53,8 +78,12 @@ def client(db: Engine, clock: Clock, policy: Settings) -> Iterator[TestClient]:
 @pytest.fixture
 def seats(db: Engine) -> list[Seat]:
     with Session(db, expire_on_commit=False) as session:
-        space = StudySpace(name="Test reading room", lat=47.37, lng=8.54)
-        empty = StudySpace(name="Empty test room", lat=47.4, lng=8.5)
+        space = StudySpace(
+            name="Test reading room", map_room_id="ETH.HG.E.E_007", lat=47.37, lng=8.54
+        )
+        empty = StudySpace(
+            name="Empty test room", map_room_id="ETH.HG.E.E_041.1", lat=47.4, lng=8.5
+        )
         session.add_all([space, empty])
         session.flush()
         session.add_all(

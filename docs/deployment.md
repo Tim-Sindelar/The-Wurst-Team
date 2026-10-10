@@ -93,6 +93,8 @@ The URL uses the same managed login as production; it works without another doma
 
 Pushing new commits updates the preview and its existing comment. Its database persists across updates and stays separate from production and other PRs. The frontend builds with the PR base path, so assets, React Router navigation, and generated API calls stay under `/pr/<number>/`. Mock booking local-storage keys also have a PR prefix. Profile photos are returned as embedded data URLs, so they also work under the preview path.
 
+Each preview deployment seeds two demo study spaces with four seats each, open all day every day. The seed is idempotent: updates preserve existing rooms, seats, QR tokens, and bookings. Production deployments do not run this seed.
+
 Closing or merging the PR removes its route, containers, private networks, PostgreSQL volume, releases, and backups, then marks the comment as removed. This intentionally deletes that preview’s data. Production, other previews, and the shared `/ar/` router remain running. The workflow checks that a PR is still open and at the expected commit before deploying, so a run delayed by checks cannot recreate an already closed preview.
 
 The shared router must be running for public URLs. A preview can run before the first production deployment; the production root will return an upstream error until production exists. Previews share the production browser origin and gateway network, so deploy only trusted collaborators’ code. Separate databases provide data separation, not a security sandbox for arbitrary code.
@@ -139,13 +141,6 @@ Successful releases delete their transferred image archive; loaded images and re
 
 Backups contain profile data and use restrictive permissions. Copy them off the VM and establish a retention policy; backups on the VM alone do not protect against VM loss. This workflow backs up before migrations; it does not install a separate scheduled backup service or automatically restore backups.
 
-Seed demo rooms explicitly once if needed, never on every deployment:
-
-```sh
-cd ~/wurst/current
-IMAGE_TAG=$(cat SHA) docker compose -p wurst-production --env-file /home/viscon/wurst/shared/production.env -f compose.yaml exec backend python -m app.features.reservations.seed
-```
-
 ## Rollback
 
 If application startup or smoke checks fail, the script attempts to restore the previous successful backend/Caddy images and verifies them. If the first deployment fails, its application containers are stopped while the database and backup remain. The successful-release pointer is not advanced after a failed deployment.
@@ -164,7 +159,7 @@ After verifying recovery, point `~/wurst/current` at that release so the next de
 
 ## Local deployment test
 
-The integration test exercises real image loading, initial migration, updates, profile persistence, valid backup generation, port-conflict refusal, and rollback from deliberately broken Caddy responses. It also deploys a PR preview through the shared gateway, checks prefixed assets and API routing through a simulated shared `/ar/` router, verifies independent profile data, and tests repeated cleanup while production remains healthy. It uses unique Compose projects/volumes and gateway network, loopback ports 18081/18082/18083, and temporary directories, and removes its test containers and volume afterward. It never connects to the organizer VM or development database.
+The integration test exercises real image loading, initial migration, updates, profile persistence, valid backup generation, port-conflict refusal, and rollback from deliberately broken Caddy responses. It also deploys a PR preview through the shared gateway, checks prefixed assets and API routing through a simulated shared `/ar/` router, verifies independent profile data and preview-only demo study spaces, and tests repeated cleanup while production remains healthy. It uses unique Compose projects/volumes and gateway network, loopback ports 18081/18082/18083, and temporary directories, and removes its test containers and volume afterward. It never connects to the organizer VM or development database.
 
 ```sh
 sha=$(git rev-parse HEAD)

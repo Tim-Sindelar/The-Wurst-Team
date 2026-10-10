@@ -69,6 +69,7 @@ def center_of(origin: list[float], scale: float, rings: list[list[list[float]]])
 @dataclass
 class PlanIndex:
     stamp: float
+    by_id: dict[str, Place] = field(default_factory=dict)
     by_name: dict[str, list[Place]] = field(default_factory=dict)
     by_unit: dict[str, list[Place]] = field(default_factory=dict)
     by_label: dict[str, list[Place]] = field(default_factory=dict)
@@ -83,12 +84,9 @@ def build_plan_index(floors_dir: Path, stamp: float) -> PlanIndex:
             table.setdefault(room_key(name), []).append(place)
 
     for info in index["levels"]:
-        try:
-            level = json.loads(
-                (floors_dir / "levels" / f"{info['id']}.json").read_text(encoding="utf-8")
-            )
-        except (OSError, ValueError):
-            continue
+        level = json.loads(
+            (floors_dir / "levels" / f"{info['id']}.json").read_text(encoding="utf-8")
+        )
         for room in level["rooms"]:
             place = {
                 "unitId": room["id"],
@@ -96,6 +94,7 @@ def build_plan_index(floors_dir: Path, stamp: float) -> PlanIndex:
                 "floor": info["floor"],
                 **center_of(level["origin"], level["scale"], room["rings"]),
             }
+            out.by_id[room["id"]] = place
             add(out.by_name, room.get("name"), place)
             add(out.by_unit, unit_id_name(room["id"]), place)
             add(out.by_label, room.get("label"), place)

@@ -67,8 +67,31 @@ def get_rules(settings: Annotated[Settings, Depends(get_settings)]) -> RulesResp
 
 
 @router.get("/spaces", response_model=SpacesResponse, operation_id="list_spaces")
-def list_spaces(service: Service) -> SpacesResponse:
-    return service.spaces()
+def list_spaces(service: Service, map_room_id: str | None = None) -> SpacesResponse:
+    return service.spaces(map_room_id)
+
+
+@router.get("/me/favourites", response_model=FavouritesResponse, operation_id="list_favourites")
+def list_favourites(service: Service, user_id: CurrentUser) -> FavouritesResponse:
+    return service.favourites(user_id)
+
+
+@router.put(
+    "/me/favourites/{space_id}", response_model=FavouritesResponse, operation_id="add_favourite"
+)
+def add_favourite(space_id: UUID, service: Service, user_id: CurrentUser) -> FavouritesResponse:
+    response = service.set_favourite(user_id, space_id, True)
+    service.session.commit()
+    return response
+
+
+@router.delete(
+    "/me/favourites/{space_id}", response_model=FavouritesResponse, operation_id="remove_favourite"
+)
+def remove_favourite(space_id: UUID, service: Service, user_id: CurrentUser) -> FavouritesResponse:
+    response = service.set_favourite(user_id, space_id, False)
+    service.session.commit()
+    return response
 
 
 @router.get("/me/favourites", response_model=FavouritesResponse, operation_id="list_favourites")

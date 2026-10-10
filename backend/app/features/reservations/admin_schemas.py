@@ -57,8 +57,7 @@ class SpaceFieldsRequest(AdminRequest):
 
 class CreateSpaceRequest(SpaceFieldsRequest):
     name: Name
-    lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
-    lng: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    map_room_id: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     layout: dict[str, Any] = Field(default_factory=dict)
     timezone: str = "Europe/Zurich"
     opening_hours: list[OpeningInterval] = Field(default_factory=unrestricted_hours)
@@ -78,8 +77,6 @@ class PatchRequest(AdminRequest):
 
 class UpdateSpaceRequest(SpaceFieldsRequest, PatchRequest):
     name: Name | None = None
-    lat: float | None = Field(default=None, ge=-90, le=90, allow_inf_nan=False)
-    lng: float | None = Field(default=None, ge=-180, le=180, allow_inf_nan=False)
     layout: dict[str, Any] | None = None
     timezone: str | None = None
 

@@ -318,11 +318,12 @@ class ReservationService:
             server_time=now, reservation=self._details(states[0], now) if states else None
         )
 
-    def spaces(self) -> SpacesResponse:
+    def spaces(self, map_room_id: str | None = None) -> SpacesResponse:
         now = self.now()
-        spaces = self.session.scalars(
-            select(StudySpace).order_by(StudySpace.name, StudySpace.id)
-        ).all()
+        query = select(StudySpace)
+        if map_room_id is not None:
+            query = query.where(StudySpace.map_room_id == map_room_id)
+        spaces = self.session.scalars(query.order_by(StudySpace.name, StudySpace.id)).all()
         seats = self.session.scalars(select(Seat)).all()
         states_by_seat: dict[UUID, list[ReservationState]] = defaultdict(list)
         for state in self._live(now):
@@ -338,6 +339,7 @@ class ReservationService:
                 SpaceSummary(
                     id=space.id,
                     name=space.name,
+                    map_room_id=space.map_room_id,
                     lat=space.lat,
                     lng=space.lng,
                     timezone=space.timezone,
@@ -392,6 +394,7 @@ class ReservationService:
             space=SpaceDetail(
                 id=space.id,
                 name=space.name,
+                map_room_id=space.map_room_id,
                 lat=space.lat,
                 lng=space.lng,
                 layout=space.layout,

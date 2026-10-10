@@ -8,11 +8,14 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.features.reservations.admin_schemas import CreateClosureRequest, UpdateSeatRequest
+from app.features.reservations.admin_schemas import (
+    CreateClosureRequest,
+    CreateSpaceRequest,
+    UpdateSeatRequest,
+)
 from app.features.reservations.admin_service import AdminReservationService
 from app.features.reservations.models import (
     Reservation,
-    Seat,
     SpaceClosure,
     SpaceOpeningInterval,
     StudySpace,
@@ -77,8 +80,7 @@ def test_room_and_seat_management(client, seats):
         headers=ADMIN,
         json={
             "name": " New room ",
-            "lat": 47.3,
-            "lng": 8.5,
+            "map_room_id": "ETH.HG.E.E_051",
         },
     )
     assert created.status_code == 201, created.text
@@ -111,6 +113,137 @@ def test_room_and_seat_management(client, seats):
     assert public["timezone"] == "Europe/Zurich"
     assert seat["qr_token"] not in str(public)
     assert "qr_token" not in str(public) and "user" not in str(public)
+
+
+def test_map_room_link_and_coordinates(client, seats):
+    response = client.post(
+        "/api/v1/admin/spaces",
+        headers=ADMIN,
+        json={"name": "New room", "map_room_id": "ETH.HG.E.E_051"},
+    )
+    assert response.status_code == 201, response.text
+    created = response.json()["space"]
+    assert created["map_room_id"] == "ETH.HG.E.E_051"
+    assert (created["lat"], created["lng"]) == (47.300005, 8.500005)
+    assert client.get("/api/v1/spaces", params={"map_room_id": "ETH.HG.E.E_051"}).json()[
+        "spaces"
+    ] == [
+        {
+            key: value
+            for key, value in created.items()
+            if key
+            in (
+                "id",
+                "name",
+                "map_room_id",
+                "lat",
+                "lng",
+                "timezone",
+                "is_open",
+                "total_seats",
+                "free_seats",
+            )
+        }
+    ]
+    assert (
+        client.get("/api/v1/spaces", params={"map_room_id": "ETH.HG.E.E_999"}).json()["spaces"]
+        == []
+    )
+    assert (
+        client.get(f"/api/v1/spaces/{created['id']}").json()["space"]["map_room_id"]
+        == "ETH.HG.E.E_051"
+    )
+    assert any(
+        room["map_room_id"] == "ETH.HG.E.E_051"
+        for room in client.get("/api/v1/admin/spaces", headers=ADMIN).json()["spaces"]
+    )
+    assert (
+        client.get(f"/api/v1/admin/spaces/{created['id']}/overview", headers=ADMIN).json()["space"][
+            "map_room_id"
+        ]
+        == "ETH.HG.E.E_051"
+    )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"name": "Missing"},
+        {"name": "Empty", "map_room_id": " "},
+        {"name": "Unknown", "map_room_id": "ETH.HG.E.E_999"},
+        {"name": "Client coordinate", "map_room_id": "ETH.HG.E.E_051", "lat": 0},
+    ],
+)
+def test_create_requires_existing_map_room(client, payload):
+    assert client.post("/api/v1/admin/spaces", headers=ADMIN, json=payload).status_code == 422
+
+
+def test_map_room_link_is_unique_and_immutable(client, seats):
+    duplicate = client.post(
+        "/api/v1/admin/spaces",
+        headers=ADMIN,
+        json={"name": "Duplicate", "map_room_id": "ETH.HG.E.E_007"},
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["code"] == "map_room_already_linked"
+    for patch in ({"map_room_id": "ETH.HG.E.E_051"}, {"lat": 0}, {"lng": 0}):
+        assert client.patch(room_path(seats), headers=ADMIN, json=patch).status_code == 422
+
+
+def test_unnamed_suffixed_room_is_selectable(client):
+    response = client.post(
+        "/api/v1/admin/spaces",
+        headers=ADMIN,
+        json={"name": "HIL", "map_room_id": "ETH.HIL.E.E_002.1"},
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["space"]["map_room_id"] == "ETH.HIL.E.E_002.1"
+
+
+def test_create_fails_when_floor_plans_unavailable(client, policy, tmp_path):
+    policy.map_floors_dir = tmp_path / "missing"
+    response = client.post(
+        "/api/v1/admin/spaces",
+        headers=ADMIN,
+        json={"name": "Unavailable", "map_room_id": "ETH.HG.E.E_051"},
+    )
+    assert response.status_code == 503
+    assert response.json()["code"] == "floor_plans_unavailable"
+    assert client.get("/api/v1/spaces").status_code == 200
+
+
+def test_create_fails_when_a_floor_level_is_unreadable(client, policy):
+    (policy.map_floors_dir / "levels" / "ETH.HG.E.json").unlink()
+    response = client.post(
+        "/api/v1/admin/spaces",
+        headers=ADMIN,
+        json={"name": "Unavailable", "map_room_id": "ETH.HG.E.E_051"},
+    )
+    assert response.status_code == 503
+    assert response.json()["code"] == "floor_plans_unavailable"
+
+
+def test_concurrent_creates_cannot_link_same_map_room(db, policy):
+    barrier = Barrier(2)
+
+    def create() -> bool:
+        with Session(db) as session:
+            service = AdminReservationService(session, policy)
+            barrier.wait(timeout=10)
+            try:
+                service.create_space(
+                    CreateSpaceRequest(name="Concurrent", map_room_id="ETH.HG.E.E_051")
+                )
+                session.commit()
+                return True
+            except IntegrityError:
+                session.rollback()
+                return False
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        assert sorted(executor.map(lambda _: create(), range(2))) == [False, True]
+    with Session(db) as session:
+        assert session.scalar(select(func.count()).select_from(StudySpace)) == 1
 
 
 @pytest.mark.parametrize(
@@ -418,7 +551,7 @@ def test_safe_admin_handover_and_no_show_cleanup(client, seats, clock):
 
 def test_database_closure_ownership_and_opening_constraints(db, seats, clock):
     with Session(db) as session:
-        other = StudySpace(name="Other", lat=0, lng=0)
+        other = StudySpace(name="Other", map_room_id="ETH.HG.E.E_051", lat=0, lng=0)
         session.add(other)
         session.commit()
         other_id = other.id
@@ -499,7 +632,7 @@ def test_booking_races_admin_policy(db, seats, clock, policy, change):
         )
 
 
-def test_migration_backfills_existing_rooms_without_losing_data(db):
+def test_previous_migration_backfills_existing_rooms_without_losing_data(db):
     migrate(db, "c63ce97b97f2", downgrade=True)
     room_id, seat_id = uuid4(), uuid4()
     with db.begin() as connection:
@@ -514,18 +647,69 @@ def test_migration_backfills_existing_rooms_without_losing_data(db):
             ),
             {"id": seat_id, "room": room_id},
         )
-    migrate(db)
-    with Session(db) as session:
-        assert session.get(StudySpace, room_id).timezone == "Europe/Zurich"
-        assert session.get(Seat, seat_id).is_active is True
-        assert session.get(Seat, seat_id).qr_token == "existing-qr"
+    migrate(db, "ebf07ff4bdc4")
+    with db.connect() as connection:
         assert (
-            session.scalar(
-                select(func.count())
-                .select_from(SpaceOpeningInterval)
-                .where(SpaceOpeningInterval.space_id == room_id)
+            connection.scalar(
+                text("SELECT timezone FROM study_spaces WHERE id = :id"), {"id": room_id}
+            )
+            == "Europe/Zurich"
+        )
+        assert (
+            connection.scalar(text("SELECT is_active FROM seats WHERE id = :id"), {"id": seat_id})
+            is True
+        )
+        assert (
+            connection.scalar(text("SELECT qr_token FROM seats WHERE id = :id"), {"id": seat_id})
+            == "existing-qr"
+        )
+        assert (
+            connection.scalar(
+                text("SELECT count(*) FROM space_opening_intervals WHERE space_id = :id"),
+                {"id": room_id},
             )
             == 7
+        )
+    with db.begin() as connection:
+        connection.execute(text("DELETE FROM seats WHERE id = :id"), {"id": seat_id})
+        connection.execute(
+            text("DELETE FROM space_opening_intervals WHERE space_id = :id"), {"id": room_id}
+        )
+        connection.execute(text("DELETE FROM study_spaces WHERE id = :id"), {"id": room_id})
+    migrate(db)
+
+
+def test_map_room_migration_rejects_existing_spaces(db):
+    migrate(db, "a1f3c7d92e54", downgrade=True)
+    room_id = uuid4()
+    with db.begin() as connection:
+        connection.execute(
+            text("INSERT INTO study_spaces (id, name, lat, lng) VALUES (:id, 'Existing', 0, 0)"),
+            {"id": room_id},
+        )
+    with pytest.raises(Exception, match="study_spaces must be empty"):
+        migrate(db)
+    with db.begin() as connection:
+        connection.execute(text("DELETE FROM study_spaces WHERE id = :id"), {"id": room_id})
+    migrate(db)
+    with db.connect() as connection:
+        columns = connection.execute(
+            text(
+                "SELECT is_nullable FROM information_schema.columns "
+                "WHERE table_schema = current_schema() AND table_name = 'study_spaces' "
+                "AND column_name = 'map_room_id'"
+            )
+        ).scalar_one()
+        assert columns == "NO"
+        assert (
+            connection.scalar(
+                text(
+                    "SELECT count(*) FROM pg_constraint "
+                    "WHERE conname = 'study_spaces_map_room_id_key' "
+                    "AND connamespace = current_schema()::regnamespace"
+                )
+            )
+            == 1
         )
 
 
@@ -595,8 +779,7 @@ def test_postgres_rejects_host_local_timezone_as_validation_error(client, seats,
             headers=ADMIN,
             json={
                 "name": "Unsupported timezone",
-                "lat": 0,
-                "lng": 0,
+                "map_room_id": "ETH.HG.E.E_051",
                 "timezone": "localtime",
             },
         )
@@ -650,8 +833,7 @@ def test_timezone_validation_checks_database_catalog(client, seats, monkeypatch,
             headers=ADMIN,
             json={
                 "name": "Unsupported timezone",
-                "lat": 0,
-                "lng": 0,
+                "map_room_id": "ETH.HG.E.E_051",
                 "timezone": "localtime",
             },
         )
