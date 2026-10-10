@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="xyB7ESrNMLLDZ-nncD0s">
+    <mxGraphModel dx="2449" dy="1516" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-2" edge="1" parent="1" source="vc9LVYF3vkThH2nMsxhT-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vc9LVYF3vkThH2nMsxhT-2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-3" connectable="0" parent="XhZUT44y9X6Bh9CdWai0-2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="ACTION: go to map" vertex="1">
+          <mxGeometry relative="1" x="-0.08" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vc9LVYF3vkThH2nMsxhT-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="at home/classes, want to reserve a study space" vertex="1">
+          <mxGeometry height="160" width="280" x="-90" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-14" edge="1" parent="1" source="vc9LVYF3vkThH2nMsxhT-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" target="XhZUT44y9X6Bh9CdWai0-13" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vc9LVYF3vkThH2nMsxhT-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#0050ef;fontColor=#ffffff;strokeColor=#001DBC;" value="look around the map&lt;div&gt;see study spaces&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="210" x="390" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-6" edge="1" parent="1" source="vc9LVYF3vkThH2nMsxhT-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" target="XhZUT44y9X6Bh9CdWai0-5" value="ACTION: click on study space">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="495" y="140" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-11" edge="1" parent="1" source="XhZUT44y9X6Bh9CdWai0-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="XhZUT44y9X6Bh9CdWai0-10" value="ACTION: click on seat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-8" edge="1" parent="1" source="XhZUT44y9X6Bh9CdWai0-5" style="edgeStyle=none;curved=1;rounded=0;curveGeometry=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;startSize=8;endSize=8;" target="paRbFNfdKll0ITCQ-u8a-7" value="action&lt;div&gt;&lt;br&gt;&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-5" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#6a00ff;fontColor=#ffffff;strokeColor=#3700CC;" value="&lt;div&gt;see seat arrangement and seat states&lt;/div&gt;" vertex="1">
+          <mxGeometry height="130" width="235" x="350" y="-70" as="geometry" />
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-7" edge="1" parent="1" source="XhZUT44y9X6Bh9CdWai0-9" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="XhZUT44y9X6Bh9CdWai0-5" value="NOTE: seat state list&lt;div&gt;&lt;br&gt;&lt;/div&gt;">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="200" y="-30" as="sourcePoint" />
+            <mxPoint x="370" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-9" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="SEAT STATE LIST:&lt;div&gt;- free&lt;/div&gt;&lt;div&gt;- reserved&lt;/div&gt;&lt;div&gt;- occupied&lt;/div&gt;&lt;div&gt;- on break&lt;/div&gt;&lt;div&gt;- occupied but can reserve (this can be private to a user - only they have priority, to others it still shows as occupied, or a public state when everyone can reserve)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="240" width="220" x="-60" y="-145" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-3" edge="1" parent="1" source="XhZUT44y9X6Bh9CdWai0-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="nRQ9YQNfGOw7UMcRqWbP-6" value="ACTION: arrive at location and click &quot;CHECK IN&quot; to the study spot&lt;br&gt;OR&amp;nbsp;&lt;br&gt;directly from the camera, scan the qr code that takes you to the screen (if authroized)">
+          <mxGeometry relative="1" x="0.3695" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="880" y="135" />
+              <mxPoint x="800" y="135" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-10" edge="1" parent="1" source="XhZUT44y9X6Bh9CdWai0-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="nRQ9YQNfGOw7UMcRqWbP-11" value="TIME: if X minutes passed">
+          <mxGeometry relative="1" x="-0.3636" as="geometry">
+            <mxPoint x="980" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-13" edge="1" parent="1" source="XhZUT44y9X6Bh9CdWai0-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.013;entryY=0.398;entryDx=0;entryDy=0;entryPerimeter=0;" target="nRQ9YQNfGOw7UMcRqWbP-14" value="ACTION: arrive at location but seat is taken">
+          <mxGeometry relative="1" x="-0.1421" as="geometry">
+            <Array as="points">
+              <mxPoint x="1050" y="-170" />
+              <mxPoint x="1580" y="-170" />
+              <mxPoint x="1580" y="-168.2" />
+            </Array>
+            <mxPoint x="1600" y="-170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-19" edge="1" parent="1" source="XhZUT44y9X6Bh9CdWai0-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="nRQ9YQNfGOw7UMcRqWbP-20" value="If you reserved an &quot;orange (occupied but able to reserve)&quot; seat and the occupant checks out early">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1710" y="-25" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-10" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="get popup to reserve for fixed T time&lt;br&gt;&lt;i&gt;popup includes note that your reservation will be active for X minutes&lt;/i&gt;&lt;br&gt;&lt;div&gt;&lt;b&gt;seat state turns reserved&lt;/b&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="130" width="280" x="840" y="-90" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-4" edge="1" parent="1" source="paRbFNfdKll0ITCQ-u8a-1" style="edgeStyle=none;curved=1;rounded=0;curveGeometry=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;startSize=8;endSize=8;" target="paRbFNfdKll0ITCQ-u8a-3" value="time&lt;div&gt;&lt;br&gt;&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-12" edge="1" parent="1" source="paRbFNfdKll0ITCQ-u8a-1" style="edgeStyle=none;curved=1;rounded=0;curveGeometry=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;startSize=8;endSize=8;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="nRQ9YQNfGOw7UMcRqWbP-21" value="action = extend reservation,&lt;br&gt;scan qr code again is on purpose">
+          <mxGeometry relative="1" x="0.0596" as="geometry">
+            <Array as="points">
+              <mxPoint x="1670" y="330" />
+              <mxPoint x="1410" y="170" />
+              <mxPoint x="1540" y="270" />
+              <mxPoint x="1450" y="400" />
+            </Array>
+            <mxPoint x="1240" y="225.00000000000023" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="20 min before session end receive notification that you have a 10 min priority slot to extend reservation&lt;br&gt;SEAT state change" vertex="1">
+          <mxGeometry height="130" width="280" x="840" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="XhZUT44y9X6Bh9CdWai0-13" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="NOTE - visible on main map: study space X - displays how many seats are free&amp;nbsp;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="130" width="235" x="377.5" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-6" edge="1" parent="1" source="paRbFNfdKll0ITCQ-u8a-3" style="edgeStyle=none;curved=1;rounded=0;curveGeometry=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;startSize=8;endSize=8;" target="paRbFNfdKll0ITCQ-u8a-5" value="if somebody else reserved the seat / you didnt extend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-14" edge="1" parent="1" source="paRbFNfdKll0ITCQ-u8a-3" style="edgeStyle=none;curved=1;rounded=0;curveGeometry=1;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;startSize=8;endSize=8;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="nRQ9YQNfGOw7UMcRqWbP-21" value="action = extend session">
+          <mxGeometry relative="1" x="0.2287" as="geometry">
+            <Array as="points">
+              <mxPoint x="1780" y="270" />
+              <mxPoint x="1610" y="170" />
+              <mxPoint x="1560" y="170" />
+              <mxPoint x="1560" y="180" />
+            </Array>
+            <mxPoint x="1060" y="80" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="if session not extended - 10 min before end of seesion get a notification that everybody can reserve the seat now. They can reserve it for the slot beginning at the end of your occupancy. They take over the existing occupant and the occupant can only reserve if someone else hasn&#39;t done it yet.&amp;nbsp;&lt;b&gt;Seat turns from &quot;occupied but can reserve&quot; to &quot;occupied&quot;&lt;/b&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="150" width="310" x="840" y="790" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-5" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="&lt;div&gt;get session end notification&amp;nbsp;&lt;br&gt;IF SOMEBODY HAS IT RESERVED, include note: somebody reserved this seat, please hand it over to them!&lt;/div&gt;" vertex="1">
+          <mxGeometry height="130" width="280" x="855" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-10" edge="1" parent="1" source="paRbFNfdKll0ITCQ-u8a-7" style="edgeStyle=none;curved=1;rounded=0;curveGeometry=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=12;startSize=8;endSize=8;" target="XhZUT44y9X6Bh9CdWai0-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-7" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="option: reserve any (let the app choose because you&#39;re too lazy)" vertex="1">
+          <mxGeometry height="130" width="235" x="377.5" y="-340" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-12" edge="1" parent="1" source="nRQ9YQNfGOw7UMcRqWbP-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="paRbFNfdKll0ITCQ-u8a-1" value="TIME: T-20 time passes from check in">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-16" edge="1" parent="1" source="nRQ9YQNfGOw7UMcRqWbP-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="nRQ9YQNfGOw7UMcRqWbP-17" value="NOTE: My reservation scren">
+          <mxGeometry relative="1" x="0.1954" as="geometry">
+            <Array as="points">
+              <mxPoint x="690" y="990" />
+            </Array>
+            <mxPoint x="640" y="1020" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#6d8764;fontColor=#ffffff;strokeColor=#3A5431;" value="&lt;div&gt;get screen: seating on seat, remaining time:&lt;br&gt;&lt;br&gt;backend: checks location to verify check-in&lt;/div&gt;" vertex="1">
+          <mxGeometry height="130" width="280" x="660" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-4" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="&lt;span style=&quot;color: rgb(255, 255, 255); font-family: Helvetica; font-size: 11px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: nowrap; background-color: rgb(18, 18, 18); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; float: none; display: inline !important;&quot;&gt;receive notification: make sure to check in&lt;/span&gt;" vertex="1">
+          <mxGeometry height="130" width="280" x="1080" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-5" edge="1" parent="1" source="XhZUT44y9X6Bh9CdWai0-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.554;entryY=-0.025;entryDx=0;entryDy=0;entryPerimeter=0;" target="nRQ9YQNfGOw7UMcRqWbP-4" value="TIME: if X-3 minutes passed,&amp;nbsp;">
+          <mxGeometry relative="1" x="0.3183" y="25" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="980" y="70" />
+              <mxPoint x="1145.1" y="70" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-7" edge="1" parent="1" source="nRQ9YQNfGOw7UMcRqWbP-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="nRQ9YQNfGOw7UMcRqWbP-2" value="succesful QR code scan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" value="&lt;div&gt;QR code scan&lt;/div&gt;" vertex="1">
+          <mxGeometry height="130" width="280" x="660" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-11" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="lose seat + notification for it&amp;nbsp;&lt;br&gt;(update seat state)" vertex="1">
+          <mxGeometry height="100" width="140" x="990" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-14" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="the app is authority based on UNI rules - talk to the person&lt;br&gt;todo: unsolved. trust-based system" vertex="1">
+          <mxGeometry height="150" width="270" x="1620" y="-295" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-17" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e51400;fontColor=#ffffff;strokeColor=#B20000;" value="&lt;b&gt;My reservation screen: &lt;/b&gt;show seat location, countdown, check-in (temporary until checked in), extend, break and end buttons." vertex="1">
+          <mxGeometry height="240" width="270" x="360" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-20" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="notification: your seat is free. seat turns into &quot;reserved&quot; and you can check in&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="130" width="280" x="1740" y="-90" as="geometry" />
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-22" edge="1" parent="1" source="nRQ9YQNfGOw7UMcRqWbP-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="XhZUT44y9X6Bh9CdWai0-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1370" y="20" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nRQ9YQNfGOw7UMcRqWbP-21" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="are you sure you want to extend&lt;div&gt;&lt;br/&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="1310" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-17" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="HOME SCREEN" vertex="1">
+          <mxGeometry height="30" width="60" x="350" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-18" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="SEAT ARRANGEMENT SCREEN" vertex="1">
+          <mxGeometry height="30" width="60" x="317.5" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-19" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="&lt;blockquote style=&quot;margin: 0 0 0 40px; border: none; padding: 0px;&quot;&gt;QR SCREEN&lt;/blockquote&gt;" vertex="1">
+          <mxGeometry height="30" width="60" x="585" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-23" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="SESSION SCREEN" vertex="1">
+          <mxGeometry height="30" width="60" x="710" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="paRbFNfdKll0ITCQ-u8a-24" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="RESERVATION SCREEN" vertex="1">
+          <mxGeometry height="30" width="60" x="270" y="930" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
