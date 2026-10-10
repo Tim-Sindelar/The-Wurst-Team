@@ -3,7 +3,11 @@ import type L from 'leaflet';
 import type { MultiPolygon } from 'geojson';
 import polygonClipping from 'polygon-clipping';
 import { useMap, useMapEvents } from 'react-leaflet';
-import type { FloorIndex, LevelInfo } from '../floors/floorData';
+import {
+  singleFloorLabel,
+  type FloorIndex,
+  type LevelInfo,
+} from '../floors/floorData';
 import { outlineToLatLngs } from './geo';
 
 // The 3D view stacks one building group at a time: the buildings inside one
@@ -67,7 +71,7 @@ export interface BuildingGroup {
   levels: LevelInfo[];
   /** Floors the group's levels are on, ascending. */
   floors: number[];
-  /** Floor letters of each floor, e.g. "E" or "E/EO". */
+  /** One floor letter per floor, the one most of the group's buildings use. */
   labels: ReadonlyMap<number, string>;
   /** The floor that stays in place: where most of its buildings have their "E" (0 without one). */
   ground: number;
@@ -121,16 +125,7 @@ export function buildGroups(index: FloorIndex): Map<string, BuildingGroup> {
       levels: groupLevels,
       floors,
       labels: new Map(
-        floors.map((f) => [
-          f,
-          [
-            ...new Set(
-              groupLevels.filter((l) => l.floor === f).map((l) => l.label),
-            ),
-          ]
-            .sort()
-            .join('/'),
-        ]),
+        floors.map((f) => [f, singleFloorLabel(f, groupLevels, null)]),
       ),
       ground: groundFloor(groupLevels),
       bbox,

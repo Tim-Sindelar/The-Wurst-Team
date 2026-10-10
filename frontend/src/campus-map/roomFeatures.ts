@@ -10,9 +10,9 @@ export interface RoomFeatures {
   labels: boolean;
   /** Clicking a room opens its photos, schedule and equipment. */
   details: boolean;
-  /** Side panel list of rooms that are free now, longest free first. */
+  /** List of rooms that are free now, longest free first, in the live rooms menu. */
   freeList: boolean;
-  /** Live study space occupancy of the nearby UZH libraries. */
+  /** Live study space occupancy of the nearby UZH libraries, in the live rooms menu. */
   uzh: boolean;
   /** A free room counts as "booked soon" this many minutes before its next booking. */
   soonMinutes: number;
@@ -43,11 +43,11 @@ export const ROOM_FEATURE_LABELS: Record<
   },
   freeList: {
     label: 'Free rooms list',
-    hint: 'In the details of a tapped room',
+    hint: 'In this menu, longest free first',
   },
   uzh: {
     label: 'UZH libraries (live)',
-    hint: 'Seat occupancy nearby, in the room details',
+    hint: 'Seat occupancy nearby, in this menu',
   },
 };
 

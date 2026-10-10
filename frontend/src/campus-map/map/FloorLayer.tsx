@@ -26,11 +26,6 @@ import {
   type OccupancyStyle,
   type PartKey,
 } from './minimalStyle';
-import {
-  hhmm,
-  ROOM_STATUS_LABELS,
-  BOOKING_KIND_LABELS,
-} from '../domain/ethRooms';
 import type { RoomInfo } from '../roomFeatures';
 import { liftRings, type BuildingGroup } from './buildingGroups';
 
@@ -131,10 +126,6 @@ interface Props {
   floor: number;
   /** PolyMaps room id → library id, for highlighting and selecting library rooms. */
   libraryRooms: Map<string, string>;
-  /** Library id → name, for the room tooltip of the normal map. */
-  libraryNames: ReadonlyMap<string, string>;
-  /** Admin mode: tooltips show every room's details instead of the workspace name. */
-  showRoomDetails: boolean;
   selectedLibraryId: string | null;
   onSelectLibrary: (libraryId: string) => void;
   /** Room selection mode (admin): clicking any room toggles it instead of selecting its workspace. */
@@ -153,7 +144,7 @@ interface Props {
   selectedEthRoom: string | null;
   /** Clicking an ETH room; null when room details are off. */
   onEthRoomClick: ((ethId: string) => void) | null;
-  /** Mensa rooms (datasets/mensa/rooms.json), separate from the workspace rooms; empty when the mensa layer is off. */
+  /** Mensa rooms (datasets/mensa/rooms.json): all of them while the mensa layer is on, else only those of a workspace. */
   mensaRooms: ReadonlyMap<string, MensaRoom>;
   selectedMensaId: string | null;
   onSelectMensa: (mensaId: string) => void;
@@ -186,8 +177,6 @@ export function FloorLayer({
   index,
   floor,
   libraryRooms,
-  libraryNames,
-  showRoomDetails,
   selectedLibraryId,
   onSelectLibrary,
   picking,
@@ -432,7 +421,12 @@ export function FloorLayer({
             picking,
             !!(eth && occupancyStyle),
           )
-            ? mensaStyle(mensa!, selectedMensaId)
+            ? mensaStyle(
+                mensa!,
+                libraryId && libraryId === selectedLibraryId
+                  ? mensa!.mensaId
+                  : selectedMensaId,
+              )
             : roomLayerStyle(
                 theme,
                 room.kind,
@@ -443,42 +437,7 @@ export function FloorLayer({
                 picking,
               )),
         });
-        // Normal map: only rooms of an enabled workspace get a tooltip, showing the workspace name.
-        // Admin mode keeps the room details, they are needed to pick rooms.
         const name = room.name || room.id;
-        const title =
-          room.label && room.label !== name ? `${room.label} · ${name}` : name;
-        const workspaceName = libraryId
-          ? libraryNames.get(libraryId)
-          : undefined;
-        const names = [workspaceName, mensa?.name].filter(
-          (n): n is string => !!n,
-        );
-        const tip = showRoomDetails
-          ? `<strong>${escapeHtml(title)}</strong><br>${escapeHtml(room.use || 'Raum')}${room.area ? ` · ${room.area} m²` : ''}`
-          : names.length
-            ? `${names.map((n) => `<strong>${escapeHtml(n)}</strong>`).join('<br>')}${mensa ? `<br>${escapeHtml(name)}` : ''}`
-            : null;
-        if (eth) {
-          // Built when shown, so it tells the status at the time being displayed.
-          poly.bindTooltip(
-            () => {
-              const info = ethRef.current?.get(room.id);
-              return info
-                ? ethTooltip(
-                    info,
-                    libraryId ? libraryNames.get(libraryId) : undefined,
-                  )
-                : (tip ?? escapeHtml(title));
-            },
-            { sticky: true, direction: 'top', offset: [0, -6] },
-          );
-        } else if (tip)
-          poly.bindTooltip(tip, {
-            sticky: true,
-            direction: 'top',
-            offset: [0, -6],
-          });
         poly.on('click', (e) => {
           const h = handlers.current;
           if (h.picking) {
@@ -515,7 +474,8 @@ export function FloorLayer({
           mensa,
         });
         roomGroup.addLayer(poly);
-        if (libraryId)
+        // A workspace room that is also a mensa room keeps the mensa's color, outside the workspace fill.
+        if (libraryId && !(mensa && !picking))
           (
             libraryRings.get(libraryId) ??
             libraryRings.set(libraryId, []).get(libraryId)!
@@ -571,8 +531,6 @@ export function FloorLayer({
     shownPlans,
     visibleKey,
     libraryRooms,
-    libraryNames,
-    showRoomDetails,
     levelsById,
     theme,
     radius,
@@ -597,7 +555,12 @@ export function FloorLayer({
           picking,
           !!(info && occupancyStyle),
         )
-          ? mensaStyle(mensa!, selectedMensaId)
+          ? mensaStyle(
+              mensa!,
+              libraryId && libraryId === selectedLibraryId
+                ? mensa!.mensaId
+                : selectedMensaId,
+            )
           : info && occupancyStyle && !picked
             ? occupancyPath(
                 occupancyStyle,
@@ -816,38 +779,10 @@ export function occupancyPath(
   };
 }
 
-function ethTooltip({ room, state }: RoomInfo, workspace?: string) {
-  const seats =
-    room.seats != null
-      ? `${room.seats} seats`
-      : room.workplaces != null
-        ? `${room.workplaces} workplaces`
-        : null;
-  const lines = [
-    `<strong>${escapeHtml(room.id)}</strong> · ${escapeHtml(room.type)}${seats ? ` · ${seats}` : ''}`,
-  ];
-  if (workspace) lines.push(escapeHtml(workspace));
-  const what = (b: NonNullable<RoomInfo['state']['current']>) =>
-    escapeHtml(b.title || BOOKING_KIND_LABELS[b.kind]);
-  if (state.status === 'busy' && state.current)
-    lines.push(
-      `${ROOM_STATUS_LABELS.busy} until ${hhmm(state.until)}: ${what(state.current)}`,
-    );
-  else if (state.status === 'closed')
-    lines.push(`${ROOM_STATUS_LABELS.closed} until ${hhmm(state.until)}`);
-  else if (state.status === 'unknown') lines.push(ROOM_STATUS_LABELS.unknown);
-  else
-    lines.push(
-      state.until >= 1440
-        ? 'Free for the rest of the day'
-        : `Free until ${hhmm(state.until)}${state.next ? `: ${what(state.next)}` : ''}`,
-    );
-  return lines.join('<br>');
-}
-
 /**
- * Whether a room is drawn as a mensa room. Rooms that also belong to a workspace (study space outside
- * meal times) or show a live booking status keep that look unless their mensa is selected.
+ * Whether a room is drawn as a mensa room. A workspace that is also a mensa (study space outside meal
+ * times) is always drawn in the mensa's color; rooms showing a live booking status keep that look unless
+ * their mensa is selected.
  */
 export function asMensaRoom(
   mensa: MensaRoom | null,
@@ -858,7 +793,7 @@ export function asMensaRoom(
   occupancy: boolean,
 ) {
   if (!mensa || picked || picking) return false;
-  return mensa.mensaId === selectedMensaId || (!libraryId && !occupancy);
+  return mensa.mensaId === selectedMensaId || !!libraryId || !occupancy;
 }
 
 /** A mensa room, in the mensa dataset's color: tinted, outlined when its mensa is selected. */

@@ -632,6 +632,43 @@
       flex: 1;
       min-width: 120px;
     }
+    .workspace-search {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    /* Live status of the ETH rooms of a workspace, in its popup. */
+    .live-rooms {
+      list-style: none;
+      margin: 0 0 10px;
+      padding: 0;
+      display: grid;
+      gap: 4px;
+    }
+    .live-rooms button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 44px;
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-control);
+      background: var(--panel);
+      text-align: left;
+      cursor: pointer;
+    }
+    .live-rooms .status-dot {
+      flex: none;
+    }
+    .live-rooms .live-room-text {
+      display: grid;
+      min-width: 0;
+    }
+    .live-rooms .live-room-text > * {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .free-filters input[type='number'] {
       width: 72px;
     }
@@ -1057,7 +1094,9 @@
     }
 
     /* floor picker: a column of 44px buttons on the right edge */
-    .floor-picker {
+    /* Floor wheel: a scroll-snapping column, the selected floor in the
+       middle band; the floors above and below fade out. */
+    .floor-wheel {
       position: absolute;
       z-index: 1000;
       right: 12px;
@@ -1065,41 +1104,77 @@
       transform: translateY(-50%);
       display: flex;
       flex-direction: column;
-      max-height: 46%;
-      overflow-y: auto;
-      overscroll-behavior: contain;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
+      overflow: hidden;
     }
-    .floor-picker .floor-title {
+    .floor-wheel .floor-title {
       padding: 6px 6px 4px;
       font-size: var(--text-label);
       color: var(--muted);
       text-align: center;
       text-transform: uppercase;
       letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
     }
-    .floor-picker button {
-      border: 0;
-      border-top: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      min-width: 48px;
-      min-height: 44px;
-      padding: 6px 8px;
-      cursor: pointer;
-      font-weight: 600;
+    .floor-wheel-window {
+      position: relative;
+      width: 52px;
     }
-    .floor-picker button[aria-pressed='true'] {
+    /* The middle band, where the selected floor comes to rest. */
+    .floor-wheel-window::before {
+      content: '';
+      position: absolute;
+      inset-inline: 4px;
+      top: 50%;
+      height: 40px;
+      transform: translateY(-50%);
+      border-radius: var(--radius-control);
       background: var(--accent);
+      pointer-events: none;
+    }
+    .floor-wheel-track {
+      position: relative;
+      height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+      mask-image: linear-gradient(
+        to bottom,
+        transparent,
+        #000 30%,
+        #000 70%,
+        transparent
+      );
+    }
+    .floor-wheel-track::-webkit-scrollbar {
+      display: none;
+    }
+    .floor-wheel-track button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 44px;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      font-size: var(--text-body);
+      cursor: pointer;
+      scroll-snap-align: center;
+    }
+    .floor-wheel-track button[aria-pressed='true'] {
       color: var(--on-accent);
     }
-    .floor-picker button.has-library:not([aria-pressed='true']) {
+    .floor-wheel-track button.has-library:not([aria-pressed='true']) {
       color: var(--accent);
     }
-    .floor-picker button.has-library::after {
+    .floor-wheel-track button.has-library::after {
       content: '';
       display: inline-block;
       width: 5px;
@@ -1107,7 +1182,6 @@
       margin-left: 3px;
       border-radius: 50%;
       background: currentColor;
-      vertical-align: middle;
     }
     /* The floor name pill sits under the top bar, out of the bottom controls' way. */
     .floor-status {

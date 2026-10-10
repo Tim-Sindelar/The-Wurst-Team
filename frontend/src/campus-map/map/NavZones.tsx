@@ -60,7 +60,7 @@ export function NavZones({
     const target = e.target as Element;
     if (
       !enabled ||
-      target.closest('.leaflet-control, .floor-picker, .leaflet-popup')
+      target.closest('.leaflet-control, .floor-wheel, .leaflet-popup')
     )
       return null;
     return zoneAt(config, map.mouseEventToLatLng(e), map.getZoom());

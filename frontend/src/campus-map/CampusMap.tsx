@@ -16,19 +16,23 @@ import { Icon, type IconName } from '../components/Icon';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { paths } from '../routes';
 import { FreeRooms } from './components/FreeRooms';
+import { LiveRooms } from './components/LiveRooms';
 import { OccupancyLegend } from './components/OccupancyLegend';
 import { RoomPanel } from './components/RoomControls';
 import { RoomDetails } from './components/RoomDetails';
+import { RoomPhotos } from './components/RoomPhotos';
 import { TimePanel, timeLabel } from './components/TimeControls';
 import { UzhPanel } from './components/UzhPanel';
-import { ViewerPanel } from './components/ViewerPanel';
+import { WorkspaceDetails } from './components/WorkspaceDetails';
+import { WorkspaceList } from './components/WorkspaceList';
+import { guessEthId } from './data/ethRoomsRepository';
 import { repository } from './data/repository';
 import { fetchNavigation } from './data/navigationRepository';
 import { useDebounced } from './data/useDebounced';
 import { useEthRooms, useZurichClock } from './data/useEthRooms';
 import { DatasetPanel } from './datasets/DatasetControls';
+import { DatasetItemDetails } from './datasets/DatasetItemDetails';
 import { DatasetLayers, type DatasetSelection } from './datasets/DatasetLayers';
-import { DatasetSidebar } from './datasets/DatasetSidebar';
 import type { Clock } from './datasets/present';
 import type { DatasetItem, DatasetMeta, MensaDetails } from './datasets/types';
 import {
@@ -38,6 +42,7 @@ import {
   useDatasets,
   type DatasetSettings,
 } from './datasets/useDatasets';
+import { useMensaItems } from './datasets/useMensaItems';
 import {
   hhmm,
   ROOM_STATUS_LABELS,
@@ -87,7 +92,10 @@ const NO_DATA: RoomState = {
   until: 1440,
 };
 
-type Sheet = 'time' | 'rooms' | 'datasets' | 'map' | null;
+type Sheet = 'workspaces' | 'time' | 'rooms' | 'datasets' | 'map' | null;
+
+/** From this zoom on the map shows workspaces closely enough to color the mensa ones. */
+const MENSA_ZOOM = 16;
 
 /** Only workspaces switched on in the map editor are shown. */
 function filterEnabled(data: OccupancyData): OccupancyData {
@@ -125,9 +133,9 @@ function mensaPlace(item: DatasetItem) {
 
 /* The campus map, full screen. Ported from the view mode of
    occupancy-map-preview (that app keeps the admin tools; their output is
-   imported into the backend). Tapping a room, workspace or pin selects it and shows a
-   short card; tapping it again opens the dashboard sheet with everything the
-   preview's side panel showed. */
+   imported into the backend). Tapping a room, workspace or pin selects it and
+   opens its popup (the details sheet); once closed, a short card above the
+   toolbar brings it back. */
 export function CampusMap() {
   const theme = useComputedColorScheme('dark');
 
@@ -195,6 +203,18 @@ export function CampusMap() {
   };
   const rooms = roomFeatures.enabled;
 
+  /* Workspace and mensa popups show the booking status and photos of their ETH
+     rooms even with live rooms off: the room data is fetched the first time
+     one is opened. */
+  const [ethWanted, setEthWanted] = useState(false);
+  useEffect(() => {
+    if (
+      target?.kind === 'library' ||
+      (target?.kind === 'dataset' && target.datasetId === 'mensa')
+    )
+      setEthWanted(true);
+  }, [target]);
+
   // ---- the time shown: now, or a date and time picked (Zurich) ----
   const clock = useZurichClock(true);
   const [pickedTime, setPickedTime] = useState<ZurichTime | null>(null);
@@ -204,7 +224,7 @@ export function CampusMap() {
   const viewLabel = live ? 'now' : timeLabel(view, clock.date);
 
   const { response: ethResponse, error: ethError } = useEthRooms(
-    rooms,
+    rooms || ethWanted,
     view.date === clock.date ? null : view.date,
   );
   const snapshot = ethResponse?.snapshot ?? null;
@@ -251,6 +271,20 @@ export function CampusMap() {
     () => new Set(Object.keys(ethResponse?.matches ?? {})),
     [ethResponse],
   );
+  /** PolyMaps unit id → ETH room id. */
+  const ethIdOfUnit = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const [ethId, places] of Object.entries(ethResponse?.matches ?? {}))
+      for (const place of places) out.set(place.unitId, ethId);
+    return out;
+  }, [ethResponse]);
+  /** The ETH rooms some PolyMaps rooms are; guessed from their ids until the room list is in. */
+  const ethIdsOf = (unitIds: string[]) => {
+    const ids = snapshot
+      ? unitIds.map((u) => ethIdOfUnit.get(u))
+      : unitIds.map(guessEthId);
+    return [...new Set(ids.filter((id): id is string => !!id))];
+  };
 
   // ---- campus datasets (mensas, transport, sport, weather, ...; served by the backend) ----
   const { list: datasetMetas, error: datasetListError } = useDatasetList();
@@ -305,20 +339,54 @@ export function CampusMap() {
   }, [datasetMetas, datasetStates, datasetSettings, areaBoxes]);
   // Mensa rooms (datasets/mensa/rooms.json) are drawn on the floor plans.
   const mensaLayer = datasetLayers.find((l) => l.meta.id === 'mensa') ?? null;
-  const mensaRooms = useMemo(() => {
+  /* Workspaces that are also a mensa get the mensa's color with the mensa
+     layer off too, so the mensa items are fetched (once) when the map is
+     zoomed in or something is selected. */
+  const lazyMensaItems = useMensaItems(zoom >= MENSA_ZOOM || target !== null);
+  const mensaMeta = datasetMetas?.find((m) => m.id === 'mensa') ?? null;
+  const mensaItems =
+    datasetStates.mensa?.response?.document?.items ?? lazyMensaItems;
+  const mensaOfRoom = useMemo(() => {
     const out = new Map<string, MensaRoom>();
-    if (!mensaLayer) return out;
-    for (const item of mensaLayer.items) {
-      for (const roomId of mensaPlace(item)?.rooms ?? []) {
+    if (!mensaMeta || !mensaItems) return out;
+    for (const item of mensaItems)
+      for (const roomId of mensaPlace(item)?.rooms ?? [])
         out.set(roomId, {
           mensaId: item.id,
           name: item.name,
-          color: mensaLayer.meta.color,
+          color: mensaMeta.color,
         });
-      }
+    return out;
+  }, [mensaMeta, mensaItems]);
+  /** Library id → the mensa it is also. */
+  const mensaWorkspaces = useMemo(() => {
+    const out = new Map<string, MensaRoom>();
+    for (const lib of data?.libraries ?? []) {
+      const mensa = lib.rooms
+        .map((r) => mensaOfRoom.get(r))
+        .find((m) => m !== undefined);
+      if (mensa) out.set(lib.id, mensa);
     }
     return out;
-  }, [mensaLayer]);
+  }, [data, mensaOfRoom]);
+  /** Rooms drawn as mensa rooms: all of the mensa layer's, plus those of mensa workspaces. */
+  const mensaRooms = useMemo(() => {
+    const out = new Map<string, MensaRoom>();
+    for (const item of mensaLayer?.items ?? [])
+      for (const roomId of mensaPlace(item)?.rooms ?? [])
+        out.set(roomId, {
+          mensaId: item.id,
+          name: item.name,
+          color: mensaLayer!.meta.color,
+        });
+    for (const lib of data?.libraries ?? [])
+      if (mensaWorkspaces.has(lib.id))
+        for (const roomId of lib.rooms) {
+          const mensa = mensaOfRoom.get(roomId);
+          if (mensa) out.set(roomId, mensa);
+        }
+    return out;
+  }, [mensaLayer, data, mensaWorkspaces, mensaOfRoom]);
   const datasetsBusy = Object.values(datasetStates).some(
     (s) => s.loading || s.response?.refreshing,
   );
@@ -360,12 +428,10 @@ export function CampusMap() {
       .find((l) => l.meta.id === sel.datasetId)
       ?.items.find((i) => i.id === sel.itemId) ?? null;
 
-  /** A tap on the map: the first selects, a second on the same thing opens the dashboard. */
+  /** A tap on the map selects it and opens its popup. */
   const tap = (next: MapTarget) => {
-    if (sameTarget(target, next)) {
-      setDashboardOpen(true);
-      return;
-    }
+    setDashboardOpen(true);
+    if (sameTarget(target, next)) return;
     setTarget(next);
     if (next.kind === 'library') {
       const lib = data.libraries.find((l) => l.id === next.id);
@@ -381,13 +447,14 @@ export function CampusMap() {
     setDashboardOpen(false);
   };
 
-  /* Choosing something from a list in the dashboard: select it, close the
-     dashboard and fly there, so it shows on the map with its card. */
+  /* Choosing something from a list in a menu: select it, close the menu and
+     fly there, so it shows on the map with its card. */
   const showLibrary = (id: string) => {
     const lib = data.libraries.find((l) => l.id === id);
     if (!lib) return;
     setTarget({ kind: 'library', id });
     setDashboardOpen(false);
+    setSheet(null);
     if (lib.floor !== null) setFloor(lib.floor);
     if (lib.outline)
       setFlyTarget({
@@ -401,24 +468,17 @@ export function CampusMap() {
   const showEthRoom = (id: string) => {
     setTarget({ kind: 'room', id });
     setDashboardOpen(false);
+    setSheet(null);
     const place = ethResponse?.matches[id]?.[0];
     if (place) {
       setFloor(place.floor);
       flyTo({ lat: place.lat, lng: place.lng }, 20);
     }
   };
-  const showDatasetItem = (sel: DatasetSelection, item: DatasetItem) => {
-    setTarget({ kind: 'dataset', ...sel });
-    setDashboardOpen(false);
-    const place = sel.datasetId === 'mensa' ? mensaPlace(item) : null;
-    if (place) setFloor(place.floor);
-    flyTo({ lat: item.lat, lng: item.lng }, Math.max(zoom, place ? 19 : 17));
-  };
-
-  const selectedRoomInfo =
-    rooms && selectedEthRoom
-      ? (roomInfoById.get(selectedEthRoom) ?? null)
-      : null;
+  // A room opened from a workspace popup has its details with live rooms off too.
+  const selectedRoomInfo = selectedEthRoom
+    ? (roomInfoById.get(selectedEthRoom) ?? null)
+    : null;
   const selectedLibrary =
     target?.kind === 'library'
       ? (visible.libraries.find((l) => l.id === target.id) ?? null)
@@ -429,6 +489,17 @@ export function CampusMap() {
   const selectedMeta = selectedDatasetItem
     ? (datasetMetas?.find((m) => m.id === selectedDatasetItem.datasetId) ??
       null)
+    : null;
+  const selectedMensaPlace =
+    selectedItem && selectedMeta?.id === 'mensa'
+      ? mensaPlace(selectedItem)
+      : null;
+  // A workspace that is also a mensa shows the mensa's menu too.
+  const workspaceMensaId = selectedLibrary
+    ? mensaWorkspaces.get(selectedLibrary.id)?.mensaId
+    : undefined;
+  const selectedWorkspaceMensa = workspaceMensaId
+    ? (mensaItems?.find((i) => i.id === workspaceMensaId) ?? null)
     : null;
 
   const bookingsOf =
@@ -476,6 +547,12 @@ export function CampusMap() {
     active: boolean;
     busy?: boolean;
   }[] = [
+    {
+      id: 'workspaces',
+      icon: 'search',
+      label: 'Workspaces',
+      active: false,
+    },
     {
       id: 'rooms',
       icon: 'door',
@@ -536,6 +613,7 @@ export function CampusMap() {
             : null
         }
         mensaRooms={mensaRooms}
+        mensaWorkspaces={mensaWorkspaces}
         selectedMensaId={
           selectedDatasetItem?.datasetId === 'mensa'
             ? selectedDatasetItem.itemId
@@ -605,7 +683,7 @@ export function CampusMap() {
                 <span className="truncate">{peek.title}</span>
               </span>
               <span className="truncate text-label text-text-muted">
-                {peek.detail} · tap again for details
+                {peek.detail}
               </span>
             </button>
             <ActionIcon
@@ -622,7 +700,7 @@ export function CampusMap() {
 
         <nav
           aria-label="Map controls"
-          className="pointer-events-auto grid grid-cols-3 gap-1 rounded-card border border-border bg-surface p-1 shadow-card"
+          className="pointer-events-auto grid grid-cols-4 gap-1 rounded-card border border-border bg-surface p-1 shadow-card"
         >
           {toolbar.map((item) => (
             <button
@@ -701,6 +779,33 @@ export function CampusMap() {
             booked soon, in use or closed. Tap a room for its schedule.
           </p>
         )}
+        {rooms && roomFeatures.freeList && snapshot && !dayMismatch && (
+          <FreeRooms
+            infos={roomInfos}
+            minute={minute}
+            when={live ? 'now' : `at ${viewLabel}`}
+            colors={roomStyle}
+            onMap={placedRooms}
+            selectedId={selectedRoomInfo?.room.id ?? null}
+            onSelect={showEthRoom}
+          />
+        )}
+        {rooms && roomFeatures.uzh && (
+          <UzhPanel picked={live ? null : viewLabel} />
+        )}
+      </MapSheet>
+
+      <MapSheet
+        opened={sheet === 'workspaces'}
+        onClose={() => setSheet(null)}
+        title="Workspaces"
+      >
+        <WorkspaceList
+          data={visible}
+          selectedId={selectedLibrary?.id ?? null}
+          levels={floorIndex?.levels ?? []}
+          onSelectLibrary={(lib) => showLibrary(lib.id)}
+        />
       </MapSheet>
 
       <MapSheet
@@ -769,10 +874,9 @@ export function CampusMap() {
         </div>
       </MapSheet>
 
-      {/* The dashboard: the preview's side panel, opened by tapping a selection twice */}
+      {/* The popup of what is selected, opened by tapping it on the map */}
       <MapSheet
-        tall
-        opened={dashboardOpen}
+        opened={dashboardOpen && peek !== null}
         onClose={() => setDashboardOpen(false)}
         title={peek?.title ?? 'Campus'}
       >
@@ -792,49 +896,72 @@ export function CampusMap() {
             }
           />
         )}
-        {target?.kind === 'library' && (
-          <ViewerPanel
+        {selectedLibrary && (
+          <WorkspaceDetails
             data={visible}
+            library={selectedLibrary}
             selection={selection}
-            onSelectLibrary={(lib) => showLibrary(lib.id)}
+            levels={floorIndex?.levels ?? []}
             onSelectTable={(libraryId, tableId) => {
               setTarget({ kind: 'library', id: libraryId, tableId });
               setDashboardOpen(false);
               const t = data.tables.find((x) => x.id === tableId);
               if (t) flyTo(t.position, 21);
             }}
-          />
+          >
+            <RoomPhotos
+              roomIds={ethIdsOf(selectedLibrary.rooms)}
+              title={selectedLibrary.name}
+            />
+            {selectedLibrary.rooms.length > 0 && (
+              <LiveRooms
+                infos={
+                  snapshot && !dayMismatch
+                    ? ethIdsOf(selectedLibrary.rooms)
+                        .map((id) => roomInfoById.get(id))
+                        .filter((i): i is RoomInfo => !!i)
+                    : []
+                }
+                colors={roomStyle}
+                note={
+                  snapshot && !dayMismatch
+                    ? null
+                    : ethError || ethResponse?.state === 'error'
+                      ? 'Room availability is unavailable right now.'
+                      : 'Loading room availability…'
+                }
+                onSelect={(id) => setTarget({ kind: 'room', id })}
+              />
+            )}
+          </WorkspaceDetails>
         )}
-        {datasetLayers.length > 0 && (
-          <DatasetSidebar
-            layers={datasetLayers}
-            selected={selectedDatasetItem}
+        {selectedLibrary && selectedWorkspaceMensa && mensaMeta && (
+          <DatasetItemDetails
+            meta={mensaMeta}
+            item={selectedWorkspaceMensa}
             clock={datasetClock}
-            onSelect={showDatasetItem}
-            onClose={clearTarget}
           />
         )}
-        {rooms && roomFeatures.freeList && snapshot && !dayMismatch && (
-          <FreeRooms
-            infos={roomInfos}
-            minute={minute}
-            when={live ? 'now' : `at ${viewLabel}`}
-            colors={roomStyle}
-            onMap={placedRooms}
-            selectedId={selectedRoomInfo?.room.id ?? null}
-            onSelect={showEthRoom}
-          />
-        )}
-        {rooms && roomFeatures.uzh && (
-          <UzhPanel picked={live ? null : viewLabel} />
-        )}
-        {target?.kind !== 'library' && (
-          <ViewerPanel
-            data={visible}
-            selection={EMPTY_SELECTION}
-            onSelectLibrary={(lib) => showLibrary(lib.id)}
-            onSelectTable={() => {}}
-          />
+        {selectedItem && selectedMeta && (
+          <>
+            <DatasetItemDetails
+              meta={selectedMeta}
+              item={selectedItem}
+              clock={datasetClock}
+              onClose={clearTarget}
+            />
+            {selectedMensaPlace && (
+              <div className="panel-section">
+                <RoomPhotos
+                  roomIds={[
+                    selectedMensaPlace.room,
+                    ...ethIdsOf(selectedMensaPlace.rooms),
+                  ]}
+                  title={selectedItem.name}
+                />
+              </div>
+            )}
+          </>
         )}
       </MapSheet>
     </div>

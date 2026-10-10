@@ -7,7 +7,6 @@ import {
   Polygon,
   ScaleControl,
   TileLayer,
-  Tooltip,
   useMap,
   useMapEvents,
 } from 'react-leaflet';
@@ -28,7 +27,6 @@ import { FloorPicker } from './FloorPicker';
 import { Floors3D } from './Floors3D';
 import {
   libraryFloorLabel,
-  levelName,
   loadLibraryOutlineRoomKeys,
   loadLibraryOutlines,
   outlineFromRooms,
@@ -98,8 +96,10 @@ interface Props {
   roomLabels: boolean;
   selectedEthRoom: string | null;
   onEthRoomClick: ((ethId: string) => void) | null;
-  /** Mensa rooms (see FloorLayer), apart from the workspaces. */
+  /** Mensa rooms (see FloorLayer). */
   mensaRooms: ReadonlyMap<string, MensaRoom>;
+  /** Workspaces that are also a mensa, drawn in the mensa's color: library id → mensa. */
+  mensaWorkspaces: ReadonlyMap<string, MensaRoom>;
   selectedMensaId: string | null;
   onSelectMensa: (mensaId: string) => void;
   /** 3D view: the other floors stacked around the selected one; null when off. */
@@ -196,10 +196,6 @@ export function MapView(props: Props) {
   // Other floors first, then this floor, the selected library on top.
   const drawOrder = (lib: { id: string; floor: number | null }) =>
     selection.libraryId === lib.id ? 2 : onFloor(lib) ? 1 : 0;
-  const libraryNames = useMemo(
-    () => new Map(data.libraries.map((l) => [l.id, l.name])),
-    [data.libraries],
-  );
   // 3D view: the building group in focus is stacked, its floors lifted north (see Floors3D).
   const groups = useMemo(
     () => (props.floorIndex ? buildGroups(props.floorIndex) : null),
@@ -291,8 +287,6 @@ export function MapView(props: Props) {
             index={props.floorIndex}
             floor={floor}
             libraryRooms={libraryRooms}
-            libraryNames={libraryNames}
-            showRoomDetails={false}
             selectedLibraryId={selection.libraryId}
             onSelectLibrary={(libraryId) =>
               props.onSelect({ libraryId, tableId: null, seatId: null })
@@ -356,7 +350,10 @@ export function MapView(props: Props) {
         if (minimal && !minimal.parts.workspaces.show) return null;
         const occ = occupancyOf(data, lib.id);
         const selected = selection.libraryId === lib.id;
-        const occColor = OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
+        // A workspace that is also a mensa has the mensa's color.
+        const mensaColor = props.mensaWorkspaces.get(lib.id)?.color;
+        const occColor =
+          mensaColor ?? OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
         const ws = minimal?.parts.workspaces;
         const latlngs = liftRings(
           outlineToLatLngs(outlineOf(lib)!),
@@ -375,15 +372,13 @@ export function MapView(props: Props) {
                     color:
                       selected && minimal.highlightCustomColor
                         ? minimal.highlightColor
-                        : minimal.occupancyColors
-                          ? occColor
-                          : ws.color,
+                        : (mensaColor ??
+                          (minimal.occupancyColors ? occColor : ws.color)),
                     fillColor:
                       selected && minimal.highlightCustomColor
                         ? minimal.highlightColor
-                        : minimal.occupancyColors
-                          ? occColor
-                          : ws.fillColor,
+                        : (mensaColor ??
+                          (minimal.occupancyColors ? occColor : ws.fillColor)),
                     fill: true,
                     weight: selected
                       ? ws.weight + minimal.highlightWidth
@@ -422,28 +417,7 @@ export function MapView(props: Props) {
                 if (lib.floor !== null) props.onFloorChange(lib.floor);
               },
             }}
-          >
-            <Tooltip sticky>
-              <strong>{lib.name}</strong>
-              <br />
-              {occ.total === 0
-                ? 'No seats registered'
-                : `${occ.free} of ${occ.total} seats free`}
-              {lib.floor !== null && (
-                <>
-                  <br />
-                  <span className="muted">
-                    Floor{' '}
-                    {libraryFloorLabel(
-                      { floor: lib.floor, levelId: lib.levelId },
-                      props.floorIndex?.levels,
-                    )}
-                    {lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}
-                  </span>
-                </>
-              )}
-            </Tooltip>
-          </Polygon>
+          />
         );
       })}
 
@@ -467,7 +441,11 @@ export function MapView(props: Props) {
               otherFloor: onFloor(lib)
                 ? null
                 : libraryFloorLabel(
-                    { floor: lib.floor as number, levelId: lib.levelId },
+                    {
+                      floor: lib.floor as number,
+                      levelId: lib.levelId,
+                      facilityId: lib.facilityId,
+                    },
                     props.floorIndex?.levels,
                   ),
             })}
@@ -482,28 +460,7 @@ export function MapView(props: Props) {
                   seatId: null,
                 }),
             }}
-          >
-            <Tooltip direction="top">
-              <strong>{lib.name}</strong>
-              <br />
-              {occ.total === 0
-                ? 'No seats registered'
-                : `${occ.free} of ${occ.total} seats free`}
-              {lib.floor !== null && (
-                <>
-                  <br />
-                  <span className="muted">
-                    Floor{' '}
-                    {libraryFloorLabel(
-                      { floor: lib.floor, levelId: lib.levelId },
-                      props.floorIndex?.levels,
-                    )}
-                    {lib.levelId ? ` · ${levelName(lib.levelId)}` : ''}
-                  </span>
-                </>
-              )}
-            </Tooltip>
-          </Marker>
+          />
         );
       })}
 
@@ -553,11 +510,7 @@ export function MapView(props: Props) {
                       seatId: s.id,
                     }),
                 }}
-              >
-                <Tooltip direction="top">
-                  {s.label}: {s.status}
-                </Tooltip>
-              </Marker>
+              />
             );
           })}
 

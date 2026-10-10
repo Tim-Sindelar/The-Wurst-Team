@@ -267,8 +267,6 @@ export function Floors3D({
   );
 
   const scene = useRef<Scene | null>(null);
-  /** Floor under the pointer that a click would switch to. */
-  const hovered = useRef<number | null>(null);
   const drawables = useRef(new Map<string, LevelDrawable>());
 
   const layers = useMemo(() => {
@@ -330,10 +328,7 @@ export function Floors3D({
         const alpha =
           sc.style.ghostOpacity *
           sc.style.falloff ** (Math.abs(f - sc.floor) - 1);
-        ctx.globalAlpha =
-          f === hovered.current
-            ? Math.max(0.45, Math.min(1, alpha * 3))
-            : alpha;
+        ctx.globalAlpha = alpha;
         ctx.drawImage(off.canvas, 0, 0);
       }
       if (side === 'above') drawTop(ctx, v, sc);
@@ -494,20 +489,14 @@ export function Floors3D({
             plans,
           }
         : null;
-    hovered.current = null;
     for (const l of layers) l.redraw();
   }, [layers, floor, style, paint, stack, floors, levels, plans]);
 
-  // Clicking a floor that sticks out of the stack switches to it; hovering one lights it up.
+  // Clicking a floor that sticks out of the stack switches to it.
   const switchTo = useRef(onFloorChange);
   switchTo.current = onFloorChange;
   useEffect(() => {
     const container = map.getContainer();
-    const tooltip = L.tooltip({
-      direction: 'top',
-      offset: [0, -12],
-      opacity: 0.95,
-    });
     const hitAt = (e: MouseEvent) => {
       const sc = scene.current;
       const target = e.target as Element;
@@ -516,7 +505,7 @@ export function Floors3D({
       // Controls, pins, workspace outlines and plan rooms keep their own clicks; so do the admin click modes.
       if (
         target.closest(
-          '.leaflet-control, .floor-picker, .leaflet-marker-icon, .leaflet-popup, .leaflet-tooltip, .leaflet-interactive',
+          '.leaflet-control, .floor-wheel, .leaflet-marker-icon, .leaflet-popup, .leaflet-tooltip, .leaflet-interactive',
         )
       )
         return null;
@@ -529,21 +518,9 @@ export function Floors3D({
         return null;
       return floorAt(sc, map, map.mouseEventToContainerPoint(e));
     };
-    const show = (f: number | null, e?: MouseEvent) => {
-      const sc = scene.current;
+    // Only the cursor tells that a floor can be clicked.
+    const show = (f: number | null) => {
       container.style.cursor = f !== null ? 'pointer' : '';
-      if (f !== null && sc && e) {
-        tooltip
-          .setLatLng(map.mouseEventToLatLng(e))
-          .setContent(
-            `Switch to floor ${sc.stack.group.labels.get(f) ?? String(f)}`,
-          );
-        if (!map.hasLayer(tooltip)) map.openTooltip(tooltip);
-      } else if (map.hasLayer(tooltip)) map.closeTooltip(tooltip);
-      if (f === hovered.current) return;
-      hovered.current = f;
-      layers[1].redraw();
-      layers[2].redraw();
     };
     const dragged = () =>
       !!(map.dragging as L.Handler & { moved?: () => boolean }).moved?.();
@@ -557,7 +534,7 @@ export function Floors3D({
       switchTo.current(f);
     };
     const onMove = (e: MouseEvent) =>
-      show(e.buttons || dragged() ? null : hitAt(e), e);
+      show(e.buttons || dragged() ? null : hitAt(e));
     const onLeave = () => show(null);
     map.on('click', onClick);
     container.addEventListener('mousemove', onMove);
