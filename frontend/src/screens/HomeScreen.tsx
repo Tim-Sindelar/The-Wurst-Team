@@ -2,6 +2,7 @@ import { Alert, Card, Text, TextInput, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
+import { AppName } from '../components/AppName';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
@@ -46,7 +47,9 @@ export function HomeScreen() {
       <SafeAreaTop />
       <ScreenMain>
         <div className="flex items-center justify-between gap-2">
-          <Title order={1}>Study Spaces</Title>
+          <Title order={1}>
+            <AppName />
+          </Title>
           <RequestsBell />
         </div>
 
