@@ -39,7 +39,7 @@ function featureRenders(scene,qr,screens){
   for(const x of [0,1])for(const z of [.5,1.1])box(handover,[.055,1,.055],[x,.5,z],'#88998c');
   laptop(handover,.5,1.12,.65);backpack(handover,[-1.1,0,.75]);
 
-  const coffee=group(variants[3],[-.35,.15,0]);coffee.scale.setScalar(1.05);
+  const coffee=group(variants[3],[-.60,.15,0]);coffee.scale.setScalar(1.05);
   const mug=group(coffee,[-.35,0,0]);mug.scale.setScalar(.85);
   cylinder(mug,.57,.49,1.1,[0,.7,0],'#d5b49a',16);
   cylinder(mug,.50,.50,.015,[0,1.258,0],'#765744',16);
@@ -228,7 +228,7 @@ export function buildSlides(){
     </section>
     <section class="pitch-slide pilot-slide" data-slide="3" hidden aria-label="One library, entire ETH, other universities">
       <div class="pilot-copy"><h1 data-rollout="0">One library</h1><span aria-hidden="true">→</span><p data-rollout="1">Entire ETH</p><span aria-hidden="true">→</span><p data-rollout="2">Other universities</p></div>
-      <div class="pilot-admin"><p>Admin room setup</p><img src="${adminUrl}" alt="Map administration panel showing workspace selection, name, type and address" /></div>
+      <div class="pilot-admin"><p>Admin room setup</p><img src="${adminUrl}" alt="Study Spaces admin layout editor with furniture tools, tables and sixteen seats" /></div>
     </section>
     <section class="pitch-slide future-slide" data-slide="4" hidden aria-label="Questions and answers over a happy ETH campus"><h1>Q&amp;A</h1></section>`;
   const pages=[...root.querySelectorAll('[data-slide]')];
