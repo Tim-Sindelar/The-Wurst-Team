@@ -98,7 +98,9 @@ export function HomeScreen() {
           </Text>
         ) : spaces.length === 0 ? (
           <Text c="dimmed" role="status">
-            No study spaces match “{search.trim()}”.
+            {search.trim()
+              ? `No study spaces match “${search.trim()}”.`
+              : 'No study spaces yet.'}
           </Text>
         ) : (
           <ul
@@ -128,7 +130,7 @@ export function HomeScreen() {
                 Campus map
               </Title>
               <Text size="sm" c="dimmed">
-                Workspaces, free rooms, mensas and transport on the floor plans
+                Workspaces, free rooms, mensas and ASVZ sport on the floor plans
               </Text>
             </div>
             <Icon name="chevronRight" />
