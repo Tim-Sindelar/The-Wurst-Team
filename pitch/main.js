@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { buildHall, buildBathroom, buildStudy, buildPhone, material, idle, run, batchStatic } from './world.js';
+import { buildHall, buildBathroom, buildPhone, idle, run, defeated, resetExpression, batchStatic } from './world.js';
 
 import { Score } from './music.js';
 import { buildHG } from './architecture.js';
@@ -44,10 +44,10 @@ const fill=new THREE.DirectionalLight('#d9e8ee',1.4);fill.position.set(12,9,-6);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180),new THREE.ShadowMaterial({color:'#70786b',opacity:.13}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;scene.add(ground);
 
-const hall=buildHall(scene),bathroom=buildBathroom(scene),study=buildStudy(scene),phone=buildPhone(scene);
+const hall=buildHall(scene),bathroom=buildBathroom(scene),phone=buildPhone(scene);
 const exterior=buildHG(scene);
-const sets=[exterior.root,hall.root,bathroom.root,study.root];
-batchStatic(hall.root,hall.student);batchStatic(bathroom.root,bathroom.student);batchStatic(study.root,study.student);
+const sets=[exterior.root,hall.root,bathroom.root];
+batchStatic(hall.root,hall.student);batchStatic(bathroom.root,bathroom.student);
 const cssScene=new THREE.Scene();
 const cssRenderer=new CSS3DRenderer({element:document.getElementById('screens')});cssRenderer.setSize(innerWidth,innerHeight);
 const screenElement=document.createElement('div');screenElement.className='phone-screen';
@@ -62,12 +62,16 @@ const phoneCover=document.createElement('button');phoneCover.className='phone-co
 const cssPhone=new THREE.Group();cssScene.add(cssPhone);
 const cssScreen=new CSS3DObject(screenElement);cssScreen.scale.setScalar(.001);cssScreen.position.set(0,0,.036);cssPhone.add(cssScreen);
 
-const names=['ETH main building','The student enters the hall','Looking for an available study seat','A moment to sit down','Live booking on the phone','Studying at the reserved seat'];
-const durations=[6200,1200,12000,6500,3000,0];
+const names=['ETH main building','The student enters the hall','Looking for an available study seat','The student gives up','Book a seat from the toilet','Live booking on the phone','Live teammate check-in'];
+// The opening is one film. The toilet and real app are deliberate presenter holds.
+const durations=[6200,1200,11700,3600,5200,1050,0];
 const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
 const cameraFrom=new THREE.Vector3(),lookFrom=new THREE.Vector3(),cameraTo=new THREE.Vector3(),lookTo=new THREE.Vector3();
 const look=new THREE.Vector3(0,1,-1);
-const initialPhonePosition=new THREE.Vector3(.25,1.18,-.18);
+const handheldPosition=new THREE.Vector3(.29,1.28,-.27);
+const handheldRotation=new THREE.Vector3(-1.18,-.08,-.12);
+const handheldScale=.38;
+const zoomStartPosition=new THREE.Vector3(),zoomStartRotation=new THREE.Vector3();
 const flyCurve=new THREE.CatmullRomCurve3([
   new THREE.Vector3(22,14,24),new THREE.Vector3(17,9,16),new THREE.Vector3(12,5,6),
   new THREE.Vector3(exterior.entry.x+4.8,2.1,exterior.entry.z+1),
@@ -75,135 +79,136 @@ const flyCurve=new THREE.CatmullRomCurve3([
 ]);
 const droneCurve=new THREE.CatmullRomCurve3([
   new THREE.Vector3(0,.13,1.55),new THREE.Vector3(0,1.2,1.6),new THREE.Vector3(0,2.7,1.4),
-  new THREE.Vector3(0,4.2,.8),new THREE.Vector3(.08,5.65,-.05),
+  new THREE.Vector3(0,4.0,.8),new THREE.Vector3(.08,4.8,.3),
 ]);
 const curvePoint=new THREE.Vector3();
 const finalPhonePosition=new THREE.Vector3(0,2.5,0);
 const finalPhoneScale=4.65;
-let current=0,elapsed=0,last=performance.now(),transition=0,autoplay=false,paused=false,exteriorStarted=false;
-let clickDown=null,impactTime=-1000,lastDraw=0,forceDraw=true,frameSamples=0,frameTotal=0;
+let current=0,elapsed=0,last=performance.now(),transition=0,filmPlaying=false,paused=true,exteriorStarted=false,cut=null;
+let clickDown=null,impactTime=-1000,lastDraw=0,forceDraw=true,frameSamples=0,frameTotal=0,resumeAfterVisibility=false;
 const impacts=new Set();
-const taken=document.getElementById('taken');
+const taken=document.getElementById('taken'),blackout=document.getElementById('blackout'),liveLayer=document.getElementById('live');
+let liveFrame=null;
+const requestedLive=new URLSearchParams(location.search).get('live');
+if(requestedLive){try{
+  const url=new URL(requestedLive);
+  if(['http:','https:'].includes(url.protocol)){
+    liveFrame=document.createElement('iframe');liveFrame.title='Live teammate walking to the reserved seat';
+    // Keep the source connected off-screen before the handoff.
+    liveFrame.src=url.href;liveFrame.allow='autoplay; fullscreen';liveLayer.append(liveFrame);
+    liveLayer.hidden=false;liveLayer.style.transform='translateY(110vh)';
+  }
+}catch{ /* Without a stream URL, the handoff holds on black for the video operator. */ }}
 
 function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
 function lerp(a,b,t){return a+(b-a)*t;}
 function captureCamera(){cameraFrom.copy(camera.position);lookFrom.copy(look);transition=0;}
 function positionCamera(pos,target){cameraTo.set(...pos);lookTo.set(...target);}
+function snapCamera(){camera.position.copy(cameraTo);look.copy(lookTo);cameraFrom.copy(cameraTo);lookFrom.copy(lookTo);}
 function updateAccessibleState(){
-  stage.dataset.scene=String(current+1);stage.dataset.interactive=String(current===4&&elapsed>=durations[4]);
-  canvas.setAttribute('aria-label',current===4?'Continue to the study scene':'Advance presentation scene');
+  stage.dataset.scene=String(current+1);stage.dataset.interactive=String(current===5&&elapsed>=durations[5]);
+  stage.dataset.playing=String(filmPlaying&&!paused);stage.dataset.liveSource=liveFrame?'browser':'external';
+  canvas.setAttribute('aria-label',current===0?'Play opening film':current===4?'Open the phone to reserve a seat':current===5?'Start live teammate handoff':'Opening film playing');
   document.getElementById('status').textContent=names[current];
 }
 function slam(id){
   if(impacts.has(id))return;
   impacts.add(id);impactTime=elapsed;taken.classList.remove('slam');
-  void taken.offsetWidth;taken.classList.add('slam');score.impact();
-  stage.dataset.peek=String(id);
+  void taken.offsetWidth;taken.classList.add('slam');score.impact();stage.dataset.peek=String(id);
 }
-function go(index){
-  captureCamera();current=Math.max(0,Math.min(5,index));elapsed=0;paused=false;impacts.clear();impactTime=-1000;taken.classList.remove('slam');delete stage.dataset.peek;forceDraw=true;renderer.shadowMap.needsUpdate=true;
+function go(index,snap=false){
+  if(index===5){zoomStartPosition.copy(phone.root.position);zoomStartRotation.set(phone.root.rotation.x,phone.root.rotation.y,phone.root.rotation.z);}
+  captureCamera();current=Math.max(0,Math.min(6,index));elapsed=0;paused=false;impacts.clear();impactTime=-1000;
+  taken.classList.remove('slam');delete stage.dataset.peek;forceDraw=true;renderer.shadowMap.needsUpdate=true;
+  delete stage.dataset.holding;
   sets.forEach(root=>{root.visible=false;root.position.y=0;});
-  exterior.root.visible=current===0;
-  hall.root.visible=(current===1||current===2);bathroom.root.visible=current===3||current===4;study.root.visible=current===5;
-  phone.root.visible=current===3||current===4;
-  const phoneShown=phone.root.visible&&current!==3;
-  screenElement.classList.toggle('visible',phoneShown);
-  screenElement.inert=!phoneShown;screenElement.setAttribute('aria-hidden',String(!phoneShown));
-  screenElement.classList.remove('interactive');phoneCover.hidden=false;
-  // Keep the real map mounted off-screen from startup, so its data and tiles warm up.
-  cssPhone.visible=true;
-  if(!phone.root.visible){cssPhone.position.set(0,-60,0);cssPhone.scale.setScalar(1);}
-  key.color.set(current===5?'#ffdeb0':'#fff3df');fill.intensity=current===5?.8:1.4;
-  if(current>2)score.stop();
+  exterior.root.visible=current===0;hall.root.visible=current>=1&&current<=3;
+  bathroom.root.visible=current===4||current===5;phone.root.visible=current===4||current===5;
+  screenElement.classList.toggle('visible',current===5);screenElement.inert=current!==5;
+  screenElement.setAttribute('aria-hidden',String(current!==5));screenElement.classList.remove('interactive');phoneCover.hidden=false;
+  cssPhone.visible=true;if(!phone.root.visible){cssPhone.position.set(0,-60,0);cssPhone.scale.setScalar(1);}
+  if(liveFrame){liveLayer.style.transform=current===6?'none':'translateY(110vh)';liveLayer.hidden=false;}
+  else liveLayer.hidden=current!==6;
+  if(current===6){filmPlaying=false;score.stop();blackout.style.opacity=liveFrame?'0':'1';}
+  else blackout.style.opacity='0';
+  key.color.set('#fff3df');fill.intensity=1.4;
+  if(current>=3)score.stop();
   if(current===0){
-    exteriorStarted=false;paused=true;score.stop();
-    positionCamera([22,14,24],[0,1,0]);
-    camera.position.copy(cameraTo);look.copy(lookTo);cameraFrom.copy(cameraTo);lookFrom.copy(lookTo);
+    resetExpression(hall.student);exteriorStarted=false;filmPlaying=false;paused=true;score.stop();
+    positionCamera([22,14,24],[0,1,0]);snapCamera();
   }else if(current===1){
-    if(!score.running)score.start();
     hall.student.position.set(-10.9,0,3.1);hall.student.rotation.y=Math.PI/2;
-    positionCamera([-8.2,2.25,7],[-10.9,1.05,2.4]);
-  }else if(current===2){positionCamera([-8.2,2.25,7],[-10.9,1.05,2.4]);score.start();}
-  else if(current===3){
-    positionCamera(reducedMotion?[.08,5.65,-.05]:[0,.13,1.55],reducedMotion?[0,.6,-.6]:[0,.10,-.32]);
-    // Cut to the shoes under the door before beginning the vertical reveal.
-    camera.position.copy(cameraTo);look.copy(lookTo);cameraFrom.copy(cameraTo);lookFrom.copy(lookTo);
-    phone.root.position.copy(initialPhonePosition);phone.root.scale.setScalar(1);phone.root.rotation.set(-1.22,-.08,-.1);
+    positionCamera([-8.2,2.25,7],[-10.9,1.05,2.4]);score.start();
+  }else if(current===2){
+    resetExpression(hall.student);positionCamera([-8.2,2.25,7],[-10.9,1.05,2.4]);score.start();
+  }else if(current===3){
+    hall.student.position.set(6.25,0,3.1);hall.student.rotation.y=0;
+    defeated(hall.student,0);positionCamera([6.75,2.08,5.7],[6.25,1.4,3.1]);score.giveUp();
+  }else if(current===4){
+    filmPlaying=false;
+    positionCamera(reducedMotion?[.08,4.8,.3]:[0,.13,1.55],reducedMotion?[0,.6,-.6]:[0,.10,-.32]);
+    snapCamera();phone.root.position.copy(handheldPosition);phone.root.scale.setScalar(handheldScale);phone.root.rotation.set(...handheldRotation.toArray());
     bathroom.student.userData.arms[1].shoulder.rotation.set(-1.1,0,-.2);
     bathroom.student.userData.arms[1].elbow.rotation.x=-1.5;
-  }else if(current===4){
-    // The device grows out of the character's hand as the room falls away.
-    phone.root.position.copy(initialPhonePosition);phone.root.scale.setScalar(1);phone.root.rotation.set(-1.22,-.08,-.1);
-    positionCamera([0,2.5,8.1],[0,2.5,0]);
-  }else{
-    positionCamera([8,5.6,9],[0,1.25,-.5]);autoplay=false;
-  }
-  updateAccessibleState();
+  }else if(current===5){filmPlaying=false;positionCamera([0,2.5,8.1],[0,2.5,0]);}
+  if(snap&&current!==5)snapCamera();updateAccessibleState();
 }
-function startExterior(){
-  exteriorStarted=true;paused=false;elapsed=0;transition=0;score.start();forceDraw=true;
+function cutTo(index){if(cut)return;cut={index,elapsed:0,switched:false};}
+function updateCut(delta){
+  if(!cut)return;
+  cut.elapsed+=delta;
+  const out=190,hold=100,inTime=230;
+  if(cut.elapsed>=out&&!cut.switched){go(cut.index,true);cut.switched=true;}
+  const opacity=cut.elapsed<out?cut.elapsed/out:cut.elapsed<out+hold?1:1-(cut.elapsed-out-hold)/inTime;
+  blackout.style.opacity=String(Math.max(0,Math.min(1,opacity)));
+  if(cut.elapsed>=out+hold+inTime){cut=null;blackout.style.opacity=current===6&&!liveFrame?'1':'0';if(current===6)paused=true;}
 }
-function advance(){
-  if(current===0&&!exteriorStarted){startExterior();return;}
-  if(current===5)go(0);else go(current+1);
+function startFilm(){
+  filmPlaying=true;exteriorStarted=true;paused=false;elapsed=0;transition=0;score.start();forceDraw=true;updateAccessibleState();
 }
+function openPhone(){if(current!==4||elapsed<durations[4]||cut)return;go(5);}
+function handoff(){if(current===5&&elapsed>=durations[5])cutTo(6);}
 function exteriorMotion(){
   if(!exteriorStarted)return;
-  const p=reducedMotion?1:ease(Math.min(elapsed/durations[0],1));
-  flyCurve.getPoint(p,curvePoint);cameraTo.copy(curvePoint);
+  flyCurve.getPoint(reducedMotion?1:ease(Math.min(elapsed/durations[0],1)),curvePoint);cameraTo.copy(curvePoint);
   const aim=ease(Math.min(elapsed/4600,1));lookTo.set(lerp(0,exterior.entry.x,aim),lerp(1,exterior.entry.y,aim),lerp(0,exterior.entry.z,aim));
 }
 function droneMotion(){
-  const p=reducedMotion?1:ease(Math.max(0,Math.min((elapsed-1100)/4100,1)));
-  droneCurve.getPoint(p,curvePoint);cameraTo.copy(curvePoint);
-  lookTo.set(0,lerp(.10,.6,p),lerp(-.32,-.6,p));
+  const p=reducedMotion?1:ease(Math.max(0,Math.min((elapsed-1000)/3900,1)));
+  droneCurve.getPoint(p,curvePoint);cameraTo.copy(curvePoint);lookTo.set(0,lerp(.10,.6,p),lerp(-.32,-.6,p));
 }
 function searchMotion(){
   const t=elapsed/1000;
   let x=-10.9,z=3.1,strength=0,peek=0,room=-6.25;
-  if(t<2.6){
-    const p=Math.min(t/2.6,1);x=lerp(-10.9,-6.25,ease(p));strength=Math.sin(Math.PI*p)*.8+.15;
-  }else if(t<5.3){
+  if(t<2.6){const p=Math.min(t/2.6,1);x=lerp(-10.9,-6.25,ease(p));strength=Math.sin(Math.PI*p)*.8+.15;}
+  else if(t<5.3){
     x=-6.25;peek=ease(Math.min((t-2.6)/1.15,1));z=lerp(3.1,1.85,peek);
-    if(t>=4.0)slam(1);
+    if(t>=4)slam(1);
     if(t>4.8){peek=1-ease(Math.min((t-4.8)/.5,1));z=lerp(3.1,1.85,peek);}
-  }else if(t<8.5){
-    const p=(t-5.3)/3.2;x=lerp(-6.25,6.25,ease(p));strength=Math.sin(Math.PI*p)*.8+.15;
-  }else{
-    x=6.25;room=6.25;peek=ease(Math.min((t-8.5)/1.15,1));z=lerp(3.1,1.85,peek);
-    if(t>=9.9)slam(2);
-  }
-  hall.student.position.set(x,0,z);
-  hall.student.rotation.y=peek>0?Math.PI:Math.PI/2;
+  }else if(t<8.5){const p=(t-5.3)/3.2;x=lerp(-6.25,6.25,ease(p));strength=Math.sin(Math.PI*p)*.8+.15;}
+  else{x=6.25;room=6.25;peek=ease(Math.min((t-8.5)/1.15,1));z=lerp(3.1,1.85,peek);if(t>=9.9)slam(2);}
+  hall.student.position.set(x,0,z);hall.student.rotation.y=peek>0?Math.PI:Math.PI/2;
   if(reducedMotion)idle(hall.student,t);else run(hall.student,t,strength);
-  if(peek>0){
-    hall.student.userData.torso.rotation.x=.22*peek;
-    hall.student.userData.head.rotation.y=Math.sin(t*1.6)*.08;
-    hall.student.userData.head.rotation.x=.04;
-  }
-  // Track at shoulder height, then look past the student through the doorway.
+  if(peek>0){hall.student.userData.torso.rotation.x=.22*peek;hall.student.userData.head.rotation.y=Math.sin(t*1.6)*.08;hall.student.userData.head.rotation.x=.04;}
   const followPos=[x+2.65,2.3,7.1],followLook=[x,.95,2.25];
-  const peekPos=[room+.82,2.48,4.0],peekLook=[room,1.1,-2.8];
+  const peekPos=[room+.82,2.48,4],peekLook=[room,1.1,-2.8];
   positionCamera(followPos.map((v,i)=>lerp(v,peekPos[i],peek)),followLook.map((v,i)=>lerp(v,peekLook[i],peek)));
 }
 function updatePhone(){
   if(!phone.root.visible)return;
-  if(current===3){
-    const lift=reducedMotion?1:ease(Math.min(elapsed/1400,1));
-    phone.root.position.copy(initialPhonePosition);phone.root.position.y=lerp(1.08,1.18,lift);
-    // CSS screens have no depth buffer: don't reveal the app through the closed door.
-    const shown=reducedMotion||elapsed>=3950;
-    if(screenElement.classList.contains('visible')!==shown){
-      screenElement.classList.toggle('visible',shown);screenElement.inert=!shown;screenElement.setAttribute('aria-hidden',String(!shown));
-    }
-  }else if(current===4){
-    const p=reducedMotion?1:ease(Math.min(elapsed/durations[4],1));
-    phone.root.position.copy(initialPhonePosition).lerp(finalPhonePosition,p);
-    phone.root.scale.setScalar(lerp(1,finalPhoneScale,p));
-    phone.root.rotation.set(lerp(-1.22,0,p),lerp(-.08,0,p),lerp(-.1,0,p));
+  if(current===4){
+    const breath=reducedMotion?0:Math.sin(elapsed*.0017)*.004;
+    phone.root.position.copy(handheldPosition);phone.root.position.y+=breath;
+    phone.root.rotation.set(handheldRotation.x+breath,handheldRotation.y,handheldRotation.z);
+    const shown=reducedMotion||elapsed>=3700;
+    screenElement.classList.toggle('visible',shown);screenElement.inert=!shown;screenElement.setAttribute('aria-hidden',String(!shown));
+    stage.dataset.holding=String(elapsed>=durations[4]);
+  }else if(current===5){
+    const p=reducedMotion?1:ease(Math.min(elapsed/durations[5],1));
+    phone.root.position.copy(zoomStartPosition).lerp(finalPhonePosition,p);phone.root.scale.setScalar(lerp(handheldScale,finalPhoneScale,p));
+    phone.root.rotation.set(lerp(zoomStartRotation.x,0,p),lerp(zoomStartRotation.y,0,p),lerp(zoomStartRotation.z,0,p));
     bathroom.root.position.y=-8*p*p;bathroom.root.visible=p<.85;
-    const ready=p>=1;
-    screenElement.classList.toggle('interactive',ready);phoneCover.hidden=ready;
+    const ready=p>=1;screenElement.classList.toggle('interactive',ready);phoneCover.hidden=ready;
     if(stage.dataset.interactive!==String(ready)){stage.dataset.interactive=String(ready);forceDraw=true;}
   }
   cssPhone.position.copy(phone.root.position);cssPhone.quaternion.copy(phone.root.quaternion);cssPhone.scale.copy(phone.root.scale);
@@ -213,82 +218,75 @@ function resize(){
   camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<700?43:34;camera.updateProjectionMatrix();forceDraw=true;renderer.shadowMap.needsUpdate=true;
 }
 function render(now){
-  const rawDelta=now-last;
-  const delta=Math.min(rawDelta,100);last=now;
-  // Reduce resolution further on a consistently slow device, once per opening.
-  if(current===2&&rawDelta>0&&rawDelta<180){
-    frameTotal+=rawDelta;frameSamples++;
-    if(frameSamples===90&&frameTotal/frameSamples>28&&!lowQuality){renderer.setPixelRatio(1);forceDraw=true;}
-  }
-  if(!paused){elapsed+=delta;transition+=delta;}
+  const rawDelta=now-last,delta=Math.min(rawDelta,100);last=now;
+  if(current===2&&rawDelta>0&&rawDelta<180){frameTotal+=rawDelta;frameSamples++;if(frameSamples===90&&frameTotal/frameSamples>28&&!lowQuality){renderer.setPixelRatio(1);forceDraw=true;}}
+  if(!paused){elapsed+=delta;transition+=delta;updateCut(delta);}
   if(current===0)exteriorMotion();
+  else if(current===1)idle(hall.student,elapsed*.001);
   else if(current===2)searchMotion();
-  else if(current===1)idle(hall.student,now*.001);
-  else if(current===3){droneMotion();idle(bathroom.student,now*.001);bathroom.student.userData.head.rotation.x=.15;}
-  else if(current===5){idle(study.student,now*.001);study.student.userData.head.rotation.x=.15;}
-  if(current===0&&exteriorStarted&&elapsed>=durations[0])go(1);
-  else if(autoplay&&current>0&&current<4&&elapsed>=durations[current])go(current+1);
-  if(current===4&&elapsed>=durations[4])autoplay=false;
-  const t=reducedMotion?1:ease(Math.min(transition/(current===4?durations[4]:1250),1));
-  if(current===0||current===3){
-    camera.position.copy(cameraTo);look.copy(lookTo);
-  }else if(current===2&&transition>=1250&&!reducedMotion){
-    const follow=1-Math.exp(-delta*.006);
-    camera.position.lerp(cameraTo,follow);look.lerp(lookTo,follow);
-  }else{
-    camera.position.copy(cameraFrom).lerp(cameraTo,t);look.copy(lookFrom).lerp(lookTo,t);
+  else if(current===3)defeated(hall.student,elapsed*.001);
+  else if(current===4){droneMotion();idle(bathroom.student,elapsed*.001);bathroom.student.userData.head.rotation.x=.15;}
+  if(filmPlaying&&!paused&&current<4&&elapsed>=durations[current]){
+    // Keep the hallway walk continuous; location changes pass through black.
+    if(current===1)go(2);else cutTo(current+1);
   }
-  // Preserve the phone's physical size on narrow rehearsal screens.
+  const t=reducedMotion?1:ease(Math.min(transition/(current===5?durations[5]:950),1));
+  if(current===0||current===3||current===4){camera.position.copy(cameraTo);look.copy(lookTo);}
+  else if(current===2&&transition>=950&&!reducedMotion){const follow=1-Math.exp(-delta*.006);camera.position.lerp(cameraTo,follow);look.lerp(lookTo,follow);}
+  else{camera.position.copy(cameraFrom).lerp(cameraTo,t);look.copy(lookFrom).lerp(lookTo,t);}
   camera.lookAt(look);
   const impactAge=(elapsed-impactTime)/1000;
   if(current===2&&impactAge>=0&&impactAge<.24&&!reducedMotion)camera.rotateZ(Math.sin(impactAge*65)*.022*Math.exp(-impactAge*14));
   updatePhone();
-  const settledPhone=current===4&&elapsed>=durations[4];
-  const settledSearch=current===2&&elapsed>=durations[2];
-  const animated=!paused&&(current===1||current===5||(!settledPhone&&!settledSearch));
-  // Once the phone is still, the GPU yields to the live map instead of redrawing a static device.
+  const settledPhone=current===5&&elapsed>=durations[5];
+  const animated=!paused&&current!==6&&!settledPhone;
   if(forceDraw||(animated&&now-lastDraw>=1000/45)){
-    renderer.shadowMap.needsUpdate=forceDraw||(current===2&&!settledSearch)||(current===4&&!settledPhone)||(current===3&&elapsed<1500);
-    renderer.render(scene,camera);cssRenderer.render(cssScene,camera);lastDraw=now;forceDraw=false;
-    stage.dataset.drawCalls=String(renderer.info.render.calls);
+    renderer.shadowMap.needsUpdate=forceDraw||current===2||current===3||(current===5&&!settledPhone);
+    renderer.render(scene,camera);cssRenderer.render(cssScene,camera);lastDraw=now;forceDraw=false;stage.dataset.drawCalls=String(renderer.info.render.calls);
   }
   requestAnimationFrame(render);
 }
 function phoneClicked(event){
   const rect=canvas.getBoundingClientRect();pointer.set(((event.clientX-rect.left)/rect.width)*2-1,-((event.clientY-rect.top)/rect.height)*2+1);
-  raycaster.setFromCamera(pointer,camera);
-  return phone.root.visible&&raycaster.intersectObject(phone.root,true).length>0;
+  raycaster.setFromCamera(pointer,camera);return phone.root.visible&&raycaster.intersectObject(phone.root,true).length>0;
 }
 canvas.addEventListener('pointerdown',event=>{score.unlock();clickDown=[event.clientX,event.clientY];});
 canvas.addEventListener('pointerup',event=>{
   if(!clickDown||Math.hypot(event.clientX-clickDown[0],event.clientY-clickDown[1])>10)return;
-  clickDown=null;autoplay=false;
-  if(current===3&&phoneClicked(event)){go(4);return;}
-  if(current===4&&elapsed<durations[4])return;
-  advance();
+  clickDown=null;if(cut)return;
+  if(current===0&&!exteriorStarted)startFilm();
+  else if(current===4&&phoneClicked(event))openPhone();
+  else if(current===5)handoff();
 });
-phoneCover.addEventListener('click',()=>{score.unlock();autoplay=false;go(4);});
+phoneCover.addEventListener('click',()=>{score.unlock();openPhone();});
 async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{ /* A browser preview may restrict full screen. */ }}
 window.addEventListener('keydown',event=>{
   if(event.target.closest('input,textarea,[contenteditable=true]'))return;
   const key=event.key.toLowerCase();
-  if([' ','arrowright','arrowleft','1','2','3','4','5','6','s'].includes(key))score.unlock();
-  if([' ','arrowright','arrowleft','home','escape','f','r','s','1','2','3','4','5','6'].includes(key))event.preventDefault();
-  if(key==='arrowright'){autoplay=false;advance();}
-  else if(key==='arrowleft'){autoplay=false;go(current-1);}
-  else if(key==='home'||key==='r'){autoplay=false;go(0);}
-  else if(key==='escape'){if(current===4)go(5);else{autoplay=false;paused=true;score.stop();}}
+  if(![' ','arrowright','arrowleft','home','escape','f','r','s','l','1','2','3','4','5','6','7'].includes(key))return;
+  event.preventDefault();score.unlock();
+  if(key==='home'||key==='r'){cut=null;go(0);}
+  else if(key==='f')void fullscreen();
+  else if(key==='s')score.toggle();
+  else if(key==='l')handoff();
+  else if(key==='escape'){paused=true;score.stop();updateAccessibleState();}
   else if(key===' '){
-    if(current===4){go(5);return;}
-    if(autoplay){autoplay=false;paused=true;score.stop();}else{autoplay=true;paused=false;if(current===5)go(0);if(current===0)startExterior();}
-  }else if(key==='f')void fullscreen();
-  else if(key==='s'){score.toggle();}
-  else if(/^[1-6]$/.test(key)){autoplay=false;go(Number(key)-1);}
+    if(current===0&&!exteriorStarted)startFilm();
+    else if(current<4){paused=!paused;if(paused)score.stop();else if(current<3)score.start();updateAccessibleState();}
+    else if(current===4)openPhone();else if(current===5)handoff();
+  }else if(/^[1-7]$/.test(key)){
+    // Rehearsal jumps remain available, but the film requires no scene advances.
+    cut=null;filmPlaying=false;go(Number(key)-1,true);
+    if(current===5){zoomStartPosition.copy(handheldPosition);zoomStartRotation.copy(handheldRotation);}
+  }
 });
 window.addEventListener('resize',resize);
-document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){paused=true;score.stop();}else{paused=current===0&&!exteriorStarted;forceDraw=true;if(current===2&&elapsed<durations[2])score.start();}});
+document.addEventListener('visibilitychange',()=>{
+  last=performance.now();
+  if(document.hidden){resumeAfterVisibility=!paused;paused=true;score.stop();}
+  else{paused=!resumeAfterVisibility;forceDraw=true;if(!paused&&current<3&&exteriorStarted)score.start();}
+});
 camera.position.set(22,14,24);look.set(0,1,0);camera.lookAt(look);cameraFrom.copy(camera.position);lookFrom.copy(look);
-// Mount the map before warming the 3D shaders, without showing extra interface.
 cssPhone.position.set(0,-60,0);cssRenderer.render(cssScene,camera);
 sets.forEach(root=>{root.visible=true;});phone.root.visible=true;
 try{await renderer.compileAsync(scene,camera);}catch{renderer.compile(scene,camera);}

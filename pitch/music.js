@@ -59,6 +59,12 @@ export class Score {
     this.note(110,t,.55,.24,'sine',this.master,28);
     this.note(58.27,t,.4,.09,'sawtooth',this.master,36.7);this.hiss(t,.12);
   }
+  giveUp(){
+    if(!this.context||!this.enabled)return;
+    const t=this.context.currentTime;
+    this.note(220,t,.9,.09,'triangle',this.master,146.83);
+    this.note(146.83,t+.35,1.25,.07,'triangle',this.master,73.42);
+  }
   stop(){
     this.running=false;if(this.timer){clearInterval(this.timer);this.timer=null;}
     if(this.context){this.music.gain.cancelScheduledValues(this.context.currentTime);this.music.gain.setTargetAtTime(0,this.context.currentTime,.025);}

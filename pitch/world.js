@@ -61,11 +61,19 @@ export function person(parent,at,{color='#859678',skin='#d0a486',seated=false,ba
   const face=mesh(head,new THREE.SphereGeometry(.28,8,6),skin);face.scale.set(.88,1.05,.88);
   const hair=mesh(head,new THREE.SphereGeometry(.287,8,4,0,Math.PI*2,0,Math.PI*.53),'#3d302c',[0,.075,-.025]);hair.scale.set(.95,.84,.93);
   mesh(head,new THREE.ConeGeometry(.13,.15,4),'#3d302c',[-.16,.2,.14],[0,0,-.4]);
+  const brows=[];
   for(const x of [-.09,.09]){
     box(head,[.034,.028,.035],[x,.015,.248],'#2d3436');
-    box(head,[.08,.018,.03],[x,.078,.236],'#3d302c');
+    brows.push(box(head,[.08,.018,.03],[x,.078,.236],'#3d302c'));
   }
-  box(head,[.085,.012,.025],[0,-.105,.24],'#986b57');
+  const mouth=box(head,[.085,.012,.025],[0,-.105,.24],'#986b57');
+  const sadMouth=mesh(head,new THREE.TorusGeometry(.046,.007,3,8,Math.PI),'#986b57',[0,-.12,.247]);sadMouth.visible=false;
+  const tears=[];
+  const tearMaterial=new THREE.MeshBasicMaterial({color:'#82c4e5',transparent:true,opacity:.85});
+  for(const x of [-.095,.095])for(let i=0;i<2;i++){
+    const tear=mesh(head,new THREE.IcosahedronGeometry(.023,0),tearMaterial,[x,-.025,.252]);
+    tear.scale.y=1.65;tear.visible=false;tear.castShadow=false;tears.push(tear);
+  }
   const arms=[];
   for(const side of [-1,1]){
     const arm=limb(torso,[side*.31,.24,0],color,.37);
@@ -85,7 +93,7 @@ export function person(parent,at,{color='#859678',skin='#d0a486',seated=false,ba
     legs.push({hip:thigh.pivot,knee});
   }
   if(bag)backpack(torso,[0,-.2,-.33]);
-  p.userData={hips,torso,head,arms,legs,seated};return p;
+  p.userData={hips,torso,head,arms,legs,seated,brows,mouth,sadMouth,tears};return p;
 }
 function chair(parent,x,z,rotation=0){
   const c=group(parent,[x,0,z]);c.rotation.y=rotation;
@@ -177,24 +185,6 @@ export function buildBathroom(scene){
   const roll=cylinder(root,.1,.1,.17,[-.82,1.1,-.65],'#ecece1',12);roll.rotation.z=Math.PI/2;
   return {root,student};
 }
-export function buildStudy(scene){
-  const root=group(scene);
-  box(root,[8,.22,6],[0,-.15,-.5],'#d8c8b0');
-  box(root,[8,4,.12],[0,1.96,-3.5],'#d5c8b4');
-  box(root,[5.8,2.7,.045],[-.3,2.3,-3.405],material('#f3e0b9',{emissive:'#efce96',emissiveIntensity:.15}));
-  for(const x of [-3.1,-.3,2.5])box(root,[.065,2.85,.08],[x,2.3,-3.37],'#b8a183');
-  box(root,[5.8,.065,.08],[-.3,2.3,-3.37],'#b8a183');
-  // Abstract roof line seen through the window.
-  for(let i=0;i<9;i++)box(root,[.51,.4+(i%4)*.13,.03],[-2.7+i*.58,1.2,-3.365],'#d9bd95');
-  desk(root,0,0,{empty:true});
-  const student=person(root,[0,0,.97],{seated:true,color:'#859678',rotation:Math.PI});
-  for(const x of [-.25,.25])roundedBox(student.userData.head,[.09,.22,.19],[x,.02,0],'#48584e',.025);
-  mesh(student.userData.head,new THREE.TorusGeometry(.27,.024,4,12,Math.PI),'#48584e',[0,.04,0]);
-  plant(root,[2.8,0,-2]);backpack(root,[.95,0,1.1]);
-  const lamp=group(root,[-1,1.13,-.3]);cylinder(lamp,.14,.18,.025,[0,0,0],'#86957b');
-  cylinder(lamp,.012,.012,.58,[0,.29,0],'#86957b',8);cylinder(lamp,.08,.23,.18,[0,.64,0],'#9faa89');
-  return {root,student};
-}
 export function buildPhone(scene){
   const root=group(scene);
   const metal=material('#4a4e4d',{roughness:.3,metalness:.8,flatShading:false});
@@ -220,6 +210,23 @@ export function idle(person,time){
   rig.head.rotation.y=Math.sin(time*.8)*.055;
 }
 
+export function defeated(person,time){
+  const rig=person.userData,p=Math.min(Math.max((time-.35)/1.4,0),1);
+  run(person,time,0);rig.torso.rotation.x=.15*p;rig.head.rotation.set(.55*p,0,0);
+  rig.arms.forEach(arm=>{arm.shoulder.rotation.x=.08*p;arm.elbow.rotation.x=-.1;});
+  rig.brows.forEach((brow,i)=>{brow.rotation.z=(i===0?1:-1)*.35*p;});
+  rig.mouth.visible=false;rig.sadMouth.visible=true;
+  rig.tears.forEach((tear,i)=>{
+    const age=time-1.2-(i%2)*.45;tear.visible=age>=0;
+    if(tear.visible){const fall=(age%.95)/.95;tear.position.y=-.018-fall*.25;tear.scale.set(.8*(1-fall*.4),1.65,1);}
+  });
+}
+
+export function resetExpression(person){
+  const rig=person.userData;rig.head.rotation.set(0,0,0);rig.mouth.visible=true;rig.sadMouth.visible=false;
+  rig.brows.forEach(brow=>{brow.rotation.z=0;});rig.tears.forEach(tear=>{tear.visible=false;});
+}
+
 // Merge immobile props by material. The lead student's articulated rig stays separate.
 export function batchStatic(root, animated){
   root.updateMatrixWorld(true);
@@ -228,6 +235,8 @@ export function batchStatic(root, animated){
   root.traverse(object=>{
     if(!object.isMesh)return;
     for(let ancestor=object;ancestor;ancestor=ancestor.parent)if(ancestor===animated)return;
+    // Hidden expressions on background characters must not become visible in a batch.
+    if(!object.visible){remove.push(object);return;}
     if(Array.isArray(object.material))return;
     const key=object.material.uuid;
     if(!batches.has(key))batches.set(key,{material:object.material,geometries:[]});

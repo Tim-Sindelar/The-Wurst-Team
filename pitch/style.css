@@ -8,5 +8,6 @@
 
 #taken{position:absolute;left:50%;top:48%;font-family:Impact,'Arial Black',Arial,sans-serif;font-size:clamp(100px,23vw,340px);font-weight:900;letter-spacing:-.045em;line-height:.85;color:#d34628;pointer-events:none;opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(1);text-shadow:2px 3px 0 #eeece6;will-change:transform,opacity}
 #taken.slam{animation:slam 1.1s both cubic-bezier(.15,.85,.2,1)}
+#blackout{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:10}#live{position:absolute;inset:0;background:#000;z-index:6}#live iframe{width:100%;height:100%;border:0;display:block}#stage[data-scene='7'] #scene{pointer-events:none}
 @keyframes slam{0%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(2.6)}12%{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(.95)}20%,78%{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(1.035)}}
 @media(prefers-reduced-motion:reduce){#taken.slam{animation:none;opacity:1}}

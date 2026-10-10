@@ -1,6 +1,6 @@
 # Five-minute pitch: story draft
 
-Working draft for discussion. No presentation technology chosen yet.
+Working draft. The opening is now a continuous low-poly Three.js film; the booking app and physical check-in are live.
 
 ## Story
 
@@ -12,15 +12,15 @@ The two messages to remember are campus-wide discovery and reserving a seat befo
 
 | Time | What happens | What the audience sees |
 | --- | --- | --- |
-| 0:00–0:35 | Lecture ends. The student tries one study area, then another. Both are full. | Recognisable ETH setting, the same student, occupied desks. Minimal or no text. |
+| 0:00–0:35 | Lecture ends. The student tries one study area, then another. Both are full. | HG fly-in, two occupied rooms, repeated TAKEN stamps, defeated close-up and tears. Blackout into the toilet. |
 | 0:35–1:00 | Introduce checking availability across campus and reserving remotely. Reveal the student on the toilet, looking at their phone. | Campus view, then the phone. App name can appear here. |
-| 1:00–2:40 | Live demo: explore the campus map, open a bookable room, choose a free seat, reserve it, walk to the demonstration seat and scan its QR code. | Real app, large enough to read. Printed QR attached to the demonstration seat. Session confirmation, then a short lo-fi study scene. |
+| 1:00–2:40 | Live demo: explore the campus map, open a bookable room, choose a free seat, reserve it, walk to the demonstration seat and scan its QR code. | Real app, large enough to read. Printed QR attached to the demonstration seat. After booking, match the reservation screen on the teammate’s phone in the livestream. Camera pulls back, follows them into the pitch room, then shows the desk QR scan and studying. |
 | 2:40–3:15 | Explain why a reservation remains useful when everyone starts using the app. | Actual session screen and prepared views of extension/handover states. Small labels only if needed. |
 | 3:15–4:00 | Friends want to study together. Show a prepared party with accepted members, choose seats in one room, and show the group booking. | Real group-booking flow on a separate prepared account, or an explicitly introduced recording. End on the group studying. |
 | 4:00–4:40 | Propose one library pilot, explain setup and success criteria, then expansion to the faculty. | One library highlighted on the campus map. Optional labels: Pilot library, then Faculty. |
 | 4:40–5:00 | Margin for laughs, camera acquisition and transitions. | Final image remains on screen. |
 
-The timestamps are a rehearsal budget, not automatic slide advances. Target a 4:40 run.
+The timestamps are a rehearsal budget. One initial click plays the opening through the toilet reveal, then holds while the presenter speaks. Click the held phone to enter the real app. The physical livestream handoff is cued after reservation. Target a 4:40 run.
 
 ## Spoken draft
 
@@ -52,11 +52,11 @@ Open its room plan and choose the seat.
 
 “I'll reserve this one. It's held while I get there. If I don't check in before the deadline, it becomes available again.”
 
-Walk to the demonstration seat with the phone.
+Cue the livestream, beginning tight on the teammate’s phone with the same reservation visible. The camera operator pulls back and follows the teammate into the pitch room.
 
 “Each seat has its own QR code. I scan this seat's code to check in.”
 
-Show successful check-in before triggering the lo-fi scene. Let that scene breathe briefly. The student is finally sitting down.
+Show successful check-in on the real phone, then the teammate sitting down at the desk in front of the judges. Hold that real studying image briefly.
 
 For the prototype demonstration, describe bookable seats as participating spaces. The whole-campus phrase is the intended product promise, not a claim that every ETH seat already reports occupancy.
 
@@ -95,13 +95,13 @@ This is a proposed closing ask. Adjust it to the audience and any existing pilot
 
 ## Visual direction and live transition
 
-Use one consistent student, setting and visual style. The opening can feel mildly frantic. After check-in, hold a calmer composition with an ETH study scene and a short lo-fi cue. The contrast should be visible without explanatory captions.
+Use one consistent low-poly student for the opening. A single start gesture plays the HG fly-in, hallway search, two TAKEN stamps and defeated close-up. The student lowers their head and cries; cut through black to the feet-first toilet reveal. Hold the overhead shot with a naturally sized phone in their hand for the presenter to finish the joke. Clicking the phone gives a roughly one-second zoom into the real app.
 
-A possible Three.js treatment is a small set of click-controlled camera positions: hallway, toilet/phone, study desk. Prototype the phone-to-live-app transition first. Choose Three.js only if this transition looks good and works reliably in rehearsal.
+Remove the rendered study ending. After the real reservation, cue a livestream that begins tightly framed on the teammate’s phone showing that reservation. Pull back to third person and follow them walking into the presentation room. Show the desk QR scan, successful check-in and the teammate starting to study. This makes the final payoff happen in the judges’ room.
 
-For the handoff, bring the phone screen square to the audience and expand it into the same rectangle occupied by the real app or phone mirror. Keep the live interface readable. Zoom back out into the study scene only after check-in succeeds. Embedding, camera access and mirroring still need testing on the presentation setup.
+Livestream transport is still undecided. The prototype supports an embeddable browser feed via `?live=...` and a blackout handoff for an external video source. The external video operator switches during black; there is no automatic OBS integration. The camera operator supplies the physical zoom-out. Do not claim the livestream is connected until tested.
 
-Every narrative beat advances on a click. Avoid a timed sequence that runs ahead while the camera is scanning. Keep a recording of the core flow available, and introduce it as a recording if used.
+Before rehearsal, verify the teammate’s phone is signed in as the booking user, the QR belongs to the reserved seat, and both screens show the same current reservation. Prepare the camera operator outside the room, begin on the phone, then widen and follow. Avoid filming bystanders. The camera operator can stay silent; the presenter narrates. Agree a short spoken cue for the handoff and keep a clearly introduced recording available if the live feed fails.
 
 Slide copy: optional short title, useful labels, or no text. Avoid generic chapter slides, repeated three-card layouts, decorative icons, filler subtitles, stock business language and conclusions printed under every image. The spoken notes carry the explanation.
 
@@ -119,13 +119,13 @@ Inspection on 10 October 2026. This was code inspection and a read-only look at 
 | Actual seat geometry | Booking screen still uses a stand-in room layout. Do not present it as a surveyed seating plan. | `frontend/src/domain/room.ts` |
 | Login and departmental access | Proxy identity exists. No department access rules found. Current admin authentication denies proxy-mode admin access. | `backend/app/auth.py` |
 | Admin mapping | Developer map editor exists. Production library administration and enforcement require further work and institutional agreement. | `occupancy-map-preview/README.md`, `backend/app/auth.py` |
-| Lo-fi mode | No app feature found. Treat this as the presentation's visual payoff unless subsequently implemented. | Inspected session screen and frontend feature search |
+| Physical studying payoff | Livestream replaces the rendered lo-fi scene. Feed transport and desk check-in still need rehearsal. | `pitch/README.md` |
 | Notifications | Preferences exist; delivery is deferred. Avoid promising delivered push notifications. | `README.md` |
 | Market uniqueness | Not researched. Use concrete ETH-specific capabilities rather than “no other app does this.” | Requires separate competitor research |
 
 ## Rehearsal decisions still needed
 
-- Audience: hackathon judges, ETH administrators, students, or a mix; any judging criteria.
+- Judges are former ETH students and VIS members. Any additional judging criteria remain to be checked.
 - Number of presenters and who controls the presentation, phone and physical QR demonstration.
 - Presentation device and phone-mirroring setup.
 - Final app name. Current UI says Study Spaces.
