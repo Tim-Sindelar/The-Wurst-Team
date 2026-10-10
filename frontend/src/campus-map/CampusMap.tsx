@@ -12,9 +12,16 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { LatLngBoundsLiteral } from 'leaflet';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { Icon } from '../components/Icon';
+import { SpaceLists } from '../components/SpaceLists';
+import {
+  filterSpaces,
+  spaceRows,
+  toStudySpace,
+  type StudySpace,
+} from '../domain/space';
 import { useFavourites } from '../hooks/useFavourites';
 import { usePopular } from '../hooks/usePopular';
 import { useRecents } from '../hooks/useRecents';
@@ -23,10 +30,6 @@ import { LiveRooms } from './components/LiveRooms';
 import { RoomDetails } from './components/RoomDetails';
 import { RoomPhotos } from './components/RoomPhotos';
 import { WorkspaceDetails } from './components/WorkspaceDetails';
-import {
-  WorkspaceList,
-  type WorkspaceSuggestion,
-} from './components/WorkspaceList';
 import { guessEthId } from './data/ethRoomsRepository';
 import { repository } from './data/repository';
 import { fetchNavigation } from './data/navigationRepository';
@@ -50,11 +53,7 @@ import {
   type NavigationConfig,
 } from './domain/navigation';
 import { occupancyOf } from './domain/operations';
-import {
-  WORKSPACE_KIND_LABELS,
-  type Library,
-  type OccupancyData,
-} from './domain/types';
+import { WORKSPACE_KIND_LABELS, type OccupancyData } from './domain/types';
 import { datasetAt, weekdayOf } from './domain/viewTime';
 import { loadFloorIndex, type FloorIndex } from './floors/floorData';
 import {
@@ -231,6 +230,8 @@ export function CampusMap() {
   const favourites = useFavourites();
   const recents = useRecents();
   const popular = usePopular();
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
   /** Workspace id → the study space id it is, for its seat map. */
   const bookable = useMemo(
     () =>
@@ -442,35 +443,18 @@ export function CampusMap() {
   const style = styles[theme];
   const roomStyle = style.occupancy;
 
-  /* The search's suggestions before anything is typed: the home screen's
-     rows, as the workspaces of those study spaces that the map shows. */
-  const librariesOf = (spaceIds: Iterable<string>) => {
-    const bySpace = new Map<string, Library>();
-    for (const lib of visible.libraries) {
-      const spaceId = bookable?.get(lib.id);
-      if (spaceId) bySpace.set(spaceId, lib);
-    }
-    return [...spaceIds].flatMap((id) => bySpace.get(id) ?? []);
+  /* The search sheet: the home screen's search over the study spaces. A
+     result shows its workspace on the map; a space without one on the map
+     opens its seat map. */
+  const studySpaces =
+    spacesQuery.data?.spaces.map((space) =>
+      toStudySpace(space, favourites.ids.has(space.id)),
+    ) ?? [];
+  const showSpace = (space: StudySpace) => {
+    const lib = visible.libraries.find((l) => bookable?.get(l.id) === space.id);
+    if (lib) showLibrary(lib.id);
+    else navigate(seatMapPath(space.id));
   };
-  const suggestions: WorkspaceSuggestion[] = [
-    {
-      id: 'favourites',
-      title: 'Favourites',
-      libraries: librariesOf(
-        (spacesQuery.data?.spaces ?? [])
-          .map((space) => space.id)
-          .filter((id) => favourites.ids.has(id)),
-      ),
-    },
-    { id: 'recent', title: 'Recent', libraries: librariesOf(recents.ids) },
-    {
-      id: 'popular',
-      title: 'Most popular',
-      libraries: librariesOf(popular.ids),
-    },
-  ];
-  const searchLabel =
-    mode === 'study' ? 'Search study spaces' : 'Search workspaces';
 
   const flyTo = (position: { lat: number; lng: number }, z: number) =>
     setFlyTarget({ position, zoom: z, nonce: Date.now() });
@@ -742,9 +726,10 @@ export function CampusMap() {
           <TextInput
             type="search"
             readOnly
-            placeholder={searchLabel}
-            aria-label={searchLabel}
+            placeholder="Search study spaces"
+            aria-label="Search study spaces"
             aria-haspopup="dialog"
+            value={search}
             aria-expanded={sheet === 'workspaces'}
             leftSection={<Icon name="search" />}
             onClick={() => setSheet('workspaces')}
@@ -797,16 +782,42 @@ export function CampusMap() {
       <MapSheet
         opened={sheet === 'workspaces'}
         onClose={() => setSheet(null)}
-        title={mode === 'study' ? 'Study spaces' : 'Workspaces'}
+        title="Study spaces"
+        tall
       >
-        <WorkspaceList
-          data={visible}
-          selectedId={selectedLibrary?.id ?? null}
-          levels={floorIndex?.levels ?? []}
-          onSelectLibrary={(lib) => showLibrary(lib.id)}
-          placeholder={searchLabel}
-          suggestions={suggestions}
-        />
+        <div className="grid gap-4 px-4 py-4">
+          <TextInput
+            type="search"
+            placeholder="Search study spaces"
+            aria-label="Search study spaces"
+            leftSection={<Icon name="search" />}
+            value={search}
+            onChange={(event) => setSearch(event.currentTarget.value)}
+            data-autofocus
+          />
+          {spacesQuery.isError ? (
+            <Alert
+              variant="danger"
+              role="alert"
+              icon={<Icon name="alert" />}
+              title="Couldn't load study spaces"
+            >
+              <Text size="sm">Check your connection and try again.</Text>
+            </Alert>
+          ) : !spacesQuery.data ? (
+            <Text c="dimmed" role="status">
+              Loading study spaces…
+            </Text>
+          ) : (
+            <SpaceLists
+              matches={filterSpaces(studySpaces, search)}
+              search={search}
+              rows={spaceRows(studySpaces, recents.ids, popular.ids)}
+              onToggleFavourite={favourites.toggle}
+              onSelect={showSpace}
+            />
+          )}
+        </div>
       </MapSheet>
 
       {/* The popup of what is selected, opened by tapping it on the map */}

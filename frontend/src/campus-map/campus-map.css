@@ -639,14 +639,6 @@
       flex: 1;
       min-width: 120px;
     }
-    .workspace-search {
-      margin-bottom: 16px;
-    }
-    .workspace-suggestions {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
     /* Live status of the ETH rooms of a workspace, in its popup. */
     .live-rooms {
       list-style: none;

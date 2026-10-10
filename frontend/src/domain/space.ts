@@ -71,3 +71,23 @@ export function spacesByIds(
   const byId = new Map(spaces.map((space) => [space.id, space]));
   return ids.flatMap((id) => byId.get(id) ?? []);
 }
+
+export type SpaceRowData = { id: string; title: string; spaces: StudySpace[] };
+
+/** The rows shown before anything is searched, in order: Favourites, Recent
+   (newest first) and Most popular. */
+export function spaceRows(
+  spaces: StudySpace[],
+  recentIds: readonly string[],
+  popularIds: readonly string[],
+): SpaceRowData[] {
+  return [
+    { id: 'favourites', title: 'Favourites', spaces: favouriteSpaces(spaces) },
+    { id: 'recent', title: 'Recent', spaces: spacesByIds(spaces, recentIds) },
+    {
+      id: 'popular',
+      title: 'Most popular',
+      spaces: spacesByIds(spaces, popularIds),
+    },
+  ];
+}
