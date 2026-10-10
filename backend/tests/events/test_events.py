@@ -1,10 +1,11 @@
 import asyncio
+import json
 import threading
 from uuid import UUID
 
 import pytest
-from starlette.testclient import WebSocketDenialResponse
 
+from app.features.events import router as events_router
 from app.features.events.hub import QUEUE_SIZE, EventHub
 from app.features.events.schemas import PingEvent
 from app.features.social import router as social_router
@@ -27,27 +28,43 @@ def published(monkeypatch):
     return sent
 
 
-def connect(client, user):
-    return client.websocket_connect("/api/v1/events", headers={"X-Demo-User-Id": str(user)})
+def received(user, act, count=1):
+    """The JSON events `user`'s stream sends while `act()` runs, after the opening ping."""
+
+    async def scenario():
+        frames = events_router.subscribed(user)
+        try:
+            assert json.loads((await anext(frames)).removeprefix("data: ")) == {"type": "ping"}
+            await asyncio.to_thread(act)
+            chunks = [await asyncio.wait_for(anext(frames), 2) for _ in range(count)]
+        finally:
+            await frames.aclose()
+        assert all(chunk.startswith("data: ") and chunk.endswith("\n\n") for chunk in chunks)
+        return [json.loads(chunk.removeprefix("data: ")) for chunk in chunks]
+
+    return asyncio.run(scenario())
 
 
-def test_friend_request_reaches_the_open_socket(social_client):
+def test_friend_request_reaches_the_open_stream(social_client):
     client = social_client
     target = login(client, B)
     login(client, A)
-    with connect(client, B) as socket:
-        response = call(client, "POST", BASE + "/friend-requests", A, {"user_id": target})
-        assert response.status_code == 200, response.text
-        event = socket.receive_json()
+    responses = []
+    [event] = received(
+        B,
+        lambda: responses.append(
+            call(client, "POST", BASE + "/friend-requests", A, {"user_id": target})
+        ),
+    )
+    assert responses[0].status_code == 200, responses[0].text
     assert event["type"] == "friend_request.received"
-    assert event["friendship_id"] == response.json()["id"]
+    assert event["friendship_id"] == responses[0].json()["id"]
     assert event["person"] == {"id": str(A), "name": "Demo user"}
 
-    with connect(client, A) as socket:
-        path = BASE + f"/friend-requests/{event['friendship_id']}/accept"
-        accepted = call(client, "POST", path, B)
-        assert accepted.status_code == 200, accepted.text
-        assert socket.receive_json()["type"] == "friend_request.accepted"
+    path = BASE + f"/friend-requests/{event['friendship_id']}/accept"
+    [accepted] = received(A, lambda: call(client, "POST", path, B))
+    assert accepted["type"] == "friend_request.accepted"
+    assert A not in social_router.hub._subscriptions
 
 
 def test_friend_events_notify_only_new_changes(social_client, published):
@@ -116,9 +133,18 @@ def test_hub_delivers_across_threads_and_drops_when_full():
     asyncio.run(scenario())
 
 
-def test_proxy_mode_refuses_sockets_without_a_user(client, policy):
+def test_idle_streams_ping(monkeypatch):
+    monkeypatch.setattr(events_router, "PING_SECONDS", 0.01)
+
+    async def scenario():
+        frames = events_router.stream(asyncio.Queue())
+        chunks = [await anext(frames) for _ in range(2)]
+        await frames.aclose()
+        return chunks
+
+    assert asyncio.run(scenario()) == ['data: {"type":"ping"}\n\n'] * 2
+
+
+def test_proxy_mode_refuses_streams_without_a_user(client, policy):
     policy.auth_mode = "proxy"
-    with pytest.raises(WebSocketDenialResponse) as denied:
-        with client.websocket_connect("/api/v1/events"):
-            pass
-    assert denied.value.status_code == 401
+    assert client.get("/api/v1/events").status_code == 401

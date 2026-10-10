@@ -57,7 +57,7 @@ app.include_router(events_router)
 
 
 def openapi() -> dict:
-    # OpenAPI has no WebSockets; list the event messages so the client gets their types.
+    # The events stream isn't in OpenAPI; list its messages so the client gets their types.
     if app.openapi_schema:
         return app.openapi_schema
     schema = FastAPI.openapi(app)

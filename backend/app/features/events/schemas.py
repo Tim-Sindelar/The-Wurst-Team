@@ -56,7 +56,7 @@ class PartyCancelledEvent(BaseModel):
 
 
 class PingEvent(BaseModel):
-    """Heartbeat so proxies keep an idle socket open. Clients ignore it."""
+    """Heartbeat so proxies keep an idle stream open. Clients ignore it."""
 
     type: Literal["ping"] = "ping"
 
@@ -74,4 +74,4 @@ type AnyEvent = (
 
 
 class ServerEvent(RootModel[Annotated[AnyEvent, Field(discriminator="type")]]):
-    """One message on the /api/v1/events WebSocket."""
+    """One message on the /api/v1/events stream."""

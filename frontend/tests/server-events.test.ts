@@ -42,19 +42,19 @@ test('heartbeats show nothing', () => {
   assert.equal(describeEvent({ type: 'ping' }), null);
 });
 
-test('the socket sits next to the API, on ws or wss', () => {
+test('the stream sits next to the API', () => {
   const page = { href: 'https://02.hackathon.ethz.ch/pr/7/seats/1' };
   assert.equal(
     eventsUrl('/pr/7/', page),
-    'wss://02.hackathon.ethz.ch/pr/7/api/v1/events',
+    'https://02.hackathon.ethz.ch/pr/7/api/v1/events',
   );
   assert.equal(
     eventsUrl('/', { href: 'http://localhost:5173/' }),
-    'ws://localhost:5173/api/v1/events',
+    'http://localhost:5173/api/v1/events',
   );
   assert.equal(
     eventsUrl('https://api.example.com', page),
-    'wss://api.example.com/api/v1/events',
+    'https://api.example.com/api/v1/events',
   );
 });
 

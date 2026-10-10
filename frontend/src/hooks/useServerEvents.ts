@@ -4,9 +4,10 @@ import { eventsUrl, reconnectDelay } from '../domain/serverEvents';
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.BASE_URL;
 
-/** Keeps the /api/v1/events WebSocket open while `enabled` and hands every
- * event except heartbeats to `onEvent`. Reconnects with backoff, and at once
- * when the device comes back online or the app is shown again. */
+/** Keeps the /api/v1/events stream (server-sent events) open while `enabled`
+ * and hands every event except heartbeats to `onEvent`. Reconnects with
+ * backoff, and at once when the device comes back online or the app is shown
+ * again. */
 export function useServerEvents(
   enabled: boolean,
   onEvent: (event: ServerEvent) => void,
@@ -15,16 +16,18 @@ export function useServerEvents(
 
   useEffect(() => {
     if (!enabled) return;
-    let socket: WebSocket | undefined;
+    let source: EventSource | undefined;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
     let stopped = false;
 
     const connect = () => {
       clearTimeout(retry);
-      if (stopped || socket) return;
-      const current = new WebSocket(eventsUrl(apiBase, window.location));
-      socket = current;
+      if (stopped || source) return;
+      const current = new EventSource(eventsUrl(apiBase, window.location), {
+        withCredentials: true,
+      });
+      source = current;
       current.onopen = () => {
         attempt = 0;
       };
@@ -37,9 +40,12 @@ export function useServerEvents(
         }
         if (event.type !== 'ping') handle(event);
       };
-      current.onclose = () => {
-        if (socket !== current) return;
-        socket = undefined;
+      // EventSource retries on its own only sometimes (never after an HTTP
+      // error), so close it and use the same backoff every time.
+      current.onerror = () => {
+        current.close();
+        if (source !== current) return;
+        source = undefined;
         if (!stopped) retry = setTimeout(connect, reconnectDelay(attempt++));
       };
     };
@@ -55,7 +61,7 @@ export function useServerEvents(
       clearTimeout(retry);
       window.removeEventListener('online', reconnectNow);
       document.removeEventListener('visibilitychange', reconnectNow);
-      socket?.close();
+      source?.close();
     };
   }, [enabled]);
 }

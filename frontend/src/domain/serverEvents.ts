@@ -64,14 +64,10 @@ export function describeEvent(event: ServerEvent): EventNotice | null {
   }
 }
 
-/** The events WebSocket URL, next to the API the generated client calls. */
+/** The events stream URL, next to the API the generated client calls. */
 export function eventsUrl(apiBase: string, location: { href: string }) {
-  const url = new URL(
-    `${apiBase.replace(/\/$/, '')}/api/v1/events`,
-    location.href,
-  );
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  return url.href;
+  return new URL(`${apiBase.replace(/\/$/, '')}/api/v1/events`, location.href)
+    .href;
 }
 
 /** Reconnect delay: 1 s doubling to 30 s, with up to 50% jitter. */

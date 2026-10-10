@@ -23,7 +23,7 @@ MAX_PHOTO_BYTES = 12 * 1024 * 1024
 def get_current_user(
     request: HTTPConnection, settings: Annotated[Settings, Depends(get_settings)]
 ) -> UUID:
-    # HTTPConnection, not Request, so WebSocket routes authenticate the same way.
+    # HTTPConnection, not Request, so it also works for WebSocket routes.
     if settings.auth_mode == "proxy":
         email = request.headers.get("X-User-Id", "").strip()
         if not email:

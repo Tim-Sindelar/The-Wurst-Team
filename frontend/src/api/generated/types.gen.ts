@@ -1744,7 +1744,7 @@ export type PeopleResponse = {
 /**
  * PingEvent
  *
- * Heartbeat so proxies keep an idle socket open. Clients ignore it.
+ * Heartbeat so proxies keep an idle stream open. Clients ignore it.
  */
 export type PingEvent = {
     /**
@@ -2130,7 +2130,7 @@ export type SeatAvailability = {
 /**
  * ServerEvent
  *
- * One message on the /api/v1/events WebSocket.
+ * One message on the /api/v1/events stream.
  */
 export type ServerEvent = ({
     type: 'friend_request.received';

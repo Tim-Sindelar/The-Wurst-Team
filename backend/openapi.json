@@ -2999,7 +2999,7 @@
         "type": "object"
       },
       "PingEvent": {
-        "description": "Heartbeat so proxies keep an idle socket open. Clients ignore it.",
+        "description": "Heartbeat so proxies keep an idle stream open. Clients ignore it.",
         "properties": {
           "type": {
             "const": "ping",
@@ -3617,7 +3617,7 @@
         "type": "object"
       },
       "ServerEvent": {
-        "description": "One message on the /api/v1/events WebSocket.",
+        "description": "One message on the /api/v1/events stream.",
         "discriminator": {
           "mapping": {
             "friend_request.accepted": "#/components/schemas/FriendRequestAcceptedEvent",
