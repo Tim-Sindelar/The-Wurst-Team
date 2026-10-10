@@ -14,8 +14,9 @@ import { Screen, ScreenMain } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 import type { BookingState } from '../mock/bookingContext';
-import { mockSpace, mockUser, studySpaces } from '../mock/data';
+import { mockSpace, studySpaces } from '../mock/data';
 import { useMockBooking } from '../mock/useMockBooking';
 import { paths } from '../routes';
 
@@ -26,6 +27,7 @@ const forcedState = (value: string | null): BookingState | null =>
     : null;
 
 export function HomeScreen() {
+  const { user, initials, isPending, isError } = useCurrentUser();
   const { seat, booking } = useMockBooking();
   const [params] = useSearchParams();
   const state = forcedState(params.get('state')) ?? booking;
@@ -40,10 +42,13 @@ export function HomeScreen() {
             <ActionIcon
               component={Link}
               to={paths.profile}
-              aria-label="Profile"
+              aria-label={isError ? 'Profile unavailable' : 'Profile'}
+              aria-busy={isPending}
               className="-mr-0.5"
             >
-              <Avatar aria-hidden="true">{mockUser.initials}</Avatar>
+              <Avatar src={user?.photo_url} aria-hidden="true">
+                {initials}
+              </Avatar>
             </ActionIcon>
           </div>
         </div>

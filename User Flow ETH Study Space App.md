@@ -38,7 +38,11 @@ flowchart TD
     Active -->|End session early| Release
 ```
 
-The flowchart shows successful check-in and extension paths. Authentication, verification failures, and dispute resolution are not specified by the sources. The extension path is summarized as returning to the active session; the diagram routes it through the reservation popup, whereas the data model extends the existing reservation.
+The flowchart shows successful check-in and extension paths. Verification failures and dispute resolution are not specified by the sources. The extension path is summarized as returning to the active session; the diagram routes it through the reservation popup, whereas the data model extends the existing reservation.
+
+## Authentication
+
+The implemented backend trusts the managed hackathon proxy, which handles Switch edu-ID login and supplies `X-User-Id`. That email maps to a stable UUID for reservation ownership; the app has no separate login page. The frontend profile and home avatar fetch the current identity from `/api/v1/me`; local demo mode starts with a demo account. Users can edit their display name and upload or remove a photo, then save both to `user_profiles`; email and booking identity remain unchanged. Logout is not implemented. Frontend reservation/QR flows remain mocked; real check-in routing and resuming the intended check-in after login still need implementation and verification.
 
 ## 1. Find and reserve a seat
 
@@ -129,7 +133,7 @@ The proposed notification job runs every minute and records sent notifications t
 | Breaks near session end | The state calculation shows on break before considering claimability. Clarify how priority, public queueing, and extension interact with an active break. |
 | Check-in verification | Decide whether location is required for QR check-in, button check-in, or both; set the radius and define behavior when verification fails or permission is unavailable. |
 | Future reservations | Decide whether users may choose arbitrary future times or only reserve immediately and queue behind an occupant. |
-| Authentication | Choose ETH SSO or email login for the demo; define what a QR link does when the user is not authenticated. |
+| QR links after login | Managed-proxy authentication is implemented. Define and verify frontend routing back to the intended seat/check-in after proxy login. |
 | Occupied-seat disputes | The app shows reservation authority, but escalation and enforcement remain undefined. A reports table is outside the current MVP proposal. |
 | Seat layout | The data model leaves the room-layout JSON shape undecided. This does not change the documented browsing flow. |
 

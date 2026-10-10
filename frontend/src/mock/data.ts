@@ -129,12 +129,6 @@ export const roomGeometry = {
   door: 'M260 732V662M260 662A70 70 0 0 1 330 732',
 };
 
-export const mockUser = {
-  name: 'Anna Meier',
-  initials: 'AM',
-  email: 'anna.meier@student.ethz.ch',
-};
-
 /** Placeholder rules: hold time, break length, session length (seconds). */
 export const mockRules = {
   holdSeconds: 600,

@@ -9,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.auth import DummyAdminMiddleware, DummyAuthMiddleware
+from app.auth import router as auth_router
 from app.config import get_settings
 from app.database import engine, get_session
 from app.features.reservations.admin_router import router as admin_router
@@ -27,8 +27,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="The Wurst Team API", version="0.1.0", lifespan=lifespan)
-app.add_middleware(DummyAuthMiddleware)
-app.add_middleware(DummyAdminMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
@@ -38,6 +36,7 @@ app.add_middleware(
 )
 app.include_router(router)
 app.include_router(admin_router)
+app.include_router(auth_router)
 
 
 @app.exception_handler(AdminConflict)

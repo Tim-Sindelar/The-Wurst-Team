@@ -59,7 +59,7 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 
 ### Data and state
 
-- The screens are mocks: no backend calls yet. Sample data lives in `src/mock/data.ts`. The chosen seat and booking state (`none`, `reserved`, `session`) live in `MockBookingProvider` and persist in `localStorage`.
+- Profile and the home avatar use `/api/v1/me` through `useCurrentUser`. Profile saves a display name and optional photo through the generated `updateMeMutation`; the backend persists these in `user_profiles` without changing auth identity. Seat/booking data remains mocked in `src/mock/data.ts`; the chosen seat and booking state (`none`, `reserved`, `session`) live in `MockBookingProvider` and persist in `localStorage`.
 - Mock-only URL switches mirror the HTML mockups: `/?state=reserved|session|none`, `/session?phase=priority|open|break`, `/session?extended=1`, `/scan?from=extend|break-start|break-end`, `/scan?error=1`.
 - When wiring the backend, fetch with the generated TanStack Query helpers from `src/api/generated/` and replace the `src/mock` imports screen by screen. Don't hand-write fetch calls or API types.
 
