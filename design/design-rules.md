@@ -5,7 +5,7 @@ Values live in `tokens.css`. **This file says how to use them.** If a rule and a
 
 ## Direction
 - Copy the visual language of the ETH EduApp: neutral greys (near-black dark theme), uppercase labels, outline icons. Soft shapes (7px cards, 5px controls) with a light shadow, thin outline kept on every card.
-- Home uses the **ASS / Academic Study Spaces** wordmark in the grey toolbar: the black logo in light mode and the white logo in dark mode, in a compact 168px-wide, 32px-high frame. A 4px grey divider separates the toolbar from the content. Other screen headings retain their page titles.
+- Home uses the text **Academic Study Spaces** in the grey toolbar, with the same heading font as the rest of the app. The title wraps on narrow screens. A 4px grey divider separates the toolbar from the content. Other screen headings retain their page titles.
 - Components come from the shared set (button, chip, tab, input, search, dropdown, toggle, checkbox, notice, table card, seat marker, break timer, QR check-in, modal, app header, bottom navigation). Reuse them; do not restyle per screen.
 - Phone first, 390px wide. On desktop, centre a 390px column. Do not stretch.
 - Dark is the default theme. Light is toggled with `<html data-theme="light">`. Every screen must work in both.
@@ -148,7 +148,7 @@ Used to tell the user something happened. No decision needed (at most one action
 ## Screens
 Source of truth for the flow: `user-flow.drawio.xml`.
 
-1. **Home:** the app name "Study Spaces" with the theme switch and the profile picture on the right (scrolls away), then a pinned search bar, a "Reserved" card only while a seat is held (links to Reservation), favourite study-space cards in a swipe row, tall map placeholder. The mock remembers the reservation in the browser: opening Reservation sets "reserved", opening Session sets "session" (the card then says "In session"), cancelling or ending clears it. `?state=reserved`, `?state=session` or `?state=none` on the URL forces it.
+1. **Home:** the app name "Academic Study Spaces" in the grey toolbar with the theme switch and the profile picture on the right (scrolls away), then a pinned search bar, a "Reserved" card only while a seat is held (links to Reservation), favourite study-space cards in a swipe row, tall map placeholder. The mock remembers the reservation in the browser: opening Reservation sets "reserved", opening Session sets "session" (the card then says "In session"), cancelling or ending clears it. `?state=reserved`, `?state=session` or `?state=none` on the URL forces it.
 2. **Seat arrangement:** top-down floor plan, colour-coded seats. The state key opens from an info (i) button at the top of the map; it is not a permanent legend. No visible drag / pinch instructions. Secondary button "Reserve any seat" (app picks one). Tapping a free seat opens the reserve bottom sheet.
    - **Reserve sheet** (not a screen): seat summary, note "held for X minutes", primary "Reserve", secondary "Cancel". Confirming turns the seat Reserved and goes to screen 3.
 3. **Reservation:** seat / room / building summary, X:00 check-in countdown, primary "Check in" (scan), secondary "Cancel reservation".

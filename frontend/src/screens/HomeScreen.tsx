@@ -13,7 +13,6 @@ import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
-import { AppLogo } from '../components/AppLogo';
 import { Screen, ScreenMain, ScreenToolbar } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -46,8 +45,8 @@ export function HomeScreen() {
   return (
     <Screen>
       <ScreenToolbar>
-        <Title order={1} className="min-w-0 flex-1">
-          <AppLogo />
+        <Title order={1} className="min-w-0 flex-1 py-2">
+          Academic Study Spaces
         </Title>
         <ThemeToggle />
         <ActionIcon
