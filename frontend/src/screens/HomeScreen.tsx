@@ -12,11 +12,12 @@ import { stripeClass, type SeatState } from '../domain/seat';
 import {
   favouriteSpaces,
   filterSpaces,
-  recentSpaces,
+  spacesByIds,
   toStudySpace,
   type StudySpace,
 } from '../domain/space';
 import { useFavourites } from '../hooks/useFavourites';
+import { usePopular } from '../hooks/usePopular';
 import { useRecents } from '../hooks/useRecents';
 import { formatCountdown, secondsUntil } from '../hooks/useCountdown';
 import { useNow } from '../hooks/useNow';
@@ -37,6 +38,7 @@ export function HomeScreen() {
   } = useMyReservation();
   const favourites = useFavourites();
   const recents = useRecents();
+  const popular = usePopular();
   const [search, setSearch] = useState('');
   const allSpaces = spacesQuery.data?.spaces.map((space) =>
     toStudySpace(space, favourites.ids.has(space.id)),
@@ -48,7 +50,12 @@ export function HomeScreen() {
     {
       id: 'recent',
       title: 'Recent',
-      spaces: recentSpaces(spaces, recents.ids),
+      spaces: spacesByIds(spaces, recents.ids),
+    },
+    {
+      id: 'popular',
+      title: 'Most popular',
+      spaces: spacesByIds(spaces, popular.ids),
     },
   ];
 
@@ -121,7 +128,7 @@ export function HomeScreen() {
           >
             <Text size="sm">Check your connection and try again.</Text>
           </Alert>
-        ) : !rows ? (
+        ) : !rows || (!searching && popular.query.isPending) ? (
           <Text c="dimmed" role="status">
             Loading study spaces…
           </Text>
@@ -144,8 +151,7 @@ export function HomeScreen() {
           )
         ) : rows.every((row) => row.spaces.length === 0) ? (
           <Text c="dimmed" role="status">
-            Star a study space or book a seat to see it here. Search to find any
-            space.
+            No study spaces yet.
           </Text>
         ) : (
           rows.map(
