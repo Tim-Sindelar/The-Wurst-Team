@@ -16,7 +16,7 @@ from app.schemas import ErrorResponse, UserResponse
 
 USER_NAMESPACE = UUID("f3e45c1d-fc27-4dfc-b84d-463bc5637f35")
 router = APIRouter(prefix="/api/v1", tags=["auth"])
-MAX_PHOTO_BYTES = 2 * 1024 * 1024
+MAX_PHOTO_BYTES = 12 * 1024 * 1024
 
 
 def get_current_user(
@@ -41,6 +41,8 @@ def get_current_admin(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> UUID:
     if settings.auth_mode != "demo":
+        if user_id in settings.admin_user_ids:
+            return user_id
         raise HTTPException(status_code=403, detail="Administrator access required")
     is_admin = settings.dummy_is_admin
     override = request.headers.get("X-Demo-Admin")
@@ -93,10 +95,10 @@ def get_me(
 
 def prepare_photo(photo: UploadFile) -> bytes:
     if photo.size is not None and photo.size > MAX_PHOTO_BYTES:
-        raise HTTPException(status_code=413, detail="Photo must be 2 MiB or smaller")
+        raise HTTPException(status_code=413, detail="Photo must be 12 MiB or smaller")
     data = photo.file.read(MAX_PHOTO_BYTES + 1)
     if len(data) > MAX_PHOTO_BYTES:
-        raise HTTPException(status_code=413, detail="Photo must be 2 MiB or smaller")
+        raise HTTPException(status_code=413, detail="Photo must be 12 MiB or smaller")
     try:
         with Image.open(BytesIO(data), formats=("JPEG", "PNG", "WEBP")) as source:
             if source.width * source.height > 16_000_000:

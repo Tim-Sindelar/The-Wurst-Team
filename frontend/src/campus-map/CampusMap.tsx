@@ -14,7 +14,6 @@ import type { LatLngBoundsLiteral } from 'leaflet';
 import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { Icon } from '../components/Icon';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { paths, seatMapPath } from '../routes';
 import { LiveRooms } from './components/LiveRooms';
 import { RoomDetails } from './components/RoomDetails';
@@ -647,7 +646,6 @@ export function CampusMap() {
           >
             Campus map
           </Title>
-          <ThemeToggle />
         </div>
       </header>
 

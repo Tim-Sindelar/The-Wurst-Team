@@ -6,6 +6,8 @@ from app.features.campus_map.floor_plans import (
     center_of,
     match_rooms,
     room_key,
+    room_label,
+    search_rooms,
     unit_id_name,
 )
 
@@ -42,7 +44,14 @@ def write_plans(folder: Path) -> None:
                 "label": None,
                 "rings": [[[0, 0, 2, 0, 2, 2]]],
             },
-            {"id": "ETH.HG.E.E_041", "name": None, "label": None, "rings": [[[0, 0, 2, 0, 2, 2]]]},
+            {
+                "id": "ETH.HG.E.E_041",
+                "name": None,
+                "label": None,
+                "use": "Hörsaal",
+                "area": 120.5,
+                "rings": [[[0, 0, 2, 0, 2, 2]]],
+            },
             {
                 "id": "ETH.HG.E.E_041.1",
                 "name": None,
@@ -73,3 +82,27 @@ def test_missing_floor_plans(tmp_path: Path) -> None:
     plans = FloorPlans(tmp_path / "nothing")
     assert plans.index() is None
     assert match_rooms({"rooms": [{"id": "HG E 7"}]}, None)["unmatched"] == ["HG E 7"]
+
+
+def test_room_label() -> None:
+    assert room_label("ETH.HG.H.H_030.1") == "HG H 30.1"
+    assert room_label("ETH.CAB.G.G_061") == "CAB G 61"
+
+
+def test_search_rooms_ranks_exact_then_prefix(tmp_path: Path) -> None:
+    write_plans(tmp_path)
+    index = FloorPlans(tmp_path).index()
+    assert index is not None
+    names = lambda q: [r["name"] for r in search_rooms(index, q, 10)]  # noqa: E731
+    assert names("hg e 41") == ["HG E 41", "HG E 41.1"]
+    assert names("  HG   E 7") == ["HG E 7"]
+    assert names("hörsaal") == ["HG E 41"]
+    assert names("e") == ["HG E 7", "HG E 41", "HG E 41.1"]
+    assert len(search_rooms(index, "hg", 2)) == 2
+    assert search_rooms(index, "hg e 41", 1)[0] == {
+        "id": "ETH.HG.E.E_041",
+        "name": "HG E 41",
+        "levelId": "ETH.HG.E",
+        "use": "Hörsaal",
+        "area": 120.5,
+    }

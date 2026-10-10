@@ -46,6 +46,8 @@ export const roomSeats: MapSeat[] = slots.map(([x, y, state], index) => ({
   label: String(index + 1),
   x,
   y,
+  angle: 0,
+  badges: [],
   state,
   reservableAt: null,
 }));

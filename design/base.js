@@ -226,6 +226,14 @@
       return;
     }
 
+    /* Close the dialog you are in and open another one (step 1 -> step 2, or Back). */
+    const swap = t.closest('[data-sheet-swap]');
+    if (swap) {
+      swap.closest('dialog')?.close('cancel');
+      document.getElementById(swap.dataset.sheetSwap)?.showModal();
+      return;
+    }
+
     const open = t.closest('[data-sheet-open]');
     if (open) {
       const dlg = document.getElementById(open.dataset.sheetOpen);
@@ -238,11 +246,14 @@
     }
     const close = t.closest('[data-sheet-close]');
     if (close) {
-      close.closest('dialog')?.close('cancel');
+      close.closest('dialog')?.close(close.dataset.thenBanner ? 'confirm' : 'cancel');
+      /* A confirming button can show a banner afterwards: data-then-banner="banner-id". */
+      const banner = close.dataset.thenBanner && document.getElementById(close.dataset.thenBanner);
+      if (banner) showBanner(banner);
       return;
     }
     /* Click on the dimmed area: the click target is the dialog itself. */
-    if (t instanceof HTMLDialogElement && t.classList.contains('sheet')) {
+    if (t instanceof HTMLDialogElement && (t.classList.contains('sheet') || t.classList.contains('dialog'))) {
       const r = t.getBoundingClientRect();
       const outside = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
       if (outside) t.close('cancel');

@@ -7,6 +7,7 @@ export const paths = {
   scan: '/scan',
   session: '/session',
   profile: '/profile',
+  profileEdit: '/profile/edit',
 } as const;
 
 /** The seat map of one study space. */

@@ -3,6 +3,27 @@ import type { SVGProps } from 'react';
 /* The design's one icon set: 24px outline, 1.75px stroke, drawn in currentColor.
    Add new icons here only, with the same stroke settings. */
 const paths = {
+  outlet: (
+    <>
+      <path d="M7 3v6M17 3v6M5 9h14v4a7 7 0 0 1-14 0zM12 20v2" />
+    </>
+  ),
+  monitor: (
+    <>
+      <rect x="2" y="3" width="20" height="14" rx="1" />
+      <path d="M12 17v4M7 21h10" />
+    </>
+  ),
+  rotate: (
+    <>
+      <path d="M4 9a8 8 0 1 1 0 7M4 3v6h6" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+    </>
+  ),
   alert: (
     <>
       <path d="M12 3L2.5 20h19z" />
@@ -19,6 +40,12 @@ const paths = {
     </>
   ),
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  edit: (
+    <>
+      <path d="M14.5 4.5l5 5M4 20l1-5L16 4a2.1 2.1 0 0 1 3 3L8 18z" />
+      <path d="M4 20l4-2" />
+    </>
+  ),
   coffee: (
     <>
       <path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z" />
@@ -56,6 +83,12 @@ const paths = {
     <>
       <path d="M12 3l9 5-9 5-9-5z" />
       <path d="M3 12.5l9 5 9-5M3 17l9 5 9-5" />
+    </>
+  ),
+  keyboard: (
+    <>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M6 9h1M10 9h1M14 9h1M18 9h1M6 12.5h1M10 12.5h1M14 12.5h1M18 12.5h1M8 16h8" />
     </>
   ),
   minus: <path d="M5 12h14" />,

@@ -6,10 +6,12 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   createTheme,
   Drawer,
   Input,
   Notification,
+  Modal,
   Popover,
   Progress,
   Slider,
@@ -24,7 +26,7 @@ import { Icon } from '../components/Icon';
    ui-* classes from components.css; screens pick a variant and never restyle.
 
    Variants:
-   - Button: primary (default), secondary, danger, quiet
+   - Button: primary (default), secondary, danger, quiet, map (32px, on the room map)
    - ActionIcon: icon (default, 44px), map (32px map control), camera
    - Alert: info (default), warning, danger */
 
@@ -105,6 +107,14 @@ export const theme = createTheme({
 
     TextInput: TextInput.extend({
       defaultProps: { leftSectionWidth: 44 },
+    }),
+
+    Checkbox: Checkbox.extend({
+      classNames: {
+        input: 'ui-checkbox',
+        label: 'ui-checkbox-label',
+        icon: 'ui-checkbox-icon',
+      },
     }),
 
     Switch: Switch.extend({
@@ -201,6 +211,16 @@ export const theme = createTheme({
       },
     }),
 
+    Modal: Modal.extend({
+      classNames: {
+        overlay: 'ui-dialog-overlay',
+        content: 'ui-dialog-content',
+        header: 'ui-dialog-header',
+        title: 'ui-dialog-title',
+        body: 'ui-dialog-body',
+        close: 'ui-dialog-close',
+      },
+    }),
     Title: Title.extend({
       classNames: { root: 'ui-title' },
     }),

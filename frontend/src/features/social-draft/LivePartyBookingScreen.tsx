@@ -12,6 +12,7 @@ import { SectionLabel } from '../../components/SectionLabel';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { apiProblem } from '../../domain/booking';
 import { layoutSeats } from '../../domain/room';
+import { savedLayout } from '../admin/layoutDocument';
 import { useRules } from '../../hooks/useRules';
 import { paths } from '../../routes';
 import { draftPaths, partyPath } from './draft';
@@ -47,7 +48,11 @@ export function LivePartySeatsScreen() {
     refetchInterval: 15000,
   });
   const space = spaceQuery.data?.space;
-  const { shown: seats, hidden } = layoutSeats(space?.seats ?? [], null);
+  const {
+    plan,
+    shown: seats,
+    hidden,
+  } = layoutSeats(space?.seats ?? [], null, savedLayout(space?.layout));
   const activeId = members.some((m) => m.person.id === active)
     ? active
     : (members.find((m) => !assignments[m.person.id])?.person.id ??
@@ -203,6 +208,10 @@ export function LivePartySeatsScreen() {
               />
               <div className="h-105 shrink-0">
                 <SeatMap
+                  key={
+                    plan ? `${plan.room.width}x${plan.room.height}` : 'stand-in'
+                  }
+                  plan={plan}
                   seats={seats}
                   selected={assignments[activeId] ?? ''}
                   highlightedSeats={picked}

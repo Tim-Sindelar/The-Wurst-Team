@@ -1,6 +1,6 @@
 /* ==========================================================================
    Campus map. Ported from occupancy-map-preview/src/styles.css (view mode
-   only) and scoped to the map screen (.campus-map) and the sheets it opens
+   only) and scoped to the map screen, admin room picker, and their sheets
    (.campus-map-ui, rendered in portals). The map's own colour names point at
    the design tokens, so both themes follow the rest of the app. The colours
    drawn on the map itself come from the backend's map style (/api/v1/map/style).
@@ -11,7 +11,7 @@
    ========================================================================== */
 
 @layer components {
-  :is(.campus-map, .campus-map-ui) {
+  :is(.campus-map, .campus-map-ui, .admin-room-map) {
     --bg: var(--color-bg);
     --panel: var(--color-surface);
     --text: var(--color-text);
@@ -1030,7 +1030,7 @@
   }
 
   /* ---- the map itself ---------------------------------------------------- */
-  .campus-map {
+  :is(.campus-map, .admin-room-map) {
     .map {
       height: 100%;
       width: 100%;
@@ -1341,6 +1341,11 @@
       outline: 2px solid var(--color-focus);
       outline-offset: -2px;
     }
+    .leaflet-bar a:focus-visible,
+    .leaflet-control-layers-toggle:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: -2px;
+    }
     .leaflet-control-zoom {
       display: none;
     }
@@ -1381,7 +1386,7 @@
     }
   }
 
-  [data-mantine-color-scheme='dark'] .campus-map {
+  [data-mantine-color-scheme='dark'] :is(.campus-map, .admin-room-map) {
     .leaflet-container {
       background: #14171c;
     }
@@ -1389,6 +1394,13 @@
     .maplibregl-canvas {
       filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95);
     }
+  }
+
+  .admin-room-map .leaflet-top {
+    top: 0;
+  }
+  .admin-room-map .leaflet-control-zoom {
+    display: block;
   }
 
   /* Room photo viewer (RoomDetails renders it into <body>). */

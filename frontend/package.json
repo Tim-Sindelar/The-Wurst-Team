@@ -32,6 +32,7 @@
     "maplibre-gl": "6.13.0",
     "polygon-clipping": "0.15.7",
     "qr-scanner": "1.4.2",
+    "qrcode-generator": "2.0.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-leaflet": "5.0.0",

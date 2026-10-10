@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seats · Study Spaces Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../base.css">
+  <link rel="stylesheet" href="../admin.css">
+  <script src="../base.js"></script>
+<script src="layout-data.js" defer></script>
+<script src="spaces-data.js" defer></script>
+<script src="room-context.js" defer></script>
+</head>
+<body class="admin-body">
+  <div class="admin">
+    <aside class="sidebar">
+      <a class="sidebar__brand" href="01-spaces.html" aria-label="Study Spaces admin, back to the spaces list">
+        <strong>Study Spaces</strong>
+        <span class="t-label">Admin</span>
+      </a>
+      <nav class="nav" aria-label="Admin">
+        <a class="nav__link" href="01-spaces.html" aria-current="page"><i class="icon i-map"></i> Spaces</a>
+        <a class="nav__link" href="08-users.html"><i class="icon i-user" aria-hidden="true"></i> Users</a>
+<a class="nav__link" href="10-space-qr.html"><i class="icon i-qr" aria-hidden="true"></i> QR codes</a>
+      </nav>
+      <div class="sidebar__foot">
+        <a class="nav__link" href="../index.html"><i class="icon i-home"></i> Student app</a>
+        <div class="sidebar__user">
+          <span class="avatar" aria-hidden="true">AD</span>
+          <span class="t-small">Admin</span>
+          <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme" style="margin-left: auto">
+            <i class="icon i-sun"></i><i class="icon i-moon"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin__main">
+      <div class="page">
+        <a class="crumbs" href="01-spaces.html"><i class="icon icon--sm i-back"></i> Spaces</a>
+        <header class="page-header">
+          <div class="page-header__text">
+            <h1 class="t-heading">Hauptbibliothek · Lesesaal</h1>
+            <p class="t-muted"><span class="chip is-free">Open</span> &nbsp;Europe/Zurich · Updated 10:42:05</p>
+          </div>
+          <div class="page-header__actions">
+            <button class="btn btn--secondary" type="button" data-banner-open="banner-refreshed"><i class="icon i-check"></i> Refresh</button>
+            <button class="btn btn--primary" type="button" data-sheet-open="dlg-add"><i class="icon i-plus"></i> Add seat</button>
+          </div>
+        </header>
+        <nav class="subnav" aria-label="This space"><a href="03-space-seats.html" aria-current="page">Seats</a><a href="04-space-hours.html">Opening hours</a><a href="05-space-closures.html">Closures</a><a href="06-space-layout.html">Layout</a><a href="10-space-qr.html">QR codes</a><a href="07-space-settings.html">Settings</a></nav>
+
+        <section class="stats" aria-label="Seats now">
+          <div class="stat"><span class="t-label">Active seats</span><span class="stat__value">3 <span class="t-small t-muted">of 4</span></span></div>
+          <div class="stat"><span class="t-label">Free</span><span class="stat__value">0</span></div>
+          <div class="stat"><span class="t-label">Occupied</span><span class="stat__value">2</span></div>
+          <div class="stat"><span class="t-label">On break</span><span class="stat__value">1</span></div>
+        </section>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Seat</th>
+                <th scope="col">Status</th>
+                <th scope="col">Now</th>
+                <th scope="col">Next</th>
+                <th scope="col"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Seat 1</strong></td>
+                <td><span class="chip is-occupied">Occupied</span></td>
+                <td><div class="cell-stack"><span>Lena Fischer</span><span class="t-small t-muted">Checked in 09:15 · until 11:15</span><button class="btn btn--quiet is-risky" type="button" data-sheet-open="dlg-end-1">End reservation</button></div></td>
+                <td><span class="t-muted">—</span></td>
+                <td class="actions">
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-qr-1">QR code</button>
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-rename-1">Rename</button>
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-off-1">Switch off</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Seat 2</strong></td>
+                <td><span class="chip is-break">On break</span></td>
+                <td><div class="cell-stack"><span>Marco Bianchi</span><span class="t-small t-muted">On break since 10:35 · session until 12:05</span><button class="btn btn--quiet is-risky" type="button" data-sheet-open="dlg-end-2">End reservation</button></div></td>
+                <td><span class="t-muted">—</span></td>
+                <td class="actions">
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-qr-2">QR code</button>
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-rename-2">Rename</button>
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-off-2">Switch off</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Seat 3</strong></td>
+                <td><span class="chip is-occupied">Occupied</span></td>
+                <td><div class="cell-stack"><span>Sara Keller</span><span class="t-small t-muted">Checked in 09:30 · until 11:30</span><button class="btn btn--quiet is-risky" type="button" data-sheet-open="dlg-end-3">End reservation</button></div></td>
+                <td><div class="cell-stack"><span>Tim Vogt</span><span class="t-small t-muted">11:30–13:30 · upcoming</span></div></td>
+                <td class="actions">
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-qr-3">QR code</button>
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-rename-3">Rename</button>
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-off-3">Switch off</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Seat 4</strong></td>
+                <td><span class="chip is-unavailable">Switched off</span></td>
+                <td><span class="t-muted">—</span></td>
+                <td><span class="t-muted">—</span></td>
+                <td class="actions">
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-qr-4">QR code</button>
+                  <button class="btn btn--quiet" type="button" data-sheet-open="dlg-rename-4">Rename</button>
+                  <button class="btn btn--quiet" type="button" data-banner-open="banner-on">Switch on</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="t-small t-muted">Free means nobody has reserved the seat or is using it right now. Switched-off and closed seats never count as free.</p>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="dialog" id="dlg-qr-1" aria-labelledby="dlg-qr-1-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-qr-1-title">QR code for seat 1</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="qr"><svg viewBox="0 0 25 25" role="img" aria-label="Sample QR code" shape-rendering="crispEdges"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM16 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM13 1h1v1h-1zM15 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM10 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM15 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1zM14 3h1v1h-1zM15 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM11 4h1v1h-1zM14 4h1v1h-1zM15 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM10 5h1v1h-1zM13 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM13 6h1v1h-1zM14 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM0 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM11 8h1v1h-1zM15 8h1v1h-1zM16 8h1v1h-1zM19 8h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM6 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM16 9h1v1h-1zM17 9h1v1h-1zM23 9h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM10 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM19 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM22 10h1v1h-1zM0 11h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM7 11h1v1h-1zM11 11h1v1h-1zM15 11h1v1h-1zM17 11h1v1h-1zM19 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM0 12h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1zM18 12h1v1h-1zM19 12h1v1h-1zM20 12h1v1h-1zM22 12h1v1h-1zM23 12h1v1h-1zM24 12h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM3 13h1v1h-1zM6 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM11 13h1v1h-1zM12 13h1v1h-1zM16 13h1v1h-1zM19 13h1v1h-1zM21 13h1v1h-1zM23 13h1v1h-1zM24 13h1v1h-1zM1 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM7 14h1v1h-1zM12 14h1v1h-1zM14 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM20 14h1v1h-1zM23 14h1v1h-1zM0 15h1v1h-1zM1 15h1v1h-1zM2 15h1v1h-1zM6 15h1v1h-1zM7 15h1v1h-1zM10 15h1v1h-1zM12 15h1v1h-1zM13 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM20 15h1v1h-1zM21 15h1v1h-1zM23 15h1v1h-1zM0 16h1v1h-1zM3 16h1v1h-1zM4 16h1v1h-1zM5 16h1v1h-1zM6 16h1v1h-1zM8 16h1v1h-1zM9 16h1v1h-1zM11 16h1v1h-1zM13 16h1v1h-1zM14 16h1v1h-1zM15 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM9 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM14 17h1v1h-1zM16 17h1v1h-1zM20 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM9 18h1v1h-1zM10 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM17 18h1v1h-1zM19 18h1v1h-1zM20 18h1v1h-1zM22 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM9 19h1v1h-1zM12 19h1v1h-1zM14 19h1v1h-1zM18 19h1v1h-1zM19 19h1v1h-1zM22 19h1v1h-1zM24 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM19 20h1v1h-1zM22 20h1v1h-1zM23 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM12 21h1v1h-1zM13 21h1v1h-1zM14 21h1v1h-1zM15 21h1v1h-1zM16 21h1v1h-1zM18 21h1v1h-1zM20 21h1v1h-1zM21 21h1v1h-1zM22 21h1v1h-1zM23 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM9 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM13 22h1v1h-1zM17 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM11 23h1v1h-1zM13 23h1v1h-1zM14 23h1v1h-1zM17 23h1v1h-1zM20 23h1v1h-1zM23 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM14 24h1v1h-1zM15 24h1v1h-1zM16 24h1v1h-1zM19 24h1v1h-1zM22 24h1v1h-1zM24 24h1v1h-1z"/></svg><code>q7Vx3mT0fKc9Zr2hLw8YbN4sJd1aGe6UoPiXtCvRkQM</code></div>
+      <p class="t-small t-muted">Print it and stick it on the seat. Students scan it to check in. Sample code for the mockup.</p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close data-then-banner="banner-print">Print</button>
+      <button class="btn btn--primary" type="button" data-sheet-close>Done</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-rename-1" aria-labelledby="dlg-rename-1-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-rename-1-title">Rename seat 1</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="field">
+        <label class="field__label" for="label-1">Seat label</label>
+        <input class="input" id="label-1" value="1">
+        <p class="field__helper">Students see this on the seat map.</p>
+      </div>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button>
+      <button class="btn btn--primary" type="button" data-sheet-close data-then-banner="banner-renamed">Save</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-off-1" aria-labelledby="dlg-off-1-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-off-1-title">Switch off seat 1?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Students can't reserve a switched-off seat. This would change 1 booking:</p>
+      <ul class="impact">
+        <li class="impact__item is-shorten">
+          <div class="impact__who"><strong>Lena Fischer</strong><span class="t-small t-muted">Seat 1</span></div>
+          <span class="chip chip--plain is-shorten">Shorten</span>
+          <p class="impact__detail">Session ends 11:15 → 10:42</p>
+        </li>
+      </ul>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Keep seat on</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-off">Switch off seat 1</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-end-1" aria-labelledby="dlg-end-1-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-end-1-title">End Lena Fischer’s reservation?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Seat 1 is freed right away and Lena’s session ends now. This can't be undone.</p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Keep reservation</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-ended">End reservation</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-qr-2" aria-labelledby="dlg-qr-2-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-qr-2-title">QR code for seat 2</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="qr"><svg viewBox="0 0 25 25" role="img" aria-label="Sample QR code" shape-rendering="crispEdges"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM15 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM10 1h1v1h-1zM11 1h1v1h-1zM12 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM8 2h1v1h-1zM9 2h1v1h-1zM10 2h1v1h-1zM11 2h1v1h-1zM12 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM14 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM11 6h1v1h-1zM15 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM14 7h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM9 8h1v1h-1zM13 8h1v1h-1zM15 8h1v1h-1zM17 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM1 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM9 9h1v1h-1zM11 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM17 9h1v1h-1zM18 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM0 10h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM3 10h1v1h-1zM10 10h1v1h-1zM11 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM17 10h1v1h-1zM19 10h1v1h-1zM21 10h1v1h-1zM23 10h1v1h-1zM0 11h1v1h-1zM1 11h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM6 11h1v1h-1zM7 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM20 11h1v1h-1zM21 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM3 12h1v1h-1zM4 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM12 12h1v1h-1zM16 12h1v1h-1zM19 12h1v1h-1zM20 12h1v1h-1zM22 12h1v1h-1zM23 12h1v1h-1zM0 13h1v1h-1zM4 13h1v1h-1zM6 13h1v1h-1zM7 13h1v1h-1zM9 13h1v1h-1zM10 13h1v1h-1zM13 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM19 13h1v1h-1zM20 13h1v1h-1zM21 13h1v1h-1zM23 13h1v1h-1zM0 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM13 14h1v1h-1zM17 14h1v1h-1zM18 14h1v1h-1zM19 14h1v1h-1zM21 14h1v1h-1zM23 14h1v1h-1zM3 15h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM7 15h1v1h-1zM12 15h1v1h-1zM13 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM22 15h1v1h-1zM23 15h1v1h-1zM24 15h1v1h-1zM2 16h1v1h-1zM4 16h1v1h-1zM8 16h1v1h-1zM11 16h1v1h-1zM13 16h1v1h-1zM15 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM21 16h1v1h-1zM24 16h1v1h-1zM9 17h1v1h-1zM10 17h1v1h-1zM14 17h1v1h-1zM16 17h1v1h-1zM21 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM10 18h1v1h-1zM11 18h1v1h-1zM16 18h1v1h-1zM22 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM11 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM18 19h1v1h-1zM19 19h1v1h-1zM21 19h1v1h-1zM22 19h1v1h-1zM23 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM13 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM18 20h1v1h-1zM21 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM8 21h1v1h-1zM9 21h1v1h-1zM10 21h1v1h-1zM11 21h1v1h-1zM12 21h1v1h-1zM13 21h1v1h-1zM16 21h1v1h-1zM18 21h1v1h-1zM19 21h1v1h-1zM21 21h1v1h-1zM23 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM9 22h1v1h-1zM11 22h1v1h-1zM15 22h1v1h-1zM17 22h1v1h-1zM19 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM9 23h1v1h-1zM10 23h1v1h-1zM11 23h1v1h-1zM13 23h1v1h-1zM15 23h1v1h-1zM16 23h1v1h-1zM17 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM21 23h1v1h-1zM22 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM11 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM16 24h1v1h-1zM17 24h1v1h-1zM19 24h1v1h-1zM22 24h1v1h-1zM24 24h1v1h-1z"/></svg><code>Hd5nZp0Yw3KsB8rQeLm2TgVx7cJf9aUoXiR4tNvA1bE</code></div>
+      <p class="t-small t-muted">Print it and stick it on the seat. Students scan it to check in. Sample code for the mockup.</p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close data-then-banner="banner-print">Print</button>
+      <button class="btn btn--primary" type="button" data-sheet-close>Done</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-rename-2" aria-labelledby="dlg-rename-2-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-rename-2-title">Rename seat 2</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="field">
+        <label class="field__label" for="label-2">Seat label</label>
+        <input class="input" id="label-2" value="2">
+        <p class="field__helper">Students see this on the seat map.</p>
+      </div>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button>
+      <button class="btn btn--primary" type="button" data-sheet-close data-then-banner="banner-renamed">Save</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-off-2" aria-labelledby="dlg-off-2-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-off-2-title">Switch off seat 2?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Students can't reserve a switched-off seat. This would change 1 booking:</p>
+      <ul class="impact">
+        <li class="impact__item is-shorten">
+          <div class="impact__who"><strong>Marco Bianchi</strong><span class="t-small t-muted">Seat 2</span></div>
+          <span class="chip chip--plain is-shorten">Shorten</span>
+          <p class="impact__detail">Session ends 12:05 → 10:42</p>
+        </li>
+      </ul>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Keep seat on</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-off">Switch off seat 2</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-end-2" aria-labelledby="dlg-end-2-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-end-2-title">End Marco Bianchi’s reservation?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Seat 2 is freed right away and Marco’s session ends now. This can't be undone.</p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Keep reservation</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-ended">End reservation</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-qr-3" aria-labelledby="dlg-qr-3-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-qr-3-title">QR code for seat 3</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="qr"><svg viewBox="0 0 25 25" role="img" aria-label="Sample QR code" shape-rendering="crispEdges"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM10 0h1v1h-1zM13 0h1v1h-1zM14 0h1v1h-1zM16 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM14 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM11 2h1v1h-1zM14 2h1v1h-1zM15 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM13 3h1v1h-1zM15 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM10 4h1v1h-1zM11 4h1v1h-1zM13 4h1v1h-1zM15 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM15 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM13 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM0 8h1v1h-1zM3 8h1v1h-1zM5 8h1v1h-1zM7 8h1v1h-1zM12 8h1v1h-1zM13 8h1v1h-1zM15 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM19 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM9 9h1v1h-1zM11 9h1v1h-1zM12 9h1v1h-1zM16 9h1v1h-1zM17 9h1v1h-1zM19 9h1v1h-1zM22 9h1v1h-1zM24 9h1v1h-1zM1 10h1v1h-1zM4 10h1v1h-1zM5 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM19 10h1v1h-1zM22 10h1v1h-1zM23 10h1v1h-1zM0 11h1v1h-1zM1 11h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM6 11h1v1h-1zM8 11h1v1h-1zM10 11h1v1h-1zM11 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM16 11h1v1h-1zM18 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM1 12h1v1h-1zM2 12h1v1h-1zM3 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM8 12h1v1h-1zM9 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM16 12h1v1h-1zM19 12h1v1h-1zM24 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM4 13h1v1h-1zM6 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM16 13h1v1h-1zM19 13h1v1h-1zM22 13h1v1h-1zM23 13h1v1h-1zM0 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM6 14h1v1h-1zM11 14h1v1h-1zM14 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM18 14h1v1h-1zM19 14h1v1h-1zM21 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM0 15h1v1h-1zM3 15h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM7 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM13 15h1v1h-1zM16 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM22 15h1v1h-1zM0 16h1v1h-1zM1 16h1v1h-1zM2 16h1v1h-1zM4 16h1v1h-1zM6 16h1v1h-1zM7 16h1v1h-1zM10 16h1v1h-1zM11 16h1v1h-1zM12 16h1v1h-1zM15 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM11 17h1v1h-1zM13 17h1v1h-1zM14 17h1v1h-1zM16 17h1v1h-1zM17 17h1v1h-1zM18 17h1v1h-1zM20 17h1v1h-1zM21 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM13 18h1v1h-1zM17 18h1v1h-1zM20 18h1v1h-1zM21 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM9 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM14 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM17 19h1v1h-1zM20 19h1v1h-1zM22 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM10 20h1v1h-1zM13 20h1v1h-1zM14 20h1v1h-1zM18 20h1v1h-1zM20 20h1v1h-1zM21 20h1v1h-1zM22 20h1v1h-1zM24 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM8 21h1v1h-1zM11 21h1v1h-1zM13 21h1v1h-1zM16 21h1v1h-1zM17 21h1v1h-1zM18 21h1v1h-1zM19 21h1v1h-1zM20 21h1v1h-1zM21 21h1v1h-1zM22 21h1v1h-1zM23 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM16 22h1v1h-1zM19 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM12 23h1v1h-1zM13 23h1v1h-1zM14 23h1v1h-1zM15 23h1v1h-1zM19 23h1v1h-1zM21 23h1v1h-1zM22 23h1v1h-1zM24 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM11 24h1v1h-1zM14 24h1v1h-1zM15 24h1v1h-1zM16 24h1v1h-1zM17 24h1v1h-1zM18 24h1v1h-1zM21 24h1v1h-1zM23 24h1v1h-1zM24 24h1v1h-1z"/></svg><code>Wk2sXc9Rj4TqLm7ZpY0eHb5dNg8UfVa3oIiB6vCtKxQ</code></div>
+      <p class="t-small t-muted">Print it and stick it on the seat. Students scan it to check in. Sample code for the mockup.</p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close data-then-banner="banner-print">Print</button>
+      <button class="btn btn--primary" type="button" data-sheet-close>Done</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-rename-3" aria-labelledby="dlg-rename-3-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-rename-3-title">Rename seat 3</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="field">
+        <label class="field__label" for="label-3">Seat label</label>
+        <input class="input" id="label-3" value="3">
+        <p class="field__helper">Students see this on the seat map.</p>
+      </div>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button>
+      <button class="btn btn--primary" type="button" data-sheet-close data-then-banner="banner-renamed">Save</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-off-3" aria-labelledby="dlg-off-3-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-off-3-title">Switch off seat 3?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Students can't reserve a switched-off seat. This would change 2 bookings:</p>
+      <ul class="impact">
+        <li class="impact__item is-shorten">
+          <div class="impact__who"><strong>Sara Keller</strong><span class="t-small t-muted">Seat 3</span></div>
+          <span class="chip chip--plain is-shorten">Shorten</span>
+          <p class="impact__detail">Session ends 11:30 → 10:42</p>
+        </li>
+        <li class="impact__item is-cancel">
+          <div class="impact__who"><strong>Tim Vogt</strong><span class="t-small t-muted">Seat 3</span></div>
+          <span class="chip chip--plain is-cancel">Cancel</span>
+          <p class="impact__detail">Reservation 11:30–13:30 → cancelled</p>
+        </li>
+      </ul>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Keep seat on</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-off">Switch off seat 3</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-end-3" aria-labelledby="dlg-end-3-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-end-3-title">End Sara Keller’s reservation?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Seat 3 is freed right away and Sara’s session ends now. This can't be undone.</p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Keep reservation</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-ended">End reservation</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-qr-4" aria-labelledby="dlg-qr-4-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-qr-4-title">QR code for seat 4</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="qr"><svg viewBox="0 0 25 25" role="img" aria-label="Sample QR code" shape-rendering="crispEdges"><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM21 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM10 1h1v1h-1zM11 1h1v1h-1zM12 1h1v1h-1zM13 1h1v1h-1zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM10 2h1v1h-1zM15 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM21 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM13 4h1v1h-1zM15 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM15 5h1v1h-1zM16 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM13 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM10 7h1v1h-1zM11 7h1v1h-1zM12 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM0 8h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM8 8h1v1h-1zM9 8h1v1h-1zM12 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM18 8h1v1h-1zM19 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM0 9h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM6 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM17 9h1v1h-1zM20 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM24 9h1v1h-1zM0 10h1v1h-1zM1 10h1v1h-1zM2 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM10 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM17 10h1v1h-1zM22 10h1v1h-1zM23 10h1v1h-1zM24 10h1v1h-1zM3 11h1v1h-1zM11 11h1v1h-1zM14 11h1v1h-1zM18 11h1v1h-1zM20 11h1v1h-1zM23 11h1v1h-1zM24 11h1v1h-1zM4 12h1v1h-1zM5 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM15 12h1v1h-1zM17 12h1v1h-1zM20 12h1v1h-1zM22 12h1v1h-1zM23 12h1v1h-1zM0 13h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM7 13h1v1h-1zM10 13h1v1h-1zM12 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM16 13h1v1h-1zM18 13h1v1h-1zM19 13h1v1h-1zM23 13h1v1h-1zM1 14h1v1h-1zM3 14h1v1h-1zM4 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM10 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM17 14h1v1h-1zM18 14h1v1h-1zM20 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM24 14h1v1h-1zM1 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1zM11 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM18 15h1v1h-1zM20 15h1v1h-1zM21 15h1v1h-1zM22 15h1v1h-1zM24 15h1v1h-1zM1 16h1v1h-1zM3 16h1v1h-1zM5 16h1v1h-1zM6 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM11 16h1v1h-1zM12 16h1v1h-1zM13 16h1v1h-1zM19 16h1v1h-1zM21 16h1v1h-1zM9 17h1v1h-1zM15 17h1v1h-1zM17 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM0 18h1v1h-1zM1 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM10 18h1v1h-1zM11 18h1v1h-1zM13 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM20 18h1v1h-1zM23 18h1v1h-1zM24 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM14 19h1v1h-1zM15 19h1v1h-1zM19 19h1v1h-1zM20 19h1v1h-1zM21 19h1v1h-1zM23 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM11 20h1v1h-1zM13 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM20 20h1v1h-1zM0 21h1v1h-1zM2 21h1v1h-1zM3 21h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM16 21h1v1h-1zM18 21h1v1h-1zM19 21h1v1h-1zM20 21h1v1h-1zM22 21h1v1h-1zM23 21h1v1h-1zM0 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM9 22h1v1h-1zM10 22h1v1h-1zM11 22h1v1h-1zM12 22h1v1h-1zM14 22h1v1h-1zM16 22h1v1h-1zM17 22h1v1h-1zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM13 23h1v1h-1zM17 23h1v1h-1zM20 23h1v1h-1zM24 23h1v1h-1zM0 24h1v1h-1zM1 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM9 24h1v1h-1zM12 24h1v1h-1zM15 24h1v1h-1z"/></svg><code>Zf8mQe1Tr6YkWs3LpHc9XbJd2NvAg5UoIt0RxCiB7aVM</code></div>
+      <p class="t-small t-muted">Print it and stick it on the seat. Students scan it to check in. Sample code for the mockup.</p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close data-then-banner="banner-print">Print</button>
+      <button class="btn btn--primary" type="button" data-sheet-close>Done</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-rename-4" aria-labelledby="dlg-rename-4-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-rename-4-title">Rename seat 4</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="field">
+        <label class="field__label" for="label-4">Seat label</label>
+        <input class="input" id="label-4" value="4">
+        <p class="field__helper">Students see this on the seat map.</p>
+      </div>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button>
+      <button class="btn btn--primary" type="button" data-sheet-close data-then-banner="banner-renamed">Save</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-add" aria-labelledby="dlg-add-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-add-title">Add a seat</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="field">
+        <label class="field__label" for="new-label">Seat label</label>
+        <input class="input" id="new-label" placeholder="5">
+        <p class="field__helper">Students see this on the seat map.</p>
+      </div>
+      <label class="toggle-row"><span>Active<br><span class="t-small t-muted">Inactive seats can't be reserved.</span></span><input class="toggle" type="checkbox" role="switch" checked></label>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button>
+      <button class="btn btn--primary" type="button" data-sheet-close data-then-banner="banner-added">Add seat</button>
+    </div>
+  </dialog>
+
+  <div class="banner-region">
+    <div class="banner" id="banner-refreshed" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Updated</span>
+        <span class="t-small t-muted">Seats are current as of now.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-print" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Sent to the printer</span>
+        <span class="t-small t-muted">The QR code sticker is printing.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-renamed" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Seat renamed</span>
+        <span class="t-small t-muted">Students see the new label on the seat map.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-off" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Seat switched off</span>
+        <span class="t-small t-muted">The affected bookings were changed.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-on" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Seat 4 switched on</span>
+        <span class="t-small t-muted">Students can reserve it again.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-ended" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Reservation ended</span>
+        <span class="t-small t-muted">The seat is free again.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-added" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Seat added</span>
+        <span class="t-small t-muted">Its QR code is ready to print.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+  </div>
+</body>
+</html>

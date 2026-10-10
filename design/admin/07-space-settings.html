@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings · Study Spaces Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../base.css">
+  <link rel="stylesheet" href="../admin.css">
+  <script src="../base.js"></script>
+<script src="layout-data.js" defer></script>
+<script src="spaces-data.js" defer></script>
+<script src="room-context.js" defer></script>
+<script src="space-actions.js" defer></script>
+</head>
+<body class="admin-body">
+  <div class="admin">
+    <aside class="sidebar">
+      <a class="sidebar__brand" href="01-spaces.html" aria-label="Study Spaces admin, back to the spaces list">
+        <strong>Study Spaces</strong>
+        <span class="t-label">Admin</span>
+      </a>
+      <nav class="nav" aria-label="Admin">
+        <a class="nav__link" href="01-spaces.html" aria-current="page"><i class="icon i-map"></i> Spaces</a>
+        <a class="nav__link" href="08-users.html"><i class="icon i-user" aria-hidden="true"></i> Users</a>
+<a class="nav__link" href="10-space-qr.html"><i class="icon i-qr" aria-hidden="true"></i> QR codes</a>
+      </nav>
+      <div class="sidebar__foot">
+        <a class="nav__link" href="../index.html"><i class="icon i-home"></i> Student app</a>
+        <div class="sidebar__user">
+          <span class="avatar" aria-hidden="true">AD</span>
+          <span class="t-small">Admin</span>
+          <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme" style="margin-left: auto">
+            <i class="icon i-sun"></i><i class="icon i-moon"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin__main">
+      <div class="page">
+        <a class="crumbs" href="01-spaces.html"><i class="icon icon--sm i-back"></i> Spaces</a>
+        <header class="page-header">
+          <div class="page-header__text">
+            <h1 class="t-heading">Hauptbibliothek · Lesesaal</h1>
+            <p class="t-muted"><span class="chip is-free">Open</span> &nbsp;Europe/Zurich · Updated 10:42:05</p>
+          </div>
+          <div class="page-header__actions">
+
+          </div>
+        </header>
+        <nav class="subnav" aria-label="This space"><a href="03-space-seats.html">Seats</a><a href="04-space-hours.html">Opening hours</a><a href="05-space-closures.html">Closures</a><a href="06-space-layout.html">Layout</a><a href="10-space-qr.html">QR codes</a><a href="07-space-settings.html" aria-current="page">Settings</a></nav>
+
+        <div class="form form--narrow">
+          <div class="form-grid">
+            <div class="field span-2">
+              <label class="field__label" for="s-name">Name</label>
+              <input class="input" id="s-name" value="Hauptbibliothek · Lesesaal">
+            </div>
+            <div class="field">
+              <label class="field__label" for="s-lat">Latitude</label>
+              <input class="input" id="s-lat" inputmode="decimal" value="47.37648">
+              <p class="field__helper">Decimal degrees, north is positive.</p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="s-lng">Longitude</label>
+              <input class="input" id="s-lng" inputmode="decimal" value="8.548268">
+              <p class="field__helper">Decimal degrees, east is positive.</p>
+            </div>
+            <div class="field span-2">
+              <label class="field__label" for="s-tz">Time zone</label>
+              <div class="select">
+                <select id="s-tz"><option>Europe/Zurich</option><option>Europe/Berlin</option><option>UTC</option></select>
+              </div>
+              <p class="field__helper">Changing the time zone moves the opening hours and can change bookings. You will see a preview first.</p>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn--secondary" type="button">Discard changes</button>
+            <button class="btn btn--primary" type="button" data-banner-open="banner-saved">Save changes</button>
+          </div>
+        </div>
+        <section class="user-card">
+          <h2 class="t-title">Delete study place</h2>
+          <p class="t-small t-muted">Remove this study place and its saved layout from the local admin mockup. Reservation history is kept.</p>
+          <button class="btn btn--danger" type="button" data-delete-current-space>Delete study place</button>
+        </section>
+        <p class="t-small t-muted">Mock: <button class="btn btn--quiet" type="button" data-sheet-open="dlg-tz-impact" style="min-height: 0; padding: 0">save a time-zone change</button></p>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="dialog" id="dlg-tz-impact" aria-labelledby="dlg-tz-impact-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-tz-impact-title">Change the time zone to Europe/Berlin?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Opening hours keep their clock times, so they move by one hour. This would change 2 bookings:</p>
+      <ul class="impact">
+        <li class="impact__item is-shift">
+          <div class="impact__who"><strong>Lena Fischer</strong><span class="t-small t-muted">Seat 1</span></div>
+          <span class="chip chip--plain is-shift">Shift</span>
+          <p class="impact__detail">Today 09:15–11:15 → 10:15–12:15</p>
+        </li>
+        <li class="impact__item is-cancel">
+          <div class="impact__who"><strong>Tim Vogt</strong><span class="t-small t-muted">Seat 3</span></div>
+          <span class="chip chip--plain is-cancel">Cancel</span>
+          <p class="impact__detail">Today 11:30–13:30 → cancelled</p>
+        </li>
+      </ul>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Back</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-tz">Apply changes</button>
+    </div>
+  </dialog>
+
+  <div class="banner-region">
+    <div class="banner" id="banner-saved" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Saved</span>
+        <span class="t-small t-muted">The space was updated.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-tz" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Time zone changed</span>
+        <span class="t-small t-muted">2 bookings were changed.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+  </div>
+
+  <dialog class="dialog" id="dlg-delete-space" aria-labelledby="delete-space-title">
+    <div class="dialog__head"><h2 class="dialog__title" id="delete-space-title">Delete study place?</h2><button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button></div>
+    <div class="dialog__body"><p id="delete-space-description"></p><p class="t-small t-muted">The study place and saved layout will leave the spaces list. Reservation history stays available. You can undo from the spaces list.</p><p id="delete-space-error" class="t-small" role="alert" hidden></p></div>
+    <div class="dialog__foot"><button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button><button class="btn btn--danger" type="button" id="confirm-delete-space">Delete study place</button></div>
+  </dialog>
+  <div class="banner-region"><div class="banner" id="space-deleted-banner" role="status" hidden><div class="banner__text"><span class="banner__title">Study place deleted</span><span class="t-small t-muted" id="space-deleted-name"></span></div><button class="btn btn--quiet" type="button" id="undo-space-delete">Undo</button><button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button></div></div>
+
+</body>
+</html>
