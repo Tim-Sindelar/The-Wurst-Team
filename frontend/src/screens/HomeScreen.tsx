@@ -9,10 +9,7 @@ import {
 } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import {
-  getMyReservationOptions,
-  listSpacesOptions,
-} from '../api/generated/@tanstack/react-query.gen';
+import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
 import { Placeholder } from '../components/Placeholder';
@@ -21,18 +18,22 @@ import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
 import { toStudySpace } from '../domain/space';
+import { useMyReservation } from '../hooks/useMyReservation';
 import { mockUser } from '../mock/data';
 import { paths } from '../routes';
 
 export function HomeScreen() {
-  const spacesQuery = useQuery(listSpacesOptions());
-  const reservationQuery = useQuery(getMyReservationOptions());
+  const spacesQuery = useQuery({
+    ...listSpacesOptions(),
+    refetchInterval: 15_000,
+  });
+  const {
+    query: reservationQuery,
+    reservation,
+    held,
+    running,
+  } = useMyReservation();
   const spaces = spacesQuery.data?.spaces.map(toStudySpace);
-  const reservation = reservationQuery.data?.reservation;
-  const held =
-    reservation?.status === 'upcoming' || reservation?.status === 'pending';
-  const running =
-    reservation?.status === 'active' || reservation?.status === 'on_break';
 
   return (
     <Screen>

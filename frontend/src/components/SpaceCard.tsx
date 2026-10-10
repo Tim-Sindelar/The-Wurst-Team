@@ -2,7 +2,7 @@ import { ActionIcon, Anchor, Card, Title } from '@mantine/core';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import type { StudySpace } from '../domain/space';
-import { paths } from '../routes';
+import { seatMapPath } from '../routes';
 import { AvailabilityLabel } from './AvailabilityLabel';
 import { Icon } from './Icon';
 
@@ -20,7 +20,7 @@ export function SpaceCard({ space }: { space: StudySpace }) {
         <Title order={2} className="min-w-0 flex-1">
           <Anchor
             component={Link}
-            to={paths.seatMap}
+            to={seatMapPath(space.id)}
             underline="never"
             className="[font:inherit] text-inherit [overflow-wrap:anywhere] after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-focus"
           >

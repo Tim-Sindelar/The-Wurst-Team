@@ -1,5 +1,6 @@
 import {
   createBrowserRouter,
+  Navigate,
   Outlet,
   RouterProvider,
   ScrollRestoration,
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: paths.home, element: <HomeScreen /> },
+      { path: '/seats', element: <Navigate to={paths.home} replace /> },
       { path: paths.seatMap, element: <SeatMapScreen /> },
       { path: paths.reservation, element: <ReservationScreen /> },
       { path: paths.scan, element: <ScanScreen /> },

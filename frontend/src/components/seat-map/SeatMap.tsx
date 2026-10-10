@@ -1,7 +1,7 @@
 import { ActionIcon, Popover, Text } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
-import { roomGeometry, roomTables, type Seat } from '../../mock/data';
+import { roomGeometry, roomTables, type MapSeat } from '../../domain/room';
 import { Icon } from '../Icon';
 import { SectionLabel } from '../SectionLabel';
 import { createPanZoom, type PanZoom } from './panZoom';
@@ -16,9 +16,9 @@ const keyStates: SeatState[] = [
 ];
 
 type SeatMapProps = {
-  seats: Seat[];
-  selected: number;
-  onSelect: (seat: number) => void;
+  seats: MapSeat[];
+  selected: string;
+  onSelect: (seatId: string) => void;
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
@@ -51,7 +51,7 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
         if (zoomInRef.current) zoomInRef.current.disabled = !canZoomIn;
         if (zoomOutRef.current) zoomOutRef.current.disabled = !canZoomOut;
       },
-      onSeatTap: (seat) => onSelectRef.current(Number(seat.dataset.seatNumber)),
+      onSeatTap: (seat) => onSelectRef.current(String(seat.dataset.seatId)),
       onMapPress: () => setKeyOpen(false),
     });
     panZoomRef.current = panZoom;
@@ -64,7 +64,7 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
   useEffect(() => {
     if (shownSelection.current === selected) return;
     shownSelection.current = selected;
-    const seat = seats.find((item) => item.number === selected);
+    const seat = seats.find((item) => item.id === selected);
     if (seat) panZoomRef.current?.centerOn(seat.x, seat.y);
   }, [selected, seats]);
 
@@ -128,13 +128,14 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
         </svg>
         {seats.map((seat) => (
           <SeatMarker
-            key={seat.number}
-            number={seat.number}
+            key={seat.id}
+            id={seat.id}
+            label={seat.label}
             state={seat.state}
             x={seat.x}
             y={seat.y}
-            selected={seat.number === selected}
-            onSelect={() => onSelect(seat.number)}
+            selected={seat.id === selected}
+            onSelect={() => onSelect(seat.id)}
           />
         ))}
       </div>

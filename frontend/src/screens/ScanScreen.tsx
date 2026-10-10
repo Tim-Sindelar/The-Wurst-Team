@@ -1,74 +1,146 @@
+import { ActionIcon, Alert, Button, Text, TextInput } from '@mantine/core';
+import { useMutation } from '@tanstack/react-query';
+import { useRef, useState, type SubmitEvent } from 'react';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import {
-  ActionIcon,
-  Alert,
-  Anchor,
-  Button,
-  Text,
-  UnstyledButton,
-} from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router';
-import { getMyReservationOptions } from '../api/generated/@tanstack/react-query.gen';
+  checkInMutation,
+  extendReservationMutation,
+  returnFromBreakMutation,
+  startBreakMutation,
+} from '../api/generated/@tanstack/react-query.gen';
 import { Icon } from '../components/Icon';
 import { Screen } from '../components/Screen';
-import { mockSpace } from '../mock/data';
-import { useMockBooking } from '../mock/useMockBooking';
+import { apiProblem, type ApiProblem } from '../domain/booking';
+import { useMyReservation, useRefreshBooking } from '../hooks/useMyReservation';
+import { useQrScanner } from '../hooks/useQrScanner';
 import { paths } from '../routes';
 
-/* Why the scan is happening (?from=), which changes the title and where the
-   back arrow and a successful scan lead. Check-in is the default. */
-const flows = {
+/* Why the scan is happening (?from=), which changes the title, what happens
+   after a good scan, and where the back arrow and a successful scan lead.
+   Check-in is the default. The QR code is checked by asking the server to
+   check in at that seat; for an already running session that changes nothing,
+   so it proves presence for extending and for starting or ending a break. */
+type FlowKey = 'checkIn' | 'extend' | 'break-start' | 'break-end';
+
+const flows: Record<
+  FlowKey,
+  {
+    title: string;
+    back: string;
+    done: string;
+    needs: ('pending' | 'active' | 'on_break')[];
+  }
+> = {
   checkIn: {
     title: 'Scan the QR code on your table',
     back: paths.reservation,
     done: paths.session,
+    needs: ['pending'],
   },
   extend: {
     title: 'Scan the QR code to extend your session',
     back: paths.session,
     done: `${paths.session}?extended=1`,
+    needs: ['active', 'on_break'],
   },
   'break-start': {
     title: 'Scan the QR code to start your break',
     back: paths.session,
-    done: `${paths.session}?phase=break`,
+    done: paths.session,
+    needs: ['active'],
   },
   'break-end': {
     title: 'Scan the QR code to end your break',
-    back: `${paths.session}?phase=break`,
+    back: paths.session,
     done: paths.session,
+    needs: ['on_break'],
   },
 };
 
-const isFlow = (value: string | null): value is keyof typeof flows =>
+const isFlow = (value: string | null): value is FlowKey =>
   value !== null && value in flows;
 
 export function ScanScreen() {
-  const { seat } = useMockBooking();
-  const { data } = useQuery(getMyReservationOptions());
-  const reservation = data?.reservation;
-  const held =
-    reservation?.status === 'upcoming' || reservation?.status === 'pending';
-  const seatLabel = reservation?.seat.label ?? String(seat);
-  const spaceName = reservation?.space.name ?? mockSpace.name;
+  const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [flashlight, setFlashlight] = useState(false);
   const from = params.get('from');
-  const flow = flows[isFlow(from) ? from : 'checkIn'];
-  const showError = params.get('error') === '1';
+  const flowKey: FlowKey = isFlow(from) ? from : 'checkIn';
+  const flow = flows[flowKey];
 
-  /* Keep ?from= when switching between the normal and error state. */
-  const scanUrl = (error: boolean) => {
-    const next = new URLSearchParams();
-    if (from) next.set('from', from);
-    if (error) next.set('error', '1');
-    const query = next.toString();
-    return query ? `${paths.scan}?${query}` : paths.scan;
+  const refresh = useRefreshBooking();
+  const { query, reservation, running } = useMyReservation();
+  const checkIn = useMutation(checkInMutation());
+  const extend = useMutation(extendReservationMutation());
+  const startBreak = useMutation(startBreakMutation());
+  const returnFromBreak = useMutation(returnFromBreakMutation());
+
+  const [problem, setProblem] = useState<ApiProblem | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [code, setCode] = useState('');
+  /* One attempt at a time: the camera reports the same code many times a
+     second, and a failed scan stays locked until "Try again". */
+  const locked = useRef(false);
+
+  const submit = async (raw: string) => {
+    const token = raw.trim();
+    if (!token || locked.current) return;
+    locked.current = true;
+    setBusy(true);
+    setProblem(null);
+    try {
+      const { reservation: current } = await checkIn.mutateAsync({
+        body: { qr_token: token },
+      });
+      const path = { reservation_id: current.id };
+      if (flowKey === 'extend') await extend.mutateAsync({ path });
+      if (flowKey === 'break-start') await startBreak.mutateAsync({ path });
+      if (flowKey === 'break-end') await returnFromBreak.mutateAsync({ path });
+      setLeaving(true);
+      await refresh();
+      navigate(flow.done, { replace: true });
+    } catch (error) {
+      setProblem(apiProblem(error));
+      setBusy(false);
+    }
   };
 
-  if (flow === flows.checkIn && data && !held)
-    return <Navigate to={paths.reservation} replace />;
+  const {
+    videoRef,
+    status: camera,
+    hasFlash,
+    flashOn,
+    toggleFlash,
+  } = useQrScanner((value) => void submit(value));
+
+  const tryAgain = () => {
+    locked.current = false;
+    setProblem(null);
+  };
+
+  const onSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void submit(code);
+  };
+
+  /* Send people away if there is nothing to scan for. */
+  if (!leaving && query.data) {
+    const status = reservation?.status;
+    const fits =
+      status !== undefined && flow.needs.some((need) => need === status);
+    if (!fits) {
+      return (
+        <Navigate
+          to={
+            running && flowKey === 'checkIn' ? paths.session : paths.reservation
+          }
+          replace
+        />
+      );
+    }
+  }
+
+  const wrongSeat = problem?.code === 'already_reserved';
 
   return (
     <Screen>
@@ -85,63 +157,101 @@ export function ScanScreen() {
           <h1 className="sr-only">Scan QR code</h1>
           <ActionIcon
             variant="camera"
-            aria-pressed={flashlight}
+            aria-pressed={flashOn}
             aria-label="Flashlight"
-            onClick={() => setFlashlight((on) => !on)}
+            disabled={!hasFlash}
+            onClick={() => void toggleFlash()}
           >
             <Icon name="flashlight" />
           </ActionIcon>
         </div>
 
         <div className="grid flex-1 place-content-center justify-items-center gap-4 px-4 text-center">
-          {/* Mock: tapping the frame counts as a successful scan. */}
-          <UnstyledButton
-            component={Link}
-            to={flow.done}
+          <div
             className="relative block aspect-square w-[min(72vw,280px)] overflow-hidden rounded-sheet border-3 border-camera-fg after:absolute after:inset-0 after:animate-scan-line after:border-t-2 after:border-accent after:content-['']"
-            aria-label="Scan frame. Activate to simulate scanning the QR code on your table"
-          />
+            role="img"
+            aria-label="Camera view. Point it at the QR code on your table."
+          >
+            <video
+              ref={videoRef}
+              className="absolute inset-0 size-full object-cover"
+              muted
+              playsInline
+              aria-hidden="true"
+            />
+          </div>
           <div className="grid gap-2">
             <Text className="text-title">{flow.title}</Text>
-            <Text size="sm" className="text-camera-fg/72">
-              Seat {seatLabel} · {spaceName}
-            </Text>
+            {reservation && (
+              <Text size="sm" className="text-camera-fg/72">
+                Seat {reservation.seat.label} · {reservation.space.name}
+              </Text>
+            )}
+            {camera === 'starting' && (
+              <Text size="sm" className="text-camera-fg/72" role="status">
+                Starting the camera…
+              </Text>
+            )}
           </div>
         </div>
 
         <div className="grid gap-3 px-4 pt-4 pb-[calc(--spacing(4)+env(safe-area-inset-bottom))] text-center">
-          {showError && (
+          {problem && (
             <Alert
               variant="danger"
               role="alert"
               className="text-left"
               icon={<Icon name="alert" />}
-              title="You don't seem to be at this seat"
+              title={
+                wrongSeat
+                  ? "You don't seem to be at this seat"
+                  : "That didn't work"
+              }
             >
               <Text size="sm" c="dimmed">
-                Move closer to seat {seatLabel} and try again.
+                {wrongSeat && reservation
+                  ? `Move closer to seat ${reservation.seat.label} and try again.`
+                  : problem.message}
               </Text>
               <div className="mt-2">
-                <Button
-                  variant="secondary"
-                  component={Link}
-                  to={scanUrl(false)}
-                >
+                <Button variant="secondary" onClick={tryAgain}>
                   Try again
                 </Button>
               </div>
             </Alert>
           )}
-          <Text size="sm" className="text-camera-fg/72">
-            Mock: tap the frame to scan ·{' '}
-            <Anchor
-              component={Link}
-              to={scanUrl(true)}
-              className="text-inherit"
+          {camera === 'unavailable' && !problem && (
+            <Alert
+              variant="warning"
+              className="text-left"
+              icon={<Icon name="alert" />}
+              title="Camera not available"
             >
-              show the error state
-            </Anchor>
-          </Text>
+              <Text size="sm" c="dimmed">
+                Allow camera access, or type the code instead.
+              </Text>
+            </Alert>
+          )}
+          <form className="flex items-end gap-2 text-left" onSubmit={onSubmit}>
+            <TextInput
+              className="min-w-0 flex-1"
+              label="Or type the code"
+              value={code}
+              onChange={(event) => setCode(event.currentTarget.value)}
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              disabled={busy || problem !== null}
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              loading={busy}
+              disabled={!code.trim() || problem !== null}
+            >
+              Confirm
+            </Button>
+          </form>
         </div>
       </div>
     </Screen>

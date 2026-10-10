@@ -1,13 +1,8 @@
 import { Alert, Button, Card, Text, Title } from '@mantine/core';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import {
-  endReservationMutation,
-  getMyReservationOptions,
-  getMyReservationQueryKey,
-  listSpacesQueryKey,
-} from '../api/generated/@tanstack/react-query.gen';
+import { endReservationMutation } from '../api/generated/@tanstack/react-query.gen';
 import { DecisionSheet } from '../components/DecisionSheet';
 import { Icon } from '../components/Icon';
 import {
@@ -18,79 +13,50 @@ import {
 } from '../components/Screen';
 import { SeatChip } from '../components/SeatChip';
 import { TimerCard } from '../components/TimerCard';
+import { apiProblem, secondsBetween } from '../domain/booking';
+import { rules } from '../domain/rules';
 import { stripeClass } from '../domain/seat';
+import {
+  useMyReservation,
+  useRefetchAt,
+  useRefreshBooking,
+} from '../hooks/useMyReservation';
 import { paths } from '../routes';
+
+const header = (
+  <ScreenHeader
+    title="Your reservation"
+    backTo={paths.home}
+    backLabel="Back to home"
+  />
+);
 
 export function ReservationScreen() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const query = useQuery(getMyReservationOptions());
+  const refresh = useRefreshBooking();
+  const { query, held, running, toClient } = useMyReservation();
   const end = useMutation(endReservationMutation());
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
-  const reservation = query.data?.reservation;
-  const held =
-    reservation?.status === 'upcoming' || reservation?.status === 'pending'
-      ? reservation
-      : null;
-
-  /* The deadline is on the server's clock; shift it onto this device's so a
-     wrong local clock doesn't skew the countdown. */
-  const serverTime = query.data?.server_time;
-  const deadline =
-    held && serverTime
-      ? Date.parse(held.check_in_deadline) -
-        Date.parse(serverTime) +
-        query.dataUpdatedAt
-      : null;
+  /* Count down to the start for a seat booked for later, otherwise to the
+     check-in deadline. When the time runs out the server frees the seat. */
+  const upcoming = held?.status === 'upcoming';
+  const target = held
+    ? toClient(upcoming ? held.starts_at : held.check_in_deadline)
+    : null;
   const total = held
-    ? Math.max(
-        1,
-        Math.round(
-          (Date.parse(held.check_in_deadline) - Date.parse(held.starts_at)) /
-            1000,
-        ),
-      )
-    : 0;
-
-  /* When the hold runs out the server frees the seat; ask again. */
+    ? upcoming
+      ? rules.publicWindowMinutes * 60
+      : Math.max(1, secondsBetween(held.starts_at, held.check_in_deadline))
+    : 1;
   const { refetch } = query;
-  useEffect(() => {
-    if (deadline === null) return;
-    const timer = window.setTimeout(
-      () => void refetch(),
-      Math.max(0, deadline - Date.now()) + 500,
-    );
-    return () => window.clearTimeout(timer);
-  }, [deadline, refetch]);
-
-  const cancel = () => {
-    if (!held) return;
-    end.mutate(
-      { path: { reservation_id: held.id } },
-      {
-        onSuccess: async () => {
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: getMyReservationQueryKey(),
-            }),
-            queryClient.invalidateQueries({ queryKey: listSpacesQueryKey() }),
-          ]);
-          navigate(paths.home);
-        },
-        onSettled: () => setCancelOpen(false),
-      },
-    );
-  };
+  useRefetchAt(target, refetch);
 
   if (query.isError) {
     return (
       <Screen>
-        <ScreenHeader
-          title="Your reservation"
-          backTo={paths.home}
-          backLabel="Back to home"
-        />
+        {header}
         <ScreenMain>
           <Alert
             variant="danger"
@@ -102,7 +68,7 @@ export function ReservationScreen() {
           </Alert>
         </ScreenMain>
         <ActionBar>
-          <Button fullWidth onClick={() => void query.refetch()}>
+          <Button fullWidth onClick={() => void refetch()}>
             Try again
           </Button>
         </ActionBar>
@@ -113,11 +79,7 @@ export function ReservationScreen() {
   if (!query.data) {
     return (
       <Screen>
-        <ScreenHeader
-          title="Your reservation"
-          backTo={paths.home}
-          backLabel="Back to home"
-        />
+        {header}
         <ScreenMain>
           <Text c="dimmed" role="status">
             Loading your reservation…
@@ -127,38 +89,55 @@ export function ReservationScreen() {
     );
   }
 
-  if (!held || deadline === null) {
+  if (!held || target === null) {
+    if (leaving) return null;
     return (
       <Screen>
-        <ScreenHeader
-          title="Your reservation"
-          backTo={paths.home}
-          backLabel="Back to home"
-        />
+        {header}
         <ScreenMain>
           <Alert title="No active reservation" icon={<Icon name="clock" />}>
             <Text>
-              Your reservation has expired or been cancelled. The seat is no
-              longer held for you.
+              {running
+                ? 'You have already checked in. Your session is running.'
+                : 'Your reservation has expired or been cancelled. The seat is no longer held for you.'}
             </Text>
           </Alert>
         </ScreenMain>
         <ActionBar>
-          <Button component={Link} to={paths.seatMap} fullWidth>
-            Choose a seat
+          <Button
+            component={Link}
+            to={running ? paths.session : paths.home}
+            fullWidth
+          >
+            {running ? 'Open session' : 'Choose a study space'}
           </Button>
         </ActionBar>
       </Screen>
     );
   }
 
+  const canCheckIn = held.available_actions.includes('check_in');
+
+  const cancel = () =>
+    end.mutate(
+      { path: { reservation_id: held.id } },
+      {
+        onSuccess: async () => {
+          setLeaving(true);
+          await refresh();
+          navigate(paths.home);
+        },
+      },
+    );
+
+  const closeSheet = () => {
+    setCancelOpen(false);
+    end.reset();
+  };
+
   return (
     <Screen>
-      <ScreenHeader
-        title="Your reservation"
-        backTo={paths.home}
-        backLabel="Back to home"
-      />
+      {header}
 
       <ScreenMain>
         <Card
@@ -178,27 +157,34 @@ export function ReservationScreen() {
         </Card>
 
         <TimerCard
-          label="Check in within"
+          label={upcoming ? 'Your time starts in' : 'Check in within'}
           seconds={total}
-          expiresAt={deadline}
+          expiresAt={target}
           total={total}
         >
           <Text size="sm" c="dimmed">
-            Scan the QR code on your table when you arrive. If the time runs
-            out, the seat is released for others.
+            {upcoming
+              ? `The current session is about to end. Scan the QR code on your table once your time starts, within ${rules.checkInMinutes} minutes.`
+              : 'Scan the QR code on your table when you arrive. If the time runs out, the seat is released for others.'}
           </Text>
         </TimerCard>
       </ScreenMain>
 
       <ActionBar>
-        <Button
-          component={Link}
-          to={paths.scan}
-          fullWidth
-          leftSection={<Icon name="qr" />}
-        >
-          Check in
-        </Button>
+        {canCheckIn ? (
+          <Button
+            component={Link}
+            to={paths.scan}
+            fullWidth
+            leftSection={<Icon name="qr" />}
+          >
+            Check in
+          </Button>
+        ) : (
+          <Button fullWidth disabled leftSection={<Icon name="qr" />}>
+            Check in opens when your time starts
+          </Button>
+        )}
         <Button
           variant="secondary"
           fullWidth
@@ -210,7 +196,7 @@ export function ReservationScreen() {
 
       <DecisionSheet
         opened={cancelOpen}
-        onClose={() => setCancelOpen(false)}
+        onClose={closeSheet}
         title="Cancel reservation?"
         safeLabel="Keep seat"
         actionLabel="Cancel reservation"
@@ -218,7 +204,7 @@ export function ReservationScreen() {
         onConfirm={cancel}
       >
         {end.isError
-          ? "Couldn't cancel. Try again."
+          ? apiProblem(end.error).message
           : `Seat ${held.seat.label} becomes free for others right away.`}
       </DecisionSheet>
     </Screen>

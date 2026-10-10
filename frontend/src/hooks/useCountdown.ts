@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { secondsUntil } from '../mock/reservation';
+
+/** Whole seconds until a deadline, rounded up, never below zero. */
+export function secondsUntil(deadline: number, now: number): number {
+  return Math.max(0, Math.ceil((deadline - now) / 1000));
+}
 
 /** Fixed deadlines survive rerenders, navigation, reloads and background throttling. */
 export function useCountdown(start: number, expiresAt?: number) {

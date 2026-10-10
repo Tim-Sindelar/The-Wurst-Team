@@ -15,7 +15,8 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/components/` | Shared building blocks: `Screen` frame, `DecisionSheet`, `StatusBanner`, `TimerCard`, `SeatChip`, `Icon`, the seat map |
 | `src/screens/` | One file per screen, in flow order: Home, SeatMap, Reservation, Scan, Session, Profile |
 | `src/domain/` | Domain types and per-state lookups (seat states, labels, state classes) |
-| `src/mock/` | Sample data and the mock booking state. Replaced by API data later |
+| `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useQrScanner`, `useNow`, `useCountdown` |
+| `src/mock/` | Sample data for what the API lacks (the signed-in user). Everything else comes from the API |
 | `src/routes.ts` | Screen paths |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
 
@@ -59,12 +60,16 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 
 ### Data and state
 
-- The screens are mocks: no backend calls yet. Sample data lives in `src/mock/data.ts`. The chosen seat and booking state (`none`, `reserved`, `session`) live in `MockBookingProvider` and persist in `localStorage`.
-- Mock-only URL switches mirror the HTML mockups: `/?state=reserved|session|none`, `/session?phase=priority|open|break`, `/session?extended=1`, `/scan?from=extend|break-start|break-end`, `/scan?error=1`.
-- When wiring the backend, fetch with the generated TanStack Query helpers from `src/api/generated/` and replace the `src/mock` imports screen by screen. Don't hand-write fetch calls or API types.
+- Screens fetch with the generated TanStack Query helpers from `src/api/generated/` (`useQuery(listSpacesOptions())`, `useMutation(checkInMutation())`). Don't hand-write fetch calls or API types. The Vite dev server proxies `/api` to the backend on port 8000.
+- The current booking comes from `useMyReservation()`. After any booking change call `useRefreshBooking()`'s function so Home, the seat map and the booking screens agree. Server timestamps go through `toClient()` so a wrong device clock can't skew countdowns.
+- Failed calls are shown in place: use `apiProblem(error)` for the sentence, in a `danger` `Alert` or inside the `DecisionSheet`.
+- Timing rules the API doesn't report (check-in window, session length, extension windows) live in `src/domain/rules.ts` and mirror `backend/app/config.py`. Change both together.
+- The API has no seat positions yet, so `src/domain/room.ts` places seats on a stand-in floor plan. Replace it with `SpaceDetail.layout` once the backend provides one.
+- Still mock: the user's name and avatar (`src/mock/data.ts`), the favourite stars, the notification switches on Profile, and the campus map placeholder on Home.
+- Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`; the scan screen also takes a typed code for devices without a camera. The camera needs `localhost` or HTTPS.
 
 ### Code conventions
 
 - Files that export components export only components (React Fast Refresh). Put contexts, hooks and constants in their own files.
 - Dependencies are pinned to exact versions in `package.json`.
-- Before pushing, run `npm run lint`, `npm run typecheck` and `npm run build` in `frontend/`. For visual changes, compare the screen against its mockup in `design/screens/` in both themes.
+- Before pushing, run `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` in `frontend/`. For visual changes, compare the screen against its mockup in `design/screens/` in both themes.
