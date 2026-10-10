@@ -2,14 +2,14 @@
 
 Web app starter with separate `frontend/` and `backend/` projects.
 
-- **Frontend:** React, Vite, TypeScript, TanStack Query, Mantine, Tailwind CSS, ESLint, Prettier.
+- **Frontend:** React, Vite, TypeScript, React Router, TanStack Query, Mantine, Tailwind CSS, ESLint, Prettier.
 - **Backend:** Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic, Ruff.
 - **Local database:** PostgreSQL 17 in Docker Compose.
 - **API client:** Hey API generates TypeScript models, fetch functions, and TanStack Query helpers directly from FastAPI's OpenAPI schema.
 
 ## Start developing
 
-Install Node.js 22.18+ (or a supported newer LTS), [uv](https://docs.astral.sh/uv/getting-started/installation/), Docker with Compose, and optionally Make.
+Install Node.js 22.22+ (or a supported newer LTS), [uv](https://docs.astral.sh/uv/getting-started/installation/), Docker with Compose, and optionally Make.
 
 ```sh
 make install
@@ -27,7 +27,7 @@ npm run dev --prefix frontend
 ```
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
-The frontend is an empty app shell with Mantine, TanStack Query, and the API client configured.
+The frontend implements the mock screens from `design/` with mock data only (no API calls yet); Mantine, TanStack Query, and the API client are configured for wiring the backend in.
 Vite proxies `/api` requests to the backend on port 8000. Backend source changes reload automatically; migrations run when the backend container starts.
 
 Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend/package-lock.json`. Rebuild the backend container after changing Python dependencies.

@@ -1,9 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-mantine-color-scheme="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Wurst Team</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Study Spaces</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+    />
+    <script>
+      /* Apply the saved colour scheme before the first paint. */
+      try {
+        const scheme = localStorage.getItem('mantine-color-scheme-value');
+        if (scheme === 'light' || scheme === 'dark')
+          document.documentElement.setAttribute(
+            'data-mantine-color-scheme',
+            scheme,
+          );
+      } catch {
+        /* storage blocked: stay dark */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
