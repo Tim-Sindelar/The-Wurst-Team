@@ -1,4 +1,5 @@
-// Campus datasets: one folder per dataset in ../datasets (repo root), served by server/datasetsApi.ts.
+// Campus datasets: one folder per dataset in backend/app/features/campus_map/datasets,
+// served by GET /api/v1/map/datasets.
 
 /** datasets/<id>/dataset.json */
 export interface DatasetMeta {

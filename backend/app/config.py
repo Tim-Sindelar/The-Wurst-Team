@@ -1,14 +1,17 @@
 from functools import lru_cache
+from pathlib import Path
 from uuid import UUID
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+psycopg://hackathon:hackathon@localhost:5432/hackathon"
+    database_url: str = "postgresql+psycopg://hackathon:hackathon@127.0.0.1:5432/hackathon"
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     session_length_minutes: int = Field(default=120, gt=0)
     check_in_window_minutes: int = Field(default=15, gt=0)
@@ -19,6 +22,10 @@ class Settings(BaseSettings):
     dummy_auth_allow_header: bool = True
     dummy_is_admin: bool = False
     dummy_admin_allow_header: bool = True
+    # Campus map: fetched ETH bookings and campus datasets are cached here.
+    map_cache_dir: Path = BACKEND_DIR / ".cache" / "campus-map"
+    # Floor plans written by scraper/extract_floors.py (served under /api/v1/map/floors).
+    map_floors_dir: Path = BACKEND_DIR.parent / "occupancy-map-preview" / "public" / "floors"
 
     @model_validator(mode="after")
     def validate_reservation_windows(self) -> "Settings":

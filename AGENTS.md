@@ -18,8 +18,6 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/mock/` | Sample data and the mock booking state. Replaced by API data later |
 | `src/routes.ts` | Screen paths |
 | `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |
-| `map-data/` | The campus map's configuration: `generated.json` + `overrides.json` (workspaces), `map-style.json` (map colours per theme), `navigation.json` (click-to-zoom areas). Copied from `occupancy-map-preview/data` with `npm run map:sync` |
-| `server/` | The campus map's backend for now: Vite middleware copied from `occupancy-map-preview/server` (map data, ETH room bookings, campus datasets, floor plans) |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
 
 ### Styling
@@ -64,13 +62,14 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 
 - The map screen is full screen: top bar (back, title, theme), Leaflet map, floor picker on the right, and a bottom toolbar (time, live rooms, campus data, map options) whose buttons open `MapSheet` bottom sheets.
 - Tapping a room, workspace or pin selects it and shows a card above the toolbar; tapping it again (or the card) opens the dashboard sheet with its details and the lists the preview had in its side panel.
-- The map components keep their own markup and class names, styled in `src/campus-map/campus-map.css`, the one plain CSS file outside `src/theme`. Its colour names point at the design tokens. Colours drawn on the map come from `map-data/map-style.json`. The ESLint React Compiler rules are off for this folder (the Leaflet layers rely on latest-value refs).
-- `occupancy-map-preview/` stays the developer tool for the map: its Admin mode edits workspaces and navigation, its Style panel edits the map style. After saving there, run `npm run map:sync` here. There is no admin or style editor in this app.
-- Floor plans are read from `occupancy-map-preview/public/floors` (built by `scraper/extract_floors.py`, not in git), or from `MAP_FLOORS_DIR`.
+- The map components keep their own markup and class names, styled in `src/campus-map/campus-map.css`, the one plain CSS file outside `src/theme`. Its colour names point at the design tokens. Colours drawn on the map come from the backend's map style (`GET /api/v1/map/style`). The ESLint React Compiler rules are off for this folder (the Leaflet layers rely on latest-value refs).
+- All map data comes from the backend feature `backend/app/features/campus_map/` under `/api/v1/map`: workspaces, map style and navigation (Postgres), ETH room bookings, campus datasets and floor plans. The loaders in `src/campus-map/data/`, `datasets/repository.ts` and `map/minimalStyle.ts` call it through the generated client (`unwrap` in `data/api.ts`); floor plans and room photos are plain URLs under `MAP_API`. The map needs `make backend` running.
+- `occupancy-map-preview/` stays the developer tool for the map: its Admin mode edits workspaces and navigation, its Style panel edits the map style. After saving there, run `make map-sync` to import the files into the backend. There is no admin or style editor in this app.
+- Floor plans are read from `occupancy-map-preview/public/floors` (built by `scraper/extract_floors.py`, not in git), or from the backend's `MAP_FLOORS_DIR`.
 
 ### Data and state
 
-- The screens are mocks: no backend calls yet. Sample data lives in `src/mock/data.ts`. The chosen seat and booking state (`none`, `reserved`, `session`) live in `MockBookingProvider` and persist in `localStorage`.
+- The booking screens are mocks: no backend calls yet (the campus map already uses the backend). Sample data lives in `src/mock/data.ts`. The chosen seat and booking state (`none`, `reserved`, `session`) live in `MockBookingProvider` and persist in `localStorage`.
 - Mock-only URL switches mirror the HTML mockups: `/?state=reserved|session|none`, `/session?phase=priority|open|break`, `/session?extended=1`, `/scan?from=extend|break-start|break-end`, `/scan?error=1`.
 - When wiring the backend, fetch with the generated TanStack Query helpers from `src/api/generated/` and replace the `src/mock` imports screen by screen. Don't hand-write fetch calls or API types.
 

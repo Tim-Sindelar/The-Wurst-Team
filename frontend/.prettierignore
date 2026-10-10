@@ -2,4 +2,3 @@ node_modules
 dist
 src/api/generated
 package-lock.json
-map-data

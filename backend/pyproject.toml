@@ -11,6 +11,7 @@ dependencies = [
     "sqlalchemy>=2.0,<3",
     "alembic>=1.14,<2",
     "psycopg[binary]>=3.2,<4",
+    "tzdata>=2025.2",
 ]
 
 [project.scripts]

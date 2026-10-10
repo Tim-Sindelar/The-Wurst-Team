@@ -23,6 +23,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://hackathon:hackathon@db:5432/hackathon
       CORS_ORIGINS: '["http://localhost:5173", "http://127.0.0.1:5173"]'
+      MAP_FLOORS_DIR: /app/floors
+      MAP_CACHE_DIR: /app/.cache/campus-map
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     volumes:
@@ -30,13 +32,19 @@ services:
       - ./backend/migrations:/app/migrations
       - ./backend/tests:/app/tests
       - ./backend/alembic.ini:/app/alembic.ini
+      # Campus map floor plans, built by scraper/extract_floors.py (not in git).
+      - ./occupancy-map-preview/public/floors:/app/floors:ro
+      - map_cache:/app/.cache
     depends_on:
       db:
         condition: service_healthy
     command:
       - sh
       - -c
-      - alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - >-
+        alembic upgrade head
+        && python -m app.features.campus_map.importer --if-empty
+        && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready', timeout=3)"]
       interval: 5s
@@ -45,3 +53,4 @@ services:
 
 volumes:
   postgres_data:
+  map_cache:

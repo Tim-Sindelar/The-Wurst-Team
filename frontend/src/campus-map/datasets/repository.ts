@@ -1,31 +1,23 @@
+import { getMapDataset, listMapDatasets } from '../../api/generated';
+import { unwrap } from '../data/api';
 import type { DatasetMeta, DatasetResponse } from './types';
 
-// GET {base}/datasets[/<id>], answered by server/datasetsApi.ts.
+// GET /api/v1/map/datasets[/<id>]: fetched and cached by the backend.
 
-const BASE = `${import.meta.env.VITE_MAP_API_BASE ?? '/api'}/datasets`;
-
-async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
-  const body = await res.json().catch(() => null);
-  if (!res.ok)
-    throw new Error(
-      (body as { error?: string } | null)?.error ?? `${url}: ${res.status}`,
-    );
-  return body as T;
-}
-
-export const fetchDatasetList = () => getJson<DatasetMeta[]>(BASE);
+export const fetchDatasetList = async () =>
+  (await unwrap(listMapDatasets())) as DatasetMeta[];
 
 /** `at`: a Zurich time, YYYY-MM-DDTHH:MM; null for now. */
-export function fetchDataset(
+export async function fetchDataset(
   id: string,
   refresh = false,
   at: string | null = null,
 ) {
-  const q = new URLSearchParams();
-  if (refresh) q.set('refresh', '1');
-  if (at) q.set('at', at);
-  return getJson<DatasetResponse>(
-    `${BASE}/${encodeURIComponent(id)}${q.size ? `?${q}` : ''}`,
+  const response = await unwrap(
+    getMapDataset({
+      path: { dataset_id: id },
+      query: { refresh: refresh || undefined, at: at ?? undefined },
+    }),
   );
+  return response as unknown as DatasetResponse;
 }

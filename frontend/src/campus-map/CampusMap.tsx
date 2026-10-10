@@ -107,8 +107,8 @@ function mensaPlace(item: DatasetItem) {
 }
 
 /* The campus map, full screen. Ported from the view mode of
-   occupancy-map-preview (that app keeps the admin tools that produce
-   map-data/*.json). Tapping a room, workspace or pin selects it and shows a
+   occupancy-map-preview (that app keeps the admin tools; their output is
+   imported into the backend). Tapping a room, workspace or pin selects it and shows a
    short card; tapping it again opens the dashboard sheet with everything the
    preview's side panel showed. */
 export function CampusMap() {
@@ -232,7 +232,7 @@ export function CampusMap() {
     [ethResponse],
   );
 
-  // ---- campus datasets (mensas, transport, sport, weather, ...; see ../datasets) ----
+  // ---- campus datasets (mensas, transport, sport, weather, ...; served by the backend) ----
   const { list: datasetMetas, error: datasetListError } = useDatasetList();
   const [storedDatasetSettings, setDatasetSettingsState] =
     useState<DatasetSettings | null>(loadDatasetSettings);

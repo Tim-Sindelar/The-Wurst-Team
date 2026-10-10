@@ -1,4 +1,4 @@
-.PHONY: install dev backend frontend generate lint format test build seed
+.PHONY: install dev backend frontend generate lint format test build seed map-sync
 
 install:
 	cd backend && uv sync --locked
@@ -31,6 +31,11 @@ test:
 
 seed:
 	docker compose exec -T backend python -m app.features.reservations.seed
+
+# Copy the campus map files saved by occupancy-map-preview and import them into the database.
+map-sync:
+	cp occupancy-map-preview/data/generated.json occupancy-map-preview/data/overrides.json 		occupancy-map-preview/data/map-style.json occupancy-map-preview/data/navigation.json 		backend/app/features/campus_map/map-data/
+	docker compose exec -T backend python -m app.features.campus_map.importer
 
 build:
 	cd frontend && npm run build

@@ -24,7 +24,16 @@ import datasetlib as lib  # noqa: E402
 
 API = "https://api.sharedmobility.ch/v1/sharedmobility/identify"
 MAX_PER_AREA = 400  # per vehicle type
-VEHICLE_TYPES = ["Bike", "E-Bike", "E-Scooter", "E-Moped", "CargoBike", "E-CargoBike", "Car", "E-Car"]  # not "Other": see above
+VEHICLE_TYPES = [
+    "Bike",
+    "E-Bike",
+    "E-Scooter",
+    "E-Moped",
+    "CargoBike",
+    "E-CargoBike",
+    "Car",
+    "E-Car",
+]  # not "Other": see above
 
 
 def as_list(v):
@@ -76,9 +85,16 @@ def build(at=None):
             offset = 0
             try:
                 while offset < MAX_PER_AREA:
-                    data = lib.http_json(API, {"Geometry": f"{area['lng']},{area['lat']}", "Tolerance": area["radius"],
-                                               "offset": offset, "geometryFormat": "esrijson",
-                                               "filters": f"ch.bfe.sharedmobility.vehicle_type={vtype}"})
+                    data = lib.http_json(
+                        API,
+                        {
+                            "Geometry": f"{area['lng']},{area['lat']}",
+                            "Tolerance": area["radius"],
+                            "offset": offset,
+                            "geometryFormat": "esrijson",
+                            "filters": f"ch.bfe.sharedmobility.vehicle_type={vtype}",
+                        },
+                    )
                     results = data.get("results") if isinstance(data, dict) else data
                     if not results:
                         break

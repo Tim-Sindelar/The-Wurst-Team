@@ -3,7 +3,7 @@
    only) and scoped to the map screen (.campus-map) and the sheets it opens
    (.campus-map-ui, rendered in portals). The map's own colour names point at
    the design tokens, so both themes follow the rest of the app. The colours
-   drawn on the map itself come from map-data/map-style.json.
+   drawn on the map itself come from the backend's map style (/api/v1/map/style).
 
    This is the one place outside src/theme that holds plain CSS: the map
    components (Leaflet markers, tooltips, floor plans) render their own HTML

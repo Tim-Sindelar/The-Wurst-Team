@@ -1,45 +1,26 @@
+import { getMapWorkspaces } from '../../api/generated';
 import type { OccupancyData } from '../domain/types';
 import { assertOccupancyData } from '../domain/validate';
+import { unwrap } from './api';
 
 /**
- * Storage abstraction. The UI only talks to this interface, so swapping the
- * local JSON file for a real backend means writing a new implementation (or
- * pointing HttpRepository at another base URL) — no component changes.
+ * Storage abstraction. The UI only talks to this interface, so swapping where
+ * the workspaces come from means writing a new implementation, with no
+ * component changes.
  */
 export interface OccupancyRepository {
   load(): Promise<OccupancyData>;
-  save(data: OccupancyData): Promise<void>;
 }
 
 /**
- * Talks to `GET/PUT {baseUrl}/occupancy`. In this preview that endpoint is
- * served by the Vite dev-server plugin in `server/jsonFileApi.ts`, which
- * merges `data/generated.json` (pipeline output) with `data/overrides.json`
- * (admin edits) on load, and writes only the overrides on save.
+ * GET /api/v1/map/workspaces: the generated workspaces with the admin edits
+ * applied, from Postgres. Editing happens in occupancy-map-preview; its files
+ * are imported with `make map-sync`.
  */
 export class HttpRepository implements OccupancyRepository {
-  constructor(private readonly baseUrl = '/api') {}
-
   async load(): Promise<OccupancyData> {
-    const res = await fetch(`${this.baseUrl}/occupancy`, {
-      headers: { Accept: 'application/json' },
-    });
-    if (!res.ok)
-      throw new Error(`Load failed: ${res.status} ${await res.text()}`);
-    return assertOccupancyData(await res.json());
-  }
-
-  async save(data: OccupancyData): Promise<void> {
-    const res = await fetch(`${this.baseUrl}/occupancy`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok)
-      throw new Error(`Save failed: ${res.status} ${await res.text()}`);
+    return assertOccupancyData(await unwrap(getMapWorkspaces()));
   }
 }
 
-export const repository: OccupancyRepository = new HttpRepository(
-  import.meta.env.VITE_MAP_API_BASE ?? '/api',
-);
+export const repository: OccupancyRepository = new HttpRepository();

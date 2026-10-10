@@ -2,7 +2,8 @@
 """Live departures at the stops near the campuses, from now or (--at) another time.
 
 Source: transport.opendata.ch (Swiss public transport API, no key):
-    https://transport.opendata.ch/v1/stationboard?station=<name>&limit=<n>[&datetime=YYYY-MM-DD HH:MM]
+    https://transport.opendata.ch/v1/stationboard?station=<name>&limit=<n>
+        [&datetime=YYYY-MM-DD HH:MM]
     The timetable reaches about a week back and to the end of the current
     timetable year (December); delays only exist around now.
     -> station.coordinate {x: lat, y: lng}, stationboard[] {category, number,
@@ -27,15 +28,17 @@ def departures(board):
     for dep in board.get("stationboard") or []:
         stop = dep.get("stop") or {}
         prognosis = stop.get("prognosis") or {}
-        out.append({
-            "time": stop.get("departure"),
-            "expected": prognosis.get("departure"),
-            "delay": stop.get("delay"),
-            "platform": prognosis.get("platform") or stop.get("platform"),
-            "category": dep.get("category"),
-            "line": dep.get("number") or dep.get("category"),
-            "to": dep.get("to"),
-        })
+        out.append(
+            {
+                "time": stop.get("departure"),
+                "expected": prognosis.get("departure"),
+                "delay": stop.get("delay"),
+                "platform": prognosis.get("platform") or stop.get("platform"),
+                "category": dep.get("category"),
+                "line": dep.get("number") or dep.get("category"),
+                "to": dep.get("to"),
+            }
+        )
     return out
 
 
@@ -67,7 +70,10 @@ def build(at=None):
     with ThreadPoolExecutor(max_workers=6) as pool:
         results = list(pool.map(one, stops))
     if at and not any(board and board.get("stationboard") for _s, board, _e in results):
-        errors.append(f"Timetable: no departures on {at:%Y-%m-%d} (it reaches about a week back and to the end of the timetable year)")
+        errors.append(
+            f"Timetable: no departures on {at:%Y-%m-%d} "
+            "(it reaches about a week back and to the end of the timetable year)"
+        )
 
     items = []
     for stop, board, err in results:
@@ -77,19 +83,24 @@ def build(at=None):
         if board and coordinate(board):
             lat, lng = coordinate(board)
             approx = False
-        items.append({
-            "id": stop["id"],
-            "name": stop["name"],
-            "lat": lat,
-            "lng": lng,
-            "approximate": approx,
-            "category": stop["kind"],
-            "campus": stop.get("campus"),
-            "subtitle": stop.get("station") or "ETH shuttle",
-            "url": stop.get("url"),
-            "details": {"kind": stop["kind"], "note": stop.get("note"),
-                        "departures": departures(board) if board else None},
-        })
+        items.append(
+            {
+                "id": stop["id"],
+                "name": stop["name"],
+                "lat": lat,
+                "lng": lng,
+                "approximate": approx,
+                "category": stop["kind"],
+                "campus": stop.get("campus"),
+                "subtitle": stop.get("station") or "ETH shuttle",
+                "url": stop.get("url"),
+                "details": {
+                    "kind": stop["kind"],
+                    "note": stop.get("note"),
+                    "departures": departures(board) if board else None,
+                },
+            }
+        )
     return items, [API], errors
 
 

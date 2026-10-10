@@ -16,6 +16,24 @@
       "port": 5176
     },
     {
+      "name": "backend",
+      "runtimeExecutable": "backend/.venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "backend",
+        "--port",
+        "8000",
+        "--reload",
+        "--reload-dir",
+        "backend/app"
+      ],
+      "port": 8000,
+      "url": "http://127.0.0.1:8000"
+    },
+    {
       "name": "occupancy-map-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": [

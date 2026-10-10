@@ -18,15 +18,15 @@ Everything a student at ETH needs besides rooms and libraries, one folder per da
 Every item has the same shape (`id`, `name`, `lat`, `lng`, `approximate`, `category`, `campus`, `subtitle`, `url`, `details`), so the map can draw any dataset; `details` holds the dataset's own data (menus, departures, lessons, ...). When a live source fails, the items are still there and the failure is listed in `errors`.
 
 ```bash
-python3 datasets/mensa/fetch.py --out /tmp/mensa.json   # one dataset
-python3 datasets/test_fetchers.py                       # offline parser tests
+python3 backend/app/features/campus_map/datasets/mensa/fetch.py --out /tmp/mensa.json   # one dataset
+cd backend && uv run --locked pytest tests/campus_map/test_fetchers.py                  # offline parser tests
 ```
 
-The map (`occupancy-map-preview`) runs the fetchers on demand through `server/datasetsApi.ts` and caches the results in `occupancy-map-preview/data/cache/datasets/`. A new dataset only needs a folder with `dataset.json` and `fetch.py`; give it a details view in `src/datasets/DatasetSidebar.tsx` if the generic one isn't enough.
+The backend runs the fetchers in-process (`../dataset_cache.py`, served as `GET /api/v1/map/datasets/<id>`) and caches the results in `backend/.cache/campus-map/datasets/`. The developer map (`occupancy-map-preview`) still runs them as scripts through its `server/datasetsApi.ts`. A new dataset only needs a folder with `dataset.json` and `fetch.py`; give it a details view in `frontend/src/campus-map/datasets/DatasetSidebar.tsx` if the generic one isn't enough.
 
 ## Other dates and times
 
-`fetch.py --at 2026-10-20T14:00` (Zurich time) fetches the data for that time instead of now; the map asks for it with `GET /api/datasets/<id>?at=...` when a time is picked with 🕒, and caches it in `data/cache/datasets/at/<id>/`. Each `dataset.json` says under `time` how far its source supports this (`support`: `full`, `partial` or `live`; `resolution`: times that give the same data; `note`: shown on the map). Checked against the live APIs on 2026-10-10:
+`fetch.py --at 2026-10-20T14:00` (Zurich time) fetches the data for that time instead of now; the map asks for it with `GET /api/v1/map/datasets/<id>?at=...` when a time is picked, and the backend caches it in `backend/.cache/campus-map/datasets/at/<id>/`. Each `dataset.json` says under `time` how far its source supports this (`support`: `full`, `partial` or `live`; `resolution`: times that give the same data; `note`: shown on the map). Checked against the live APIs on 2026-10-10:
 
 | Dataset | Other times | What works |
 |---|---|---|

@@ -2,7 +2,8 @@
 """Next ASVZ lessons per sport center.
 
 Source: the JSON search behind asvz.ch's Sportfahrplan:
-    https://asvz.ch/asvz_api/event_search?_format=json&limit=<n>[&f[0]=facility:<id>][&date=YYYY-MM-DD HH:MM]
+    https://asvz.ch/asvz_api/event_search?_format=json&limit=<n>
+        [&f[0]=facility:<id>][&date=YYYY-MM-DD HH:MM]
     `date` (Zurich time) lists the lessons from then on, past days included.
     -> results[] {title, sport_name, facility_name, from_date, to_date, url, ...}
 Field names vary a little between ASVZ releases, so the parsing is lenient.
@@ -66,11 +67,11 @@ def build(at=None):
         data = lib.http_json(API, params)
         results = data.get("results") if isinstance(data, dict) else data
         for r in results or []:
-            l = lesson(r)
-            name = (l["facility"] or "").lower()
+            les = lesson(r)
+            name = (les["facility"] or "").lower()
             for f in facilities:
                 if any(m in name for m in f["match"]):
-                    by_facility[f["id"]].append(l)
+                    by_facility[f["id"]].append(les)
                     break
     except Exception as err:
         errors.append(lib.error_text("ASVZ lessons", err))
@@ -80,19 +81,22 @@ def build(at=None):
     for f in facilities:
         lessons = None
         if by_facility is not None:
-            lessons = sorted(by_facility[f["id"]], key=lambda l: l["from"] or "")[:PER_FACILITY]
-        items.append({
-            "id": f["id"],
-            "name": f["name"],
-            "lat": f["lat"],
-            "lng": f["lng"],
-            "approximate": f.get("approximate", False),
-            "category": "sport-center",
-            "campus": f.get("campus"),
-            "subtitle": "ASVZ",
-            "url": "https://asvz.ch/426-sportfahrplan" + (f"?f[0]=facility:{f['facilityId']}" if f.get("facilityId") else ""),
-            "details": {"lessons": lessons},
-        })
+            lessons = sorted(by_facility[f["id"]], key=lambda x: x["from"] or "")[:PER_FACILITY]
+        items.append(
+            {
+                "id": f["id"],
+                "name": f["name"],
+                "lat": f["lat"],
+                "lng": f["lng"],
+                "approximate": f.get("approximate", False),
+                "category": "sport-center",
+                "campus": f.get("campus"),
+                "subtitle": "ASVZ",
+                "url": "https://asvz.ch/426-sportfahrplan"
+                + (f"?f[0]=facility:{f['facilityId']}" if f.get("facilityId") else ""),
+                "details": {"lessons": lessons},
+            }
+        )
     return items, [API], errors
 
 

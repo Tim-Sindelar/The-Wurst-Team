@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, CheckInData, CheckInErrors, CheckInResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetHealthData, GetHealthResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, StartBreakData, StartBreakErrors, StartBreakResponses } from './types.gen';
+import type { AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, CheckInData, CheckInErrors, CheckInResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetEthRoomData, GetEthRoomErrors, GetEthRoomResponses, GetEthRoomsData, GetEthRoomsErrors, GetEthRoomsResponses, GetHealthData, GetHealthResponses, GetMapDatasetData, GetMapDatasetErrors, GetMapDatasetResponses, GetMapNavigationData, GetMapNavigationErrors, GetMapNavigationResponses, GetMapStyleData, GetMapStyleErrors, GetMapStyleResponses, GetMapWorkspacesData, GetMapWorkspacesResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, GetUzhOccupancyData, GetUzhOccupancyErrors, GetUzhOccupancyResponses, ListMapDatasetsData, ListMapDatasetsResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, SaveMapNavigationData, SaveMapNavigationErrors, SaveMapNavigationResponses, SaveMapStyleData, SaveMapStyleErrors, SaveMapStyleResponses, SaveMapWorkspacesData, SaveMapWorkspacesErrors, SaveMapWorkspacesResponses, StartBreakData, StartBreakErrors, StartBreakResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -136,6 +136,101 @@ export const checkIn = <ThrowOnError extends boolean = false>(options: Options<C
  * Get Health
  */
 export const getHealth = <ThrowOnError extends boolean = false>(options?: Options<GetHealthData, ThrowOnError>): RequestResult<GetHealthResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetHealthResponses, unknown, ThrowOnError>({ url: '/api/v1/health', ...options });
+
+/**
+ * List Datasets
+ *
+ * The campus datasets (mensas, transport, sport, ...) without their data.
+ */
+export const listMapDatasets = <ThrowOnError extends boolean = false>(options?: Options<ListMapDatasetsData, ThrowOnError>): RequestResult<ListMapDatasetsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListMapDatasetsResponses, unknown, ThrowOnError>({ url: '/api/v1/map/datasets', ...options });
+
+/**
+ * Get Dataset
+ *
+ * A dataset's items, from the cache; fetched again when older than its ttl.
+ */
+export const getMapDataset = <ThrowOnError extends boolean = false>(options: Options<GetMapDatasetData, ThrowOnError>): RequestResult<GetMapDatasetResponses, GetMapDatasetErrors, ThrowOnError> => (options.client ?? client).get<GetMapDatasetResponses, GetMapDatasetErrors, ThrowOnError>({ url: '/api/v1/map/datasets/{dataset_id}', ...options });
+
+/**
+ * Get Eth Room
+ *
+ * The full room sheet from ETH (overview, equipment, photos), as ETH sends it.
+ */
+export const getEthRoom = <ThrowOnError extends boolean = false>(options: Options<GetEthRoomData, ThrowOnError>): RequestResult<GetEthRoomResponses, GetEthRoomErrors, ThrowOnError> => (options.client ?? client).get<GetEthRoomResponses, GetEthRoomErrors, ThrowOnError>({ url: '/api/v1/map/eth/room', ...options });
+
+/**
+ * Get Eth Rooms
+ *
+ * Every ETH room with its bookings of `date` (default today) and where it is on the
+ * floor plans. Fetching from ETH runs in the background; `state` says how far it is.
+ */
+export const getEthRooms = <ThrowOnError extends boolean = false>(options?: Options<GetEthRoomsData, ThrowOnError>): RequestResult<GetEthRoomsResponses, GetEthRoomsErrors, ThrowOnError> => (options?.client ?? client).get<GetEthRoomsResponses, GetEthRoomsErrors, ThrowOnError>({ url: '/api/v1/map/eth/rooms', ...options });
+
+/**
+ * Get Uzh Occupancy
+ *
+ * Live seat occupancy of the UZH libraries (sensor based).
+ */
+export const getUzhOccupancy = <ThrowOnError extends boolean = false>(options?: Options<GetUzhOccupancyData, ThrowOnError>): RequestResult<GetUzhOccupancyResponses, GetUzhOccupancyErrors, ThrowOnError> => (options?.client ?? client).get<GetUzhOccupancyResponses, GetUzhOccupancyErrors, ThrowOnError>({ url: '/api/v1/map/eth/uzh', ...options });
+
+/**
+ * Get Navigation
+ *
+ * The click-to-zoom areas and buildings.
+ */
+export const getMapNavigation = <ThrowOnError extends boolean = false>(options?: Options<GetMapNavigationData, ThrowOnError>): RequestResult<GetMapNavigationResponses, GetMapNavigationErrors, ThrowOnError> => (options?.client ?? client).get<GetMapNavigationResponses, GetMapNavigationErrors, ThrowOnError>({ url: '/api/v1/map/navigation', ...options });
+
+/**
+ * Save Navigation
+ */
+export const saveMapNavigation = <ThrowOnError extends boolean = false>(options: Options<SaveMapNavigationData, ThrowOnError>): RequestResult<SaveMapNavigationResponses, SaveMapNavigationErrors, ThrowOnError> => (options.client ?? client).put<SaveMapNavigationResponses, SaveMapNavigationErrors, ThrowOnError>({
+    url: '/api/v1/map/navigation',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Style
+ *
+ * The standard map colours per theme.
+ */
+export const getMapStyle = <ThrowOnError extends boolean = false>(options?: Options<GetMapStyleData, ThrowOnError>): RequestResult<GetMapStyleResponses, GetMapStyleErrors, ThrowOnError> => (options?.client ?? client).get<GetMapStyleResponses, GetMapStyleErrors, ThrowOnError>({ url: '/api/v1/map/style', ...options });
+
+/**
+ * Save Style
+ */
+export const saveMapStyle = <ThrowOnError extends boolean = false>(options: Options<SaveMapStyleData, ThrowOnError>): RequestResult<SaveMapStyleResponses, SaveMapStyleErrors, ThrowOnError> => (options.client ?? client).put<SaveMapStyleResponses, SaveMapStyleErrors, ThrowOnError>({
+    url: '/api/v1/map/style',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Workspaces
+ *
+ * All workspaces, tables and seats: the generated data with the admin edits applied.
+ */
+export const getMapWorkspaces = <ThrowOnError extends boolean = false>(options?: Options<GetMapWorkspacesData, ThrowOnError>): RequestResult<GetMapWorkspacesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetMapWorkspacesResponses, unknown, ThrowOnError>({ url: '/api/v1/map/workspaces', ...options });
+
+/**
+ * Save Workspaces
+ *
+ * Stores the edits that turn the generated data into `data`.
+ */
+export const saveMapWorkspaces = <ThrowOnError extends boolean = false>(options: Options<SaveMapWorkspacesData, ThrowOnError>): RequestResult<SaveMapWorkspacesResponses, SaveMapWorkspacesErrors, ThrowOnError> => (options.client ?? client).put<SaveMapWorkspacesResponses, SaveMapWorkspacesErrors, ThrowOnError>({
+    url: '/api/v1/map/workspaces',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Get My Reservation

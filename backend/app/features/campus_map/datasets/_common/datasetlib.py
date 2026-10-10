@@ -53,21 +53,25 @@ def http_json(url, params=None, body=None, headers=None, timeout=TIMEOUT):
 def http_post_form(url, form, timeout=TIMEOUT):
     """POST a urlencoded form, parse the JSON answer (Overpass)."""
     data = urllib.parse.urlencode(form).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+    req = urllib.request.Request(
+        url, data=data, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}
+    )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
 def now_iso():
-    return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    return dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
 
 
 def _zurich_offset(utc):
     """CET/CEST offset at a UTC time by the EU rule (summer time from the last Sunday
     of March to the last Sunday of October, 01:00 UTC), for systems without tzdata."""
+
     def last_sunday(month):
-        d = dt.datetime(utc.year, month, 31, 1, tzinfo=dt.timezone.utc)
+        d = dt.datetime(utc.year, month, 31, 1, tzinfo=dt.UTC)
         return d - dt.timedelta(days=(d.weekday() + 1) % 7)
+
     return dt.timezone(dt.timedelta(hours=2 if last_sunday(3) <= utc < last_sunday(10) else 1))
 
 
@@ -75,9 +79,10 @@ def zurich_now():
     """Current time in Zurich (CET/CEST), without needing tzdata."""
     try:
         from zoneinfo import ZoneInfo
+
         return dt.datetime.now(ZoneInfo("Europe/Zurich"))
     except Exception:
-        utc = dt.datetime.now(dt.timezone.utc)
+        utc = dt.datetime.now(dt.UTC)
         return utc.astimezone(_zurich_offset(utc))
 
 
@@ -86,15 +91,20 @@ def zurich_time(text):
     local = dt.datetime.fromisoformat(text).replace(tzinfo=None, second=0, microsecond=0)
     try:
         from zoneinfo import ZoneInfo
+
         return local.replace(tzinfo=ZoneInfo("Europe/Zurich"))
     except Exception:
         # Guess the offset from the time read as UTC; only off for an hour on the switch nights.
-        return local.replace(tzinfo=_zurich_offset(local.replace(tzinfo=dt.timezone.utc) - dt.timedelta(hours=1)))
+        return local.replace(
+            tzinfo=_zurich_offset(local.replace(tzinfo=dt.UTC) - dt.timedelta(hours=1))
+        )
 
 
 def load_local(file_path, name):
     """Load a JSON file that sits next to the calling fetcher."""
-    with open(os.path.join(os.path.dirname(os.path.abspath(file_path)), name), encoding="utf-8") as f:
+    with open(
+        os.path.join(os.path.dirname(os.path.abspath(file_path)), name), encoding="utf-8"
+    ) as f:
         return json.load(f)
 
 
@@ -102,23 +112,45 @@ def error_text(what, err):
     return f"{what}: {type(err).__name__}: {err}"
 
 
+def document(dataset, build, at=None):
+    """Run `build(at) -> (items, sources, errors)` and wrap the result in the dataset document.
+    The backend (app/features/campus_map/dataset_cache.py) calls this in-process."""
+    items, sources, errors = build(at)
+    return {
+        "dataset": dataset,
+        "fetchedAt": now_iso(),
+        "at": at.strftime("%Y-%m-%dT%H:%M") if at else None,
+        "sources": sources,
+        "errors": errors,
+        "items": items,
+    }
+
+
+def write_json(path, doc):
+    """Write `doc` to `path`, atomically."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(json.dumps(doc, ensure_ascii=False, indent=1))
+    os.replace(tmp, path)
+
+
 def main(dataset, build):
     """Run `build(at) -> (items, sources, errors)` and write the document."""
     parser = argparse.ArgumentParser(description=f"Fetch the {dataset} dataset")
     parser.add_argument("--out", help="write here instead of stdout")
-    parser.add_argument("--at", type=zurich_time, help="Zurich time to fetch the data for, e.g. 2026-10-20T14:00 (default: now)")
+    parser.add_argument(
+        "--at",
+        type=zurich_time,
+        help="Zurich time to fetch the data for, e.g. 2026-10-20T14:00 (default: now)",
+    )
     args = parser.parse_args()
-    items, sources, errors = build(args.at)
-    at = args.at.strftime("%Y-%m-%dT%H:%M") if args.at else None
-    doc = {"dataset": dataset, "fetchedAt": now_iso(), "at": at, "sources": sources, "errors": errors, "items": items}
-    text = json.dumps(doc, ensure_ascii=False, indent=1)
+    doc = document(dataset, build, args.at)
     if args.out:
-        os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
-        tmp = args.out + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            f.write(text)
-        os.replace(tmp, args.out)
+        write_json(args.out, doc)
     else:
-        sys.stdout.buffer.write((text + "\n").encode("utf-8"))  # not the console code page (Windows)
-    for e in errors:
+        text = json.dumps(doc, ensure_ascii=False, indent=1)
+        # Bytes, not the console code page (Windows).
+        sys.stdout.buffer.write((text + "\n").encode("utf-8"))
+    for e in doc["errors"]:
         print(f"[{dataset}] {e}", file=sys.stderr)

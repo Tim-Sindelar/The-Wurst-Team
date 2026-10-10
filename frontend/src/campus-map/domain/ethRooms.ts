@@ -1,6 +1,6 @@
-// Live room data from the ETH Room Info API, as served by eth_room_dashboard.py
-// (/api/snapshot) and enriched by the dev server with where each room is on the
-// PolyMaps floor plans. Framework-free, shared by the client and server/ethRoomsApi.ts.
+// Live room data from the ETH Room Info API, as served by the backend
+// (GET /api/v1/map/eth/rooms) with where each room is on the PolyMaps floor
+// plans. Framework-free.
 
 export type BookingKind =
   | 'lecture'

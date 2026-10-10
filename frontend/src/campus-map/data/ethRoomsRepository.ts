@@ -1,24 +1,14 @@
+import { getEthRoom, getEthRooms, getUzhOccupancy } from '../../api/generated';
 import type { EthRoomsResponse } from '../domain/ethRooms';
+import { MAP_API, unwrap } from './api';
 
-// GET {base}/eth/*, answered by server/ethRoomsApi.ts, which forwards to eth_room_dashboard.py.
-
-const BASE = `${import.meta.env.VITE_MAP_API_BASE ?? '/api'}/eth`;
-
-async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
-  const body = await res.json().catch(() => null);
-  if (!res.ok)
-    throw new Error(
-      (body as { error?: string } | null)?.error ?? `${url}: ${res.status}`,
-    );
-  return body as T;
-}
+// GET /api/v1/map/eth/*: ETH room bookings and room sheets, UZH library occupancy.
 
 /** All rooms with the bookings of `date` (null: today) and their places on the floor plans. ETH is asked at most hourly. */
-export const fetchEthRooms = (date: string | null = null) =>
-  getJson<EthRoomsResponse>(
-    `${BASE}/rooms${date ? `?date=${encodeURIComponent(date)}` : ''}`,
-  );
+export const fetchEthRooms = async (date: string | null = null) =>
+  (await unwrap(
+    getEthRooms({ query: { date: date ?? undefined } }),
+  )) as unknown as EthRoomsResponse;
 
 export interface RoomSheetAttribute {
   label: string;
@@ -44,12 +34,12 @@ export interface RoomSheet {
   orgunits?: { name: string }[];
 }
 
-export const fetchRoomSheet = (id: string) =>
-  getJson<RoomSheet>(`${BASE}/room?id=${encodeURIComponent(id)}`);
+export const fetchRoomSheet = async (id: string) =>
+  (await unwrap(getEthRoom({ query: { id } }))) as RoomSheet;
 
 /** Room photo or attachment (PDF) from ETH. */
 export const ethFileUrl = (id: number | string) =>
-  `${BASE}/file?id=${encodeURIComponent(String(id))}`;
+  `${MAP_API}/eth/file?id=${encodeURIComponent(String(id))}`;
 
 export interface UzhLocation {
   id: string;
@@ -59,10 +49,12 @@ export interface UzhLocation {
   fraction: number | null;
 }
 
-export const fetchUzh = () =>
-  getJson<{ fetchedAt: string; source: string; locations: UzhLocation[] }>(
-    `${BASE}/uzh`,
-  );
+export const fetchUzh = async () =>
+  (await unwrap(getUzhOccupancy())) as {
+    fetchedAt: string;
+    source: string;
+    locations: UzhLocation[];
+  };
 
 /** The official ETH page of a room. */
 export function officialRoomUrl(id: string) {

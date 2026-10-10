@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import { getMapStyle } from '../../api/generated';
 import type { RoomKind } from '../floors/floorData';
 import type { Theme } from './FloorLayer';
 
@@ -237,11 +238,10 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
 export type MinimalStyles = Record<Theme, MinimalStyle>;
 type PartialStyles = Partial<Record<Theme, Partial<MinimalStyle>>>;
 
-// Two layers over the built-in defaults: the standard in data/map-style.json
-// (shared, written by "Save as standard") and this browser's unsaved tweaks
-// in localStorage. Tweaks win; saving a standard clears them.
+// Two layers over the built-in defaults: the standard from the backend
+// (GET /api/v1/map/style, edited in occupancy-map-preview) and this browser's
+// tweaks in localStorage. Tweaks win.
 const STORAGE_KEY = 'minimal-style';
-const STANDARD_URL = `${import.meta.env.VITE_MAP_API_BASE ?? '/api'}/map-style`;
 
 /** `over` merged field by field onto `base`, so fields added later keep their default. */
 function mergeStyles(
@@ -281,29 +281,11 @@ export const loadMinimalStyles = (
 
 /** The saved standard over the built-in defaults; the built-ins when none is saved. */
 export async function fetchStandardStyles(): Promise<MinimalStyles> {
-  const res = await fetch(STANDARD_URL, {
-    headers: { Accept: 'application/json' },
-  });
-  if (res.status === 404) return DEFAULT_MINIMAL;
-  if (!res.ok)
-    throw new Error(
-      `Loading map style failed: ${res.status} ${await res.text()}`,
-    );
-  return mergeStyles(DEFAULT_MINIMAL, await res.json());
-}
-
-/** Writes data/map-style.json and drops the local tweaks, which now equal the standard. */
-export async function saveStandardStyles(styles: MinimalStyles): Promise<void> {
-  const res = await fetch(STANDARD_URL, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(styles),
-  });
-  if (!res.ok)
-    throw new Error(
-      `Saving map style failed: ${res.status} ${await res.text()}`,
-    );
-  clearLocalTweaks();
+  const { data, error, response } = await getMapStyle();
+  if (response?.status === 404) return DEFAULT_MINIMAL;
+  if (error !== undefined || !response?.ok)
+    throw new Error(`Loading map style failed: ${response?.status}`);
+  return mergeStyles(DEFAULT_MINIMAL, data as PartialStyles);
 }
 
 /** Drops this browser's tweaks for one theme, or for both. */

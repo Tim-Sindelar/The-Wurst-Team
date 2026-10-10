@@ -14,8 +14,7 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "lint:fix": "eslint . --fix",
-    "api:generate": "uv run --locked --project ../backend export-openapi && openapi-ts",
-    "map:sync": "node scripts/sync-map-data.mjs"
+    "api:generate": "uv run --locked --project ../backend export-openapi && openapi-ts"
   },
   "overrides": {
     "@hey-api/json-schema-ref-parser": {

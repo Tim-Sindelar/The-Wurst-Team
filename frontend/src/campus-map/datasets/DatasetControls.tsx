@@ -119,8 +119,7 @@ export function DatasetPanel({
           );
         })}
         <p className="note">
-          Live data is fetched by datasets/&lt;name&gt;/fetch.py on the dev
-          server and cached in map-data/cache/datasets.{' '}
+          Live data is fetched by the server and cached for a while.{' '}
           {Object.values(SUPPORT_LABELS)
             .map((s) => `${s.mark} ${s.label.toLowerCase()}`)
             .join(', ')}

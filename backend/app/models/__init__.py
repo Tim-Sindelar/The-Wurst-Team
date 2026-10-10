@@ -1,3 +1,4 @@
+from app.features.campus_map.models import MapDocument, MapEntity, MapOverride
 from app.features.reservations.models import (
     Break,
     Reservation,
@@ -7,4 +8,14 @@ from app.features.reservations.models import (
     StudySpace,
 )
 
-__all__ = ["Break", "Reservation", "Seat", "SpaceClosure", "SpaceOpeningInterval", "StudySpace"]
+__all__ = [
+    "Break",
+    "MapDocument",
+    "MapEntity",
+    "MapOverride",
+    "Reservation",
+    "Seat",
+    "SpaceClosure",
+    "SpaceOpeningInterval",
+    "StudySpace",
+]

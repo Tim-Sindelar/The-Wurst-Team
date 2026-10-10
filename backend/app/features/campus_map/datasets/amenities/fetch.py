@@ -15,9 +15,26 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "_common"))
 import datasetlib as lib  # noqa: E402
 
-ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
-KEEP_TAGS = ["opening_hours", "operator", "brand", "website", "phone", "wheelchair", "indoor", "level", "fee",
-             "description", "access", "addr:street", "addr:housenumber", "check_date"]
+ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+]
+KEEP_TAGS = [
+    "opening_hours",
+    "operator",
+    "brand",
+    "website",
+    "phone",
+    "wheelchair",
+    "indoor",
+    "level",
+    "fee",
+    "description",
+    "access",
+    "addr:street",
+    "addr:housenumber",
+    "check_date",
+]
 
 
 def selector(f):
@@ -69,18 +86,24 @@ def build(at=None):
         if lat is None or lng is None or not cat:
             continue
         name = tags.get("name") or tags.get("brand") or cat["label"]
-        items.append({
-            "id": f"{el['type']}/{el['id']}",
-            "name": name,
-            "lat": lat,
-            "lng": lng,
-            "approximate": False,
-            "category": cat["id"],
-            "campus": nearest_area(lat, lng, conf["areas"]),
-            "subtitle": cat["label"] + (f" · {tags['opening_hours']}" if tags.get("opening_hours") else ""),
-            "url": f"https://www.openstreetmap.org/{el['type']}/{el['id']}",
-            "details": {"categoryLabel": cat["label"], "tags": {k: tags[k] for k in KEEP_TAGS if k in tags}},
-        })
+        items.append(
+            {
+                "id": f"{el['type']}/{el['id']}",
+                "name": name,
+                "lat": lat,
+                "lng": lng,
+                "approximate": False,
+                "category": cat["id"],
+                "campus": nearest_area(lat, lng, conf["areas"]),
+                "subtitle": cat["label"]
+                + (f" · {tags['opening_hours']}" if tags.get("opening_hours") else ""),
+                "url": f"https://www.openstreetmap.org/{el['type']}/{el['id']}",
+                "details": {
+                    "categoryLabel": cat["label"],
+                    "tags": {k: tags[k] for k in KEEP_TAGS if k in tags},
+                },
+            }
+        )
     items.sort(key=lambda i: (i["category"], i["name"]))
     return items, ENDPOINTS[:1], errors
 

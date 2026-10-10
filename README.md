@@ -28,7 +28,7 @@ npm run dev --prefix frontend
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
 The frontend implements the mock screens from `design/` with mock data only (no API calls yet); Mantine, TanStack Query, and the API client are configured for wiring the backend in.
-The campus map (`/map`, linked from the home screen) is the view mode of `occupancy-map-preview/`, made for phones. Its data comes from Vite middleware in `frontend/server/` (copied from the preview, not yet part of FastAPI): the map configuration in `frontend/map-data/`, live ETH room bookings through `eth_room_dashboard.py` (Python, started on demand), the campus datasets in `datasets/`, and the floor plans built into `occupancy-map-preview/public/floors` by `scraper/extract_floors.py`. To change the map's workspaces, navigation or style, use the preview's Admin mode and Style panel, then run `npm run map:sync --prefix frontend`.
+The campus map (`/map`, linked from the home screen) is the view mode of `occupancy-map-preview/`, made for phones. Its data comes from the backend under `/api/v1/map` (see "Campus map" below), so it needs `make backend` running.
 Vite proxies `/api` requests to the backend on port 8000. Backend source changes reload automatically; migrations run when the backend container starts.
 
 Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend/package-lock.json`. Rebuild the backend container after changing Python dependencies.
@@ -149,6 +149,28 @@ Room/seat PATCH, opening-hours PUT, and closure POST/DELETE accept `?force=false
 Bookings, walk-up check-ins, and extensions obey hours, closures, and seat activation. Sessions can be shortened to the next unavailable boundary; check-in deadlines are capped at the shortened end. Public space responses include hours, timezone, opening status, and seat activation, with unavailable seats excluded from `free_seats`. User identities, QR tokens, and closure reasons are exposed only through admin routes.
 
 Overview names are deterministic placeholders (`Demo user <full UUID>`). The current booking includes pending, active, or on-break status; upcoming bookings are separate. `occupied_seats` counts active checked-in users and `on_break_seats` counts breaks. Ending a booking frees its user to reserve again; it does not ban the user. No admin UI or notifications are included.
+
+## Campus map
+
+The map's backend is the feature `backend/app/features/campus_map/`:
+
+| Route | What |
+| --- | --- |
+| `GET /api/v1/map/workspaces` | Workspaces (libraries, study areas, ...), their tables and seats: the generated data with the admin edits applied. `PUT` (admin) stores edits as a diff against the generated data |
+| `GET /api/v1/map/style`, `/navigation` | Map colours per theme, click-to-zoom areas. `PUT` (admin) replaces them |
+| `GET /api/v1/map/datasets[/<id>]` | Campus datasets (mensas, transport, ASVZ, shared mobility, weather, amenities). `?at=YYYY-MM-DDTHH:MM` for another Zurich time, `?refresh=true` to fetch now |
+| `GET /api/v1/map/eth/rooms[?date=]` | Every ETH room with the day's bookings and where it is on the floor plans; fetched from ETH in the background, at most hourly |
+| `GET /api/v1/map/eth/room?id=`, `/eth/file?id=`, `/eth/uzh` | ETH room sheet, room photos, live UZH library occupancy |
+| `/api/v1/map/floors/...` | Floor plans (static files) |
+
+The workspaces, style and navigation are stored in Postgres (`map_entities`, `map_overrides`, `map_documents`). They are edited in `occupancy-map-preview/` (Admin mode and Style panel), which saves JSON files; `make map-sync` copies them to `backend/app/features/campus_map/map-data/` and imports them. A fresh database imports those files when the backend starts. The importer can also write the database back to the files:
+
+```bash
+docker compose exec backend python -m app.features.campus_map.importer --export
+docker compose exec backend python -m app.features.campus_map.importer --generated-only  # after a scraper re-run, keeps admin edits
+```
+
+ETH bookings and dataset results are cached in the `map_cache` volume (`backend/.cache/campus-map` outside Docker). The dataset fetchers live in `backend/app/features/campus_map/datasets/` (see its README). Floor plans are built into `occupancy-map-preview/public/floors` by `scraper/extract_floors.py` (not in git) and mounted into the backend container; without them the map works without floor plans. `eth_room_dashboard.py` in the repo root is a standalone dashboard over the same ETH code.
 
 ## Checks
 

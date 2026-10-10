@@ -1,8 +1,9 @@
 import type { MultiPolygon } from 'geojson';
 import polygonClipping from 'polygon-clipping';
+import { MAP_API } from '../data/api';
 
 // Floor plans extracted from ETH PolyMaps by scraper/extract_floors.py and
-// served as static files from public/floors/. The index is small and loaded
+// served as static files by the backend (/api/v1/map/floors). The index is small and loaded
 // once; each level's rooms and walls are fetched on demand.
 
 export type RoomKind =
@@ -75,7 +76,7 @@ interface RawLevel {
   lines: Partial<Record<LineLayer, number[][]>>;
 }
 
-const BASE = `${import.meta.env.BASE_URL}floors`;
+const BASE = `${MAP_API}/floors`;
 
 let indexPromise: Promise<FloorIndex> | null = null;
 const levelCache = new Map<string, Promise<LevelPlan>>();

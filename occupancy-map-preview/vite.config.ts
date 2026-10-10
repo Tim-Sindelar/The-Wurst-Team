@@ -19,8 +19,8 @@ export default defineConfig({
     }),
     jsonDocumentApi({ route: '/api/map-style', file: dataFile('map-style.json'), validate: validateMapStyle }),
     jsonDocumentApi({ route: '/api/navigation', file: dataFile('navigation.json'), validate: validateNavigation }),
-    // Campus datasets (../datasets/<id>/fetch.py), fetched on demand and cached per their ttl.
-    datasetsApi({ dir: here('../datasets'), cacheDir: dataFile('cache/datasets') }),
+    // Campus datasets (<id>/fetch.py, kept in the backend), fetched on demand and cached per their ttl.
+    datasetsApi({ dir: here('../backend/app/features/campus_map/datasets'), cacheDir: dataFile('cache/datasets') }),
     // Live room bookings via eth_room_dashboard.py (started on demand unless ETH_ROOMS_AUTOSTART=0).
     ethRoomsApi({
       target: process.env.ETH_ROOMS_URL ?? 'http://127.0.0.1:8765',
