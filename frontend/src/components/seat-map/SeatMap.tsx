@@ -79,13 +79,15 @@ export function SeatMap({
     return () => panZoom.destroy();
   }, []);
 
-  /* A new selection (tap, keyboard or "Choose any free seat") is brought into view. */
+  /* A new selection (tap, keyboard or "Choose any free seat") glides into
+     view; closing the seat card lets the map settle into the freed space. */
   const shownSelection = useRef(selected);
   useEffect(() => {
     if (shownSelection.current === selected) return;
     shownSelection.current = selected;
     const seat = seats.find((item) => item.id === selected);
     if (seat) panZoomRef.current?.centerOn(seat.x, seat.y);
+    else if (selected === null) panZoomRef.current?.settle();
   }, [selected, seats]);
 
   return (
