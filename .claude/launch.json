@@ -2,6 +2,20 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "frontend",
+        "--",
+        "--port",
+        "5176"
+      ],
+      "port": 5176
+    },
+    {
       "name": "occupancy-map-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
@@ -31,8 +45,23 @@
     {
       "name": "eth-room-dashboard",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["eth_room_dashboard.py", "--no-browser"],
+      "runtimeArgs": [
+        "eth_room_dashboard.py",
+        "--no-browser"
+      ],
       "port": 8765
+    },
+    {
+      "name": "polymaps-ar",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "C:/Users/diffr/code/wurst team repo 2/polymaps-ar"
+      ],
+      "port": 5443,
+      "url": "https://localhost:5443"
     }
   ]
 }

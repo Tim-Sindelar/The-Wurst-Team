@@ -13,3 +13,4 @@
 .DS_Store
 scraper/polymaps_data/
 occupancy-map-preview/public/floors/
+frontend/map-data/cache/

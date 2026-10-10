@@ -6,6 +6,7 @@ import {
 } from 'react-router';
 import { paths } from './routes';
 import { HomeScreen } from './screens/HomeScreen';
+import { MapScreen } from './screens/MapScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { ReservationScreen } from './screens/ReservationScreen';
 import { ScanScreen } from './screens/ScanScreen';
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: paths.home, element: <HomeScreen /> },
+      { path: paths.map, element: <MapScreen /> },
       { path: paths.seatMap, element: <SeatMapScreen /> },
       { path: paths.reservation, element: <ReservationScreen /> },
       { path: paths.scan, element: <ScanScreen /> },

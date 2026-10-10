@@ -28,6 +28,7 @@ npm run dev --prefix frontend
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
 The frontend implements the mock screens from `design/` with mock data only (no API calls yet); Mantine, TanStack Query, and the API client are configured for wiring the backend in.
+The campus map (`/map`, linked from the home screen) is the view mode of `occupancy-map-preview/`, made for phones. Its data comes from Vite middleware in `frontend/server/` (copied from the preview, not yet part of FastAPI): the map configuration in `frontend/map-data/`, live ETH room bookings through `eth_room_dashboard.py` (Python, started on demand), the campus datasets in `datasets/`, and the floor plans built into `occupancy-map-preview/public/floors` by `scraper/extract_floors.py`. To change the map's workspaces, navigation or style, use the preview's Admin mode and Style panel, then run `npm run map:sync --prefix frontend`.
 Vite proxies `/api` requests to the backend on port 8000. Backend source changes reload automatically; migrations run when the backend container starts.
 
 Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend/package-lock.json`. Rebuild the backend container after changing Python dependencies.

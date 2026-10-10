@@ -17,6 +17,9 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/domain/` | Domain types and per-state lookups (seat states, labels, state classes) |
 | `src/mock/` | Sample data and the mock booking state. Replaced by API data later |
 | `src/routes.ts` | Screen paths |
+| `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |
+| `map-data/` | The campus map's configuration: `generated.json` + `overrides.json` (workspaces), `map-style.json` (map colours per theme), `navigation.json` (click-to-zoom areas). Copied from `occupancy-map-preview/data` with `npm run map:sync` |
+| `server/` | The campus map's backend for now: Vite middleware copied from `occupancy-map-preview/server` (map data, ETH room bookings, campus datasets, floor plans) |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
 
 ### Styling
@@ -45,7 +48,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | Icons | `Icon` from `src/components/Icon.tsx` only (24px outline, 1.75 stroke). Add new icons there |
 | Screen layout | `Screen` > `ScreenHeader` (back, title, theme switch) > `ScreenMain` > `ActionBar` |
 
-Only two kinds of popup exist: the decision sheet and the notification banner. Don't add a third. Errors on a screen are shown in place as a `danger` notice.
+Only two kinds of popup exist: the decision sheet and the notification banner. Don't add a third. (The campus map's bottom sheets, `MapSheet`, use the decision sheet's frame for its settings and its room dashboard.) Errors on a screen are shown in place as a `danger` notice.
 
 ### Design rules that apply to code
 
@@ -56,6 +59,14 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Motion only on `transform` and `opacity`, 150 to 250ms, and respect reduced motion.
 - Text never below 12px; long names (40+ characters) must wrap or truncate cleanly.
 - Phone first: a 390px column, centred on desktop. Don't stretch layouts wider.
+
+### Campus map
+
+- The map screen is full screen: top bar (back, title, theme), Leaflet map, floor picker on the right, and a bottom toolbar (time, live rooms, campus data, map options) whose buttons open `MapSheet` bottom sheets.
+- Tapping a room, workspace or pin selects it and shows a card above the toolbar; tapping it again (or the card) opens the dashboard sheet with its details and the lists the preview had in its side panel.
+- The map components keep their own markup and class names, styled in `src/campus-map/campus-map.css`, the one plain CSS file outside `src/theme`. Its colour names point at the design tokens. Colours drawn on the map come from `map-data/map-style.json`. The ESLint React Compiler rules are off for this folder (the Leaflet layers rely on latest-value refs).
+- `occupancy-map-preview/` stays the developer tool for the map: its Admin mode edits workspaces and navigation, its Style panel edits the map style. After saving there, run `npm run map:sync` here. There is no admin or style editor in this app.
+- Floor plans are read from `occupancy-map-preview/public/floors` (built by `scraper/extract_floors.py`, not in git), or from `MAP_FLOORS_DIR`.
 
 ### Data and state
 

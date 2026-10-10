@@ -9,7 +9,6 @@ import {
 import { Link, useSearchParams } from 'react-router';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
-import { Placeholder } from '../components/Placeholder';
 import { Screen, ScreenMain } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -85,14 +84,24 @@ export function HomeScreen() {
           ))}
         </ul>
 
-        <Title order={2} className="sr-only">
-          Campus map
-        </Title>
-        <Placeholder
-          icon="map"
-          label="Campus map goes here"
-          description="Placeholder: the campus map goes here"
-        />
+        <Card
+          component={Link}
+          to={paths.map}
+          className="no-underline hover:shadow-[inset_0_0_0_100px_var(--color-hover),var(--shadow-card)]"
+        >
+          <div className="flex items-center gap-3">
+            <Icon name="map" size="lg" className="flex-none text-accent" />
+            <div className="grid min-w-0 flex-1 gap-1">
+              <Title order={2} className="text-title">
+                Campus map
+              </Title>
+              <Text size="sm" c="dimmed">
+                Workspaces, free rooms, mensas and transport on the floor plans
+              </Text>
+            </div>
+            <Icon name="chevronRight" />
+          </div>
+        </Card>
       </ScreenMain>
     </Screen>
   );

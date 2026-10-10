@@ -1,0 +1,1351 @@
+/* ==========================================================================
+   Campus map. Ported from occupancy-map-preview/src/styles.css (view mode
+   only) and scoped to the map screen (.campus-map) and the sheets it opens
+   (.campus-map-ui, rendered in portals). The map's own colour names point at
+   the design tokens, so both themes follow the rest of the app. The colours
+   drawn on the map itself come from map-data/map-style.json.
+
+   This is the one place outside src/theme that holds plain CSS: the map
+   components (Leaflet markers, tooltips, floor plans) render their own HTML
+   with these class names.
+   ========================================================================== */
+
+@layer components {
+  :is(.campus-map, .campus-map-ui) {
+    --bg: var(--color-bg);
+    --panel: var(--color-surface);
+    --text: var(--color-text);
+    --muted: var(--color-text-muted);
+    --border: var(--color-border);
+    --accent: var(--color-accent);
+    --on-accent: var(--color-on-accent);
+    --accent-soft: color-mix(
+      in srgb,
+      var(--color-accent) 16%,
+      var(--color-surface)
+    );
+    --free: var(--color-avail-high);
+    --occupied: var(--color-avail-none);
+    --unknown: var(--color-seat-occupied);
+    --low: var(--color-avail-mid);
+    --danger: var(--color-danger);
+    --track: color-mix(
+      in srgb,
+      var(--color-avail-none) 25%,
+      var(--color-surface)
+    );
+    --radius: var(--radius-card);
+    --shadow: 0 2px 10px rgb(0 0 0 / 0.25);
+    color: var(--text);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+
+    h2,
+    h3 {
+      margin: 0;
+    }
+    h2 {
+      font-size: var(--text-body);
+      font-weight: 600;
+    }
+    h3 {
+      font-size: var(--text-small);
+      font-weight: 600;
+    }
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      color: inherit;
+    }
+    /* 16px stops iOS from zooming into a field on focus. */
+    input:not(
+      [type='checkbox'],
+      [type='radio'],
+      [type='range'],
+      [type='color']
+    ),
+    select {
+      font-size: var(--text-body);
+      min-height: 44px;
+      border: 1px solid var(--color-border-strong);
+      border-radius: var(--radius-control);
+      padding: 4px 10px;
+      background: var(--panel);
+      max-width: 100%;
+    }
+    input[type='checkbox'] {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      accent-color: var(--accent);
+    }
+    input[type='range'] {
+      accent-color: var(--accent);
+      min-height: 32px;
+    }
+    a {
+      color: var(--accent);
+    }
+    .muted {
+      color: var(--muted);
+    }
+
+    /* sections inside the sheets */
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-section:last-child {
+      border-bottom: 0;
+    }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* buttons */
+    .btn,
+    .btn-ghost,
+    .btn-danger,
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 44px;
+      min-width: 44px;
+      border: 1px solid var(--color-border-strong);
+      background: var(--panel);
+      border-radius: var(--radius-control);
+      padding: 4px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: none;
+      transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
+    }
+    .btn {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn:hover,
+    .btn.is-active {
+      background: var(--accent);
+      color: var(--on-accent);
+    }
+    .btn-ghost {
+      background: transparent;
+    }
+    .btn-icon {
+      padding: 0;
+      font-size: 20px;
+      color: var(--muted);
+    }
+    .btn-small {
+      min-height: 32px;
+      min-width: 32px;
+      padding: 0 8px;
+    }
+    :is(.btn, .btn-ghost, .btn-icon):disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    /* lists */
+    .list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .list-item {
+      width: 100%;
+      min-height: 44px;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px 8px;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: none;
+      cursor: pointer;
+    }
+    .list-item:hover {
+      background: var(--color-hover);
+    }
+    .list-item.is-active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+    .list-title {
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+    .list-meta {
+      font-size: var(--text-label);
+      color: var(--muted);
+    }
+    .list-item .occ,
+    .list-item .occ-empty {
+      grid-column: 1 / -1;
+    }
+
+    .table-grid {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 44px;
+      border: 1px solid var(--color-border-strong);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 4px 14px;
+      cursor: pointer;
+    }
+    .chip.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    span.chip {
+      cursor: default;
+      min-height: 32px;
+    }
+
+    /* details */
+    .details h2 {
+      margin-bottom: 8px;
+    }
+    .details dl {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 6px 10px;
+      margin: 0 0 12px;
+    }
+    .details dt {
+      color: var(--muted);
+    }
+    .details dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    .source {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      width: fit-content;
+      color: var(--accent);
+    }
+
+    /* occupancy bar */
+    .occ {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--text-label);
+    }
+    .occ-track {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--track);
+      overflow: hidden;
+    }
+    .occ-fill {
+      display: block;
+      height: 100%;
+      background: var(--free);
+    }
+    .occ-label {
+      color: var(--muted);
+      min-width: 64px;
+      text-align: right;
+    }
+    .occ-large .occ-track {
+      height: 10px;
+      border-radius: 5px;
+    }
+    .occ-large {
+      font-size: var(--text-small);
+    }
+    .occ-empty {
+      font-size: var(--text-label);
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* forms */
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .row > select {
+      flex: 1;
+      min-width: 0;
+    }
+    .check {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-height: 44px;
+    }
+    .icon-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .note {
+      margin: 0;
+      font-size: var(--text-label);
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .time-search {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .hours-table {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0 10px;
+      margin: 0;
+    }
+    .hours-table .today {
+      font-weight: 600;
+    }
+
+    /* panels shown in the bottom sheets (formerly map overlays) */
+    .style-panel section {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .style-panel section:last-child {
+      border-bottom: 0;
+    }
+    .style-panel h3 {
+      font-size: var(--text-label);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-label);
+      color: var(--muted);
+    }
+    .style-panel h3 .muted {
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+    }
+    .part {
+      padding: 4px 0;
+      border-top: 1px dashed var(--border);
+    }
+    .part:first-of-type {
+      border-top: 0;
+    }
+    .part.is-off .check {
+      color: var(--muted);
+    }
+    .part-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 4px 0 2px 30px;
+    }
+    .slider {
+      display: grid;
+      grid-template-columns: 96px 1fr 44px;
+      align-items: center;
+      gap: 8px;
+    }
+    .slider span {
+      color: var(--muted);
+    }
+    .slider input {
+      width: 100%;
+    }
+    .slider output {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+    .kind-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-top: 2px;
+    }
+    .room-panel .feature,
+    .dataset-panel .feature {
+      align-items: flex-start;
+      padding: 10px 0;
+    }
+    .room-panel .unmatched,
+    .dataset-panel .unmatched {
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .fetch-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .error-text {
+      color: var(--danger);
+    }
+    details > summary {
+      cursor: pointer;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* live room switch dot */
+    .live-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+    .live-dot.is-on {
+      background: var(--free);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--free) 30%, transparent);
+    }
+    .live-dot.is-busy {
+      animation: campus-map-pulse 1s ease-in-out infinite alternate;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      vertical-align: -1px;
+      background: var(--unknown);
+      border: 1px solid rgb(0 0 0 / 0.15);
+    }
+    .status-dot.is-open {
+      background: var(--free);
+    }
+    .status-dot.is-closed {
+      background: var(--unknown);
+    }
+    .list-title .status-dot {
+      margin-right: 4px;
+    }
+
+    /* room details */
+    .room-details .section-head {
+      margin-bottom: 2px;
+    }
+    .room-details .sub-head {
+      margin: 14px 0 6px;
+      font-size: var(--text-label);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-label);
+    }
+    .room-status {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin: 10px 0;
+      padding: 10px 12px;
+      border-left: 4px solid;
+      border-radius: var(--radius-control);
+      background: var(--bg);
+    }
+    .room-status .status-dot {
+      margin-top: 4px;
+    }
+    .room-photos {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 2px 0 6px;
+      scroll-snap-type: x mandatory;
+    }
+    .room-photo {
+      flex-shrink: 0;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-control);
+      overflow: hidden;
+      cursor: zoom-in;
+      background: var(--bg);
+      scroll-snap-align: start;
+    }
+    .room-photo img {
+      display: block;
+      height: 120px;
+      width: auto;
+      min-width: 80px;
+      object-fit: cover;
+    }
+    .day-bar {
+      position: relative;
+      margin-bottom: 4px;
+    }
+    .day-track {
+      position: relative;
+      height: 14px;
+      border-radius: 4px;
+      overflow: hidden;
+      opacity: 0.9;
+    }
+    .day-track span {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+    }
+    .day-closed {
+      opacity: 0.85;
+    }
+    .day-now {
+      width: 2px;
+      background: var(--text);
+      margin-left: -1px;
+    }
+    .day-axis {
+      position: relative;
+      height: 16px;
+      font-size: var(--text-label);
+      color: var(--muted);
+    }
+    .day-axis span {
+      position: absolute;
+      transform: translateX(-50%);
+    }
+    .booking-list {
+      list-style: none;
+      padding: 0;
+      margin: 4px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: var(--text-label);
+    }
+    .booking-list li {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 6px;
+      padding: 3px 4px;
+      border-radius: 4px;
+    }
+    .booking-list li.is-now {
+      background: var(--accent-soft);
+    }
+    .booking-list li.is-cancelled {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+    .booking-time {
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+    .room-sheet {
+      margin-top: 10px;
+      font-size: var(--text-label);
+    }
+    .room-sheet summary {
+      color: var(--accent);
+    }
+    .room-sheet dl {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin: 0;
+    }
+    .sheet-row {
+      display: grid;
+      grid-template-columns: 45% 1fr;
+      gap: 6px;
+    }
+    .sheet-row dt {
+      color: var(--muted);
+    }
+    .sheet-row dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    .room-actions {
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .collapsible > summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+    }
+    .collapsible > summary::-webkit-details-marker {
+      display: none;
+    }
+    .collapsible > summary::before {
+      content: '▸';
+      color: var(--muted);
+      font-size: var(--text-label);
+      transition: transform 0.15s;
+    }
+    .collapsible[open] > summary::before {
+      transform: rotate(90deg);
+    }
+    .collapsible[open] > summary {
+      margin-bottom: 10px;
+    }
+    .free-filters {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .free-filters input[type='search'] {
+      flex: 1;
+      min-width: 120px;
+    }
+    .free-filters input[type='number'] {
+      width: 72px;
+    }
+    .more {
+      width: 100%;
+      margin-top: 6px;
+    }
+    .uzh-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .uzh-list li {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .uzh-fill {
+      background: var(--accent);
+    }
+
+    /* campus datasets */
+    .ds-swatch {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: var(--text-label);
+      vertical-align: -4px;
+      background: var(--accent);
+      box-shadow: inset 0 0 0 10px rgb(255 255 255 / 0.72);
+    }
+    .ds-group {
+      margin: 10px 0 4px;
+      font-size: var(--text-label);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-label);
+      color: var(--muted);
+    }
+    .ds-list .list-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    .ds-sub {
+      font-size: var(--text-label);
+    }
+    .ds-summary {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 6px;
+    }
+    .ds-summary li {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    .ds-details {
+      background: var(--accent-soft);
+    }
+    .ds-details h2 {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .ds-menu {
+      margin-top: 10px;
+    }
+    .ds-menu h3 {
+      margin-bottom: 6px;
+    }
+    .ds-meal {
+      padding: 8px 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .ds-meal-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .ds-price {
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .ds-allergens {
+      font-size: var(--text-label);
+    }
+    .ds-line {
+      display: inline-block;
+      min-width: 22px;
+      padding: 0 5px;
+      border-radius: 4px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      font-size: var(--text-label);
+      font-weight: 600;
+      text-align: center;
+    }
+    .ds-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .ds-table td {
+      padding: 4px;
+      border-top: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .ds-table .num {
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .ds-lessons {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .ds-lessons .num {
+      font-variant-numeric: tabular-nums;
+    }
+    .ds-lessons .ds-day {
+      margin-top: 6px;
+      font-weight: 600;
+    }
+    .ds-lessons .is-cancelled {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+    .ds-dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 10px;
+      margin: 6px 0;
+    }
+    .ds-dl dt {
+      color: var(--muted);
+    }
+    .ds-dl dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    .ds-weather-now {
+      margin: 4px 0;
+      font-size: var(--text-body);
+    }
+    .ds-weather-now strong {
+      font-size: var(--text-title);
+      margin-right: 6px;
+    }
+    .ds-hours {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 6px 0;
+    }
+    .ds-hours > div {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 40px;
+      font-size: var(--text-label);
+    }
+    .ds-raw {
+      white-space: pre-wrap;
+      max-height: 240px;
+      overflow: auto;
+    }
+
+    /* time picker and the time flags on datasets */
+    .time-inputs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .time-sources {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .time-sources li {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 8px;
+      align-items: start;
+    }
+    .time-sources li > span:last-child {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .time-sources li.is-off {
+      opacity: 0.55;
+    }
+    .support {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: var(--text-label);
+      font-weight: 700;
+      color: #fff;
+    }
+    .support-full {
+      background: var(--free);
+    }
+    .support-partial {
+      background: var(--low);
+    }
+    .support-live {
+      background: var(--unknown);
+    }
+    .time-flag {
+      display: inline-block;
+      margin-left: 4px;
+      padding: 0 6px;
+      border-radius: 999px;
+      font-size: var(--text-label);
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #fff;
+      background: var(--unknown);
+    }
+    .time-flag.is-partial {
+      background: var(--low);
+    }
+  }
+
+  /* ---- the map itself ---------------------------------------------------- */
+  .campus-map {
+    .map {
+      height: 100%;
+      width: 100%;
+    }
+
+    .seat-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .seat-free {
+      background: var(--free);
+    }
+    .seat-occupied {
+      background: var(--occupied);
+    }
+    .seat-unknown {
+      background: var(--unknown);
+    }
+
+    /* workspace pins */
+    .lib-pin {
+      position: relative;
+      width: 34px;
+      height: 42px;
+    }
+    .lib-shape {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: var(--accent);
+      border: 2px solid var(--panel);
+      box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+      box-sizing: border-box;
+    }
+    .lib-book {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .lib-count,
+    .lib-floor {
+      position: absolute;
+      top: -7px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      border-radius: 9px;
+      border: 1.5px solid #fff;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 15px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+      box-sizing: border-box;
+    }
+    .lib-count {
+      right: -9px;
+      background: #1c2430;
+      color: #fff;
+    }
+    .lib-floor {
+      left: -9px;
+      background: var(--panel);
+      color: var(--text);
+      border-color: var(--unknown);
+    }
+    .lib-ok .lib-shape {
+      background: var(--free);
+    }
+    .lib-low .lib-shape {
+      background: var(--low);
+    }
+    .lib-full .lib-shape {
+      background: var(--occupied);
+    }
+    .lib-pin.is-selected .lib-shape {
+      outline: 3px solid var(--text);
+      outline-offset: 1px;
+    }
+    .lib-pin.is-other-floor {
+      opacity: 0.55;
+    }
+    .lib-pin.is-other-floor.is-selected {
+      opacity: 1;
+    }
+
+    .table-marker {
+      width: 30px;
+      height: 20px;
+      border-radius: 4px;
+      background: var(--panel);
+      color: var(--text);
+      border: 2px solid #5b6574;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .table-marker.is-selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .seat-marker {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+    }
+    .seat-marker.is-selected {
+      outline: 2px solid var(--text);
+    }
+
+    /* campus dataset pins */
+    .ds-pin {
+      position: relative;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--panel);
+      border: 2.5px solid var(--ds-color);
+      box-shadow: var(--shadow);
+      font-size: 15px;
+      line-height: 1;
+    }
+    .ds-pin.is-small {
+      width: 22px;
+      height: 22px;
+      font-size: 11px;
+      border-width: 2px;
+    }
+    .ds-pin.is-dimmed {
+      opacity: 0.5;
+      filter: grayscale(0.6);
+    }
+    .ds-pin.is-approx {
+      border-style: dashed;
+    }
+    .ds-pin.is-selected {
+      outline: 3px solid var(--text);
+      outline-offset: 1px;
+      opacity: 1;
+      filter: none;
+    }
+    .ds-badge {
+      position: absolute;
+      top: -8px;
+      right: -12px;
+      min-width: 18px;
+      padding: 1px 4px;
+      border-radius: 999px;
+      background: var(--ds-color);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* floor picker: a column of 44px buttons on the right edge */
+    .floor-picker {
+      position: absolute;
+      z-index: 1000;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      max-height: 46%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .floor-picker .floor-title {
+      padding: 6px 6px 4px;
+      font-size: var(--text-label);
+      color: var(--muted);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .floor-picker button {
+      border: 0;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      min-width: 48px;
+      min-height: 44px;
+      padding: 6px 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .floor-picker button[aria-pressed='true'] {
+      background: var(--accent);
+      color: var(--on-accent);
+    }
+    .floor-picker button.has-library:not([aria-pressed='true']) {
+      color: var(--accent);
+    }
+    .floor-picker button.has-library::after {
+      content: '';
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      margin-left: 3px;
+      border-radius: 50%;
+      background: currentColor;
+      vertical-align: middle;
+    }
+    /* The floor name pill sits under the top bar, out of the bottom controls' way. */
+    .floor-status {
+      position: absolute;
+      z-index: 1000;
+      left: 50%;
+      top: calc(76px + env(safe-area-inset-top));
+      transform: translateX(-50%);
+      max-width: calc(100% - 140px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: rgb(28 36 48 / 0.85);
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: var(--text-label);
+      pointer-events: none;
+    }
+
+    .room-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translate(-50%, -50%);
+      width: max-content;
+      font-size: 11px;
+      line-height: 1.1;
+      color: var(--text);
+      text-shadow:
+        0 0 2px var(--panel),
+        0 0 2px var(--panel),
+        0 0 3px var(--panel);
+      pointer-events: none;
+    }
+    .room-label b {
+      font-weight: 700;
+    }
+    .room-label span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    /* room status legend and time slider, above the bottom bar */
+    .occ-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 8px 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-size: var(--text-label);
+    }
+    .occ-legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+    }
+    .occ-legend-items span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .occ-legend-time {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .occ-legend-time input {
+      flex: 1;
+      min-width: 0;
+    }
+    .occ-legend-time .btn-ghost {
+      min-height: 36px;
+      padding: 0 10px;
+    }
+    .occ-time {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    /* Leaflet controls: 44px touch targets, below the top bar */
+    .leaflet-container {
+      font: inherit;
+      background: #e9edf2;
+    }
+    .leaflet-top {
+      top: calc(64px + env(safe-area-inset-top));
+    }
+    .leaflet-bottom {
+      bottom: env(safe-area-inset-bottom);
+    }
+    .leaflet-bar,
+    .leaflet-control-layers {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .leaflet-bar a,
+    .leaflet-control-layers,
+    .leaflet-control-layers-toggle {
+      background-color: var(--panel);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .leaflet-bar a {
+      width: 44px;
+      height: 44px;
+      line-height: 44px;
+      font-size: 22px;
+    }
+    .leaflet-bar a.nav-home {
+      font-size: 22px;
+    }
+    .leaflet-control-layers-toggle {
+      width: 44px;
+      height: 44px;
+    }
+    .leaflet-control-layers-expanded {
+      padding: 8px 12px;
+      font-size: var(--text-small);
+    }
+    .leaflet-control-layers-base label {
+      display: flex;
+      align-items: center;
+      min-height: 40px;
+    }
+    .leaflet-control-zoom {
+      display: none;
+    }
+    .leaflet-control-attribution {
+      background: color-mix(in srgb, var(--panel) 80%, transparent);
+      color: var(--muted);
+      border-radius: 6px 0 0 0;
+      font-size: 10px;
+    }
+    .leaflet-control-attribution a {
+      color: var(--accent);
+    }
+    .leaflet-control-scale {
+      margin-bottom: 4px;
+    }
+    .leaflet-control-scale-line {
+      background: color-mix(in srgb, var(--panel) 80%, transparent);
+      color: var(--text);
+      border-color: var(--muted);
+    }
+    .leaflet-tooltip {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 6px 10px;
+      font-size: var(--text-label);
+    }
+    .leaflet-tooltip-top::before {
+      border-top-color: var(--panel);
+    }
+    .leaflet-container.nav-hover {
+      cursor: pointer;
+    }
+    .maplibregl-map {
+      font: inherit;
+    }
+  }
+
+  [data-mantine-color-scheme='dark'] .campus-map {
+    .leaflet-container {
+      background: #14171c;
+    }
+    .leaflet-control-layers-separator {
+      border-top-color: var(--border);
+    }
+    /* OpenFreeMap has no dark style: invert the light one in dark theme. */
+    .maplibregl-canvas {
+      filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95);
+    }
+  }
+
+  /* Room photo viewer (RoomDetails renders it into <body>). */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgb(0 0 0 / 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    figure {
+      margin: 0;
+      max-width: min(1100px, 100%);
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    img {
+      max-width: 100%;
+      max-height: calc(100dvh - 120px);
+      object-fit: contain;
+      border-radius: 8px;
+      background: #111;
+    }
+    figcaption {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: #fff;
+    }
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 5px;
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgb(255 255 255 / 0.4);
+      text-decoration: none;
+      cursor: pointer;
+    }
+  }
+}
+
+@keyframes campus-map-pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}

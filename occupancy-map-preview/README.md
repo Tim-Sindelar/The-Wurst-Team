@@ -1,5 +1,7 @@
 # occupancy-map-preview
 
+> The main app shows this map at `/map` in `frontend/` (view mode only, made for phones). This preview stays the developer tool for it: edit workspaces and navigation in Admin mode and the look in the Style panel ("Save as standard"), then copy the result over with `npm run map:sync --prefix frontend`.
+
 A React + Leaflet preview of an ETH workspace occupancy map. Workspaces are libraries, study areas, group rooms, computer rooms, lounges or anything else with seats. One map, two modes:
 
 - **View**: workspace pins (colored by free seats, filterable by type), and from zoom 18 on, tables and seats colored free / occupied / unknown.
