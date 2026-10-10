@@ -17,6 +17,7 @@ from app.features.reservations.admin_service import AdminConflict
 from app.features.reservations.router import router
 from app.features.reservations.schemas import BookingErrorResponse
 from app.features.reservations.service import BookingError
+from app.features.social.router import router as social_router
 from app.schemas import ErrorResponse, HealthResponse, ReadinessResponse
 
 
@@ -37,6 +38,7 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(admin_router)
 app.include_router(auth_router)
+app.include_router(social_router)
 
 
 @app.exception_handler(AdminConflict)

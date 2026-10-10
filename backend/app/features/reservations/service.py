@@ -70,6 +70,7 @@ def reservation_states(
     *,
     seat_ids: list[UUID] | None = None,
     user_id: UUID | None = None,
+    user_ids: list[UUID] | None = None,
     live_only: bool = False,
 ) -> list[ReservationState]:
     clauses = []
@@ -82,6 +83,11 @@ def reservation_states(
     if user_id is not None:
         clauses.append("user_id = :user_id")
         parameters["user_id"] = user_id
+    if user_ids is not None:
+        if not user_ids:
+            return []
+        clauses.append("user_id IN :user_ids")
+        parameters["user_ids"] = user_ids
     if live_only:
         clauses.append("status IN ('upcoming', 'pending', 'active', 'on_break')")
     statement = text(
@@ -90,6 +96,8 @@ def reservation_states(
     )
     if seat_ids is not None:
         statement = statement.bindparams(bindparam("seat_ids", expanding=True))
+    if user_ids is not None:
+        statement = statement.bindparams(bindparam("user_ids", expanding=True))
     return [ReservationState(**row) for row in session.execute(statement, parameters).mappings()]
 
 
@@ -147,13 +155,16 @@ class ReservationService:
             self.session.flush()
 
     def _prepare(self, user_id: UUID, seat_ids: list[UUID]) -> datetime:
+        return self._prepare_users([user_id], seat_ids)
+
+    def _prepare_users(self, user_ids: list[UUID], seat_ids: list[UUID]) -> datetime:
         # Hash collisions only serialize otherwise independent users.
-        lock_key = user_id.int & ((1 << 63) - 1)
-        self.session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+        for lock_key in sorted({user_id.int & ((1 << 63) - 1) for user_id in user_ids}):
+            self.session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
         before_locks = self.now()
         user_seats = self.session.scalars(
             select(Reservation.seat_id).where(
-                Reservation.user_id == user_id,
+                Reservation.user_id.in_(user_ids),
                 Reservation.ends_at > before_locks,
                 Reservation.ends_at > Reservation.starts_at,
             )
@@ -180,6 +191,46 @@ class ReservationService:
         now = self.now()
         self._normalize(affected_seats, now)
         return now
+
+    def reserve_party(self, assignments: dict[UUID, UUID]) -> tuple[list[Reservation], datetime]:
+        """Reserve free seats for consenting users; the caller commits the entire transaction."""
+        if not assignments or len(set(assignments.values())) != len(assignments):
+            raise BookingError(409, "invalid_assignments", "Assign one distinct seat per member")
+        seats = list(self.session.scalars(select(Seat).where(Seat.id.in_(assignments.values()))))
+        if len(seats) != len(assignments):
+            raise BookingError(404, "not_found", "Seat not found")
+        if len({seat.space_id for seat in seats}) != 1:
+            raise BookingError(409, "different_rooms", "All party seats must be in the same room")
+        now = self._prepare_users(list(assignments), list(assignments.values()))
+        if reservation_states(self.session, now, user_ids=list(assignments), live_only=True):
+            raise BookingError(409, "already_reserved", "A party member already has a live booking")
+        states = self._live(now, seat_ids=list(assignments.values()))
+        for seat in seats:
+            availability = self._availability(
+                seat, [state for state in states if state.seat_id == seat.id], now
+            )
+            if availability.state != "free":
+                raise BookingError(409, "seat_unavailable", "Every party seat must be free now")
+        rows = [self._insert(user_id, seat_id, now) for user_id, seat_id in assignments.items()]
+        return rows, now
+
+    def cancel_unchecked(self, reservation_ids: list[UUID]) -> list[UUID]:
+        """Cancel only these pending bookings, preserving checked-in sessions and later bookings."""
+        rows = list(
+            self.session.scalars(select(Reservation).where(Reservation.id.in_(reservation_ids)))
+        )
+        now = self._prepare_users([row.user_id for row in rows], [row.seat_id for row in rows])
+        states = reservation_states(self.session, now, seat_ids=[row.seat_id for row in rows])
+        pending = {state.id for state in states if state.status in {"pending", "upcoming"}}
+        cancelled = []
+        for row in rows:
+            self.session.refresh(row)
+            if row.id in pending and row.checked_in_at is None:
+                row.ends_at = max(now, row.starts_at)
+                cancelled.append(row.id)
+        self.session.flush()
+        self._normalize([row.seat_id for row in rows], now)
+        return cancelled
 
     def _availability(
         self, seat: Seat, states: list[ReservationState], now: datetime

@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, checkIn, createReservation, endReservation, extendReservation, getHealth, getMe, getMyReservation, getReadiness, getSpace, listSpaces, type Options, returnFromBreak, startBreak, updateMe } from '../sdk.gen';
-import type { AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetHealthData, GetHealthResponse, GetMeData, GetMeError, GetMeResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, StartBreakData, StartBreakError, StartBreakResponse, UpdateMeData, UpdateMeError, UpdateMeResponse } from '../types.gen';
+import { acceptFriendRequest, adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, bookParty, cancelParty, checkIn, createFriendLink, createParty, createReservation, deleteFriendship, endReservation, extendReservation, getHealth, getMe, getMyReservation, getParty, getReadiness, getSocialCapabilities, getSocialMe, getSpace, invitePartyMember, leaveParty, listFriendRequests, listFriends, listParties, listSpaces, type Options, replyToPartyInvitation, returnFromBreak, sendFriendRequest, startBreak, updateMe, updateSocialPrivacy } from '../sdk.gen';
+import type { AcceptFriendRequestData, AcceptFriendRequestError, AcceptFriendRequestResponse, AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, BookPartyData, BookPartyError, BookPartyResponse, CancelPartyData, CancelPartyError, CancelPartyResponse, CheckInData, CheckInError, CheckInResponse, CreateFriendLinkData, CreateFriendLinkError, CreateFriendLinkResponse, CreatePartyData, CreatePartyError, CreatePartyResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, DeleteFriendshipData, DeleteFriendshipError, DeleteFriendshipResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetHealthData, GetHealthResponse, GetMeData, GetMeError, GetMeResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetPartyData, GetPartyError, GetPartyResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetSocialCapabilitiesData, GetSocialCapabilitiesResponse, GetSocialMeData, GetSocialMeError, GetSocialMeResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, InvitePartyMemberData, InvitePartyMemberError, InvitePartyMemberResponse, LeavePartyData, LeavePartyError, LeavePartyResponse, ListFriendRequestsData, ListFriendRequestsError, ListFriendRequestsResponse, ListFriendsData, ListFriendsError, ListFriendsResponse, ListPartiesData, ListPartiesError, ListPartiesResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReplyToPartyInvitationData, ReplyToPartyInvitationError, ReplyToPartyInvitationResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, SendFriendRequestData, SendFriendRequestError, SendFriendRequestResponse, StartBreakData, StartBreakError, StartBreakResponse, UpdateMeData, UpdateMeError, UpdateMeResponse, UpdateSocialPrivacyData, UpdateSocialPrivacyError, UpdateSocialPrivacyResponse } from '../types.gen';
 
 /**
  * End Reservation
@@ -428,6 +428,301 @@ export const returnFromBreakMutation = (options?: Partial<Options<ReturnFromBrea
     const mutationOptions: UseMutationOptions<ReturnFromBreakResponse, ReturnFromBreakError, Options<ReturnFromBreakData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await returnFromBreak({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getSocialCapabilitiesQueryKey = (options?: Options<GetSocialCapabilitiesData>) => createQueryKey('getSocialCapabilities', options);
+
+/**
+ * Capabilities
+ */
+export const getSocialCapabilitiesOptions = (options?: Options<GetSocialCapabilitiesData>) => queryOptions<GetSocialCapabilitiesResponse, DefaultError, GetSocialCapabilitiesResponse, ReturnType<typeof getSocialCapabilitiesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getSocialCapabilities({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getSocialCapabilitiesQueryKey(options)
+});
+
+export const listFriendRequestsQueryKey = (options?: Options<ListFriendRequestsData>) => createQueryKey('listFriendRequests', options);
+
+/**
+ * Friend Requests
+ */
+export const listFriendRequestsOptions = (options?: Options<ListFriendRequestsData>) => queryOptions<ListFriendRequestsResponse, ListFriendRequestsError, ListFriendRequestsResponse, ReturnType<typeof listFriendRequestsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listFriendRequests({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listFriendRequestsQueryKey(options)
+});
+
+/**
+ * Request Friend
+ */
+export const sendFriendRequestMutation = (options?: Partial<Options<SendFriendRequestData>>): UseMutationOptions<SendFriendRequestResponse, SendFriendRequestError, Options<SendFriendRequestData>> => {
+    const mutationOptions: UseMutationOptions<SendFriendRequestResponse, SendFriendRequestError, Options<SendFriendRequestData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await sendFriendRequest({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Accept Friend
+ */
+export const acceptFriendRequestMutation = (options?: Partial<Options<AcceptFriendRequestData>>): UseMutationOptions<AcceptFriendRequestResponse, AcceptFriendRequestError, Options<AcceptFriendRequestData>> => {
+    const mutationOptions: UseMutationOptions<AcceptFriendRequestResponse, AcceptFriendRequestError, Options<AcceptFriendRequestData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await acceptFriendRequest({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listFriendsQueryKey = (options?: Options<ListFriendsData>) => createQueryKey('listFriends', options);
+
+/**
+ * Friends
+ */
+export const listFriendsOptions = (options?: Options<ListFriendsData>) => queryOptions<ListFriendsResponse, ListFriendsError, ListFriendsResponse, ReturnType<typeof listFriendsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listFriends({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listFriendsQueryKey(options)
+});
+
+/**
+ * Delete Friendship
+ */
+export const deleteFriendshipMutation = (options?: Partial<Options<DeleteFriendshipData>>): UseMutationOptions<DeleteFriendshipResponse, DeleteFriendshipError, Options<DeleteFriendshipData>> => {
+    const mutationOptions: UseMutationOptions<DeleteFriendshipResponse, DeleteFriendshipError, Options<DeleteFriendshipData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteFriendship({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getSocialMeQueryKey = (options?: Options<GetSocialMeData>) => createQueryKey('getSocialMe', options);
+
+/**
+ * Me
+ */
+export const getSocialMeOptions = (options?: Options<GetSocialMeData>) => queryOptions<GetSocialMeResponse, GetSocialMeError, GetSocialMeResponse, ReturnType<typeof getSocialMeQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getSocialMe({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getSocialMeQueryKey(options)
+});
+
+/**
+ * Create Link
+ */
+export const createFriendLinkMutation = (options?: Partial<Options<CreateFriendLinkData>>): UseMutationOptions<CreateFriendLinkResponse, CreateFriendLinkError, Options<CreateFriendLinkData>> => {
+    const mutationOptions: UseMutationOptions<CreateFriendLinkResponse, CreateFriendLinkError, Options<CreateFriendLinkData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createFriendLink({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Privacy
+ */
+export const updateSocialPrivacyMutation = (options?: Partial<Options<UpdateSocialPrivacyData>>): UseMutationOptions<UpdateSocialPrivacyResponse, UpdateSocialPrivacyError, Options<UpdateSocialPrivacyData>> => {
+    const mutationOptions: UseMutationOptions<UpdateSocialPrivacyResponse, UpdateSocialPrivacyError, Options<UpdateSocialPrivacyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateSocialPrivacy({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listPartiesQueryKey = (options?: Options<ListPartiesData>) => createQueryKey('listParties', options);
+
+/**
+ * Parties
+ */
+export const listPartiesOptions = (options?: Options<ListPartiesData>) => queryOptions<ListPartiesResponse, ListPartiesError, ListPartiesResponse, ReturnType<typeof listPartiesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listParties({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listPartiesQueryKey(options)
+});
+
+/**
+ * Create Party
+ */
+export const createPartyMutation = (options?: Partial<Options<CreatePartyData>>): UseMutationOptions<CreatePartyResponse, CreatePartyError, Options<CreatePartyData>> => {
+    const mutationOptions: UseMutationOptions<CreatePartyResponse, CreatePartyError, Options<CreatePartyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createParty({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getPartyQueryKey = (options: Options<GetPartyData>) => createQueryKey('getParty', options);
+
+/**
+ * Party
+ */
+export const getPartyOptions = (options: Options<GetPartyData>) => queryOptions<GetPartyResponse, GetPartyError, GetPartyResponse, ReturnType<typeof getPartyQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getParty({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPartyQueryKey(options)
+});
+
+/**
+ * Book
+ */
+export const bookPartyMutation = (options?: Partial<Options<BookPartyData>>): UseMutationOptions<BookPartyResponse, BookPartyError, Options<BookPartyData>> => {
+    const mutationOptions: UseMutationOptions<BookPartyResponse, BookPartyError, Options<BookPartyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await bookParty({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Cancel
+ */
+export const cancelPartyMutation = (options?: Partial<Options<CancelPartyData>>): UseMutationOptions<CancelPartyResponse, CancelPartyError, Options<CancelPartyData>> => {
+    const mutationOptions: UseMutationOptions<CancelPartyResponse, CancelPartyError, Options<CancelPartyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await cancelParty({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Invite
+ */
+export const invitePartyMemberMutation = (options?: Partial<Options<InvitePartyMemberData>>): UseMutationOptions<InvitePartyMemberResponse, InvitePartyMemberError, Options<InvitePartyMemberData>> => {
+    const mutationOptions: UseMutationOptions<InvitePartyMemberResponse, InvitePartyMemberError, Options<InvitePartyMemberData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await invitePartyMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Leave
+ */
+export const leavePartyMutation = (options?: Partial<Options<LeavePartyData>>): UseMutationOptions<LeavePartyResponse, LeavePartyError, Options<LeavePartyData>> => {
+    const mutationOptions: UseMutationOptions<LeavePartyResponse, LeavePartyError, Options<LeavePartyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await leaveParty({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Reply
+ */
+export const replyToPartyInvitationMutation = (options?: Partial<Options<ReplyToPartyInvitationData>>): UseMutationOptions<ReplyToPartyInvitationResponse, ReplyToPartyInvitationError, Options<ReplyToPartyInvitationData>> => {
+    const mutationOptions: UseMutationOptions<ReplyToPartyInvitationResponse, ReplyToPartyInvitationError, Options<ReplyToPartyInvitationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await replyToPartyInvitation({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

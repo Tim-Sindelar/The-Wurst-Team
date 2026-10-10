@@ -12,6 +12,10 @@ import { ScanScreen } from './screens/ScanScreen';
 import { SeatMapScreen } from './screens/SeatMapScreen';
 import { SessionScreen } from './screens/SessionScreen';
 
+const socialDraftRoutes = import.meta.env.DEV
+  ? (await import('./features/social-draft/routes')).socialDraftRoutes
+  : [];
+
 function RootLayout() {
   return (
     <>
@@ -31,6 +35,7 @@ const router = createBrowserRouter([
       { path: paths.scan, element: <ScanScreen /> },
       { path: paths.session, element: <SessionScreen /> },
       { path: paths.profile, element: <ProfileScreen /> },
+      ...socialDraftRoutes,
     ],
   },
 ]);

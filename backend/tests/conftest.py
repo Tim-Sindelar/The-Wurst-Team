@@ -10,8 +10,12 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import (
     Break,
+    Friendship,
+    Party,
+    PartyMember,
     Reservation,
     Seat,
+    SocialUser,
     SpaceClosure,
     SpaceOpeningInterval,
     StudySpace,
@@ -58,6 +62,10 @@ def db(test_engine: Engine) -> Iterator[Engine]:
     yield test_engine
     with Session(test_engine) as session:
         for model in (
+            PartyMember,
+            Party,
+            Friendship,
+            SocialUser,
             Break,
             Reservation,
             SpaceClosure,

@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     dummy_auth_allow_header: bool = True
     dummy_is_admin: bool = False
     dummy_admin_allow_header: bool = True
+    social_enabled: bool = False
 
     @model_validator(mode="after")
     def validate_reservation_windows(self) -> "Settings":

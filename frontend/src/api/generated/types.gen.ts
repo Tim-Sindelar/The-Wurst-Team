@@ -592,6 +592,67 @@ export type ErrorResponse = {
 };
 
 /**
+ * FriendRequestCreate
+ */
+export type FriendRequestCreate = {
+    /**
+     * Invite Token
+     */
+    invite_token: string;
+};
+
+/**
+ * FriendRequestResponse
+ */
+export type FriendRequestResponse = {
+    /**
+     * Direction
+     */
+    direction: 'incoming' | 'outgoing';
+    /**
+     * Id
+     */
+    id: string;
+    person: SocialPerson;
+    /**
+     * Status
+     */
+    status: 'pending' | 'accepted';
+};
+
+/**
+ * FriendRequestsResponse
+ */
+export type FriendRequestsResponse = {
+    /**
+     * Requests
+     */
+    requests: Array<FriendRequestResponse>;
+};
+
+/**
+ * FriendResponse
+ */
+export type FriendResponse = {
+    /**
+     * Friendship Id
+     */
+    friendship_id: string;
+    person: SocialPerson;
+    room: SocialRoom | null;
+};
+
+/**
+ * FriendsResponse
+ */
+export type FriendsResponse = {
+    /**
+     * Friends
+     */
+    friends: Array<FriendResponse>;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -638,6 +699,138 @@ export type OpeningInterval = {
      * Weekday
      */
     weekday: number;
+};
+
+/**
+ * PartiesResponse
+ */
+export type PartiesResponse = {
+    /**
+     * Parties
+     */
+    parties: Array<PartyResponse>;
+};
+
+/**
+ * PartyBook
+ */
+export type PartyBook = {
+    /**
+     * Assignments
+     */
+    assignments: Array<SeatAssignment>;
+};
+
+/**
+ * PartyCancellation
+ */
+export type PartyCancellation = {
+    /**
+     * Cancelled Reservation Ids
+     */
+    cancelled_reservation_ids: Array<string>;
+    party: PartyResponse;
+};
+
+/**
+ * PartyCreate
+ */
+export type PartyCreate = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * PartyInvite
+ */
+export type PartyInvite = {
+    /**
+     * User Id
+     */
+    user_id: string;
+};
+
+/**
+ * PartyMemberResponse
+ */
+export type PartyMemberResponse = {
+    person: SocialPerson;
+    /**
+     * Reservation Id
+     */
+    reservation_id: string | null;
+    seat: PartySeat | null;
+    /**
+     * Status
+     */
+    status: 'invited' | 'accepted' | 'declined' | 'left';
+};
+
+/**
+ * PartyReply
+ */
+export type PartyReply = {
+    /**
+     * Accept
+     */
+    accept: boolean;
+};
+
+/**
+ * PartyResponse
+ */
+export type PartyResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Members
+     */
+    members: Array<PartyMemberResponse>;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Organizer Id
+     */
+    organizer_id: string;
+    /**
+     * Status
+     */
+    status: 'open' | 'booked' | 'cancelled';
+};
+
+/**
+ * PartySeat
+ */
+export type PartySeat = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    room: SocialRoom;
+};
+
+/**
+ * PrivacyUpdate
+ */
+export type PrivacyUpdate = {
+    /**
+     * Share Room
+     */
+    share_room: boolean;
 };
 
 /**
@@ -848,6 +1041,20 @@ export type ReserveSeatRequest = {
 };
 
 /**
+ * SeatAssignment
+ */
+export type SeatAssignment = {
+    /**
+     * Seat Id
+     */
+    seat_id: string;
+    /**
+     * User Id
+     */
+    user_id: string;
+};
+
+/**
  * SeatAvailability
  */
 export type SeatAvailability = {
@@ -871,6 +1078,66 @@ export type SeatAvailability = {
      * State
      */
     state: 'free' | 'reserved' | 'occupied' | 'on_break' | 'claimable' | 'unavailable';
+};
+
+/**
+ * SocialCapabilities
+ */
+export type SocialCapabilities = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+};
+
+/**
+ * SocialMe
+ */
+export type SocialMe = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Invite Token
+     */
+    invite_token: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Share Room
+     */
+    share_room: boolean;
+};
+
+/**
+ * SocialPerson
+ */
+export type SocialPerson = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * SocialRoom
+ */
+export type SocialRoom = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -2094,6 +2361,718 @@ export type ReturnFromBreakResponses = {
 };
 
 export type ReturnFromBreakResponse = ReturnFromBreakResponses[keyof ReturnFromBreakResponses];
+
+export type GetSocialCapabilitiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/capabilities';
+};
+
+export type GetSocialCapabilitiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: SocialCapabilities;
+};
+
+export type GetSocialCapabilitiesResponse = GetSocialCapabilitiesResponses[keyof GetSocialCapabilitiesResponses];
+
+export type ListFriendRequestsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/friend-requests';
+};
+
+export type ListFriendRequestsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListFriendRequestsError = ListFriendRequestsErrors[keyof ListFriendRequestsErrors];
+
+export type ListFriendRequestsResponses = {
+    /**
+     * Successful Response
+     */
+    200: FriendRequestsResponse;
+};
+
+export type ListFriendRequestsResponse = ListFriendRequestsResponses[keyof ListFriendRequestsResponses];
+
+export type SendFriendRequestData = {
+    body: FriendRequestCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/friend-requests';
+};
+
+export type SendFriendRequestErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type SendFriendRequestError = SendFriendRequestErrors[keyof SendFriendRequestErrors];
+
+export type SendFriendRequestResponses = {
+    /**
+     * Successful Response
+     */
+    200: FriendRequestResponse;
+};
+
+export type SendFriendRequestResponse = SendFriendRequestResponses[keyof SendFriendRequestResponses];
+
+export type AcceptFriendRequestData = {
+    body?: never;
+    path: {
+        /**
+         * Friendship Id
+         */
+        friendship_id: string;
+    };
+    query?: never;
+    url: '/api/v1/social/friend-requests/{friendship_id}/accept';
+};
+
+export type AcceptFriendRequestErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AcceptFriendRequestError = AcceptFriendRequestErrors[keyof AcceptFriendRequestErrors];
+
+export type AcceptFriendRequestResponses = {
+    /**
+     * Successful Response
+     */
+    200: FriendRequestResponse;
+};
+
+export type AcceptFriendRequestResponse = AcceptFriendRequestResponses[keyof AcceptFriendRequestResponses];
+
+export type ListFriendsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/friends';
+};
+
+export type ListFriendsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListFriendsError = ListFriendsErrors[keyof ListFriendsErrors];
+
+export type ListFriendsResponses = {
+    /**
+     * Successful Response
+     */
+    200: FriendsResponse;
+};
+
+export type ListFriendsResponse = ListFriendsResponses[keyof ListFriendsResponses];
+
+export type DeleteFriendshipData = {
+    body?: never;
+    path: {
+        /**
+         * Friendship Id
+         */
+        friendship_id: string;
+    };
+    query?: never;
+    url: '/api/v1/social/friendships/{friendship_id}';
+};
+
+export type DeleteFriendshipErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type DeleteFriendshipError = DeleteFriendshipErrors[keyof DeleteFriendshipErrors];
+
+export type DeleteFriendshipResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteFriendshipResponse = DeleteFriendshipResponses[keyof DeleteFriendshipResponses];
+
+export type GetSocialMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/me';
+};
+
+export type GetSocialMeErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type GetSocialMeError = GetSocialMeErrors[keyof GetSocialMeErrors];
+
+export type GetSocialMeResponses = {
+    /**
+     * Successful Response
+     */
+    200: SocialMe;
+};
+
+export type GetSocialMeResponse = GetSocialMeResponses[keyof GetSocialMeResponses];
+
+export type CreateFriendLinkData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/me/invite-link';
+};
+
+export type CreateFriendLinkErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type CreateFriendLinkError = CreateFriendLinkErrors[keyof CreateFriendLinkErrors];
+
+export type CreateFriendLinkResponses = {
+    /**
+     * Successful Response
+     */
+    200: SocialMe;
+};
+
+export type CreateFriendLinkResponse = CreateFriendLinkResponses[keyof CreateFriendLinkResponses];
+
+export type UpdateSocialPrivacyData = {
+    body: PrivacyUpdate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/me/privacy';
+};
+
+export type UpdateSocialPrivacyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type UpdateSocialPrivacyError = UpdateSocialPrivacyErrors[keyof UpdateSocialPrivacyErrors];
+
+export type UpdateSocialPrivacyResponses = {
+    /**
+     * Successful Response
+     */
+    200: SocialMe;
+};
+
+export type UpdateSocialPrivacyResponse = UpdateSocialPrivacyResponses[keyof UpdateSocialPrivacyResponses];
+
+export type ListPartiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/parties';
+};
+
+export type ListPartiesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListPartiesError = ListPartiesErrors[keyof ListPartiesErrors];
+
+export type ListPartiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PartiesResponse;
+};
+
+export type ListPartiesResponse = ListPartiesResponses[keyof ListPartiesResponses];
+
+export type CreatePartyData = {
+    body: PartyCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/social/parties';
+};
+
+export type CreatePartyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type CreatePartyError = CreatePartyErrors[keyof CreatePartyErrors];
+
+export type CreatePartyResponses = {
+    /**
+     * Successful Response
+     */
+    201: PartyResponse;
+};
+
+export type CreatePartyResponse = CreatePartyResponses[keyof CreatePartyResponses];
+
+export type GetPartyData = {
+    body?: never;
+    path: {
+        /**
+         * Party Id
+         */
+        party_id: string;
+    };
+    query?: never;
+    url: '/api/v1/social/parties/{party_id}';
+};
+
+export type GetPartyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type GetPartyError = GetPartyErrors[keyof GetPartyErrors];
+
+export type GetPartyResponses = {
+    /**
+     * Successful Response
+     */
+    200: PartyResponse;
+};
+
+export type GetPartyResponse = GetPartyResponses[keyof GetPartyResponses];
+
+export type BookPartyData = {
+    body: PartyBook;
+    path: {
+        /**
+         * Party Id
+         */
+        party_id: string;
+    };
+    query?: never;
+    url: '/api/v1/social/parties/{party_id}/book';
+};
+
+export type BookPartyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type BookPartyError = BookPartyErrors[keyof BookPartyErrors];
+
+export type BookPartyResponses = {
+    /**
+     * Successful Response
+     */
+    200: PartyResponse;
+};
+
+export type BookPartyResponse = BookPartyResponses[keyof BookPartyResponses];
+
+export type CancelPartyData = {
+    body?: never;
+    path: {
+        /**
+         * Party Id
+         */
+        party_id: string;
+    };
+    query?: never;
+    url: '/api/v1/social/parties/{party_id}/cancel';
+};
+
+export type CancelPartyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type CancelPartyError = CancelPartyErrors[keyof CancelPartyErrors];
+
+export type CancelPartyResponses = {
+    /**
+     * Successful Response
+     */
+    200: PartyCancellation;
+};
+
+export type CancelPartyResponse = CancelPartyResponses[keyof CancelPartyResponses];
+
+export type InvitePartyMemberData = {
+    body: PartyInvite;
+    path: {
+        /**
+         * Party Id
+         */
+        party_id: string;
+    };
+    query?: never;
+    url: '/api/v1/social/parties/{party_id}/invitations';
+};
+
+export type InvitePartyMemberErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type InvitePartyMemberError = InvitePartyMemberErrors[keyof InvitePartyMemberErrors];
+
+export type InvitePartyMemberResponses = {
+    /**
+     * Successful Response
+     */
+    200: PartyResponse;
+};
+
+export type InvitePartyMemberResponse = InvitePartyMemberResponses[keyof InvitePartyMemberResponses];
+
+export type LeavePartyData = {
+    body?: never;
+    path: {
+        /**
+         * Party Id
+         */
+        party_id: string;
+    };
+    query?: never;
+    url: '/api/v1/social/parties/{party_id}/leave';
+};
+
+export type LeavePartyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type LeavePartyError = LeavePartyErrors[keyof LeavePartyErrors];
+
+export type LeavePartyResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type LeavePartyResponse = LeavePartyResponses[keyof LeavePartyResponses];
+
+export type ReplyToPartyInvitationData = {
+    body: PartyReply;
+    path: {
+        /**
+         * Party Id
+         */
+        party_id: string;
+    };
+    query?: never;
+    url: '/api/v1/social/parties/{party_id}/reply';
+};
+
+export type ReplyToPartyInvitationErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ReplyToPartyInvitationError = ReplyToPartyInvitationErrors[keyof ReplyToPartyInvitationErrors];
+
+export type ReplyToPartyInvitationResponses = {
+    /**
+     * Successful Response
+     */
+    200: PartyResponse;
+};
+
+export type ReplyToPartyInvitationResponse = ReplyToPartyInvitationResponses[keyof ReplyToPartyInvitationResponses];
 
 export type ListSpacesData = {
     body?: never;

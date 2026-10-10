@@ -6,6 +6,7 @@ from app.features.reservations.models import (
     SpaceOpeningInterval,
     StudySpace,
 )
+from app.features.social.models import Friendship, Party, PartyMember, SocialUser
 from app.models.profile import UserProfile
 
 __all__ = [
@@ -16,4 +17,8 @@ __all__ = [
     "SpaceOpeningInterval",
     "StudySpace",
     "UserProfile",
+    "Friendship",
+    "Party",
+    "PartyMember",
+    "SocialUser",
 ]

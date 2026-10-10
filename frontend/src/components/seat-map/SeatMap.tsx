@@ -19,11 +19,18 @@ type SeatMapProps = {
   seats: Seat[];
   selected: number;
   onSelect: (seat: number) => void;
+  /** Optional group selection; individual-seat screens keep their existing behavior. */
+  highlightedSeats?: number[];
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
    Pan, pinch and zoom; the colour key opens from the (i) button. */
-export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
+export function SeatMap({
+  seats,
+  selected,
+  onSelect,
+  highlightedSeats = [],
+}: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const zoomLabelRef = useRef<HTMLOutputElement>(null);
@@ -133,7 +140,9 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
             state={seat.state}
             x={seat.x}
             y={seat.y}
-            selected={seat.number === selected}
+            selected={
+              seat.number === selected || highlightedSeats.includes(seat.number)
+            }
             onSelect={() => onSelect(seat.number)}
           />
         ))}

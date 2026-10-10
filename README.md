@@ -133,6 +133,18 @@ All values must be positive; the public window must be shorter than the private 
 
 The `reservation_states` database view derives availability from the clock, including no-shows and expired breaks. Its underlying `reservation_states_at(timestamp)` function lets each transaction use one instant after acquiring locks and lets tests exercise exact boundaries. Early release advances the next booking when the earlier start is available, even without a background worker. Its session and check-in deadline are capped at closing or the next closure; a blocked earlier start keeps the scheduled start. Notifications are deferred.
 
+## Optional friends and party booking
+
+The social backend supports friend invite links and requests, accepted party membership,
+manual same-room seat assignments, atomic booking for all accepted members, and optional
+friend room sharing. It defaults to disabled (`SOCIAL_ENABLED=false`); enabling it does
+not replace the frontend's existing mocked booking flow. See [the social backend contract](docs/social-backend.md)
+for setup, endpoints, consent rules, and the frontend integration boundary.
+
+A separate development-only frontend draft is at `http://127.0.0.1:5173/social-draft`.
+It uses sample data, supports switching party perspectives, and leaves ordinary bookings alone.
+See [the draft walkthrough](design/social-draft.md). It is not registered in production builds.
+
 ## Admin API demo
 
 Admin routes live under `/api/v1/admin`. In `AUTH_MODE=demo`, send `X-Demo-Admin: true` to use them. Without it, requests receive `403`; set `DUMMY_IS_ADMIN=true` to make demo users admins by default. `DUMMY_ADMIN_ALLOW_HEADER=false` disables the header override. `X-Demo-Admin` accepts only `true` or `false`. Proxy mode ignores these demo privileges and denies admin access; production admin roles are outside the current auth scope.

@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, CheckInData, CheckInErrors, CheckInResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetHealthData, GetHealthResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, StartBreakData, StartBreakErrors, StartBreakResponses, UpdateMeData, UpdateMeErrors, UpdateMeResponses } from './types.gen';
+import type { AcceptFriendRequestData, AcceptFriendRequestErrors, AcceptFriendRequestResponses, AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, BookPartyData, BookPartyErrors, BookPartyResponses, CancelPartyData, CancelPartyErrors, CancelPartyResponses, CheckInData, CheckInErrors, CheckInResponses, CreateFriendLinkData, CreateFriendLinkErrors, CreateFriendLinkResponses, CreatePartyData, CreatePartyErrors, CreatePartyResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, DeleteFriendshipData, DeleteFriendshipErrors, DeleteFriendshipResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetHealthData, GetHealthResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetPartyData, GetPartyErrors, GetPartyResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetSocialCapabilitiesData, GetSocialCapabilitiesResponses, GetSocialMeData, GetSocialMeErrors, GetSocialMeResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, InvitePartyMemberData, InvitePartyMemberErrors, InvitePartyMemberResponses, LeavePartyData, LeavePartyErrors, LeavePartyResponses, ListFriendRequestsData, ListFriendRequestsErrors, ListFriendRequestsResponses, ListFriendsData, ListFriendsErrors, ListFriendsResponses, ListPartiesData, ListPartiesErrors, ListPartiesResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, ReplyToPartyInvitationData, ReplyToPartyInvitationErrors, ReplyToPartyInvitationResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, SendFriendRequestData, SendFriendRequestErrors, SendFriendRequestResponses, StartBreakData, StartBreakErrors, StartBreakResponses, UpdateMeData, UpdateMeErrors, UpdateMeResponses, UpdateSocialPrivacyData, UpdateSocialPrivacyErrors, UpdateSocialPrivacyResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -196,6 +196,133 @@ export const extendReservation = <ThrowOnError extends boolean = false>(options:
  * Return From Break
  */
 export const returnFromBreak = <ThrowOnError extends boolean = false>(options: Options<ReturnFromBreakData, ThrowOnError>): RequestResult<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError> => (options.client ?? client).post<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/return', ...options });
+
+/**
+ * Capabilities
+ */
+export const getSocialCapabilities = <ThrowOnError extends boolean = false>(options?: Options<GetSocialCapabilitiesData, ThrowOnError>): RequestResult<GetSocialCapabilitiesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetSocialCapabilitiesResponses, unknown, ThrowOnError>({ url: '/api/v1/social/capabilities', ...options });
+
+/**
+ * Friend Requests
+ */
+export const listFriendRequests = <ThrowOnError extends boolean = false>(options?: Options<ListFriendRequestsData, ThrowOnError>): RequestResult<ListFriendRequestsResponses, ListFriendRequestsErrors, ThrowOnError> => (options?.client ?? client).get<ListFriendRequestsResponses, ListFriendRequestsErrors, ThrowOnError>({ url: '/api/v1/social/friend-requests', ...options });
+
+/**
+ * Request Friend
+ */
+export const sendFriendRequest = <ThrowOnError extends boolean = false>(options: Options<SendFriendRequestData, ThrowOnError>): RequestResult<SendFriendRequestResponses, SendFriendRequestErrors, ThrowOnError> => (options.client ?? client).post<SendFriendRequestResponses, SendFriendRequestErrors, ThrowOnError>({
+    url: '/api/v1/social/friend-requests',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Accept Friend
+ */
+export const acceptFriendRequest = <ThrowOnError extends boolean = false>(options: Options<AcceptFriendRequestData, ThrowOnError>): RequestResult<AcceptFriendRequestResponses, AcceptFriendRequestErrors, ThrowOnError> => (options.client ?? client).post<AcceptFriendRequestResponses, AcceptFriendRequestErrors, ThrowOnError>({ url: '/api/v1/social/friend-requests/{friendship_id}/accept', ...options });
+
+/**
+ * Friends
+ */
+export const listFriends = <ThrowOnError extends boolean = false>(options?: Options<ListFriendsData, ThrowOnError>): RequestResult<ListFriendsResponses, ListFriendsErrors, ThrowOnError> => (options?.client ?? client).get<ListFriendsResponses, ListFriendsErrors, ThrowOnError>({ url: '/api/v1/social/friends', ...options });
+
+/**
+ * Delete Friendship
+ */
+export const deleteFriendship = <ThrowOnError extends boolean = false>(options: Options<DeleteFriendshipData, ThrowOnError>): RequestResult<DeleteFriendshipResponses, DeleteFriendshipErrors, ThrowOnError> => (options.client ?? client).delete<DeleteFriendshipResponses, DeleteFriendshipErrors, ThrowOnError>({ url: '/api/v1/social/friendships/{friendship_id}', ...options });
+
+/**
+ * Me
+ */
+export const getSocialMe = <ThrowOnError extends boolean = false>(options?: Options<GetSocialMeData, ThrowOnError>): RequestResult<GetSocialMeResponses, GetSocialMeErrors, ThrowOnError> => (options?.client ?? client).get<GetSocialMeResponses, GetSocialMeErrors, ThrowOnError>({ url: '/api/v1/social/me', ...options });
+
+/**
+ * Create Link
+ */
+export const createFriendLink = <ThrowOnError extends boolean = false>(options?: Options<CreateFriendLinkData, ThrowOnError>): RequestResult<CreateFriendLinkResponses, CreateFriendLinkErrors, ThrowOnError> => (options?.client ?? client).post<CreateFriendLinkResponses, CreateFriendLinkErrors, ThrowOnError>({ url: '/api/v1/social/me/invite-link', ...options });
+
+/**
+ * Privacy
+ */
+export const updateSocialPrivacy = <ThrowOnError extends boolean = false>(options: Options<UpdateSocialPrivacyData, ThrowOnError>): RequestResult<UpdateSocialPrivacyResponses, UpdateSocialPrivacyErrors, ThrowOnError> => (options.client ?? client).patch<UpdateSocialPrivacyResponses, UpdateSocialPrivacyErrors, ThrowOnError>({
+    url: '/api/v1/social/me/privacy',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Parties
+ */
+export const listParties = <ThrowOnError extends boolean = false>(options?: Options<ListPartiesData, ThrowOnError>): RequestResult<ListPartiesResponses, ListPartiesErrors, ThrowOnError> => (options?.client ?? client).get<ListPartiesResponses, ListPartiesErrors, ThrowOnError>({ url: '/api/v1/social/parties', ...options });
+
+/**
+ * Create Party
+ */
+export const createParty = <ThrowOnError extends boolean = false>(options: Options<CreatePartyData, ThrowOnError>): RequestResult<CreatePartyResponses, CreatePartyErrors, ThrowOnError> => (options.client ?? client).post<CreatePartyResponses, CreatePartyErrors, ThrowOnError>({
+    url: '/api/v1/social/parties',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Party
+ */
+export const getParty = <ThrowOnError extends boolean = false>(options: Options<GetPartyData, ThrowOnError>): RequestResult<GetPartyResponses, GetPartyErrors, ThrowOnError> => (options.client ?? client).get<GetPartyResponses, GetPartyErrors, ThrowOnError>({ url: '/api/v1/social/parties/{party_id}', ...options });
+
+/**
+ * Book
+ */
+export const bookParty = <ThrowOnError extends boolean = false>(options: Options<BookPartyData, ThrowOnError>): RequestResult<BookPartyResponses, BookPartyErrors, ThrowOnError> => (options.client ?? client).post<BookPartyResponses, BookPartyErrors, ThrowOnError>({
+    url: '/api/v1/social/parties/{party_id}/book',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Cancel
+ */
+export const cancelParty = <ThrowOnError extends boolean = false>(options: Options<CancelPartyData, ThrowOnError>): RequestResult<CancelPartyResponses, CancelPartyErrors, ThrowOnError> => (options.client ?? client).post<CancelPartyResponses, CancelPartyErrors, ThrowOnError>({ url: '/api/v1/social/parties/{party_id}/cancel', ...options });
+
+/**
+ * Invite
+ */
+export const invitePartyMember = <ThrowOnError extends boolean = false>(options: Options<InvitePartyMemberData, ThrowOnError>): RequestResult<InvitePartyMemberResponses, InvitePartyMemberErrors, ThrowOnError> => (options.client ?? client).post<InvitePartyMemberResponses, InvitePartyMemberErrors, ThrowOnError>({
+    url: '/api/v1/social/parties/{party_id}/invitations',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Leave
+ */
+export const leaveParty = <ThrowOnError extends boolean = false>(options: Options<LeavePartyData, ThrowOnError>): RequestResult<LeavePartyResponses, LeavePartyErrors, ThrowOnError> => (options.client ?? client).post<LeavePartyResponses, LeavePartyErrors, ThrowOnError>({ url: '/api/v1/social/parties/{party_id}/leave', ...options });
+
+/**
+ * Reply
+ */
+export const replyToPartyInvitation = <ThrowOnError extends boolean = false>(options: Options<ReplyToPartyInvitationData, ThrowOnError>): RequestResult<ReplyToPartyInvitationResponses, ReplyToPartyInvitationErrors, ThrowOnError> => (options.client ?? client).post<ReplyToPartyInvitationResponses, ReplyToPartyInvitationErrors, ThrowOnError>({
+    url: '/api/v1/social/parties/{party_id}/reply',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * List Spaces
