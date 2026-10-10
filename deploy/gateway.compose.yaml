@@ -1,0 +1,25 @@
+services:
+  gateway:
+    image: caddy:2.11.2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d
+    restart: unless-stopped
+    environment:
+      PRODUCTION_WEB_ALIAS: ${PRODUCTION_WEB_ALIAS:-wurst-production-web}
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8081}:8080"
+    volumes:
+      - ${GATEWAY_CONFIG_DIR:?Set GATEWAY_CONFIG_DIR}:/etc/caddy:ro
+    networks: [edge]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:8080/__gateway_health"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+networks:
+  edge:
+    external: true
+    name: ${EDGE_NETWORK:-wurst-edge}

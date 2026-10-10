@@ -1,0 +1,78 @@
+x-service: &service
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  db:
+    <<: *service
+    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    environment:
+      POSTGRES_DB: hackathon
+      POSTGRES_USER: hackathon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the VM environment file}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U hackathon -d hackathon"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    <<: *service
+    image: wurst-backend:${IMAGE_TAG:?Set IMAGE_TAG to a commit SHA}
+    pull_policy: never
+    environment:
+      DATABASE_URL: postgresql+psycopg://hackathon:${POSTGRES_PASSWORD}@db:5432/hackathon
+      AUTH_MODE: proxy
+      DUMMY_AUTH_ALLOW_HEADER: "false"
+      DUMMY_ADMIN_ALLOW_HEADER: "false"
+      DUMMY_IS_ADMIN: "false"
+      CORS_ORIGINS: '["https://02.hackathon.ethz.ch"]'
+    networks: [app, data]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready', timeout=3)"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  caddy:
+    <<: *service
+    image: wurst-web:${IMAGE_TAG:?Set IMAGE_TAG to a commit SHA}
+    pull_policy: never
+    networks:
+      app:
+      edge:
+        aliases: ["${WEB_ALIAS:-wurst-production-web}"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:8080/api/v1/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+networks:
+  app:
+  data:
+    internal: true
+  edge:
+    external: true
+    name: ${EDGE_NETWORK:-wurst-edge}
+
+volumes:
+  postgres_data:
+    name: ${POSTGRES_VOLUME_NAME:-wurst-production-postgres}

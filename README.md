@@ -180,6 +180,8 @@ The production frontend is written to `frontend/dist/`. A deployment must serve 
 
 ## Deployment authentication
 
+For GitHub Actions deployment to the organizers' VM using Caddy, see [the deployment guide](docs/deployment.md). It covers SSH secrets, branch CI checks, contributor-only PR previews and URL comments, the first deployment, local verification, persistent storage, and rollback.
+
 `AUTH_MODE` is the only auth switch: `demo` locally, `proxy` on the VM. For Compose, persist `AUTH_MODE=proxy` in the repository-root `.env` (not `backend/.env`, which the Compose service environment overrides), then recreate the backend:
 
 ```sh

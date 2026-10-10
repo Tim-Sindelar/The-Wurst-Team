@@ -21,19 +21,22 @@ function RootLayout() {
   );
 }
 
-const router = createBrowserRouter([
-  {
-    element: <RootLayout />,
-    children: [
-      { path: paths.home, element: <HomeScreen /> },
-      { path: paths.seatMap, element: <SeatMapScreen /> },
-      { path: paths.reservation, element: <ReservationScreen /> },
-      { path: paths.scan, element: <ScanScreen /> },
-      { path: paths.session, element: <SessionScreen /> },
-      { path: paths.profile, element: <ProfileScreen /> },
-    ],
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      element: <RootLayout />,
+      children: [
+        { path: paths.home, element: <HomeScreen /> },
+        { path: paths.seatMap, element: <SeatMapScreen /> },
+        { path: paths.reservation, element: <ReservationScreen /> },
+        { path: paths.scan, element: <ScanScreen /> },
+        { path: paths.session, element: <SessionScreen /> },
+        { path: paths.profile, element: <ProfileScreen /> },
+      ],
+    },
+  ],
+  { basename: import.meta.env.BASE_URL },
+);
 
 export function App() {
   return <RouterProvider router={router} />;
