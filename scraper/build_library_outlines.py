@@ -1,6 +1,7 @@
 """Derive a map outline for every library from its PolyMaps rooms.
 
-Reads occupancy-map-preview/data/generated.json and the level files written by
+Reads the legacy occupancy-map-preview/data/generated.json, or the backend
+campus catalog when that file is absent, and the level files written by
 extract_floors.py, and writes occupancy-map-preview/public/floors/library-outlines.json:
 
     { "<libraryId>": { "type": "MultiPolygon", "coordinates": [...], "rooms": ["<roomId>", ...] } }
@@ -28,7 +29,10 @@ def decode(flat, origin, scale):
 
 
 def main():
-    data = json.loads((ROOT / 'data' / 'generated.json').read_text(encoding='utf-8'))
+    catalog = ROOT / 'data' / 'generated.json'
+    if not catalog.exists():
+        catalog = ROOT.parent / 'backend' / 'app' / 'features' / 'campus_map' / 'map-data' / 'generated.json'
+    data = json.loads(catalog.read_text(encoding='utf-8'))
     levels = {}
 
     def level(level_id):

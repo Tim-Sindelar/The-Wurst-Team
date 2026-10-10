@@ -19,6 +19,7 @@ import {
 import { SeatMap } from '../components/seat-map/SeatMap';
 import { SeatSheet } from '../components/seat-map/SeatSheet';
 import { apiProblem } from '../domain/booking';
+import { savedLayout } from '../features/admin/layoutDocument';
 import { layoutSeats } from '../domain/room';
 import { describeAvailability } from '../domain/space';
 import { isReservable, seatStateDetail, seatStateName } from '../domain/seat';
@@ -48,9 +49,14 @@ export function SeatMapScreen() {
   const space = spaceQuery.data?.space;
   const ownSeatId =
     reservation && (held || running) ? reservation.seat.id : null;
-  const { shown: seats, hidden } = useMemo(
-    () => layoutSeats(space?.seats ?? [], ownSeatId),
-    [space?.seats, ownSeatId],
+  const layout = useMemo(() => savedLayout(space?.layout), [space?.layout]);
+  const {
+    plan,
+    shown: seats,
+    hidden,
+  } = useMemo(
+    () => layoutSeats(space?.seats ?? [], ownSeatId, layout),
+    [space?.seats, ownSeatId, layout],
   );
 
   const freeCount = space
@@ -243,7 +249,10 @@ export function SeatMapScreen() {
 
       <main className="relative min-h-0 flex-1">
         {seats.length > 0 ? (
+          // The pan and zoom measure the room once, so a new size remounts.
           <SeatMap
+            key={plan ? `${plan.room.width}x${plan.room.height}` : 'stand-in'}
+            plan={plan}
             seats={seats}
             selected={seat?.id ?? null}
             onSelect={pick}

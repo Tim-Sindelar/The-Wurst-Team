@@ -93,6 +93,12 @@
   --map-world-h: 760px;
   --map-viewport-h: 420px; /* pan/zoom window in a phone screen */
 
+  /* --- Admin dashboard (desktop) --------------------------------------- */
+  --sidebar-w: 15rem; /* 240px side menu */
+  --content-max: 72rem; /* about 1150px, widest admin page content */
+  --row-h: 4rem; /* 64px table row */
+  --dialog-w: 32rem; /* 512px centred dialog */
+
   /* --- Motion ---------------------------------------------------------- */
   --dur-fast: 150ms;
   --dur-base: 250ms;
@@ -135,3 +141,8 @@
     --dur-base: 0ms;
   }
 }
+
+:root { --admin-sidebar:15rem; --admin-canvas:min(65vh,40rem); --admin-canvas-min:24rem; --admin-properties:16rem; --admin-tool:2rem; }
+
+/* Shared React/admin dimensions (the existing HTML layouts use these same values). */
+:root { --admin-option:1.625rem; --admin-row:4rem; --admin-map:26rem; --admin-dialog:32rem; --admin-form:44rem; --admin-search:24rem; --admin-qr-fields:20rem; --admin-chart:6rem; }

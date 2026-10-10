@@ -137,6 +137,16 @@ function decodeLevel(raw: RawLevel): LevelPlan {
 export const levelLabel = (levelId: string) =>
   levelId.slice(levelId.lastIndexOf('.') + 1);
 
+/** Legacy lists can show the combined letters on a native floor number. */
+export function floorLabel(floor: number, levels: LevelInfo[]) {
+  const labels = [
+    ...new Set(levels.filter((l) => l.floor === floor).map((l) => l.label)),
+  ].sort();
+  return labels.length > 3
+    ? labels.slice(0, 2).join('/') + '…'
+    : labels.join('/') || String(floor);
+}
+
 /** One floor letter: an intermediate floor ("FO") counts as its base floor ("F"). */
 export const baseLetter = (label: string) =>
   label.length > 1 && label.endsWith('O') ? label.slice(0, -1) : label;
@@ -311,4 +321,21 @@ export async function outlineFromRooms(
       coordinates: polys as MultiPolygon['coordinates'],
     };
   }
+}
+
+/** Fetch the exact native room boundary; failures remain retryable in admin. */
+export async function loadRoomOutline(roomId: string): Promise<MultiPolygon> {
+  const levelId = roomId.split('.').slice(0, 3).join('.');
+  const rooms = await loadRoomOutlines(levelId);
+  const coordinates = rooms[roomId];
+  if (!coordinates?.length) {
+    roomOutlineCache.delete(levelId);
+    throw new Error(
+      'No outline is available for this room. Choose another room.',
+    );
+  }
+  return {
+    type: 'MultiPolygon',
+    coordinates: coordinates as MultiPolygon['coordinates'],
+  };
 }

@@ -15,6 +15,20 @@
    ========================================================================== */
 
 @theme static {
+  --spacing-admin-sidebar: 15rem;
+  --spacing-admin-canvas: min(65vh, 40rem);
+  --spacing-admin-canvas-min: 24rem;
+  --spacing-admin-properties: 16rem;
+  --spacing-admin-tool: 2rem;
+  --spacing-admin-option: 1.625rem;
+  --spacing-admin-row: 4rem;
+  --spacing-admin-map: 26rem;
+  --spacing-admin-dialog: 32rem;
+  --spacing-admin-form: 44rem;
+  --spacing-admin-search: 24rem;
+  --spacing-admin-qr-fields: 20rem;
+  --spacing-admin-chart: 6rem;
+  --container-admin: 72rem;
   --color-*: initial;
   --color-bg: #121212;
   --color-surface: #212121;

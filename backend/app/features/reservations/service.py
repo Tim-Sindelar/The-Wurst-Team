@@ -107,6 +107,24 @@ def reservation_states(
     return [ReservationState(**row) for row in session.execute(statement, parameters).mappings()]
 
 
+def layout_with_seats(layout: dict | None, seats: list) -> dict | None:
+    """Fill each bound seat object with its seat row's label and activation.
+
+    The seats table owns both; the stored layout keeps only geometry and the
+    `backendSeatId` link, so the two cannot drift apart.
+    """
+    if not layout or not isinstance(layout.get("objects"), list):
+        return layout
+    by_id = {str(seat.id): seat for seat in seats}
+    objects = []
+    for item in layout["objects"]:
+        seat = by_id.get(item.get("backendSeatId")) if item.get("type") == "seat" else None
+        if seat is not None:
+            item = {**item, "backendLabel": seat.label, "active": seat.is_active}
+        objects.append(item)
+    return {**layout, "objects": objects}
+
+
 class ReservationService:
     def __init__(self, session: Session, settings: Settings):
         self.session = session
@@ -119,11 +137,18 @@ class ReservationService:
     def reservable_end(
         self, seat_id: UUID, starts_at: datetime, ends_at: datetime
     ) -> datetime | None:
+        seat = self.session.get(Seat, seat_id)
+        space = self.session.get(StudySpace, seat.space_id) if seat else None
+        if space is None or space.is_archived:
+            return None
         return self.session.scalar(
             select(func.seat_reservation_end_at(seat_id, starts_at, ends_at))
         )
 
     def is_open(self, space_id: UUID, now: datetime) -> bool:
+        space = self.session.get(StudySpace, space_id)
+        if space is None or space.is_archived:
+            return False
         return self.session.scalar(select(func.space_is_open_at(space_id, now)))
 
     def opening_hours(self, space_id: UUID) -> list[OpeningInterval]:
@@ -374,7 +399,7 @@ class ReservationService:
 
     def spaces(self, map_room_id: str | None = None) -> SpacesResponse:
         now = self.now()
-        query = select(StudySpace)
+        query = select(StudySpace).where(StudySpace.is_archived.is_(False))
         if map_room_id is not None:
             query = query.where(StudySpace.map_room_id == map_room_id)
         spaces = self.session.scalars(query.order_by(StudySpace.name, StudySpace.id)).all()
@@ -453,7 +478,7 @@ class ReservationService:
 
     def space(self, space_id: UUID) -> SpaceResponse:
         space = self.session.get(StudySpace, space_id)
-        if space is None:
+        if space is None or space.is_archived:
             raise BookingError(404, "not_found", "Study space not found")
         now = self.now()
         seats = self.session.scalars(
@@ -471,7 +496,7 @@ class ReservationService:
                 map_room_id=space.map_room_id,
                 lat=space.lat,
                 lng=space.lng,
-                layout=space.layout,
+                layout=layout_with_seats(space.layout, seats),
                 timezone=space.timezone,
                 is_open=self.is_open(space.id, now),
                 opening_hours=self.opening_hours(space.id),

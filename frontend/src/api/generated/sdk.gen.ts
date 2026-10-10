@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptFriendRequestData, AcceptFriendRequestErrors, AcceptFriendRequestResponses, AddFavouriteData, AddFavouriteErrors, AddFavouriteResponses, AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, BookPartyData, BookPartyErrors, BookPartyResponses, CancelPartyData, CancelPartyErrors, CancelPartyResponses, CheckInData, CheckInErrors, CheckInResponses, CreatePartyData, CreatePartyErrors, CreatePartyResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, DeleteFriendshipData, DeleteFriendshipErrors, DeleteFriendshipResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetEthRoomData, GetEthRoomErrors, GetEthRoomResponses, GetEthRoomsData, GetEthRoomsErrors, GetEthRoomsResponses, GetHealthData, GetHealthResponses, GetMapDatasetData, GetMapDatasetErrors, GetMapDatasetResponses, GetMapNavigationData, GetMapNavigationErrors, GetMapNavigationResponses, GetMapStyleData, GetMapStyleErrors, GetMapStyleResponses, GetMapWorkspacesData, GetMapWorkspacesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetPartyData, GetPartyErrors, GetPartyResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetRulesData, GetRulesErrors, GetRulesResponses, GetSocialCapabilitiesData, GetSocialCapabilitiesResponses, GetSocialMeData, GetSocialMeErrors, GetSocialMeResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, GetUzhOccupancyData, GetUzhOccupancyErrors, GetUzhOccupancyResponses, InvitePartyMemberData, InvitePartyMemberErrors, InvitePartyMemberResponses, LeavePartyData, LeavePartyErrors, LeavePartyResponses, ListFavouritesData, ListFavouritesErrors, ListFavouritesResponses, ListFriendRequestsData, ListFriendRequestsErrors, ListFriendRequestsResponses, ListFriendsData, ListFriendsErrors, ListFriendsResponses, ListMapDatasetsData, ListMapDatasetsResponses, ListPartiesData, ListPartiesErrors, ListPartiesResponses, ListRecentsData, ListRecentsErrors, ListRecentsResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, RemoveFavouriteData, RemoveFavouriteErrors, RemoveFavouriteResponses, ReplyToPartyInvitationData, ReplyToPartyInvitationErrors, ReplyToPartyInvitationResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, SaveMapNavigationData, SaveMapNavigationErrors, SaveMapNavigationResponses, SaveMapStyleData, SaveMapStyleErrors, SaveMapStyleResponses, SaveMapWorkspacesData, SaveMapWorkspacesErrors, SaveMapWorkspacesResponses, SearchSocialPeopleData, SearchSocialPeopleErrors, SearchSocialPeopleResponses, SendFriendRequestData, SendFriendRequestErrors, SendFriendRequestResponses, StartBreakData, StartBreakErrors, StartBreakResponses, UpdateMeData, UpdateMeErrors, UpdateMeResponses, UpdateSocialPrivacyData, UpdateSocialPrivacyErrors, UpdateSocialPrivacyResponses } from './types.gen';
+import type { AcceptFriendRequestData, AcceptFriendRequestErrors, AcceptFriendRequestResponses, AddFavouriteData, AddFavouriteErrors, AddFavouriteResponses, AdminArchiveSpaceData, AdminArchiveSpaceErrors, AdminArchiveSpaceResponses, AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminGetUserData, AdminGetUserErrors, AdminGetUserResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminListUsersData, AdminListUsersErrors, AdminListUsersResponses, AdminPermanentlyDeleteSpaceData, AdminPermanentlyDeleteSpaceErrors, AdminPermanentlyDeleteSpaceResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminRestoreSpaceData, AdminRestoreSpaceErrors, AdminRestoreSpaceResponses, AdminSaveLayoutData, AdminSaveLayoutErrors, AdminSaveLayoutResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, AdminUpdateUserData, AdminUpdateUserErrors, AdminUpdateUserResponses, BookPartyData, BookPartyErrors, BookPartyResponses, CancelPartyData, CancelPartyErrors, CancelPartyResponses, CheckInData, CheckInErrors, CheckInResponses, CreatePartyData, CreatePartyErrors, CreatePartyResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, DeleteFriendshipData, DeleteFriendshipErrors, DeleteFriendshipResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetEthRoomData, GetEthRoomErrors, GetEthRoomResponses, GetEthRoomsData, GetEthRoomsErrors, GetEthRoomsResponses, GetHealthData, GetHealthResponses, GetMapDatasetData, GetMapDatasetErrors, GetMapDatasetResponses, GetMapNavigationData, GetMapNavigationErrors, GetMapNavigationResponses, GetMapStyleData, GetMapStyleErrors, GetMapStyleResponses, GetMapWorkspacesData, GetMapWorkspacesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetPartyData, GetPartyErrors, GetPartyResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetRulesData, GetRulesErrors, GetRulesResponses, GetSocialCapabilitiesData, GetSocialCapabilitiesResponses, GetSocialMeData, GetSocialMeErrors, GetSocialMeResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, GetUzhOccupancyData, GetUzhOccupancyErrors, GetUzhOccupancyResponses, InvitePartyMemberData, InvitePartyMemberErrors, InvitePartyMemberResponses, LeavePartyData, LeavePartyErrors, LeavePartyResponses, ListFavouritesData, ListFavouritesErrors, ListFavouritesResponses, ListFriendRequestsData, ListFriendRequestsErrors, ListFriendRequestsResponses, ListFriendsData, ListFriendsErrors, ListFriendsResponses, ListMapDatasetsData, ListMapDatasetsResponses, ListPartiesData, ListPartiesErrors, ListPartiesResponses, ListRecentsData, ListRecentsErrors, ListRecentsResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, RemoveFavouriteData, RemoveFavouriteErrors, RemoveFavouriteResponses, ReplyToPartyInvitationData, ReplyToPartyInvitationErrors, ReplyToPartyInvitationResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, SaveMapNavigationData, SaveMapNavigationErrors, SaveMapNavigationResponses, SaveMapStyleData, SaveMapStyleErrors, SaveMapStyleResponses, SaveMapWorkspacesData, SaveMapWorkspacesErrors, SaveMapWorkspacesResponses, SearchMapRoomsData, SearchMapRoomsErrors, SearchMapRoomsResponses, SearchSocialPeopleData, SearchSocialPeopleErrors, SearchSocialPeopleResponses, SendFriendRequestData, SendFriendRequestErrors, SendFriendRequestResponses, StartBreakData, StartBreakErrors, StartBreakResponses, UpdateMeData, UpdateMeErrors, UpdateMeResponses, UpdateSocialPrivacyData, UpdateSocialPrivacyErrors, UpdateSocialPrivacyResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -41,6 +41,11 @@ export const adminCreateSpace = <ThrowOnError extends boolean = false>(options: 
 });
 
 /**
+ * Archive Space
+ */
+export const adminArchiveSpace = <ThrowOnError extends boolean = false>(options: Options<AdminArchiveSpaceData, ThrowOnError>): RequestResult<AdminArchiveSpaceResponses, AdminArchiveSpaceErrors, ThrowOnError> => (options.client ?? client).delete<AdminArchiveSpaceResponses, AdminArchiveSpaceErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}', ...options });
+
+/**
  * Update Space
  */
 export const adminUpdateSpace = <ThrowOnError extends boolean = false>(options: Options<AdminUpdateSpaceData, ThrowOnError>): RequestResult<AdminUpdateSpaceResponses, AdminUpdateSpaceErrors, ThrowOnError> => (options.client ?? client).patch<AdminUpdateSpaceResponses, AdminUpdateSpaceErrors, ThrowOnError>({
@@ -75,6 +80,18 @@ export const adminCreateClosure = <ThrowOnError extends boolean = false>(options
 export const adminDeleteClosure = <ThrowOnError extends boolean = false>(options: Options<AdminDeleteClosureData, ThrowOnError>): RequestResult<AdminDeleteClosureResponses, AdminDeleteClosureErrors, ThrowOnError> => (options.client ?? client).delete<AdminDeleteClosureResponses, AdminDeleteClosureErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}/closures/{closure_id}', ...options });
 
 /**
+ * Save Layout
+ */
+export const adminSaveLayout = <ThrowOnError extends boolean = false>(options: Options<AdminSaveLayoutData, ThrowOnError>): RequestResult<AdminSaveLayoutResponses, AdminSaveLayoutErrors, ThrowOnError> => (options.client ?? client).put<AdminSaveLayoutResponses, AdminSaveLayoutErrors, ThrowOnError>({
+    url: '/api/v1/admin/spaces/{space_id}/layout',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Replace Opening Hours
  */
 export const adminReplaceOpeningHours = <ThrowOnError extends boolean = false>(options: Options<AdminReplaceOpeningHoursData, ThrowOnError>): RequestResult<AdminReplaceOpeningHoursResponses, AdminReplaceOpeningHoursErrors, ThrowOnError> => (options.client ?? client).put<AdminReplaceOpeningHoursResponses, AdminReplaceOpeningHoursErrors, ThrowOnError>({
@@ -90,6 +107,16 @@ export const adminReplaceOpeningHours = <ThrowOnError extends boolean = false>(o
  * Get Space Overview
  */
 export const adminGetSpaceOverview = <ThrowOnError extends boolean = false>(options: Options<AdminGetSpaceOverviewData, ThrowOnError>): RequestResult<AdminGetSpaceOverviewResponses, AdminGetSpaceOverviewErrors, ThrowOnError> => (options.client ?? client).get<AdminGetSpaceOverviewResponses, AdminGetSpaceOverviewErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}/overview', ...options });
+
+/**
+ * Permanently Delete Space
+ */
+export const adminPermanentlyDeleteSpace = <ThrowOnError extends boolean = false>(options: Options<AdminPermanentlyDeleteSpaceData, ThrowOnError>): RequestResult<AdminPermanentlyDeleteSpaceResponses, AdminPermanentlyDeleteSpaceErrors, ThrowOnError> => (options.client ?? client).delete<AdminPermanentlyDeleteSpaceResponses, AdminPermanentlyDeleteSpaceErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}/permanent', ...options });
+
+/**
+ * Restore Space
+ */
+export const adminRestoreSpace = <ThrowOnError extends boolean = false>(options: Options<AdminRestoreSpaceData, ThrowOnError>): RequestResult<AdminRestoreSpaceResponses, AdminRestoreSpaceErrors, ThrowOnError> => (options.client ?? client).post<AdminRestoreSpaceResponses, AdminRestoreSpaceErrors, ThrowOnError>({ url: '/api/v1/admin/spaces/{space_id}/restore', ...options });
 
 /**
  * Create Seat
@@ -113,6 +140,28 @@ export const adminGetSeat = <ThrowOnError extends boolean = false>(options: Opti
  */
 export const adminUpdateSeat = <ThrowOnError extends boolean = false>(options: Options<AdminUpdateSeatData, ThrowOnError>): RequestResult<AdminUpdateSeatResponses, AdminUpdateSeatErrors, ThrowOnError> => (options.client ?? client).patch<AdminUpdateSeatResponses, AdminUpdateSeatErrors, ThrowOnError>({
     url: '/api/v1/admin/spaces/{space_id}/seats/{seat_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List Users
+ */
+export const adminListUsers = <ThrowOnError extends boolean = false>(options?: Options<AdminListUsersData, ThrowOnError>): RequestResult<AdminListUsersResponses, AdminListUsersErrors, ThrowOnError> => (options?.client ?? client).get<AdminListUsersResponses, AdminListUsersErrors, ThrowOnError>({ url: '/api/v1/admin/users', ...options });
+
+/**
+ * Get User
+ */
+export const adminGetUser = <ThrowOnError extends boolean = false>(options: Options<AdminGetUserData, ThrowOnError>): RequestResult<AdminGetUserResponses, AdminGetUserErrors, ThrowOnError> => (options.client ?? client).get<AdminGetUserResponses, AdminGetUserErrors, ThrowOnError>({ url: '/api/v1/admin/users/{user_id}', ...options });
+
+/**
+ * Update User
+ */
+export const adminUpdateUser = <ThrowOnError extends boolean = false>(options: Options<AdminUpdateUserData, ThrowOnError>): RequestResult<AdminUpdateUserResponses, AdminUpdateUserErrors, ThrowOnError> => (options.client ?? client).patch<AdminUpdateUserResponses, AdminUpdateUserErrors, ThrowOnError>({
+    url: '/api/v1/admin/users/{user_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -191,6 +240,13 @@ export const saveMapNavigation = <ThrowOnError extends boolean = false>(options:
         ...options.headers
     }
 });
+
+/**
+ * Search Rooms
+ *
+ * Rooms of every building and floor whose name or use contains `q`.
+ */
+export const searchMapRooms = <ThrowOnError extends boolean = false>(options: Options<SearchMapRoomsData, ThrowOnError>): RequestResult<SearchMapRoomsResponses, SearchMapRoomsErrors, ThrowOnError> => (options.client ?? client).get<SearchMapRoomsResponses, SearchMapRoomsErrors, ThrowOnError>({ url: '/api/v1/map/rooms', ...options });
 
 /**
  * Get Style

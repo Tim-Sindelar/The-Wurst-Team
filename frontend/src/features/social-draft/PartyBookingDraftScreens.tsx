@@ -125,6 +125,7 @@ export function PartySeatsDraftScreen() {
           </Text>
           <div className="h-105 shrink-0">
             <SeatMap
+              plan={null}
               seats={roomSeats}
               selected={String(assignments[active] ?? '')}
               highlightedSeats={picked.map(String)}

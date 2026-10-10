@@ -1,8 +1,17 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+class UTCResponse(BaseModel):
+    """Serialize API instants consistently regardless of database session timezone."""
+
+    @field_validator("*")
+    @classmethod
+    def utc_instants(cls, value):
+        return value.astimezone(UTC) if isinstance(value, datetime) else value
 
 
 class OpeningInterval(BaseModel):
@@ -82,7 +91,7 @@ class SpaceSummary(BaseModel):
     is_open: bool
 
 
-class SeatAvailability(BaseModel):
+class SeatAvailability(UTCResponse):
     id: UUID
     label: str
     state: SeatStatus
@@ -96,7 +105,7 @@ class SpaceDetail(SpaceSummary):
     opening_hours: list[OpeningInterval]
 
 
-class SpacesResponse(BaseModel):
+class SpacesResponse(UTCResponse):
     server_time: datetime
     spaces: list[SpaceSummary]
 
@@ -111,7 +120,7 @@ class RecentsResponse(BaseModel):
     space_ids: list[UUID]
 
 
-class SpaceResponse(BaseModel):
+class SpaceResponse(UTCResponse):
     server_time: datetime
     space: SpaceDetail
 
@@ -126,13 +135,13 @@ class ReservationSpace(BaseModel):
     name: str
 
 
-class CurrentBreak(BaseModel):
+class CurrentBreak(UTCResponse):
     id: UUID
     started_at: datetime
     ends_at: datetime
 
 
-class ReservationDetails(BaseModel):
+class ReservationDetails(UTCResponse):
     id: UUID
     seat: ReservationSeat
     space: ReservationSpace
@@ -146,11 +155,11 @@ class ReservationDetails(BaseModel):
     available_actions: list[ReservationAction]
 
 
-class ReservationResponse(BaseModel):
+class ReservationResponse(UTCResponse):
     server_time: datetime
     reservation: ReservationDetails
 
 
-class MyReservationResponse(BaseModel):
+class MyReservationResponse(UTCResponse):
     server_time: datetime
     reservation: ReservationDetails | None

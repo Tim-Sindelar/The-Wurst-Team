@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="admin.css">
   <link rel="stylesheet" href="docs.css">
   <script src="base.js"></script>
 </head>
@@ -481,6 +482,85 @@
     </section>
 
     <section>
+      <h2>Admin parts (desktop)</h2>
+      <p class="lead">Used by the admin dashboard in <code>admin/</code>, styled by <code>admin.css</code>. Same tokens and colours as the rest.</p>
+      <div class="specimens">
+        <div class="specimen">
+          <h3>Sub-menu (tabs as links)</h3>
+          <div class="stage" data-code>
+            <nav class="subnav" aria-label="This space">
+              <a href="#" aria-current="page">Seats</a>
+              <a href="#">Opening hours</a>
+              <a href="#">Closures</a>
+            </nav>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Summary tiles</h3>
+          <div class="stage" data-code>
+            <div class="stats">
+              <div class="stat"><span class="t-label">Free</span><span class="stat__value">3</span></div>
+              <div class="stat"><span class="t-label">Occupied</span><span class="stat__value">2</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Data table</h3>
+          <div class="stage" data-code>
+            <div class="table-wrap">
+              <table class="table" style="min-width: 0">
+                <thead><tr><th scope="col">Seat</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Seat 1</strong></td><td><span class="chip is-occupied">Occupied</span></td><td class="actions"><button class="btn btn--quiet" type="button">Rename</button></td></tr>
+                  <tr><td><strong>Seat 2</strong></td><td><span class="chip is-unavailable">Switched off</span></td><td class="actions"><button class="btn btn--quiet is-risky" type="button">Delete</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Impact preview list</h3>
+          <div class="stage" data-code>
+            <ul class="impact">
+              <li class="impact__item is-cancel">
+                <div class="impact__who"><strong>Tim Vogt</strong><span class="t-small t-muted">Seat 3</span></div>
+                <span class="chip chip--plain is-cancel">Cancel</span>
+                <p class="impact__detail">Reservation 11:30–13:30 → cancelled</p>
+              </li>
+              <li class="impact__item is-shorten">
+                <div class="impact__who"><strong>Sara Keller</strong><span class="t-small t-muted">Seat 3</span></div>
+                <span class="chip chip--plain is-shorten">Shorten</span>
+                <p class="impact__detail">Session ends 11:30 → 10:42</p>
+              </li>
+              <li class="impact__item is-shift">
+                <div class="impact__who"><strong>Mia Huber</strong><span class="t-small t-muted">Seat 2</span></div>
+                <span class="chip chip--plain is-shift">Shift</span>
+                <p class="impact__detail">05:00–07:00 → 06:00–08:00</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Empty state</h3>
+          <div class="stage" data-code>
+            <div class="empty">
+              <p class="t-title">No closures planned</p>
+              <p class="t-muted">Closing a space or a seat stops reservations for that time.</p>
+              <button class="btn btn--primary" type="button">New closure</button>
+            </div>
+          </div>
+        </div>
+        <div class="specimen">
+          <h3>Desktop dialog</h3>
+          <div class="stage">
+            <button class="btn btn--secondary" type="button" data-sheet-open="dlg-admin-demo">Open the dialog</button>
+          </div>
+          <p class="specimen__note">Centred, closes with the X, Esc or a click outside (all mean no). Safe option left, action right.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
       <h2>Bottom navigation</h2>
       <div class="stage stage--phone" data-code>
         <nav class="bottom-nav" aria-label="Main navigation">
@@ -510,6 +590,20 @@
       </div>
     </section>
   </main>
+
+  <dialog class="dialog" id="dlg-admin-demo" aria-labelledby="dlg-admin-demo-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-admin-demo-title">End Lena Fischer’s reservation?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Seat 1 is freed right away and Lena’s session ends now. This can't be undone.</p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Keep reservation</button>
+      <button class="btn btn--danger" type="button" data-sheet-close>End reservation</button>
+    </div>
+  </dialog>
 
   <!-- Decision sheets. One <dialog> each; the page opens them with data-sheet-open. -->
   <dialog class="sheet" id="sheet-reserve" aria-labelledby="sheet-reserve-title">
