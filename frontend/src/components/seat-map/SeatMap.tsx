@@ -123,17 +123,6 @@ export function SeatMap({
               objects={plan.furniture}
               interactive={false}
             />
-            {seats.flatMap((seat) =>
-              seat.badges.map((badge, index) => (
-                <FeatureBadge
-                  key={`${seat.id}-${badge}`}
-                  icon={featureIcon[badge]}
-                  title={geometry.BADGES[badge]}
-                  x={seat.x + (index - (seat.badges.length - 1) / 2) * 19}
-                  y={seat.y + 23}
-                />
-              )),
-            )}
           </svg>
         ) : (
           <svg
@@ -199,6 +188,27 @@ export function SeatMap({
             onSelect={() => onSelect(seat.id)}
           />
         ))}
+        {/* Feature badges sit on top of the seats, as in the layout editor. */}
+        {plan && (
+          <svg
+            className="pointer-events-none absolute inset-0 size-full"
+            viewBox={`0 0 ${plan.room.width} ${plan.room.height}`}
+            aria-hidden="true"
+            focusable="false"
+          >
+            {seats.flatMap((seat) =>
+              seat.badges.map((badge, index) => (
+                <FeatureBadge
+                  key={`${seat.id}-${badge}`}
+                  icon={featureIcon[badge]}
+                  title={geometry.BADGES[badge]}
+                  x={seat.x + (index - (seat.badges.length - 1) / 2) * 19}
+                  y={seat.y + 23}
+                />
+              )),
+            )}
+          </svg>
+        )}
       </div>
 
       <div className="absolute top-3 left-3 z-1" data-map-info>
