@@ -45,6 +45,7 @@
   /* --- Camera view: dark in both themes -------------------------------- */
   --camera-bg: #0a0a0a;
   --camera-fg: #ffffff;
+  --camera-dim: rgb(0 0 0 / 0.5);
 
   /* --- Type ----------------------------------------------------------- */
   --font: 'DIN Next LT W05', 'Barlow', ui-sans-serif, system-ui, sans-serif;
