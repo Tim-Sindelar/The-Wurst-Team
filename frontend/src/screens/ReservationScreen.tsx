@@ -1,5 +1,5 @@
-import { Button, Card, Text, Title } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { Alert, Button, Card, Text, Title } from '@mantine/core';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { DecisionSheet } from '../components/DecisionSheet';
 import { Icon } from '../components/Icon';
@@ -18,23 +18,45 @@ import { paths } from '../routes';
 
 export function ReservationScreen() {
   const navigate = useNavigate();
-  const { seat, setBooking } = useMockBooking();
+  const { seat, booking, reservationExpiresAt, setBooking } = useMockBooking();
   const [cancelOpen, setCancelOpen] = useState(false);
-
-  /* Opening this screen means a seat is held (mock). */
-  useEffect(() => setBooking('reserved'), [setBooking]);
 
   const cancel = () => {
     setBooking('none');
     navigate(paths.home);
   };
 
+  if (booking !== 'reserved' || reservationExpiresAt === null) {
+    return (
+      <Screen>
+        <ScreenHeader
+          title="Your reservation"
+          backTo={paths.home}
+          backLabel="Back to home"
+        />
+        <ScreenMain>
+          <Alert title="No active reservation" icon={<Icon name="clock" />}>
+            <Text>
+              Your reservation has expired or been cancelled. The seat is no
+              longer held for you.
+            </Text>
+          </Alert>
+        </ScreenMain>
+        <ActionBar>
+          <Button component={Link} to={paths.seatMap} fullWidth>
+            Choose a seat
+          </Button>
+        </ActionBar>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <ScreenHeader
         title="Your reservation"
-        backTo={paths.seatMap}
-        backLabel="Back to the seat map"
+        backTo={paths.home}
+        backLabel="Back to home"
       />
 
       <ScreenMain>
@@ -57,7 +79,8 @@ export function ReservationScreen() {
 
         <TimerCard
           label="Check in within"
-          seconds={552}
+          seconds={mockRules.holdSeconds}
+          expiresAt={reservationExpiresAt}
           total={mockRules.holdSeconds}
         >
           <Text size="sm" c="dimmed">

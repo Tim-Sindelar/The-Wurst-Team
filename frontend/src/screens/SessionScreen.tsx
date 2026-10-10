@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Card, Text, Title } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { DecisionSheet } from '../components/DecisionSheet';
 import { Icon } from '../components/Icon';
 import {
@@ -34,7 +34,7 @@ type Sheet = 'extend' | 'break' | 'end' | null;
 
 export function SessionScreen() {
   const navigate = useNavigate();
-  const { seat, setBooking } = useMockBooking();
+  const { seat, booking, setBooking } = useMockBooking();
   const [params] = useSearchParams();
   const phaseParam = params.get('phase') as Phase | null;
   const phase: Phase =
@@ -58,6 +58,8 @@ export function SessionScreen() {
     setBooking('none');
     navigate(paths.home);
   };
+
+  if (booking === 'none') return <Navigate to={paths.reservation} replace />;
 
   return (
     <Screen>

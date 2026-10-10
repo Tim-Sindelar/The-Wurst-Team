@@ -7,7 +7,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
 import { Icon } from '../components/Icon';
 import { Screen } from '../components/Screen';
 import { mockSpace } from '../mock/data';
@@ -43,7 +43,7 @@ const isFlow = (value: string | null): value is keyof typeof flows =>
   value !== null && value in flows;
 
 export function ScanScreen() {
-  const { seat } = useMockBooking();
+  const { seat, booking } = useMockBooking();
   const [params] = useSearchParams();
   const [flashlight, setFlashlight] = useState(false);
   const from = params.get('from');
@@ -58,6 +58,9 @@ export function ScanScreen() {
     const query = next.toString();
     return query ? `${paths.scan}?${query}` : paths.scan;
   };
+
+  if (flow === flows.checkIn && booking !== 'reserved')
+    return <Navigate to={paths.reservation} replace />;
 
   return (
     <Screen>

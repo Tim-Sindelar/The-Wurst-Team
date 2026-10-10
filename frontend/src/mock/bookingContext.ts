@@ -7,6 +7,8 @@ export type MockBooking = {
   /** The seat chosen on the map; every later screen shows this number. */
   seat: number;
   booking: BookingState;
+  reservationExpiresAt: number | null;
+  reserveSeat: (seat: number) => void;
   setSeat: (seat: number) => void;
   setBooking: (booking: BookingState) => void;
 };

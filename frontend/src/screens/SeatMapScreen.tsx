@@ -21,7 +21,6 @@ import { mockRules, mockSpace, roomSeats } from '../mock/data';
 import { useMockBooking } from '../mock/useMockBooking';
 import { paths } from '../routes';
 
-const freeCount = roomSeats.filter((seat) => seat.state === 'free').length;
 const holdMinutes = mockRules.holdSeconds / 60;
 
 export function SeatMapScreen() {
@@ -30,44 +29,56 @@ export function SeatMapScreen() {
   const [selected, setSelected] = useState(booking.seat);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const seat =
-    roomSeats.find((item) => item.number === selected) ?? roomSeats[0];
+  const seats = roomSeats.map((item) =>
+    booking.booking === 'reserved' && item.number === booking.seat
+      ? { ...item, state: 'reserved' as const }
+      : item,
+  );
+  const freeCount = seats.filter((item) => item.state === 'free').length;
+  const seat = seats.find((item) => item.number === selected) ?? roomSeats[0];
   const later = seat.state === 'bookable';
+  const ownReservation =
+    booking.booking === 'reserved' && seat.number === booking.seat;
 
-  const reserveLabel =
-    seat.state === 'free'
+  const reserveLabel = ownReservation
+    ? 'View reservation'
+    : seat.state === 'free'
       ? `Reserve seat ${seat.number}`
       : later
         ? `Reserve seat ${seat.number} for later`
         : `${seatStateName[seat.state]} · unavailable`;
 
   const chooseAnyFree = () => {
-    const free = roomSeats.find((item) => item.state === 'free');
+    const free = seats.find((item) => item.state === 'free');
     if (free) setSelected(free.number);
   };
 
   const reserve = () => {
-    booking.setSeat(seat.number);
+    booking.reserveSeat(seat.number);
     navigate(paths.reservation);
   };
 
   return (
-    <Screen>
+    <Screen className="h-dvh overflow-hidden">
       <ScreenHeader
         title="Study Spaces"
         backTo={paths.home}
         backLabel="Back to home"
       />
 
-      <ScreenMain>
-        <Title order={2} className="text-heading">
-          {mockSpace.name}
-        </Title>
-        <AvailabilityLabel availability="high" size="small">
-          {freeCount} free of {roomSeats.length} seats
-        </AvailabilityLabel>
+      <ScreenMain fit>
+        <div className="grid gap-1">
+          <Title order={2} className="text-heading">
+            {mockSpace.name}
+          </Title>
+          <AvailabilityLabel availability="high" size="small">
+            {freeCount} free of {roomSeats.length} seats
+          </AvailabilityLabel>
+        </div>
 
-        <SeatMap seats={roomSeats} selected={selected} onSelect={setSelected} />
+        <div className="min-h-0 flex-1 basis-0">
+          <SeatMap seats={seats} selected={selected} onSelect={setSelected} />
+        </div>
 
         <Card
           component="article"
@@ -83,20 +94,26 @@ export function SeatMapScreen() {
             <SeatChip state={seat.state} />
           </div>
           <Text size="sm" c="dimmed">
-            {mockSpace.name} · {seatStateDetail[seat.state]}
+            {mockSpace.name} ·{' '}
+            {ownReservation ? 'Reserved for you' : seatStateDetail[seat.state]}
           </Text>
           <Text size="sm">{seat.feature}</Text>
         </Card>
-        <Button variant="secondary" fullWidth onClick={chooseAnyFree}>
-          Choose any free seat
-        </Button>
       </ScreenMain>
 
       <ActionBar>
+        <Button variant="secondary" fullWidth onClick={chooseAnyFree}>
+          Choose any free seat
+        </Button>
         <Button
           fullWidth
-          disabled={!isReservable(seat.state)}
-          onClick={() => setSheetOpen(true)}
+          disabled={
+            !ownReservation &&
+            (booking.booking !== 'none' || !isReservable(seat.state))
+          }
+          onClick={() =>
+            ownReservation ? navigate(paths.reservation) : setSheetOpen(true)
+          }
         >
           {reserveLabel}
         </Button>

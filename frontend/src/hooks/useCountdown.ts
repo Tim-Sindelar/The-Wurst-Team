@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react';
+import { secondsUntil } from '../mock/reservation';
 
-/** Seconds left, ticking down once a second from `start` until 0.
- *  Give the component using it a `key` to restart from a new value. */
-export function useCountdown(start: number) {
-  const [left, setLeft] = useState(start);
-
+/** Fixed deadlines survive rerenders, navigation, reloads and background throttling. */
+export function useCountdown(start: number, expiresAt?: number) {
+  const [startedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(startedAt);
+  const deadline = expiresAt ?? startedAt + start * 1000;
   useEffect(() => {
-    const id = setInterval(() => {
-      setLeft((value) => {
-        if (value <= 1) clearInterval(id);
-        return Math.max(0, value - 1);
-      });
-    }, 1000);
-    return () => clearInterval(id);
+    const tick = () => setNow(Date.now());
+    const timer = window.setInterval(tick, 250);
+    window.addEventListener('focus', tick);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', tick);
+      document.removeEventListener('visibilitychange', tick);
+    };
   }, []);
-
-  return left;
+  return Math.min(start, secondsUntil(deadline, now));
 }
 
-/** 9:05 → "09:05"; over an hour → "1:52:40". */
 export function formatCountdown(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');

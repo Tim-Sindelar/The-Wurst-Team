@@ -34,7 +34,7 @@ export function SeatMarker({
 
   return (
     <UnstyledButton
-      className="absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center text-text"
+      className="group absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center text-text focus:outline-none"
       style={{ left: x, top: y }}
       data-seat-number={number}
       data-x={x}
@@ -45,7 +45,7 @@ export function SeatMarker({
     >
       <span
         className={[
-          'grid h-9 w-8 place-items-center rounded-control border-2 border-(--state) bg-(--state) text-small leading-none font-bold',
+          'grid h-9 w-8 place-items-center rounded-control border-2 border-(--state) bg-(--state) text-small leading-none font-bold group-focus-visible:shadow-[0_0_0_2px_var(--color-surface),0_0_0_4px_var(--color-focus)]',
           stateVar[state],
           state === 'occupied' ? 'text-on-seat-muted' : 'text-on-seat',
           selected

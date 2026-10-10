@@ -71,7 +71,7 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
   return (
     <div
       ref={viewportRef}
-      className="relative h-105 cursor-grab touch-none overflow-hidden rounded-card border border-border-strong bg-canvas select-none"
+      className="relative h-full cursor-grab touch-none overflow-hidden rounded-card border border-border-strong bg-canvas select-none"
       tabIndex={0}
       role="region"
       aria-label="Interactive room map. Arrow keys move, plus and minus zoom, Home fits the room."
@@ -145,7 +145,7 @@ export function SeatMap({ seats, selected, onSelect }: SeatMapProps) {
           onChange={setKeyOpen}
           position="bottom-start"
           offset={8}
-          withinPortal={false}
+          withinPortal
           returnFocus
         >
           <Popover.Target>
