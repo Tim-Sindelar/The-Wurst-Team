@@ -51,7 +51,7 @@ def test_demo_identity():
     assert error.value.status_code == 400
 
 
-@pytest.mark.parametrize("path", ["/api/v1/me/reservation", "/api/v1/admin/spaces"])
+@pytest.mark.parametrize("path", ["/api/v1/me", "/api/v1/me/reservation", "/api/v1/admin/spaces"])
 def test_protected_endpoint_requires_identity(path):
     app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None, auth_mode="proxy")
     try:
@@ -80,3 +80,58 @@ def test_proxy_rejects_demo_admin_privileges(override, allow_header):
             assert response.status_code == 403
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def profile_client():
+    settings = Settings(_env_file=None, auth_mode="proxy")
+    app.dependency_overrides[get_settings] = lambda: settings
+    try:
+        with TestClient(app) as client:
+            yield client, settings
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize(
+    "headers, name",
+    [
+        ({"X-User-Name": "Zo%C3%AB + M%C3%BCller"}, "Zoë + Müller"),
+        ({"X-User-Name": "  "}, "student@ethz.ch"),
+        ({}, "student@ethz.ch"),
+    ],
+)
+def test_proxy_profile(profile_client, headers, name):
+    client, _settings = profile_client
+    response = client.get("/api/v1/me", headers={"X-User-Id": "student@ethz.ch", **headers})
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": "42d57044-31ad-52df-a975-b5a625501b3f",
+        "name": name,
+        "email": "student@ethz.ch",
+    }
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+@pytest.mark.parametrize("allow_header", [True, False])
+def test_demo_profile(profile_client, allow_header):
+    client, settings = profile_client
+    settings.auth_mode = "demo"
+    settings.dummy_user_id = uuid4()
+    settings.dummy_auth_allow_header = allow_header
+    other = uuid4()
+    response = client.get(
+        "/api/v1/me",
+        headers={
+            "X-Demo-User-Id": str(other),
+            "X-User-Id": "ignored@ethz.ch",
+            "X-User-Name": "Ignored",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": str(other if allow_header else settings.dummy_user_id),
+        "name": "Demo user",
+        "email": None,
+    }
+    assert response.headers["Cache-Control"] == "no-store"

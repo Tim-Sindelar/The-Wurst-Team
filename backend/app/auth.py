@@ -1,11 +1,14 @@
 from typing import Annotated
+from urllib.parse import unquote
 from uuid import UUID, uuid5
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.config import Settings, get_settings
+from app.schemas import ErrorResponse, UserResponse
 
 USER_NAMESPACE = UUID("f3e45c1d-fc27-4dfc-b84d-463bc5637f35")
+router = APIRouter(prefix="/api/v1", tags=["auth"])
 
 
 def get_current_user(
@@ -40,3 +43,23 @@ def get_current_admin(
     if not is_admin:
         raise HTTPException(status_code=403, detail="Administrator access required")
     return user_id
+
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    operation_id="get_me",
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}},
+)
+def get_me(
+    request: Request,
+    response: Response,
+    user_id: Annotated[UUID, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> UserResponse:
+    response.headers["Cache-Control"] = "no-store"
+    if settings.auth_mode == "demo":
+        return UserResponse(id=user_id, name="Demo user", email=None)
+    email = request.headers["X-User-Id"].strip()
+    name = unquote(request.headers.get("X-User-Name", "")).strip() or email
+    return UserResponse(id=user_id, name=name, email=email)

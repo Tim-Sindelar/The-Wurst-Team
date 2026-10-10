@@ -27,7 +27,7 @@ npm run dev --prefix frontend
 ```
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
-The frontend implements the mock screens from `design/` with mock data only (no API calls yet); Mantine, TanStack Query, and the API client are configured for wiring the backend in.
+The frontend implements the screens from `design/`. Its profile and home avatar use the real `/api/v1/me` endpoint; study spaces, reservations, and notification controls still use mock data/local state and do not write to the database.
 Vite proxies `/api` requests to the backend on port 8000. Backend source changes reload automatically; migrations run when the backend container starts.
 
 Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend/package-lock.json`. Rebuild the backend container after changing Python dependencies.
@@ -104,6 +104,8 @@ Use http://localhost:8000/docs to explore the API. `POST /api/v1/reservations` a
 
 Authentication defaults to `AUTH_MODE=proxy`: the trusted `X-User-Id` email maps to a stable UUIDv5 using a fixed application namespace. Missing or empty identity returns 401 on user-specific endpoints; demo headers are ignored. Do not change the namespace, as that would change reservation ownership. No users table or custom login is needed.
 
+`GET /api/v1/me` returns `{id, name, email}` using that same reservation identity. Proxy mode percent-decodes `X-User-Name`, falling back to the email if the name is absent. Demo mode returns `Demo user` with a null email, shown as `Local demo account` in the frontend. Responses are not HTTP-cacheable. The frontend uses this endpoint in both modes, with loading/error states and a reload action; it never supplies identity headers or stores auth tokens. Logout is not implemented.
+
 Local Compose and `backend/.env.example` enable `AUTH_MODE=demo`. In this development-only mode, requests use `DUMMY_USER_ID`; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. To use proxy mode with Compose, run `AUTH_MODE=proxy docker compose up -d` (the service environment takes precedence over `backend/.env`).
 
 Proxy mode is safe only behind the authenticated hackathon managed address: keep access control enabled and direct public app/backend access blocked, otherwise clients can forge the identity header.
@@ -166,3 +168,13 @@ make test       # pytest inside the running backend container
 For local Python test execution, start PostgreSQL and run `uv run --locked pytest` from `backend/`.
 
 The production frontend is written to `frontend/dist/`. A deployment must serve it with an `/api` reverse proxy or set `VITE_API_BASE_URL` before building; the Vite proxy is only used during development.
+
+## Deployment authentication
+
+`AUTH_MODE` is the only auth switch: `demo` locally, `proxy` on the VM. For Compose, persist `AUTH_MODE=proxy` in the repository-root `.env` (not `backend/.env`, which the Compose service environment overrides), then recreate the backend:
+
+```sh
+docker compose up -d --build --wait backend
+```
+
+This switches authentication, not web hosting. Keep the managed address authenticated, forward `/api` on the same origin with `X-User-Id` and `X-User-Name` intact, and block direct public access to the backend/app. No frontend auth setting or identity injection is needed. At the managed URL, verify that Profile shows your actual name/email; use a second account to confirm a different identity. Actual edu-ID login requires the managed proxy; local tests simulate its headers. Admin access remains demo-only.
