@@ -1,4 +1,4 @@
-import { CAMPUSES, MAX_OUTLINE_VERTICES, SEAT_STATUSES, type OccupancyData } from './types';
+import { CAMPUSES, MAX_OUTLINE_VERTICES, SEAT_STATUSES, WORKSPACE_KINDS, type OccupancyData } from './types';
 
 // Dependency-free structural validation. Used by the dev API before writing
 // to disk and by the client after loading, so a broken file fails loudly.
@@ -10,7 +10,7 @@ const isLatLng = (v: unknown) =>
   isObj(v) && Number.isFinite(v.lat) && Number.isFinite(v.lng);
 
 /** Validates a GeoJSON MultiPolygon; returns an error message or null. */
-function checkMultiPolygon(g: unknown): string | null {
+export function checkMultiPolygon(g: unknown): string | null {
   if (!isObj(g) || g.type !== 'MultiPolygon' || !Array.isArray(g.coordinates)) {
     return 'must be null or a GeoJSON MultiPolygon';
   }
@@ -47,10 +47,21 @@ export function validateOccupancyData(input: unknown): string[] {
     if (!isObj(l) || !isStr(l.id) || !isStr(l.name)) return errors.push(`${at}: id and name required`);
     if (libraryIds.has(l.id)) errors.push(`${at}: duplicate id ${l.id}`);
     libraryIds.add(l.id);
+    if (!WORKSPACE_KINDS.includes(l.kind as never)) errors.push(`${at}: invalid kind`);
     if (!CAMPUSES.includes(l.campus as never)) errors.push(`${at}: invalid campus`);
     if (!isLatLng(l.position)) errors.push(`${at}: invalid position`);
-    for (const f of ['address', 'openingHours', 'description', 'sourceUrl']) {
+    for (const f of ['address', 'description', 'sourceUrl']) {
       if (!isStrOrNull(l[f])) errors.push(`${at}: ${f} must be string or null`);
+    }
+    // Admin-only fields: absent in pipeline output.
+    if (l.availabilityNote !== undefined && !isStrOrNull(l.availabilityNote)) errors.push(`${at}: availabilityNote must be string or null`);
+    if (l.openingHours !== null && !isOpeningHours(l.openingHours)) errors.push(`${at}: openingHours must be null or a weekly schedule`);
+    for (const f of ['facilityId', 'levelId']) {
+      if (!isStrOrNull(l[f])) errors.push(`${at}: ${f} must be string or null`);
+    }
+    if (l.floor !== null && !Number.isInteger(l.floor)) errors.push(`${at}: floor must be an integer or null`);
+    for (const f of ['rooms', 'levels']) {
+      if (!Array.isArray(l[f]) || !(l[f] as unknown[]).every(isStr)) errors.push(`${at}: ${f} must be a string array`);
     }
     const outlineError = l.outline === null ? null : checkMultiPolygon(l.outline);
     if (outlineError) errors.push(`${at}: outline ${outlineError}`);
@@ -64,6 +75,17 @@ export function validateOccupancyData(input: unknown): string[] {
     if (!libraryIds.has(t.libraryId as string)) errors.push(`${at}: unknown libraryId`);
     if (!isLatLng(t.position)) errors.push(`${at}: invalid position`);
   });
+
+  // A room belongs to at most one workspace.
+  const roomOwner = new Map<string, string>();
+  for (const l of input.libraries as Record<string, unknown>[]) {
+    if (!Array.isArray(l.rooms)) continue;
+    for (const r of l.rooms as string[]) {
+      const owner = roomOwner.get(r);
+      if (owner && owner !== l.id) errors.push(`room ${r} is in both ${owner} and ${l.id}`);
+      roomOwner.set(r, l.id as string);
+    }
+  }
 
   const seatIds = new Set<string>();
   (input.seats as unknown[]).forEach((s, i) => {
@@ -83,4 +105,13 @@ export function assertOccupancyData(input: unknown): OccupancyData {
   const errors = validateOccupancyData(input);
   if (errors.length) throw new Error(`Invalid occupancy data:\n${errors.join('\n')}`);
   return input as OccupancyData;
+}
+
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+function isOpeningHours(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false;
+  return ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].every((d) => {
+    const ranges = (v as Record<string, unknown>)[d];
+    return Array.isArray(ranges) && ranges.every((r) => r && TIME.test(r.from) && TIME.test(r.to) && r.from < r.to);
+  });
 }

@@ -4,6 +4,8 @@
 @import '@mantine/core/styles.layer.css';
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import './theme/components.css';
+@import 'leaflet/dist/leaflet.css' layer(base);
+@import './campus-map/campus-map.css';
 
 /* ==========================================================================
    Design tokens, ported from design/tokens.css. Dark is the default theme;

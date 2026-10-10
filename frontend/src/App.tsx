@@ -7,6 +7,7 @@ import {
 } from 'react-router';
 import { paths } from './routes';
 import { HomeScreen } from './screens/HomeScreen';
+import { MapScreen } from './screens/MapScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { ReservationScreen } from './screens/ReservationScreen';
 import { ScanScreen } from './screens/ScanScreen';
@@ -22,20 +23,24 @@ function RootLayout() {
   );
 }
 
-const router = createBrowserRouter([
-  {
-    element: <RootLayout />,
-    children: [
-      { path: paths.home, element: <HomeScreen /> },
-      { path: '/seats', element: <Navigate to={paths.home} replace /> },
-      { path: paths.seatMap, element: <SeatMapScreen /> },
-      { path: paths.reservation, element: <ReservationScreen /> },
-      { path: paths.scan, element: <ScanScreen /> },
-      { path: paths.session, element: <SessionScreen /> },
-      { path: paths.profile, element: <ProfileScreen /> },
-    ],
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      element: <RootLayout />,
+      children: [
+        { path: paths.home, element: <HomeScreen /> },
+        { path: paths.map, element: <MapScreen /> },
+        { path: '/seats', element: <Navigate to={paths.home} replace /> },
+        { path: paths.seatMap, element: <SeatMapScreen /> },
+        { path: paths.reservation, element: <ReservationScreen /> },
+        { path: paths.scan, element: <ScanScreen /> },
+        { path: paths.session, element: <SessionScreen /> },
+        { path: paths.profile, element: <ProfileScreen /> },
+      ],
+    },
+  ],
+  { basename: import.meta.env.BASE_URL },
+);
 
 export function App() {
   return <RouterProvider router={router} />;

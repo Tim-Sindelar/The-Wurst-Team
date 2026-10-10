@@ -1,6 +1,7 @@
 /** Screen paths, in flow order. */
 export const paths = {
   home: '/',
+  map: '/map',
   seatMap: '/seats/:spaceId',
   reservation: '/reservation',
   scan: '/scan',

@@ -1,14 +1,14 @@
 """add favourite spaces
 
 Revision ID: 5d1c7e2a9b34
-Revises: 92a543e210ab
+Revises: a1f3c7d92e54
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "5d1c7e2a9b34"
-down_revision = "92a543e210ab"
+down_revision = "a1f3c7d92e54"
 branch_labels = None
 depends_on = None
 

@@ -17,4 +17,18 @@ export default defineConfig([
     ],
     languageOptions: { ecmaVersion: 2022, globals: globals.browser },
   },
+  {
+    // The campus map is ported from occupancy-map-preview. Its Leaflet layers
+    // keep the latest props in refs and choose their effect dependencies on
+    // purpose, which the React Compiler rules reject.
+    files: ['src/campus-map/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ]);
