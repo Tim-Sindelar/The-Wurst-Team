@@ -64,7 +64,8 @@
       [type='checkbox'],
       [type='radio'],
       [type='range'],
-      [type='color']
+      [type='color'],
+      .ui-input
     ),
     select {
       font-size: var(--text-body);
@@ -639,8 +640,12 @@
       min-width: 120px;
     }
     .workspace-search {
-      width: 100%;
-      margin-bottom: 10px;
+      margin-bottom: 16px;
+    }
+    .workspace-suggestions {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
     }
     /* Live status of the ETH rooms of a workspace, in its popup. */
     .live-rooms {

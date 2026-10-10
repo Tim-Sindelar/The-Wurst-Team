@@ -1,4 +1,8 @@
+import { TextInput } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { Icon } from '../../components/Icon';
+import { SectionLabel } from '../../components/SectionLabel';
+import { searchByName } from '../../domain/similarity';
 import type {
   Campus,
   DayKey,
@@ -29,14 +33,29 @@ interface Props {
   /** The floor plan levels, for the floor letters; empty while loading. */
   levels: LevelInfo[];
   onSelectLibrary: (lib: Library) => void;
+  /** What the search box says it searches ("Search study spaces"). */
+  placeholder: string;
+  /** Rows shown above the list before anything is typed (favourites,
+      recents, most popular); empty rows are hidden. */
+  suggestions: WorkspaceSuggestion[];
 }
 
-/** The workspace search of the map's bottom menu: name search, filters and the matching workspaces. */
+export interface WorkspaceSuggestion {
+  id: string;
+  title: string;
+  libraries: Library[];
+}
+
+/** The workspace search of the map's bottom menu: the home screen's search
+    box, suggestions before anything is typed, filters and the matching
+    workspaces. */
 export function WorkspaceList({
   data,
   selectedId,
   levels,
   onSelectLibrary,
+  placeholder,
+  suggestions,
 }: Props) {
   const [query, setQuery] = useState('');
   const [campus, setCampus] = useState<Campus | 'all'>('all');
@@ -70,14 +89,28 @@ export function WorkspaceList({
     );
   };
 
-  const q = query.trim().toLowerCase();
-  const libraries = data.libraries.filter(
-    (l) =>
-      (!q ||
-        `${l.name} ${l.address ?? ''} ${l.campus}`.toLowerCase().includes(q)) &&
-      (campus === 'all' || l.campus === campus) &&
-      (kind === 'all' || l.kind === kind) &&
-      matchesTime(l),
+  const searching = query.trim() !== '';
+  // The home screen's similarity search: forgiving, best match first.
+  const libraries = searchByName(
+    data.libraries.filter(
+      (l) =>
+        (campus === 'all' || l.campus === campus) &&
+        (kind === 'all' || l.kind === kind) &&
+        matchesTime(l),
+    ),
+    query,
+    (l) => `${l.name} ${l.address ?? ''} ${l.campus}`,
+  );
+  const item = (lib: Library) => (
+    <li key={lib.id}>
+      <LibraryItem
+        data={data}
+        library={lib}
+        active={lib.id === selectedId}
+        levels={levels}
+        onSelect={() => onSelectLibrary(lib)}
+      />
+    </li>
   );
   const kinds = WORKSPACE_KINDS.filter((k) =>
     data.libraries.some((l) => l.kind === k),
@@ -85,17 +118,36 @@ export function WorkspaceList({
 
   return (
     <section className="panel-section">
-      <input
+      <TextInput
         type="search"
         className="workspace-search"
-        placeholder="Search workspaces"
+        placeholder={placeholder}
+        aria-label={placeholder}
+        leftSection={<Icon name="search" />}
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        aria-label="Search workspaces"
+        onChange={(e) => setQuery(e.currentTarget.value)}
+        data-autofocus
       />
+      {!searching &&
+        suggestions.map(
+          (row) =>
+            row.libraries.length > 0 && (
+              <section
+                key={row.id}
+                aria-labelledby={`workspace-row-${row.id}`}
+                className="workspace-suggestions"
+              >
+                <SectionLabel id={`workspace-row-${row.id}`} as="h3">
+                  {row.title}
+                </SectionLabel>
+                <ul className="list">{row.libraries.map(item)}</ul>
+              </section>
+            ),
+        )}
       <div className="section-head">
         <h2>
-          Workspaces <span className="muted">({libraries.length})</span>
+          {searching ? 'Matches' : 'All workspaces'}{' '}
+          <span className="muted">({libraries.length})</span>
         </h2>
         <div className="icon-actions">
           {kinds.length > 1 && (
@@ -178,29 +230,38 @@ export function WorkspaceList({
         )}
       </div>
       {libraries.length === 0 && <p className="muted">No workspace matches.</p>}
-      <ul className="list">
-        {libraries.map((lib) => {
-          const occ = occupancyOf(data, lib.id);
-          return (
-            <li key={lib.id}>
-              <button
-                className={`list-item${lib.id === selectedId ? ' is-active' : ''}`}
-                onClick={() => onSelectLibrary(lib)}
-              >
-                <span className="list-title">{lib.name}</span>
-                <span className="list-meta">
-                  {lib.kind !== 'library' &&
-                    `${WORKSPACE_KIND_LABELS[lib.kind]} · `}
-                  {lib.campus}
-                  {lib.floor !== null &&
-                    ` · ${libraryFloorLabel({ floor: lib.floor, levelId: lib.levelId, facilityId: lib.facilityId }, levels)}`}
-                </span>
-                <OccupancyBar free={occ.free} total={occ.total} />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      <ul className="list">{libraries.map(item)}</ul>
     </section>
+  );
+}
+
+function LibraryItem({
+  data,
+  library: lib,
+  active,
+  levels,
+  onSelect,
+}: {
+  data: OccupancyData;
+  library: Library;
+  active: boolean;
+  levels: LevelInfo[];
+  onSelect: () => void;
+}) {
+  const occ = occupancyOf(data, lib.id);
+  return (
+    <button
+      className={`list-item${active ? ' is-active' : ''}`}
+      onClick={onSelect}
+    >
+      <span className="list-title">{lib.name}</span>
+      <span className="list-meta">
+        {lib.kind !== 'library' && `${WORKSPACE_KIND_LABELS[lib.kind]} · `}
+        {lib.campus}
+        {lib.floor !== null &&
+          ` · ${libraryFloorLabel({ floor: lib.floor, levelId: lib.levelId, facilityId: lib.facilityId }, levels)}`}
+      </span>
+      <OccupancyBar free={occ.free} total={occ.total} />
+    </button>
   );
 }
