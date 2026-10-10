@@ -42,7 +42,7 @@ import {
 // and kept as one Path2D, rebuilt only when the styles change; panning
 // and zooming just redraw it through a canvas transform (see sceneCanvas.ts).
 //
-// Edges (switchable): the real edges of the stacked solid, faint, over the
+// Edges: the real edges of the stacked solid, faint, over the
 // floors below. At each floor's level only the outline parts that change
 // there (a wall that goes straight on to the next floor is no edge), plus the
 // lowest floor's whole outline and a vertical line at every corner. Only the
@@ -55,15 +55,12 @@ import {
 // click target: clicking it switches to that floor. Click-to-zoom zones and everything else
 // clickable (rooms, pins, workspace outlines, dataset items) come first.
 
-const LABEL_ZOOM = 18;
-
 // A floor far down the stack still keeps this share of the nearest floor's opacity.
 const MIN_FADE = 0.35;
 
 const SHELL_PANE = ['floor-3d-shell', 338] as const;
 const BELOW_PANE = ['floor-3d-below', 345] as const;
 const EDGE_PANE = ['floor-3d-edges', 348] as const;
-const LABEL_PANE = ['floor-3d-labels', 365] as const;
 
 /** Opacity and width (px) of the edges. */
 const EDGE_OPACITY = 0.3;
@@ -84,8 +81,6 @@ interface Props {
   style: View3DStyle;
   /** The outlines are styled as the selected floor's level outline (see FloorLayer). */
   minimal: MinimalStyle | null;
-  /** Draw the stack's edges, faint (see above). */
-  edges: boolean;
 }
 
 /** What the outline paint depends on; a new object means the cached batch is stale. */
@@ -103,7 +98,6 @@ interface Scene {
   floors: number[];
   /** Lowest floor of the stack. */
   lo: number;
-  edges: boolean;
 }
 
 /** Projected shape: origin and bounds in BASE_ZOOM pixels, geometry relative to the origin. */
@@ -139,7 +133,6 @@ export function Floors3D({
   onFloorChange,
   style,
   minimal,
-  edges,
 }: Props) {
   const map = useMap();
 
@@ -163,13 +156,12 @@ export function Floors3D({
     const shell = sceneCanvas(SHELL_PANE[0], drawShell);
     const below = sceneCanvas(BELOW_PANE[0], drawFloors);
     const edgeLayer = sceneCanvas(EDGE_PANE[0], drawEdges);
-    const labels = sceneCanvas(LABEL_PANE[0], drawLabels);
-    return [shell, below, edgeLayer, labels];
+    return [shell, below, edgeLayer];
 
     /** The real edges of the stack from the lowest floor up to the selected one. */
     function drawEdges(ctx: CanvasRenderingContext2D, v: SceneView) {
       const sc = scene.current;
-      if (!sc || !sc.edges || !sc.floors.length || v.zoom < STACK_ZOOM) return;
+      if (!sc || !sc.floors.length || v.zoom < STACK_ZOOM) return;
       const st = sc.stack;
       const s = v.scale;
       const lo = liftPx(sc, sc.lo) * s;
@@ -221,34 +213,6 @@ export function Floors3D({
         ctx.globalAlpha = sc.style.ghostOpacity * fade;
         ctx.drawImage(off.canvas, 0, 0);
       }
-    }
-
-    /** Floor letters next to the stack, over the selected floor. */
-    function drawLabels(ctx: CanvasRenderingContext2D, v: SceneView) {
-      const sc = scene.current;
-      if (!sc || !sc.floors.length || !sc.style.floorLabels) return;
-      if (v.zoom < Math.max(STACK_ZOOM, LABEL_ZOOM)) return;
-      const b = sc.stack;
-      const s = v.scale;
-      const lo = liftPx(sc, sc.lo) * s;
-      const hi = liftPx(sc, sc.floor) * s;
-      if (!onCanvas(b.box, lo, v, hi - lo)) return;
-      const css = getComputedStyle(document.documentElement);
-      ctx.setTransform(v.ratio, 0, 0, v.ratio, 0, 0);
-      const x = b.box[2] * s + v.offsetX + 6;
-      const yMid = ((b.box[1] + b.box[3]) / 2) * s + v.offsetY;
-      const shown = b.group.floors.includes(sc.floor)
-        ? [...sc.floors, sc.floor]
-        : sc.floors;
-      for (const f of shown)
-        drawLabel(
-          ctx,
-          css,
-          b.group.labels.get(f) ?? String(f),
-          x,
-          yMid - liftPx(sc, f) * s,
-          f === sc.floor,
-        );
     }
 
     /** Outline of the stack: the union of every floor's outline swept from its place up to the floor above it. */
@@ -320,7 +284,7 @@ export function Floors3D({
   }, []);
 
   useEffect(() => {
-    for (const [name, z] of [SHELL_PANE, BELOW_PANE, EDGE_PANE, LABEL_PANE]) {
+    for (const [name, z] of [SHELL_PANE, BELOW_PANE, EDGE_PANE]) {
       if (map.getPane(name)) continue;
       const pane = map.createPane(name);
       pane.style.zIndex = String(z);
@@ -340,11 +304,10 @@ export function Floors3D({
           stack,
           floors,
           lo: floors.length ? floors[0] : floor,
-          edges,
         }
       : null;
     for (const l of layers) l.redraw();
-  }, [layers, floor, style, paint, stack, floors, edges]);
+  }, [layers, floor, style, paint, stack, floors]);
 
   // Clicking a floor that sticks out of the stack switches to it.
   const switchTo = useRef(onFloorChange);
@@ -795,37 +758,6 @@ function addPositive(path: Path2D, xs: number[], ys: number[]) {
   for (let k = 1; k < order.length; k++)
     path.lineTo(xs[order[k]], ys[order[k]]);
   path.closePath();
-}
-
-function drawLabel(
-  ctx: CanvasRenderingContext2D,
-  css: CSSStyleDeclaration,
-  text: string,
-  x: number,
-  y: number,
-  current: boolean,
-) {
-  const accent = css.getPropertyValue('--accent').trim() || '#215caf';
-  ctx.font = '600 10px system-ui, sans-serif';
-  const w = ctx.measureText(text).width + 8;
-  const h = 14;
-  ctx.globalAlpha = current ? 1 : 0.85;
-  ctx.beginPath();
-  ctx.roundRect(x, y - h / 2, w, h, 4);
-  ctx.fillStyle = current
-    ? accent
-    : css.getPropertyValue('--panel').trim() || '#fff';
-  ctx.fill();
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = current
-    ? accent
-    : css.getPropertyValue('--border').trim() || '#ccc';
-  ctx.stroke();
-  ctx.fillStyle = current
-    ? '#fff'
-    : css.getPropertyValue('--muted').trim() || '#666';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + 4, y + 0.5);
 }
 
 // ---- batches -----------------------------------------------------------------

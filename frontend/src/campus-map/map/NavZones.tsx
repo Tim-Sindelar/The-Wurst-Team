@@ -15,8 +15,6 @@ interface Props {
   enabled: boolean;
   /** Admin: zone drawn dashed so its click area is visible while configuring it. */
   highlightedZoneId: string | null;
-  /** Where the home button flies back to. */
-  homeBounds: L.LatLngBounds | undefined;
   /** Admin: show the hover outline with the zone name. The normal view only changes the cursor. */
   showHints: boolean;
 }
@@ -47,7 +45,6 @@ export function NavZones({
   config,
   enabled,
   highlightedZoneId,
-  homeBounds,
   showHints,
 }: Props) {
   const map = useMap();
@@ -111,7 +108,7 @@ export function NavZones({
     map.getContainer().classList.toggle('nav-hover', hover !== null);
   }, [map, hover]);
 
-  useHomeControl(homeBounds);
+  useHomeControl(config);
 
   const highlighted = config.zones.find(
     (z) => z.id === highlightedZoneId && z.outline,
@@ -141,28 +138,67 @@ export function NavZones({
   );
 }
 
-/** A "show everything" button below the zoom buttons. */
-function useHomeControl(bounds: L.LatLngBounds | undefined) {
+/** Zoom within this many levels and center within this many px of a campus view count as being there. */
+const AT_ZOOM = 0.25;
+const AT_PX = 30;
+
+/**
+ * The home button: flies to a campus (the area zones, Zentrum first), as a
+ * click on its zone does. Already there, it switches to the other campus;
+ * anywhere else, it goes to the nearest one.
+ */
+function useHomeControl(config: NavigationConfig) {
   const map = useMap();
+  const campuses = useRef<{ center: L.LatLng; zoom: number }[]>([]);
+  campuses.current = config.zones
+    .filter((z) => z.kind === 'area' && z.outline)
+    .sort(
+      (a, b) =>
+        Number(b.name === 'Zentrum') - Number(a.name === 'Zentrum') ||
+        a.name.localeCompare(b.name),
+    )
+    .map((z) => {
+      const c = outlineCenter(z.outline!);
+      return { center: L.latLng(c.lat, c.lng), zoom: z.zoom };
+    });
+  const hasCampus = campuses.current.length > 0;
+
   useEffect(() => {
-    if (!bounds) return;
+    if (!hasCampus) return;
+    const next = () => {
+      const all = campuses.current;
+      const here = map.getCenter();
+      const zoom = map.getZoom();
+      const at = all.findIndex(
+        (c) =>
+          Math.abs(zoom - c.zoom) <= AT_ZOOM &&
+          map
+            .latLngToContainerPoint(c.center)
+            .distanceTo(map.latLngToContainerPoint(here)) <= AT_PX,
+      );
+      if (at >= 0) return all[(at + 1) % all.length];
+      return all.reduce((a, b) =>
+        here.distanceTo(b.center) < here.distanceTo(a.center) ? b : a,
+      );
+    };
     const control = new L.Control({ position: 'topleft' });
     control.onAdd = () => {
       const bar = L.DomUtil.create('div', 'leaflet-bar');
       const btn = L.DomUtil.create('a', 'nav-home', bar);
       btn.href = '#';
       btn.role = 'button';
-      btn.title = 'Show both campuses';
+      btn.title = 'Go to a campus';
       btn.setAttribute('aria-label', btn.title);
       btn.innerHTML = '&#8962;';
       L.DomEvent.disableClickPropagation(bar);
       L.DomEvent.on(btn, 'click', (e) => {
         L.DomEvent.preventDefault(e);
-        map.flyToBounds(bounds, { duration: 0.8 });
+        const c = next();
+        map.flyTo(c.center, c.zoom, { duration: 0.8 });
       });
       return bar;
     };
     control.addTo(map);
     return () => void control.remove();
-  }, [map, bounds]);
+  }, [map, hasCampus]);
 }

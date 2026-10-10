@@ -4,6 +4,7 @@ import type { MultiPolygon } from 'geojson';
 import polygonClipping from 'polygon-clipping';
 import { useMap, useMapEvents } from 'react-leaflet';
 import {
+  baseLetter,
   singleFloorLabel,
   type FloorIndex,
   type LevelInfo,
@@ -16,6 +17,11 @@ import { outlineToLatLngs } from './geo';
 // its own. Every floor of a group is drawn with its own outline, the union of
 // the group's levels on that floor, and the stack stands on the group's ground
 // floor, which keeps its real place on the map.
+//
+// Floor numbers count storeys per building (from the letters in its room
+// names), so two buildings of a zone can put different letters on the same
+// floor number (CAB's E and LFW's B are both floor 0). The map shifts them
+// once loaded (letterOffsets) so that a zone's floors go by name.
 
 const GROUPS: Record<string, string[]> = {
   // nav-47f521e1
@@ -71,7 +77,7 @@ export interface BuildingGroup {
   levels: LevelInfo[];
   /** Floors the group's levels are on, ascending. */
   floors: number[];
-  /** One floor letter per floor, the one most of the group's buildings use. */
+  /** One floor letter per floor: the main building's, else the one most of the group's buildings use. */
   labels: ReadonlyMap<number, string>;
   /** The floor that stays in place: where most of its buildings have their "E" (0 without one). */
   ground: number;
@@ -103,48 +109,168 @@ export function buildGroups(index: FloorIndex): Map<string, BuildingGroup> {
       ...(facilities.get(id) ?? []),
       ...groupLevels.map((l) => l.outline),
     ];
-    const floors = [...new Set(groupLevels.map((l) => l.floor))].sort(
-      (a, b) => a - b,
-    );
-    const bbox: BuildingGroup['bbox'] = [
-      Infinity,
-      Infinity,
-      -Infinity,
-      -Infinity,
-    ];
-    for (const mp of shapes)
-      for (const poly of mp.coordinates)
-        for (const [lng, lat] of poly[0]) {
-          bbox[0] = Math.min(bbox[0], lng);
-          bbox[1] = Math.min(bbox[1], lat);
-          bbox[2] = Math.max(bbox[2], lng);
-          bbox[3] = Math.max(bbox[3], lat);
-        }
-    let outline: L.LatLngTuple[][][] | null = null;
-    const byFloor = new Map<number, L.LatLngTuple[][][]>();
-    out.set(id, {
+    out.set(
       id,
-      facilityIds: new Set(groupLevels.map((l) => l.facilityId)),
-      levels: groupLevels,
-      floors,
-      labels: new Map(
-        floors.map((f) => [f, singleFloorLabel(f, groupLevels, null)]),
+      makeGroup(
+        id,
+        new Set(groupLevels.map((l) => l.facilityId)),
+        groupLevels,
+        shapes,
       ),
-      ground: groundFloor(groupLevels),
-      bbox,
-      outline: () => (outline ??= mergeOutlines(shapes)),
-      floorOutline: (floor) => {
-        let o = byFloor.get(floor);
-        if (!o) {
-          const here = groupLevels.filter((l) => l.floor === floor);
-          o = here.length ? mergeOutlines(here.map((l) => l.outline)) : [];
-          byFloor.set(floor, o);
-        }
-        return o;
-      },
-    });
+    );
   }
   return out;
+}
+
+// ---- floors by letter ----------------------------------------------------------
+
+/** Floor letters, one storey each (as in scraper/extract_floors.py). */
+const LETTERS = 'ABCDEFGHJKLMNOPQRSTUVWX';
+
+/** Storey index of a floor letter: A = 0, I counts as J (ETL), Y and Z sit below A; null if unknown. */
+function letterIndex(label: string): number | null {
+  const b = baseLetter(label);
+  if (b === 'I') return LETTERS.indexOf('J');
+  if (b === 'Y') return -2;
+  if (b === 'Z') return -1;
+  return b.length === 1 && LETTERS.includes(b) ? LETTERS.indexOf(b) : null;
+}
+
+/**
+ * Per building, how far to shift its floor numbers so that inside a zone the
+ * floors go by name: every building's "E" lands on the floor of the zone's
+ * main building's "E", even where the storeys are not at the same height.
+ * The main building (its namesake, else the one with the most levels) keeps
+ * its numbers; buildings outside every zone are not shifted.
+ */
+export function letterOffsets(index: FloorIndex): Map<string, number> {
+  // A building's datum: storey index minus floor number, the same on all its levels.
+  const votes = new Map<string, Map<number, number>>();
+  for (const l of index.levels) {
+    const i = letterIndex(l.label);
+    if (i === null) continue;
+    const v =
+      votes.get(l.facilityId) ??
+      votes.set(l.facilityId, new Map()).get(l.facilityId)!;
+    v.set(i - l.floor, (v.get(i - l.floor) ?? 0) + 1);
+  }
+  const datum = new Map<string, number>();
+  for (const [id, v] of votes)
+    datum.set(id, [...v].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0]);
+
+  const zones = new Map<string, LevelInfo[]>();
+  for (const l of index.levels) {
+    const zone = groupOf(l.facilityId);
+    if (zone !== l.facilityId)
+      (zones.get(zone) ?? zones.set(zone, []).get(zone)!).push(l);
+  }
+  const main = new Map<string, string>();
+  for (const [zone, levels] of zones) {
+    const ref = mainBuilding(zone, levels);
+    if (ref) main.set(zone, ref);
+  }
+
+  const out = new Map<string, number>();
+  for (const [id, d] of datum) {
+    const ref = main.get(groupOf(id));
+    if (ref && ref !== id && datum.has(ref)) out.set(id, d - datum.get(ref)!);
+  }
+  return out;
+}
+
+/** A zone's main building: its namesake, else the one with the most levels. */
+function mainBuilding(
+  zone: string,
+  levels: readonly LevelInfo[],
+): string | null {
+  const count = new Map<string, number>();
+  for (const l of levels)
+    count.set(l.facilityId, (count.get(l.facilityId) ?? 0) + 1);
+  const namesake = `ETH.${zone.replace(/^group:/, '')}`;
+  if (count.has(namesake)) return namesake;
+  let best: string | null = null;
+  for (const [id, n] of [...count].sort(([a], [b]) => a.localeCompare(b)))
+    if (!best || n > count.get(best)!) best = id;
+  return best;
+}
+
+/** A building's floor number, shifted by letterOffsets. */
+export const alignedFloor = (
+  offsets: ReadonlyMap<string, number> | null,
+  facilityId: string | null | undefined,
+  floor: number,
+) => floor + ((facilityId && offsets?.get(facilityId)) || 0);
+
+/** "ETH.HG.E" → "ETH.HG" */
+export const facilityOfLevel = (levelId: string) =>
+  levelId.split('.').slice(0, 2).join('.');
+
+/** The floor index with every level on its shifted floor. */
+export function alignFloorIndex(
+  index: FloorIndex,
+  offsets: ReadonlyMap<string, number>,
+): FloorIndex {
+  const levels = index.levels.map((l) => ({
+    ...l,
+    floor: alignedFloor(offsets, l.facilityId, l.floor),
+  }));
+  return {
+    ...index,
+    levels,
+    floors: [...new Set(levels.map((l) => l.floor))].sort((a, b) => a - b),
+  };
+}
+
+function makeGroup(
+  id: string,
+  facilityIds: ReadonlySet<string>,
+  groupLevels: LevelInfo[],
+  shapes: MultiPolygon[],
+): BuildingGroup {
+  const floors = [...new Set(groupLevels.map((l) => l.floor))].sort(
+    (a, b) => a - b,
+  );
+  const bbox: BuildingGroup['bbox'] = [
+    Infinity,
+    Infinity,
+    -Infinity,
+    -Infinity,
+  ];
+  for (const mp of shapes)
+    for (const poly of mp.coordinates)
+      for (const [lng, lat] of poly[0]) {
+        bbox[0] = Math.min(bbox[0], lng);
+        bbox[1] = Math.min(bbox[1], lat);
+        bbox[2] = Math.max(bbox[2], lng);
+        bbox[3] = Math.max(bbox[3], lat);
+      }
+  let outline: L.LatLngTuple[][][] | null = null;
+  const byFloor = new Map<number, L.LatLngTuple[][][]>();
+  return {
+    id,
+    facilityIds,
+    levels: groupLevels,
+    floors,
+    labels: new Map(
+      // The main building's letter where it has the floor, else the most common one.
+      floors.map((f) => [
+        f,
+        singleFloorLabel(f, groupLevels, mainBuilding(id, groupLevels)),
+      ]),
+    ),
+    ground: groundFloor(groupLevels),
+    bbox,
+    outline: () => (outline ??= mergeOutlines(shapes)),
+    floorOutline: (floor) => {
+      let o = byFloor.get(floor);
+      if (!o) {
+        const here = groupLevels.filter((l) => l.floor === floor);
+        o = here.length ? mergeOutlines(here.map((l) => l.outline)) : [];
+        byFloor.set(floor, o);
+      }
+      return o;
+    },
+  };
 }
 
 /** The floor most buildings of the group have their "E" (Erdgeschoss) on; ties go to the one nearest 0. */

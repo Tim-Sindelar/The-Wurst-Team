@@ -102,8 +102,6 @@ interface Props {
   onSelectMensa: (mensaId: string) => void;
   /** 3D view: the other floors stacked around the selected one; null when off. */
   view3d: View3DStyle | null;
-  /** 3D view: also draw the stack's edges, faint. */
-  edges3d: boolean;
   /** More map layers (the campus datasets), rendered inside the map. */
   children?: ReactNode;
 }
@@ -338,7 +336,6 @@ export function MapView(props: Props) {
               onFloorChange={props.onFloorChange}
               style={props.view3d}
               minimal={minimal}
-              edges={props.edges3d}
             />
           )}
           <FloorPicker
@@ -361,7 +358,6 @@ export function MapView(props: Props) {
           config={props.navigation}
           enabled
           highlightedZoneId={null}
-          homeBounds={initialBounds}
           showHints={false}
         />
       )}

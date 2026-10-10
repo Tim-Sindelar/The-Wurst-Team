@@ -54,15 +54,6 @@ export function save3d(on: boolean) {
   writeStored('view-3d', on ? '1' : '0');
 }
 
-/** The faint edges of the 3D stack: on unless switched off. */
-export function load3dEdges(): boolean {
-  return readStored('view-3d-edges') !== '0';
-}
-
-export function save3dEdges(on: boolean) {
-  writeStored('view-3d-edges', on ? '1' : '0');
-}
-
 /** A bookable study space, as the reservations API lists it. */
 export interface BookableSpace {
   name: string;

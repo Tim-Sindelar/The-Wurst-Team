@@ -47,6 +47,12 @@ import { occupancyOf } from './domain/operations';
 import { WORKSPACE_KIND_LABELS, type OccupancyData } from './domain/types';
 import { datasetAt, weekdayOf } from './domain/viewTime';
 import { loadFloorIndex, type FloorIndex } from './floors/floorData';
+import {
+  alignedFloor,
+  alignFloorIndex,
+  facilityOfLevel,
+  letterOffsets,
+} from './map/buildingGroups';
 import type { MensaRoom } from './map/FloorLayer';
 import { MapView, type FlyTarget } from './map/MapView';
 import { ModeControl } from './map/ModeControl';
@@ -60,13 +66,11 @@ import { MapSheet } from './MapSheet';
 import {
   bookableLibraryIds,
   load3d,
-  load3dEdges,
   loadMapMode,
   MAP_MODE_LABELS,
   MAP_MODES,
   MODE_DATASETS,
   save3d,
-  save3dEdges,
   saveMapMode,
   type MapMode,
 } from './mapMode';
@@ -136,10 +140,36 @@ function mensaPlace(item: DatasetItem) {
 export function CampusMap() {
   const theme = useComputedColorScheme('dark');
 
-  const [data, setData] = useState<OccupancyData | null>(null);
+  const [rawData, setData] = useState<OccupancyData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [navigation, setNavigation] = useState<NavigationConfig | null>(null);
-  const [floorIndex, setFloorIndex] = useState<FloorIndex | null>(null);
+  const [rawFloorIndex, setFloorIndex] = useState<FloorIndex | null>(null);
+  // Inside a building zone the floors go by name: each building's floor
+  // numbers are shifted so its letters line up with the zone's main building
+  // (see letterOffsets). Everything below uses the shifted numbers.
+  const offsets = useMemo(
+    () => (rawFloorIndex ? letterOffsets(rawFloorIndex) : null),
+    [rawFloorIndex],
+  );
+  const floorIndex = useMemo(
+    () =>
+      rawFloorIndex && offsets ? alignFloorIndex(rawFloorIndex, offsets) : null,
+    [rawFloorIndex, offsets],
+  );
+  const data = useMemo(
+    () =>
+      rawData && offsets
+        ? {
+            ...rawData,
+            libraries: rawData.libraries.map((l) =>
+              l.floor === null
+                ? l
+                : { ...l, floor: alignedFloor(offsets, l.facilityId, l.floor) },
+            ),
+          }
+        : rawData,
+    [rawData, offsets],
+  );
   const [floor, setFloor] = useState(0);
   const [zoom, setZoom] = useState(0);
   const [flyTarget, setFlyTarget] = useState<FlyTarget | null>(null);
@@ -152,11 +182,6 @@ export function CampusMap() {
   const setView3d = (on: boolean) => {
     setView3dState(on);
     save3d(on);
-  };
-  const [edges3d, setEdges3dState] = useState(load3dEdges);
-  const setEdges3d = (on: boolean) => {
-    setEdges3dState(on);
-    save3dEdges(on);
   };
 
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -431,7 +456,7 @@ export function CampusMap() {
     } else if (next.kind === 'dataset' && next.datasetId === 'mensa') {
       const item = datasetItem(next);
       const place = item && mensaPlace(item);
-      if (place) setFloor(place.floor);
+      if (place) setFloor(alignedFloor(offsets, place.facilityId, place.floor));
     }
   };
   const clearTarget = () => {
@@ -469,7 +494,9 @@ export function CampusMap() {
     setSheet(null);
     const place = ethResponse?.matches[id]?.[0];
     if (place) {
-      setFloor(place.floor);
+      setFloor(
+        alignedFloor(offsets, facilityOfLevel(place.levelId), place.floor),
+      );
       flyTo({ lat: place.lat, lng: place.lng }, 20);
     }
   };
@@ -543,7 +570,6 @@ export function CampusMap() {
         onZoomChange={setZoom}
         minimal={style}
         view3d={view3d ? style.view3d : null}
-        edges3d={edges3d}
         navigation={navigation}
         homePositions={homePositions(data.libraries)}
         ethRooms={roomsOnPlan}
@@ -685,12 +711,6 @@ export function CampusMap() {
             label="3D: stack the floors of the building in focus"
             checked={view3d}
             onChange={(e) => setView3d(e.currentTarget.checked)}
-          />
-          <Switch
-            label="3D edges: trace where the floors change shape"
-            checked={edges3d}
-            disabled={!view3d}
-            onChange={(e) => setEdges3d(e.currentTarget.checked)}
           />
           {mode === 'study' && spacesQuery.isError && (
             <Alert variant="danger" title="Couldn't load the study spaces">
