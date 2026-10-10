@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opening hours · Study Spaces Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../base.css">
+  <link rel="stylesheet" href="../admin.css">
+  <script src="../base.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin">
+    <aside class="sidebar">
+      <a class="sidebar__brand" href="01-spaces.html" aria-label="Study Spaces admin, back to the spaces list">
+        <strong>Study Spaces</strong>
+        <span class="t-label">Admin</span>
+      </a>
+      <nav class="nav" aria-label="Admin">
+        <a class="nav__link" href="01-spaces.html" aria-current="page"><i class="icon i-map"></i> Spaces</a>
+      </nav>
+      <div class="sidebar__foot">
+        <a class="nav__link" href="../index.html"><i class="icon i-home"></i> Student app</a>
+        <div class="sidebar__user">
+          <span class="avatar" aria-hidden="true">AD</span>
+          <span class="t-small">Admin</span>
+          <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme" style="margin-left: auto">
+            <i class="icon i-sun"></i><i class="icon i-moon"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin__main">
+      <div class="page">
+        <a class="crumbs" href="01-spaces.html"><i class="icon icon--sm i-back"></i> Spaces</a>
+        <header class="page-header">
+          <div class="page-header__text">
+            <h1 class="t-heading">Hauptbibliothek · Lesesaal</h1>
+            <p class="t-muted"><span class="chip is-free">Open</span> &nbsp;Europe/Zurich · Updated 10:42:05</p>
+          </div>
+          <div class="page-header__actions">
+
+          </div>
+        </header>
+        <nav class="subnav" aria-label="This space"><a href="03-space-seats.html">Seats</a><a href="04-space-hours.html" aria-current="page">Opening hours</a><a href="05-space-closures.html">Closures</a><a href="06-space-layout.html">Layout</a><a href="07-space-settings.html">Settings</a></nav>
+
+        <p class="t-muted">Weekly opening hours in Europe/Zurich. Students can only reserve while the space is open. For several time ranges in one day, add an interval. To stay open until midnight, set the end to 00:00.</p>
+
+        <div class="hours">
+          <div class="hours__day">
+            <span class="hours__name">Monday</span>
+            <label class="toggle-row"><span>Open</span><input class="toggle" type="checkbox" role="switch" checked aria-label="Monday open"></label>
+            <div class="hours__intervals">
+              <div class="hours__row">
+                <input class="input" type="time" value="07:00" aria-label="Monday opens">
+                <span class="t-muted">to</span>
+                <input class="input" type="time" value="22:00" aria-label="Monday closes">
+                <button class="btn btn--quiet is-risky" type="button">Remove</button>
+              </div>
+              <button class="btn btn--quiet" type="button" style="justify-self: start; margin-left: calc(-1 * var(--sp-2))"><i class="icon icon--sm i-plus"></i> Add interval</button>
+            </div>
+          </div>
+          <div class="hours__day">
+            <span class="hours__name">Tuesday</span>
+            <label class="toggle-row"><span>Open</span><input class="toggle" type="checkbox" role="switch" checked aria-label="Tuesday open"></label>
+            <div class="hours__intervals">
+              <div class="hours__row">
+                <input class="input" type="time" value="07:00" aria-label="Tuesday opens">
+                <span class="t-muted">to</span>
+                <input class="input" type="time" value="22:00" aria-label="Tuesday closes">
+                <button class="btn btn--quiet is-risky" type="button">Remove</button>
+              </div>
+              <button class="btn btn--quiet" type="button" style="justify-self: start; margin-left: calc(-1 * var(--sp-2))"><i class="icon icon--sm i-plus"></i> Add interval</button>
+            </div>
+          </div>
+          <div class="hours__day">
+            <span class="hours__name">Wednesday</span>
+            <label class="toggle-row"><span>Open</span><input class="toggle" type="checkbox" role="switch" checked aria-label="Wednesday open"></label>
+            <div class="hours__intervals">
+              <div class="hours__row">
+                <input class="input" type="time" value="07:00" aria-label="Wednesday opens">
+                <span class="t-muted">to</span>
+                <input class="input" type="time" value="22:00" aria-label="Wednesday closes">
+                <button class="btn btn--quiet is-risky" type="button">Remove</button>
+              </div>
+              <button class="btn btn--quiet" type="button" style="justify-self: start; margin-left: calc(-1 * var(--sp-2))"><i class="icon icon--sm i-plus"></i> Add interval</button>
+            </div>
+          </div>
+          <div class="hours__day">
+            <span class="hours__name">Thursday</span>
+            <label class="toggle-row"><span>Open</span><input class="toggle" type="checkbox" role="switch" checked aria-label="Thursday open"></label>
+            <div class="hours__intervals">
+              <div class="hours__row">
+                <input class="input" type="time" value="07:00" aria-label="Thursday opens">
+                <span class="t-muted">to</span>
+                <input class="input" type="time" value="22:00" aria-label="Thursday closes">
+                <button class="btn btn--quiet is-risky" type="button">Remove</button>
+              </div>
+              <button class="btn btn--quiet" type="button" style="justify-self: start; margin-left: calc(-1 * var(--sp-2))"><i class="icon icon--sm i-plus"></i> Add interval</button>
+            </div>
+          </div>
+          <div class="hours__day">
+            <span class="hours__name">Friday</span>
+            <label class="toggle-row"><span>Open</span><input class="toggle" type="checkbox" role="switch" checked aria-label="Friday open"></label>
+            <div class="hours__intervals">
+              <div class="hours__row">
+                <input class="input" type="time" value="07:00" aria-label="Friday opens">
+                <span class="t-muted">to</span>
+                <input class="input" type="time" value="22:00" aria-label="Friday closes">
+                <button class="btn btn--quiet is-risky" type="button">Remove</button>
+              </div>
+              <button class="btn btn--quiet" type="button" style="justify-self: start; margin-left: calc(-1 * var(--sp-2))"><i class="icon icon--sm i-plus"></i> Add interval</button>
+            </div>
+          </div>
+          <div class="hours__day">
+            <span class="hours__name">Saturday</span>
+            <label class="toggle-row"><span>Open</span><input class="toggle" type="checkbox" role="switch" checked aria-label="Saturday open"></label>
+            <div class="hours__intervals">
+              <div class="hours__row">
+                <input class="input" type="time" value="08:00" aria-label="Saturday opens">
+                <span class="t-muted">to</span>
+                <input class="input" type="time" value="12:00" aria-label="Saturday closes">
+                <button class="btn btn--quiet is-risky" type="button">Remove</button>
+              </div>
+              <div class="hours__row">
+                <input class="input" type="time" value="13:00" aria-label="Saturday opens">
+                <span class="t-muted">to</span>
+                <input class="input" type="time" value="18:00" aria-label="Saturday closes">
+                <button class="btn btn--quiet is-risky" type="button">Remove</button>
+              </div>
+              <button class="btn btn--quiet" type="button" style="justify-self: start; margin-left: calc(-1 * var(--sp-2))"><i class="icon icon--sm i-plus"></i> Add interval</button>
+            </div>
+          </div>
+          <div class="hours__day">
+            <span class="hours__name">Sunday</span>
+            <label class="toggle-row"><span>Open</span><input class="toggle" type="checkbox" role="switch" aria-label="Sunday open"></label>
+            <div class="hours__closed">Closed all day</div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn--secondary" type="button">Discard changes</button>
+          <button class="btn btn--primary" type="button" data-sheet-open="dlg-hours-impact">Preview impact</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="dialog" id="dlg-hours-impact" aria-labelledby="dlg-hours-impact-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-hours-impact-title">Apply the new opening hours?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Bookings outside the new hours would change:</p>
+      <ul class="impact">
+        <li class="impact__item is-shorten">
+          <div class="impact__who"><strong>Sara Keller</strong><span class="t-small t-muted">Seat 2</span></div>
+          <span class="chip chip--plain is-shorten">Shorten</span>
+          <p class="impact__detail">Sat 25 Oct 17:00–19:00 → 17:00–18:00</p>
+        </li>
+        <li class="impact__item is-cancel">
+          <div class="impact__who"><strong>Tim Vogt</strong><span class="t-small t-muted">Seat 3</span></div>
+          <span class="chip chip--plain is-cancel">Cancel</span>
+          <p class="impact__detail">Sun 26 Oct 10:00–12:00 → cancelled</p>
+        </li>
+      </ul>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Back</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-hours">Apply changes</button>
+    </div>
+  </dialog>
+
+  <div class="banner-region">
+    <div class="banner" id="banner-hours" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Opening hours saved</span>
+        <span class="t-small t-muted">2 bookings were changed.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+  </div>
+</body>
+</html>

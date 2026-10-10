@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layout · Study Spaces Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../base.css">
+  <link rel="stylesheet" href="../admin.css">
+  <script src="../base.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin">
+    <aside class="sidebar">
+      <a class="sidebar__brand" href="01-spaces.html" aria-label="Study Spaces admin, back to the spaces list">
+        <strong>Study Spaces</strong>
+        <span class="t-label">Admin</span>
+      </a>
+      <nav class="nav" aria-label="Admin">
+        <a class="nav__link" href="01-spaces.html" aria-current="page"><i class="icon i-map"></i> Spaces</a>
+      </nav>
+      <div class="sidebar__foot">
+        <a class="nav__link" href="../index.html"><i class="icon i-home"></i> Student app</a>
+        <div class="sidebar__user">
+          <span class="avatar" aria-hidden="true">AD</span>
+          <span class="t-small">Admin</span>
+          <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme" style="margin-left: auto">
+            <i class="icon i-sun"></i><i class="icon i-moon"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin__main">
+      <div class="page">
+        <a class="crumbs" href="01-spaces.html"><i class="icon icon--sm i-back"></i> Spaces</a>
+        <header class="page-header">
+          <div class="page-header__text">
+            <h1 class="t-heading">Hauptbibliothek · Lesesaal</h1>
+            <p class="t-muted"><span class="chip is-free">Open</span> &nbsp;Europe/Zurich · Updated 10:42:05</p>
+          </div>
+          <div class="page-header__actions">
+
+          </div>
+        </header>
+        <nav class="subnav" aria-label="This space"><a href="03-space-seats.html">Seats</a><a href="04-space-hours.html">Opening hours</a><a href="05-space-closures.html">Closures</a><a href="06-space-layout.html" aria-current="page">Layout</a><a href="07-space-settings.html">Settings</a></nav>
+
+        <div class="empty">
+          <i class="icon icon--lg i-map"></i>
+          <p class="t-title">The floor-plan editor comes later</p>
+          <p class="t-muted">The backend already stores a layout for each space but does not define its format yet. Once it does, you will draw walls, tables and seats here, and students will see them on the seat map.</p>
+          <button class="btn btn--primary" type="button" disabled>Edit layout</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="banner-region">
+  </div>
+</body>
+</html>
