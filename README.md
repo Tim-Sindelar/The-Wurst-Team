@@ -109,7 +109,7 @@ Timing rules live in `backend/app/config.py` and can be overridden in `backend/.
 | Environment variable | Default | Purpose |
 | --- | --- | --- |
 | `SESSION_LENGTH_MINUTES` | 120 | Initial duration and extension amount |
-| `CHECK_IN_WINDOW_MINUTES` | 10 | Time to check in after the session starts |
+| `CHECK_IN_WINDOW_MINUTES` | 15 | Time to check in after the session starts |
 | `PRIVATE_PRIORITY_WINDOW_MINUTES` | 20 | How long before session end the occupant may extend |
 | `PUBLIC_RESERVATION_WINDOW_MINUTES` | 10 | How long before session end others may reserve the next session |
 | `BREAK_BUDGET_MINUTES` | 30 | Total break allowance per reservation |

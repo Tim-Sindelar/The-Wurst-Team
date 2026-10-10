@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://hackathon:hackathon@localhost:5432/hackathon"
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     session_length_minutes: int = Field(default=120, gt=0)
-    check_in_window_minutes: int = Field(default=10, gt=0)
+    check_in_window_minutes: int = Field(default=15, gt=0)
     private_priority_window_minutes: int = Field(default=20, gt=0)
     public_reservation_window_minutes: int = Field(default=10, gt=0)
     break_budget_minutes: int = Field(default=30, gt=0)

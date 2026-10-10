@@ -160,7 +160,7 @@ Source of truth for the flow: `user-flow.drawio.xml`.
 Notifications are push banners, not screens. Mock at most as a banner component: check-in reminder (X-3 min), seat lost, priority window (T-20), open window (T-10), session end (with "someone reserved this seat, please hand it over" note if booked), your booked seat is free early.
 
 ## Open items
-- Hold time X is a 10 min placeholder and break length a 15 min placeholder. Extension is 2 hours and a break does not pause the session clock (decided).
+- Hold time (check-in window) is 15 min, matching the backend. Break length is a 15 min placeholder (the backend allows 30 min of breaks in total). Extension is 2 hours and a break does not pause the session clock (decided).
 - "Seat is taken when I arrive": the flow marks it unsolved (trust-based). Mock nothing for now.
 
 ## Working together
