@@ -62,6 +62,19 @@ save_name() {
   curl --fail --silent --show-error --max-time 10 -X PATCH \
     -H 'X-User-Id: persistence-test@example.invalid' -F "name=$2" "$1/api/v1/me" >/dev/null
 }
+check_spaces() {
+  curl --fail --silent --show-error --max-time 10 \
+    -H 'X-User-Id: persistence-test@example.invalid' "$1/api/v1/spaces" |
+    python3 -c '
+import json, sys
+spaces = json.load(sys.stdin)["spaces"]
+assert len(spaces) == int(sys.argv[1]), spaces
+for space in spaces:
+    assert space["name"].startswith("Demo:"), space
+    assert space["total_seats"] == space["free_seats"] == 4, space
+    assert space["is_open"], space
+' "$2"
+}
 # Test both frontend prefixes regardless of whether CI is a push or PR run.
 if [[ "$base" == / ]]; then
   docker tag "wurst-web:$sha" "wurst-web:$prod_sha"
@@ -113,6 +126,8 @@ check_name "$url" 'Persists across releases'
 package "$pr_sha" "$preview"
 bash "$preview/deploy.sh" "$pr_sha" "$pr"
 [[ "$(readlink -f "$scratch/previews/pr-$pr/current")" == "$preview" ]]
+check_spaces "$url/pr/$pr" 2
+check_spaces "$url" 0
 save_name "$url/pr/$pr" 'Isolated preview profile'
 check_name "$url/pr/$pr" 'Isolated preview profile'
 check_name "$url" 'Persists across releases'
@@ -142,4 +157,4 @@ if docker volume inspect "$preview_project-postgres" >/dev/null 2>&1; then echo 
 [[ ! -d "$scratch/previews/pr-$pr" ]]
 check_name "$url" 'Persists across releases'
 [[ "$(curl -fsS "$url/ar/")" == 'AR service' ]]
-echo 'Integration passed: port conflict, production update/persistence, backups/rollback, shared /ar router, PR routing/assets, isolated data, and idempotent preview cleanup.'
+echo 'Integration passed: port conflict, production update/persistence, backups/rollback, shared /ar router, PR routing/assets, preview-only demo seeding, isolated data, and idempotent preview cleanup.'

@@ -111,6 +111,10 @@ compose exec -T db pg_restore --list < "$backup.partial" > /dev/null
 mv "$backup.partial" "$backup"
 compose run --rm --no-deps backend alembic upgrade head
 compose run --rm --no-deps backend python -m app.features.campus_map.importer --if-empty
+if [[ -n "$pr" ]]; then
+  echo 'Seeding demo study spaces for the PR preview.'
+  compose run --rm --no-deps backend python -m app.features.reservations.seed > /dev/null
+fi
 
 apps_changed=true
 compose up -d --wait --wait-timeout 120 backend
