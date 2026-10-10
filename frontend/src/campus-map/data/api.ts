@@ -2,7 +2,9 @@
 // backend/app/features/campus_map). JSON endpoints go through the generated
 // client; plain URLs (floor plans, room photos) are built from MAP_API.
 
-export const MAP_API = `${import.meta.env.VITE_API_BASE_URL ?? ''}/api/v1/map`;
+import { client } from '../../api/client';
+
+export const MAP_API = `${client.getConfig().baseUrl ?? ''}/api/v1/map`;
 
 type Result<T> = { data?: T; error?: unknown; response?: Response };
 
