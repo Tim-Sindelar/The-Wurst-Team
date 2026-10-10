@@ -286,7 +286,6 @@ export function SeatMapScreen() {
 
         {seat && (
           <SeatSheet
-            key={seat.id}
             title={`Seat ${seat.label}`}
             state={seat.state}
             detail={`${space.name} · ${seatDetail}`}
