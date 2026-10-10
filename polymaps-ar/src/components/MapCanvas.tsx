@@ -6,9 +6,10 @@ import { useEffect, useRef, useState } from 'react';
 import { fromLocal, toLocal, type LngLat } from '../geo';
 import { KIND_COLORS, type FloorPlans, type LevelPlan } from '../floors/floorPlans';
 import type { PositionFix } from '../positioning/types';
+import type { Route } from '../pathfinding/route';
 
 export interface MapMarker extends LngLat {
-  kind: 'truth' | 'checkpoint';
+  kind: 'truth' | 'checkpoint' | 'start' | 'destination';
   label?: string;
 }
 
@@ -17,6 +18,7 @@ interface Props {
   levelId: string;
   fixes: PositionFix[];
   markers: MapMarker[];
+  route?: Route | null;
   /** Fit the view on this point when it changes (e.g. the first fix). */
   focus: LngLat | null;
   onPick?: (p: LngLat) => void;
@@ -24,7 +26,7 @@ interface Props {
 
 const METHOD_COLORS: Record<string, string> = { ble: '#1f6feb', gps: '#e8590c' };
 
-export function MapCanvas({ floors, levelId, fixes, markers, focus, onPick }: Props) {
+export function MapCanvas({ floors, levelId, fixes, markers, route, focus, onPick }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [plan, setPlan] = useState<LevelPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,9 +134,60 @@ export function MapCanvas({ floors, levelId, fixes, markers, focus, onPick }: Pr
         }
       }
     }
+    if (route) {
+      for (const leg of route.legs) {
+        if (leg.levelId !== levelId || leg.points.length < 2) continue;
+        ctx.beginPath();
+        leg.points.forEach((pt, k) => {
+          const p = toLocal(pt, origin.current);
+          if (k) ctx.lineTo(X(p.x), Y(p.y));
+          else ctx.moveTo(X(p.x), Y(p.y));
+        });
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+        ctx.strokeStyle = '#1f6feb';
+        ctx.lineWidth = 4.5;
+        ctx.stroke();
+        // Where the route leaves this floor.
+        if (leg.next) {
+          const end = toLocal(leg.points[leg.points.length - 1], origin.current);
+          const label = { stairs: 'Stairs', lift: 'Lift', outdoor: 'Exit', passage: 'Passage' }[leg.next.kind];
+          const to = floors.level(leg.next.toLevelId);
+          const text = `${label} → ${to ? `${leg.next.kind === 'outdoor' || leg.next.kind === 'passage' ? to.facilityId.replace('ETH.', '') + ' ' : ''}${to.label}` : leg.next.toLevelId}`;
+          ctx.font = 'bold 12px system-ui, sans-serif';
+          const tw = ctx.measureText(text).width;
+          ctx.fillStyle = '#1f6feb';
+          ctx.beginPath();
+          ctx.roundRect(X(end.x) + 8, Y(end.y) - 22, tw + 12, 20, 6);
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.textAlign = 'left';
+          ctx.fillText(text, X(end.x) + 14, Y(end.y) - 8);
+        }
+      }
+    }
     for (const m of markers) {
       const p = toLocal(m, origin.current);
       const x = X(p.x), y = Y(p.y);
+      if (m.kind === 'start' || m.kind === 'destination') {
+        ctx.beginPath();
+        ctx.arc(x, y, 7, 0, 2 * Math.PI);
+        ctx.fillStyle = m.kind === 'start' ? '#ffffff' : '#c92a2a';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = m.kind === 'start' ? '#1f6feb' : '#ffffff';
+        ctx.stroke();
+        if (m.label) {
+          ctx.fillStyle = '#212529';
+          ctx.font = 'bold 12px system-ui, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(m.label, x + 10, y + 4);
+        }
+        continue;
+      }
       ctx.strokeStyle = m.kind === 'truth' ? '#2b8a3e' : '#495057';
       ctx.lineWidth = m.kind === 'truth' ? 3 : 2;
       ctx.beginPath();

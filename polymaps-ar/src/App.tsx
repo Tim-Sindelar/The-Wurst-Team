@@ -14,6 +14,9 @@ import { SimulatedBeaconSource, type SimulatedTruth } from './positioning/source
 import { SimulatedGpsSource } from './positioning/sources/simulatedGps';
 import { WebBluetoothBeaconSource, webBluetoothScanningSupported } from './positioning/sources/webBluetooth';
 import type { FixSource, PositionFix } from './positioning/types';
+import { NavData } from './pathfinding/navData';
+import { RoutePanel, type PickTarget } from './pathfinding/RoutePanel';
+import type { Route, RoutePoint } from './pathfinding/route';
 
 type Tab = 'map' | 'test' | 'ar';
 type BleMode = 'off' | 'web-bluetooth' | 'native' | 'simulation';
@@ -54,6 +57,12 @@ export function App() {
   const recordingRef = useRef(false);
   recordingRef.current = recording;
   const engineRef = useRef<BlePositioningEngine | null>(null);
+  const [nav, setNav] = useState<NavData | null>(null);
+  const [navError, setNavError] = useState<string | null>(null);
+  const [routeStart, setRouteStart] = useState<RoutePoint | null>(null);
+  const [routeDest, setRouteDest] = useState<(RoutePoint & { name?: string }) | null>(null);
+  const [picking, setPicking] = useState<PickTarget>(null);
+  const [route, setRoute] = useState<Route | null>(null);
   const simRef = useRef<SimulatedBeaconSource | null>(null);
 
   useEffect(() => {
@@ -65,6 +74,7 @@ export function App() {
   useEffect(() => {
     RadioMap.load('ips').then(setRadioMap, (e: Error) => setLoadError((l) => [...l, e.message]));
     FloorPlans.load('floors').then(setFloors, (e: Error) => setLoadError((l) => [...l, e.message]));
+    NavData.load('nav').then(setNav, (e: Error) => setNavError(e.message));
   }, []);
 
   const logFix = useCallback((fix: PositionFix) => {
@@ -143,6 +153,11 @@ export function App() {
   const hasFingerprints = radioMap ? radioMap.levelIndexOf(levelId) >= 0 : false;
 
   const pick = (p: LngLat) => {
+    if (picking) {
+      (picking === 'from' ? setRouteStart : setRouteDest)({ ...p, levelId });
+      setPicking(null);
+      return;
+    }
     if (tab === 'test') setTruth({ ...p, levelId });
     if (bleMode === 'simulation' || tab === 'map') {
       if (radioMap && hasFingerprints) setSimTruth({ ...p, levelIndex: radioMap.levelIndexOf(levelId) });
@@ -155,7 +170,14 @@ export function App() {
     ...(bleMode === 'simulation' && simTruth && tab !== 'test' && radioMap?.levelId(simTruth.levelIndex) === levelId
       ? [{ ...simTruth, kind: 'truth' as const, label: 'simulated phone' }]
       : []),
+    ...(tab === 'map' && routeStart?.levelId === levelId ? [{ ...routeStart, kind: 'start' as const, label: 'start' }] : []),
+    ...(tab === 'map' && routeDest?.levelId === levelId ? [{ ...routeDest, kind: 'destination' as const, label: routeDest.name ?? 'destination' }] : []),
   ];
+  const livePosition: RoutePoint | null = bleFix?.levelId ? { lng: bleFix.lng, lat: bleFix.lat, levelId: bleFix.levelId } : null;
+  const levelLabel = (id: string) => {
+    const l = floors?.level(id);
+    return l ? `${l.facilityId.replace('ETH.', '')} ${l.label}` : id.replace('ETH.', '');
+  };
   const fixes = [bleFix, gpsFix].filter((f): f is PositionFix => f !== null);
   const arPose = bleFix ?? (gpsFix ? { ...gpsFix, levelId: gpsFix.levelId ?? levelId } : null);
 
@@ -202,7 +224,7 @@ export function App() {
       )}
 
       {tab === 'ar' ? (
-        <ArView floors={floors} pose={arPose} fallbackLabel={bleMode === 'simulation' ? 'simulation' : undefined} />
+        <ArView floors={floors} pose={arPose} route={route} fallbackLabel={bleMode === 'simulation' ? 'simulation' : undefined} />
       ) : (
         <main className="main">
           <section className="map-side">
@@ -235,6 +257,7 @@ export function App() {
                   levelId={levelId}
                   fixes={fixes}
                   markers={markers}
+                  route={tab === 'map' ? route : null}
                   focus={followFix && bleFix ? bleFix : null}
                   onPick={pick}
                 />
@@ -255,7 +278,26 @@ export function App() {
                 latest={{ ble: bleFix, gps: gpsFix }}
               />
             ) : (
-              <StatusPanel radioMap={radioMap} bleFix={bleFix} gpsFix={gpsFix} engine={engineRef.current} />
+              <>
+                <div className="panel">
+                  <h2>Route</h2>
+                  <RoutePanel
+                    nav={nav}
+                    navError={navError}
+                    position={livePosition}
+                    start={routeStart}
+                    destination={routeDest}
+                    setStart={setRouteStart}
+                    setDestination={setRouteDest}
+                    picking={picking}
+                    setPicking={setPicking}
+                    route={route}
+                    setRoute={setRoute}
+                    levelLabel={levelLabel}
+                  />
+                </div>
+                <StatusPanel radioMap={radioMap} bleFix={bleFix} gpsFix={gpsFix} engine={engineRef.current} />
+              </>
             )}
           </aside>
         </main>

@@ -9,7 +9,9 @@
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "evaluate": "tsx scripts/evaluate.ts"
+    "evaluate": "tsx scripts/evaluate.ts",
+    "route": "tsx scripts/pathfinding/route.ts",
+    "validate-routes": "tsx scripts/pathfinding/validate.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

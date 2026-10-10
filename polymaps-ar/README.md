@@ -1,17 +1,24 @@
 # polymaps-ar
 
 Indoor positioning on the ETH campus with the PolyMaps Bluetooth beacons, an accuracy test against
-GPS, and an AR view that draws the floor plan over the camera image.
+GPS, indoor routing to rooms, and an AR view that draws the floor plan and the route over the camera
+image.
 
 ```bash
-python scraper/scrape_polymaps.py scraper/polymaps_data   # PolyMaps layers (floor plans)
+python scraper/scrape_polymaps.py scraper/polymaps_data   # PolyMaps layers (floor plans, walkways)
 python scraper/extract_floors.py                          # -> occupancy-map-preview/public/floors
 python scraper/extract_ips.py                             # -> polymaps-ar/public/ips (downloads the radio map)
+python scraper/pathfinding/build_navigation.py            # -> polymaps-ar/public/nav (~1.5 min; numpy pillow scipy shapely)
 cd polymaps-ar && npm install && npm run dev              # https://<your-ip>:5173 (self-signed)
 ```
 
-`npm test` runs the unit tests, `npm run evaluate -- --simulate [--walk]` the simulated accuracy
-benchmark, `npm run evaluate -- session.json` scores an exported field test.
+| command | what |
+|---|---|
+| `npm test` | unit tests |
+| `npm run evaluate -- --simulate [--walk]` | simulated positioning accuracy |
+| `npm run evaluate -- session.json` | score an exported field test (BLE vs GPS) |
+| `npm run route -- "HG E 41" "CAB G 61"` | route between two rooms on the command line |
+| `npm run validate-routes [-- --rooms]` | compare routes with PolyMaps' walkway network / room-to-room success rate |
 
 ## Where PolyMaps' position comes from
 
@@ -123,10 +130,62 @@ the comparison.
   The FOV slider matches the overlay to the camera's field of view.
 - Without motion sensors (desktop) dragging looks around, so the overlay can be checked anywhere.
 
+## Pathfinding (`scraper/pathfinding`, `src/pathfinding`)
+
+Routes go to a room (search by name, e.g. `HG E 41`) or a tapped point, from the live BLE position
+or a picked start, across floors and buildings. The Map tab draws the route of the floor shown and
+where it changes floor; the AR view lays it on the floor as a ribbon with chevrons.
+
+**Walkable space from the drawing** (`build_navigation.py`, 0.25 m grid per floor). PolyMaps draws
+rooms as polygons usually separated by a wall-thick gap, so most walls are implicit; corridors are
+several touching polygons; explicit wall lines exist mostly on façades; doors are leaf + swing-arc
+symbols spanning the gaps. A cell is walkable if it is inside a room, minus the outlines of closed
+rooms and explicit walls, plus door openings: around each door symbol, the gap cells and the outlines
+of the rooms that door serves (only those, so a door next to a corner doesn't open the room around it).
+
+**Which rooms are drawn properly** is decided per room, and written to `public/nav/report.json`:
+
+| status | meaning | handling |
+|---|---|---|
+| ok | reachable through its doors | — |
+| open-area | no door, touches a corridor over > 2 m (study spots, exhibition areas in halls) | treated as open space (never for technical rooms, cupboards, labs) |
+| door-widened | has a door symbol that doesn't reach across the gap | opening widened from 0.6 to 1.2 m |
+| no-door / cut-off | no door symbol / still unreachable (mostly shafts, plant and storage rooms) | routes lead to the nearest reachable cell within 3 m (its doorstep) |
+| tiny | < 1.5 m² | ignored |
+
+Of 32 104 rooms: 25 486 ok, 205 open areas, 683 widened doors, 2 022 without a door, 575 cut off, 3 133 tiny.
+
+Two kinds of gaps the drawing can't fill are repaired from PolyMaps' walkway network (the lines
+ArcGIS Indoors routes on; `NAV_NETWORK=0` disables it): halls and atria that have walls but no room
+polygon (the walkways through them are widened, only inside wide room-free space, never across thin
+wall gaps), and floor connections and bridges / tunnels between buildings where a stair, lift or
+cross-building walkway ends on two floors.
+
+**Floor changes**: stair rooms of consecutive floors whose footprints overlap ≥ 1 m², linked at the
+overlap (not at one representative cell, which let routes "teleport" across a floor through a big
+stair hall); stairs arriving in undrawn space; lifts between any two floors of a shaft. **Between
+buildings**: entrance rooms and façade doors near the ground, linked through outdoors (straight
+line × 1.2), plus indoor passages from the walkway network.
+
+**Search** (`astar.ts`): A* over the grids of the start and goal buildings at once, 8-neighbour moves,
+stair / lift / passage / outdoor links (stairs 15 m-equivalent per flight, lifts 30 m). Walking
+through a closed room costs 5× (except the start and goal rooms): PolyMaps' walkways only enter rooms
+on spurs from their doors, and a meeting room with two doors is not a corridor. The cell path is
+straightened by string pulling with line of sight that, between corridor cells, may not cross rooms.
+
+**Validation** against PolyMaps' walkway network (`npm run validate-routes`), 400 random pairs of
+walkway nodes in corridors on the same floor, 165 floors: all routed; for routes that stay on the
+floor, our length is within ±20 % of the network's shortest path for 82 %, median ratio 0.91 (ours
+cuts corners, the network follows centre lines). Of the 6 % where ours is much shorter, the cases
+inspected were gaps in the reference network (walkway lines that don't meet) rather than leaks.
+Room-to-room (`-- --rooms`): 91 % routed within a building (~20 ms each), 83 % between nearby
+buildings (~100 ms). Failures are floors the drawing doesn't connect at all: mezzanines and plant
+floors in 20 of 46 buildings, and the rented OAT tower floors (no stairs or lifts drawn).
+
 ## Status
 
-Tested in this repo: unit tests, the simulation benchmark, type checking, and the UI in headless
-Chromium with a fake camera. **Not yet tested on a phone**: Web Bluetooth scanning of the real
+Tested in this repo: unit tests, the simulation benchmark, the routing validation, type checking,
+and the UI in headless Chromium with a fake camera. **Not yet tested on a phone**: Web Bluetooth scanning of the real
 beacons, the device offset range of real phones, compass alignment, and the camera FOV. Next steps,
 in order:
 

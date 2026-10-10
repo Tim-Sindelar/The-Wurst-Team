@@ -127,3 +127,17 @@ table.stats td:nth-child(2) { text-align: left; }
   .sources { margin-left: 0; width: 100%; }
   .sources select { flex: 1; min-width: 0; }
 }
+
+/* Route */
+.route-panel { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.route-row { display: flex; align-items: center; gap: 6px; }
+.route-label { width: 40px; color: var(--muted); font-size: 0.8rem; }
+.route-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route-row button { padding: 3px 9px; }
+.route-row button.active { background: var(--eth-blue); color: #fff; border-color: var(--eth-blue); }
+.route-search { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.route-hits { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; max-height: 220px; overflow: auto; background: #fff; }
+.route-hits button { width: 100%; text-align: left; border: none; border-radius: 0; padding: 6px 10px; }
+.route-hits li + li button { border-top: 1px solid var(--line); }
+.route-error { color: #8a1c1c; margin: 0; }
+.route-summary ol { margin: 6px 0 0; padding-left: 20px; }

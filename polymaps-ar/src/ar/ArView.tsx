@@ -11,6 +11,8 @@ import { toLocal, type LngLat } from '../geo';
 import type { FloorPlans } from '../floors/floorPlans';
 import { buildLevelScene, disposeGroup } from './scene';
 import { XrAlignment } from './xrAlignment';
+import { buildRouteMesh } from '../pathfinding/routeMesh';
+import type { Route } from '../pathfinding/route';
 import { orientationQuaternion, requestOrientationPermission, screenAngle, watchOrientation, type OrientationReading } from './orientation';
 
 export interface ArPose extends LngLat {
@@ -23,6 +25,7 @@ export interface ArPose extends LngLat {
 interface Props {
   floors: FloorPlans | null;
   pose: ArPose | null;
+  route?: Route | null;
   /** Used for a fake camera feed when there is no camera (tests, desktop). */
   fallbackLabel?: string;
 }
@@ -32,11 +35,13 @@ const EYE_HEIGHT = 1.5;
 const REANCHOR_M = 300;
 const LABEL_RANGE_M = 25;
 
-export function ArView({ floors, pose, fallbackLabel }: Props) {
+export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const poseRef = useRef(pose);
   poseRef.current = pose;
+  const routeRef = useRef(route);
+  routeRef.current = route;
   const [cameraState, setCameraState] = useState<'off' | 'on' | 'error'>('off');
   const [cameraKey, setCameraKey] = useState(0);
   const [sensors, setSensors] = useState<'unknown' | 'absolute' | 'relative' | 'none'>('unknown');
@@ -131,6 +136,9 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
     const camera = new PerspectiveCamera(fovRef.current, 1, 0.1, 200);
     let anchor: LngLat | null = null;
     let levelGroup: Group | null = null;
+    let routeGroup: Group | null = null;
+    let routeKey = '';
+    let routeShown: Route | null = null;
     // The plan lives in `world`: identity normally (the camera moves), XR-aligned in WebXR (the
     // tracked camera moves and the world is placed around it).
     const world = new Group();
@@ -221,6 +229,22 @@ export function ArView({ floors, pose, fallbackLabel }: Props) {
         world.visible = true;
         const { yaw, pitch } = lookRef.current;
         camera.rotation.set((pitch * Math.PI) / 180, ((yaw + headingRef.current) * Math.PI) / 180, 0, 'YXZ');
+      }
+      // Route ribbon of the current floor (rebuilt when the route, floor or anchor changes).
+      const r = routeRef.current;
+      const key = r && anchor && p?.levelId ? `${p.levelId}|${anchor.lng},${anchor.lat}` : '';
+      if (key !== routeKey || r !== routeShown) {
+        if (routeGroup) {
+          world.remove(routeGroup);
+          disposeGroup(routeGroup);
+          routeGroup = null;
+        }
+        if (r && anchor && p?.levelId) {
+          routeGroup = buildRouteMesh(r, p.levelId, anchor);
+          world.add(routeGroup);
+        }
+        routeKey = key;
+        routeShown = r ?? null;
       }
       // Labels only for nearby rooms; far ones pile up on the horizon.
       if (levelGroup) {
