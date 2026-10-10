@@ -1,6 +1,6 @@
-import { ActionIcon, Alert, Button, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Alert, Button, Text } from '@mantine/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState, type SubmitEvent } from 'react';
+import { useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import {
   adminGetSeatOptions,
@@ -79,7 +79,6 @@ export function ScanScreen() {
   const [problem, setProblem] = useState<ApiProblem | null>(null);
   const [busy, setBusy] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const [code, setCode] = useState('');
   /* One attempt at a time: the camera reports the same code many times a
      second, and a failed scan stays locked until "Try again". */
   const locked = useRef(false);
@@ -144,11 +143,6 @@ export function ScanScreen() {
     setProblem(null);
   };
 
-  const onSubmit = (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    void submit(code);
-  };
-
   /* Send people away if there is nothing to scan for. */
   if (!leaving && query.data) {
     const status = reservation?.status;
@@ -170,8 +164,16 @@ export function ScanScreen() {
 
   return (
     <Screen>
-      <div className="relative flex flex-1 flex-col bg-camera-bg text-camera-fg">
-        <div className="flex items-center justify-between p-2">
+      {/* The camera fills the screen behind everything, dimmed except inside the scan frame. */}
+      <div className="relative isolate flex flex-1 flex-col overflow-hidden bg-camera-bg text-camera-fg">
+        <video
+          ref={videoRef}
+          className="absolute inset-0 -z-10 size-full object-cover"
+          muted
+          playsInline
+          aria-hidden="true"
+        />
+        <div className="relative z-1 flex items-center justify-between p-2">
           <ActionIcon
             variant="camera"
             component={Link}
@@ -194,19 +196,11 @@ export function ScanScreen() {
 
         <div className="grid flex-1 place-content-center justify-items-center gap-4 px-4 text-center">
           <div
-            className="relative block aspect-square w-[min(72vw,280px)] overflow-hidden rounded-sheet border-3 border-camera-fg after:absolute after:inset-0 after:animate-scan-line after:border-t-2 after:border-accent after:content-['']"
+            className="relative block aspect-square w-[min(72vw,280px)] rounded-sheet border-3 border-camera-fg shadow-camera-dim after:absolute after:inset-0 after:animate-scan-line after:border-t-2 after:border-accent after:content-['']"
             role="img"
             aria-label="Camera view. Point it at the QR code on your table."
-          >
-            <video
-              ref={videoRef}
-              className="absolute inset-0 size-full object-cover"
-              muted
-              playsInline
-              aria-hidden="true"
-            />
-          </div>
-          <div className="grid gap-2">
+          />
+          <div className="relative z-1 grid gap-2">
             <Text className="text-title">{flow.title}</Text>
             {reservation && (
               <Text size="sm" className="text-camera-fg/72">
@@ -218,10 +212,15 @@ export function ScanScreen() {
                 Starting the camera…
               </Text>
             )}
+            {busy && (
+              <Text size="sm" className="text-camera-fg/72" role="status">
+                Checking the code…
+              </Text>
+            )}
           </div>
         </div>
 
-        <div className="grid gap-3 px-4 pt-4 pb-[calc(--spacing(4)+env(safe-area-inset-bottom))] text-center">
+        <div className="relative z-1 grid gap-3 px-4 pt-4 pb-[calc(--spacing(4)+env(safe-area-inset-bottom))] text-center">
           {problem && (
             <Alert
               variant="danger"
@@ -254,7 +253,8 @@ export function ScanScreen() {
               title="Camera not available"
             >
               <Text size="sm" c="dimmed">
-                Allow camera access, or type the code instead.
+                Allow camera access in your browser settings, then reload this
+                page.
               </Text>
             </Alert>
           )}
@@ -267,26 +267,6 @@ export function ScanScreen() {
               Skip scan (demo only)
             </Button>
           )}
-          <form className="flex items-end gap-2 text-left" onSubmit={onSubmit}>
-            <TextInput
-              className="min-w-0 flex-1"
-              label="Or type the code"
-              value={code}
-              onChange={(event) => setCode(event.currentTarget.value)}
-              autoComplete="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              disabled={busy || problem !== null}
-            />
-            <Button
-              type="submit"
-              variant="secondary"
-              loading={busy}
-              disabled={!code.trim() || problem !== null}
-            >
-              Confirm
-            </Button>
-          </form>
         </div>
       </div>
     </Screen>
