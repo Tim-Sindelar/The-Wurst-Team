@@ -105,17 +105,13 @@ export function buildGroups(index: FloorIndex): Map<string, BuildingGroup> {
 
   const out = new Map<string, BuildingGroup>();
   for (const [id, groupLevels] of levels) {
-    const shapes = [
-      ...(facilities.get(id) ?? []),
-      ...groupLevels.map((l) => l.outline),
-    ];
     out.set(
       id,
       makeGroup(
         id,
         new Set(groupLevels.map((l) => l.facilityId)),
         groupLevels,
-        shapes,
+        facilities.get(id) ?? [],
       ),
     );
   }
@@ -225,7 +221,8 @@ function makeGroup(
   id: string,
   facilityIds: ReadonlySet<string>,
   groupLevels: LevelInfo[],
-  shapes: MultiPolygon[],
+  /** Footprints of the group's buildings. */
+  footprints: MultiPolygon[],
 ): BuildingGroup {
   const floors = [...new Set(groupLevels.map((l) => l.floor))].sort(
     (a, b) => a - b,
@@ -236,7 +233,7 @@ function makeGroup(
     -Infinity,
     -Infinity,
   ];
-  for (const mp of shapes)
+  for (const mp of [...footprints, ...groupLevels.map((l) => l.outline)])
     for (const poly of mp.coordinates)
       for (const [lng, lat] of poly[0]) {
         bbox[0] = Math.min(bbox[0], lng);
@@ -244,6 +241,20 @@ function makeGroup(
         bbox[2] = Math.max(bbox[2], lng);
         bbox[3] = Math.max(bbox[3], lat);
       }
+  // Merged as GeoJSON once per floor; the whole group from those (fewer, simpler parts merge more reliably).
+  const geoByFloor = new Map<number, Coords>();
+  const floorGeo = (floor: number) => {
+    let g = geoByFloor.get(floor);
+    if (!g) {
+      g = mergeCoords(
+        groupLevels
+          .filter((l) => l.floor === floor)
+          .map((l) => l.outline.coordinates as Coords),
+      );
+      geoByFloor.set(floor, g);
+    }
+    return g;
+  };
   let outline: L.LatLngTuple[][][] | null = null;
   const byFloor = new Map<number, L.LatLngTuple[][][]>();
   return {
@@ -260,14 +271,16 @@ function makeGroup(
     ),
     ground: groundFloor(groupLevels),
     bbox,
-    outline: () => (outline ??= mergeOutlines(shapes)),
+    outline: () =>
+      (outline ??= toLatLngs(
+        mergeCoords([
+          ...footprints.map((f) => f.coordinates as Coords),
+          ...floors.map(floorGeo),
+        ]),
+      )),
     floorOutline: (floor) => {
       let o = byFloor.get(floor);
-      if (!o) {
-        const here = groupLevels.filter((l) => l.floor === floor);
-        o = here.length ? mergeOutlines(here.map((l) => l.outline)) : [];
-        byFloor.set(floor, o);
-      }
+      if (!o) byFloor.set(floor, (o = toLatLngs(floorGeo(floor))));
       return o;
     },
   };
@@ -292,21 +305,33 @@ function groundFloor(levels: LevelInfo[]): number {
   return best;
 }
 
-function mergeOutlines(shapes: MultiPolygon[]): L.LatLngTuple[][][] {
-  const polys = shapes.flatMap(
-    (mp) => mp.coordinates as polygonClipping.Polygon[],
-  );
+type Coords = polygonClipping.MultiPolygon;
+
+const toLatLngs = (coords: Coords) =>
+  outlineToLatLngs({
+    type: 'MultiPolygon',
+    coordinates: coords as MultiPolygon['coordinates'],
+  });
+
+/**
+ * The union of several shapes. polygon-clipping can fail on nearly collinear
+ * edges (the ML group does in one go): then the shapes are added one at a
+ * time, and only a shape that still fails is left out.
+ */
+function mergeCoords(shapes: Coords[]): Coords {
+  const polys = shapes.flat();
+  if (!polys.length) return [];
   try {
-    const [first, ...rest] = polys;
-    return outlineToLatLngs({
-      type: 'MultiPolygon',
-      coordinates: polygonClipping.union(
-        first,
-        ...rest,
-      ) as MultiPolygon['coordinates'],
-    });
+    return polygonClipping.union(polys[0], ...polys.slice(1));
   } catch {
-    return shapes.flatMap(outlineToLatLngs);
+    let acc: Coords = [];
+    for (const shape of shapes)
+      try {
+        acc = acc.length ? polygonClipping.union(acc, shape) : shape;
+      } catch {
+        // Left out rather than drawn unmerged.
+      }
+    return acc;
   }
 }
 

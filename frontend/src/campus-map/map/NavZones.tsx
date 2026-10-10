@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Polygon, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import {
+  campusViews,
   outlineCenter,
   zoneAt,
   type NavigationConfig,
@@ -150,17 +151,10 @@ const AT_PX = 30;
 function useHomeControl(config: NavigationConfig) {
   const map = useMap();
   const campuses = useRef<{ center: L.LatLng; zoom: number }[]>([]);
-  campuses.current = config.zones
-    .filter((z) => z.kind === 'area' && z.outline)
-    .sort(
-      (a, b) =>
-        Number(b.name === 'Zentrum') - Number(a.name === 'Zentrum') ||
-        a.name.localeCompare(b.name),
-    )
-    .map((z) => {
-      const c = outlineCenter(z.outline!);
-      return { center: L.latLng(c.lat, c.lng), zoom: z.zoom };
-    });
+  campuses.current = campusViews(config).map((c) => ({
+    center: L.latLng(c.center.lat, c.center.lng),
+    zoom: c.zoom,
+  }));
   const hasCampus = campuses.current.length > 0;
 
   useEffect(() => {

@@ -7,7 +7,6 @@ import {
   singleFloorLabel,
   type FloorIndex,
 } from '../floors/floorData';
-import type { Library } from '../domain/types';
 import type { BuildingGroup } from './buildingGroups';
 
 /** The picker shows from this zoom on, like the floor plans. */
@@ -18,7 +17,6 @@ const ITEM = 44;
 interface Props {
   index: FloorIndex;
   floor: number;
-  libraries: Library[];
   onChange: (floor: number) => void;
   /** 3D view: the wheel lists only the stacked group's floors, and hides without one. */
   view3d: boolean;
@@ -32,14 +30,7 @@ interface Props {
  * shows one letter, the one the building in focus uses for it. In 3D only the
  * stacked group's floors are listed, with the group's letters.
  */
-export function FloorPicker({
-  index,
-  floor,
-  libraries,
-  onChange,
-  view3d,
-  group,
-}: Props) {
+export function FloorPicker({ index, floor, onChange, view3d, group }: Props) {
   const map = useMap();
   const [bounds, setBounds] = useState(() => map.getBounds());
   const [center, setCenter] = useState(() => map.getCenter());
@@ -65,18 +56,6 @@ export function FloorPicker({
   const labelOf = (f: number) =>
     group?.labels.get(f) ?? singleFloorLabel(f, shown, focus);
 
-  const libraryFloors = new Set(
-    libraries
-      .filter(
-        (l) =>
-          l.floor !== null &&
-          (group
-            ? !!l.facilityId && group.facilityIds.has(l.facilityId)
-            : bounds.contains([l.position.lat, l.position.lng])),
-      )
-      .map((l) => l.floor as number),
-  );
-
   // Zoomed out over a whole campus the floors mean little, and the wheel
   // would cover the map on a phone. In 3D there is nothing to pick without a
   // stacked group.
@@ -87,7 +66,6 @@ export function FloorPicker({
       floors={floors}
       floor={floor}
       labelOf={labelOf}
-      marked={libraryFloors}
       onChange={onChange}
     />
   );
@@ -97,13 +75,11 @@ function FloorWheel({
   floors,
   floor,
   labelOf,
-  marked,
   onChange,
 }: {
   floors: number[];
   floor: number;
   labelOf: (f: number) => string;
-  marked: ReadonlySet<number>;
   onChange: (floor: number) => void;
 }) {
   const track = useRef<HTMLDivElement | null>(null);
@@ -184,8 +160,7 @@ function FloorWheel({
               key={f}
               type="button"
               aria-pressed={f === floor}
-              aria-label={`Floor ${labelOf(f)}${marked.has(f) ? ', workspaces on this floor' : ''}`}
-              className={marked.has(f) ? 'has-library' : undefined}
+              aria-label={`Floor ${labelOf(f)}`}
               onClick={() => {
                 byUser.current = false;
                 onChange(f);

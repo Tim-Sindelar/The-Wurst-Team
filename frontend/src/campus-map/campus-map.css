@@ -973,8 +973,7 @@
       justify-content: center;
       color: #fff;
     }
-    .lib-count,
-    .lib-floor {
+    .lib-count {
       position: absolute;
       top: -7px;
       min-width: 18px;
@@ -994,12 +993,6 @@
       background: #1c2430;
       color: #fff;
     }
-    .lib-floor {
-      left: -9px;
-      background: var(--panel);
-      color: var(--text);
-      border-color: var(--unknown);
-    }
     .lib-ok .lib-shape {
       background: var(--free);
     }
@@ -1012,12 +1005,6 @@
     .lib-pin.is-selected .lib-shape {
       outline: 3px solid var(--text);
       outline-offset: 1px;
-    }
-    .lib-pin.is-other-floor {
-      opacity: 0.55;
-    }
-    .lib-pin.is-other-floor.is-selected {
-      opacity: 1;
     }
 
     .table-marker {
@@ -1176,18 +1163,6 @@
     }
     .floor-wheel-track button[aria-pressed='true'] {
       color: var(--on-accent);
-    }
-    .floor-wheel-track button.has-library:not([aria-pressed='true']) {
-      color: var(--accent);
-    }
-    .floor-wheel-track button.has-library::after {
-      content: '';
-      display: inline-block;
-      width: 5px;
-      height: 5px;
-      margin-left: 3px;
-      border-radius: 50%;
-      background: currentColor;
     }
     .room-label {
       display: flex;

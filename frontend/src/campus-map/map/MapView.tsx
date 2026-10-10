@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import L from 'leaflet';
 import {
   MapContainer,
@@ -24,7 +24,6 @@ import { VectorBasemap, OPENFREEMAP_ATTRIBUTION } from './VectorBasemap';
 import { FloorPicker } from './FloorPicker';
 import { Floors3D } from './Floors3D';
 import {
-  libraryFloorLabel,
   loadLibraryOutlineRoomKeys,
   loadLibraryOutlines,
   outlineFromRooms,
@@ -39,7 +38,7 @@ import {
   type View3DStyle,
 } from './minimalStyle';
 import type { RoomInfo } from '../roomFeatures';
-import type { NavigationConfig } from '../domain/navigation';
+import { campusViews, type NavigationConfig } from '../domain/navigation';
 import { NavZones } from './NavZones';
 import {
   buildGroups,
@@ -184,9 +183,9 @@ export function MapView(props: Props) {
     }
     return derivedOutlines[lib.id] ?? null;
   };
-  // Other floors first, then this floor, the selected library on top.
-  const drawOrder = (lib: { id: string; floor: number | null }) =>
-    selection.libraryId === lib.id ? 2 : onFloor(lib) ? 1 : 0;
+  // The selected library on top.
+  const drawOrder = (lib: { id: string }) =>
+    selection.libraryId === lib.id ? 1 : 0;
   // 3D view: the building group in focus is stacked, its floors lifted north (see Floors3D).
   const groups = useMemo(
     () => (props.floorIndex ? buildGroups(props.floorIndex) : null),
@@ -241,19 +240,17 @@ export function MapView(props: Props) {
     return lib ? liftOf(lib.facilityId, lib.floor) : 0;
   };
 
-  /* In 3D, a workspace shows only on its own floor and only in the stacked
-     group (the other buildings are just footprints); flat, the other floors'
-     show too. */
+  /* A workspace shows only on its own floor; in 3D also only in the stacked
+     group (the other buildings are just footprints). */
   const shown = (lib: { floor: number | null; facilityId: string | null }) =>
-    !props.view3d ||
-    (onFloor(lib) &&
-      (!stackOnly ||
-        lib.floor === null ||
-        (!!stackGroup &&
-          !!lib.facilityId &&
-          stackGroup.facilityIds.has(lib.facilityId))));
+    onFloor(lib) &&
+    (!stackOnly ||
+      lib.floor === null ||
+      (!!stackGroup &&
+        !!lib.facilityId &&
+        stackGroup.facilityIds.has(lib.facilityId)));
   const librariesOnFloor = new Set(
-    data.libraries.filter((l) => onFloor(l) && shown(l)).map((l) => l.id),
+    data.libraries.filter(shown).map((l) => l.id),
   );
   const tablesOnFloor = data.tables.filter((t) =>
     librariesOnFloor.has(t.libraryId),
@@ -298,7 +295,12 @@ export function MapView(props: Props) {
         }}
       />
       <FlyTo target={props.flyTarget} />
-      <FitStart bounds={initialBounds} />
+      <StartView
+        bounds={initialBounds}
+        start={
+          props.navigation ? (campusViews(props.navigation)[0] ?? null) : null
+        }
+      />
 
       {props.floorIndex && (
         <>
@@ -341,7 +343,6 @@ export function MapView(props: Props) {
           <FloorPicker
             index={props.floorIndex}
             floor={floor}
-            libraries={data.libraries}
             onChange={props.onFloorChange}
             view3d={!!props.view3d}
             group={stackGroup}
@@ -455,20 +456,8 @@ export function MapView(props: Props) {
               total: occ.total,
               selected: selection.libraryId === lib.id && !selection.tableId,
               approximate: false,
-              otherFloor: onFloor(lib)
-                ? null
-                : libraryFloorLabel(
-                    {
-                      floor: lib.floor as number,
-                      levelId: lib.levelId,
-                      facilityId: lib.facilityId,
-                    },
-                    props.floorIndex?.levels,
-                  ),
             })}
-            zIndexOffset={
-              selection.libraryId === lib.id ? 1000 : onFloor(lib) ? 100 : 0
-            }
+            zIndexOffset={selection.libraryId === lib.id ? 1000 : 100}
             eventHandlers={{
               click: () =>
                 props.onSelect({
@@ -561,20 +550,48 @@ function MapEvents({ onZoom }: { onZoom: (zoom: number) => void }) {
 /* Fits the start view once the map has its real size. On phones (and in
    background tabs) the map can be created while its container is still
    0×0, which leaves it at the maximum zoom on one spot. */
-function FitStart({ bounds }: { bounds: L.LatLngBounds | undefined }) {
+/**
+ * The start view: the Zentrum campus, as its area zone flies to. Until the
+ * navigation zones have loaded (or without any), both campuses. Applied once
+ * the map has its size, and the campus only once.
+ */
+function StartView({
+  bounds,
+  start,
+}: {
+  bounds: L.LatLngBounds | undefined;
+  start: { center: LatLng; zoom: number } | null;
+}) {
   const map = useMap();
+  const [sized, setSized] = useState(false);
+  const done = useRef(false);
   useEffect(() => {
-    if (!bounds) return;
     const container = map.getContainer();
+    if (container.clientWidth && container.clientHeight) {
+      map.invalidateSize();
+      setSized(true);
+      return;
+    }
     const observer = new ResizeObserver(() => {
       if (!container.clientWidth || !container.clientHeight) return;
       observer.disconnect();
       map.invalidateSize();
-      map.fitBounds(bounds, { padding: [16, 16], animate: false });
+      setSized(true);
     });
     observer.observe(container);
     return () => observer.disconnect();
-  }, [map, bounds]);
+  }, [map]);
+  const lat = start?.center.lat;
+  const lng = start?.center.lng;
+  const zoom = start?.zoom;
+  useEffect(() => {
+    if (!sized || done.current) return;
+    if (lat !== undefined && lng !== undefined && zoom !== undefined) {
+      done.current = true;
+      map.setView([lat, lng], zoom, { animate: false });
+    } else if (bounds)
+      map.fitBounds(bounds, { padding: [16, 16], animate: false });
+  }, [map, sized, bounds, lat, lng, zoom]);
   return null;
 }
 
