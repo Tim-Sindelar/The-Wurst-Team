@@ -8,10 +8,12 @@ import {
 import { layoutSeats } from '../src/domain/room.ts';
 import {
   describeAvailability,
-  favouritesFirst,
+  favouriteSpaces,
+  spacesByIds,
   filterSpaces,
   type StudySpace,
 } from '../src/domain/space.ts';
+import { tokenize } from '../src/domain/similarity.ts';
 import { secondsUntil } from '../src/hooks/useCountdown.ts';
 
 test('countdowns round partial seconds up and stop at zero', () => {
@@ -120,7 +122,49 @@ test('search matches the name anywhere, ignoring case and padding', () => {
   assert.equal(filterSpaces(spaces, 'zzz').length, 0);
 });
 
-test('favourites come first and keep their order otherwise', () => {
+test('search is forgiving: typos, word order, partial words, accents', () => {
+  const spaces = [
+    space('Demo: HG E 51', false),
+    space('Demo: CAB E 11.1', false),
+    space('Demo: Baubibliothek HIL E 2.1', false),
+    space('Café Zürich', false),
+  ];
+  const find = (query: string) =>
+    filterSpaces(spaces, query).map((item) => item.name);
+  assert.deepEqual(find('bauibliothek'), ['Demo: Baubibliothek HIL E 2.1']);
+  assert.deepEqual(find('baubib'), ['Demo: Baubibliothek HIL E 2.1']);
+  assert.deepEqual(find('11 cab'), ['Demo: CAB E 11.1']);
+  assert.deepEqual(find('cabe11'), ['Demo: CAB E 11.1']);
+  assert.deepEqual(find('zurich cafe'), ['Café Zürich']);
+  assert.deepEqual(find('xyzq'), []);
+  assert.deepEqual(tokenize('A1b2 HG-E51'), [
+    'a',
+    '1',
+    'b',
+    '2',
+    'hg',
+    'e',
+    '51',
+  ]);
+});
+
+test('search ranks the closest match first', () => {
+  const spaces = [
+    space('Library annex', false),
+    space('Main library', false),
+    space('Libary', false),
+  ];
+  assert.deepEqual(
+    filterSpaces(spaces, 'library').map((item) => item.name),
+    ['Library annex', 'Main library', 'Libary'],
+  );
+  assert.deepEqual(
+    filterSpaces(spaces, 'main lib').map((item) => item.name),
+    ['Main library'],
+  );
+});
+
+test('favourites keep their order', () => {
   const spaces = [
     space('A', false),
     space('B', true),
@@ -128,7 +172,15 @@ test('favourites come first and keep their order otherwise', () => {
     space('D', true),
   ];
   assert.deepEqual(
-    favouritesFirst(spaces).map((item) => item.name),
-    ['B', 'D', 'A', 'C'],
+    favouriteSpaces(spaces).map((item) => item.name),
+    ['B', 'D'],
+  );
+});
+
+test('id lists pick the known spaces, in their order', () => {
+  const spaces = [space('A', false), space('B', true), space('C', false)];
+  assert.deepEqual(
+    spacesByIds(spaces, ['C', 'gone', 'A']).map((item) => item.name),
+    ['C', 'A'],
   );
 });

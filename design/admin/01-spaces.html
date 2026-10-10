@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spaces · Study Spaces Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="stylesheet" href="../admin.css" />
+    <script src="../base.js"></script>
+    <script src="layout-data.js" defer></script>
+    <script src="spaces-data.js" defer></script>
+    <script src="spaces.js" defer></script>
+  <script src="space-actions.js" defer></script>
+</head>
+  <body class="admin-body">
+    <div class="admin">
+      <aside class="sidebar">
+        <a
+          class="sidebar__brand"
+          href="01-spaces.html"
+          aria-label="Study Spaces admin, back to the spaces list"
+        >
+          <strong>Study Spaces</strong>
+          <span class="t-label">Admin</span>
+        </a>
+        <nav class="nav" aria-label="Admin">
+          <a class="nav__link" href="01-spaces.html" aria-current="page"
+            ><i class="icon i-map"></i> Spaces</a
+          >
+          <a class="nav__link" href="08-users.html"
+            ><i class="icon i-user" aria-hidden="true"></i> Users</a
+          >
+<a class="nav__link" href="10-space-qr.html"><i class="icon i-qr" aria-hidden="true"></i> QR codes</a>
+        </nav>
+        <div class="sidebar__foot">
+          <a class="nav__link" href="../index.html"
+            ><i class="icon i-home"></i> Student app</a
+          >
+          <div class="sidebar__user">
+            <span class="avatar" aria-hidden="true">AD</span>
+            <span class="t-small">Admin</span>
+            <button
+              class="icon-button theme-toggle"
+              type="button"
+              data-theme-toggle
+              aria-pressed="false"
+              aria-label="Switch to light theme"
+              style="margin-left: auto"
+            >
+              <i class="icon i-sun"></i><i class="icon i-moon"></i>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="admin__main">
+        <div class="page">
+          <header class="page-header">
+            <div class="page-header__text">
+              <h1 class="t-heading">Study spaces</h1>
+              <p class="t-muted">Local sample spaces and seat counts.</p>
+            </div>
+            <div class="page-header__actions">
+              <button
+                class="btn btn--secondary"
+                type="button"
+                data-banner-open="banner-refreshed"
+              >
+                <i class="icon i-check"></i> Refresh
+              </button>
+              <a class="btn btn--primary" href="02-space-new.html"
+                ><i class="icon i-plus"></i> Add space</a
+              >
+            </div>
+          </header>
+
+          <section class="stats" aria-label="Totals">
+            <div class="stat">
+              <span class="t-label">Spaces</span
+              ><span class="stat__value">2</span>
+            </div>
+            <div class="stat">
+              <span class="t-label">Free seats</span
+              ><span class="stat__value"
+                >3 <span class="t-small t-muted">of 7 active</span></span
+              >
+            </div>
+            <div class="stat">
+              <span class="t-label">Occupied</span
+              ><span class="stat__value">3</span>
+            </div>
+            <div class="stat">
+              <span class="t-label">On break</span
+              ><span class="stat__value">1</span>
+            </div>
+          </section>
+
+          <div class="toolbar">
+            <label class="search">
+              <i class="icon i-search"></i>
+              <span class="sr-only">Search spaces</span>
+              <input type="search" placeholder="Search spaces" />
+            </label>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Space</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="num">Seats</th>
+                  <th scope="col" class="num">Active</th>
+                  <th scope="col" class="num">Free</th>
+                  <th scope="col" class="num">Occupied</th>
+                  <th scope="col" class="num">On break</th>
+                  <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="table__name">
+                      <a class="table__link" href="03-space-seats.html"
+                        >Hauptbibliothek · Lesesaal</a
+                      >
+                      <span class="t-small t-muted">Europe/Zurich</span>
+                    </div>
+                  </td>
+                  <td><span class="chip is-free">Open</span></td>
+                  <td class="num">4</td>
+                  <td class="num">3</td>
+                  <td class="num"><span class="avail avail--none">0</span></td>
+                  <td class="num">2</td>
+                  <td class="num">1</td>
+                  <td class="actions">
+                    <a class="btn btn--quiet" href="03-space-seats.html"
+                      >Manage</a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="table__name">
+                      <a class="table__link" href="03-space-seats.html"
+                        >Baubibliothek · Hönggerberg</a
+                      >
+                      <span class="t-small t-muted">Europe/Zurich</span>
+                    </div>
+                  </td>
+                  <td><span class="chip is-free">Open</span></td>
+                  <td class="num">4</td>
+                  <td class="num">4</td>
+                  <td class="num"><span class="avail avail--high">3</span></td>
+                  <td class="num">1</td>
+                  <td class="num">0</td>
+                  <td class="actions">
+                    <a class="btn btn--quiet" href="03-space-seats.html"
+                      >Manage</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="t-small t-muted">
+            Changes are saved in this browser. Free means nobody has reserved
+            the seat or is using it right now. Switched-off and closed seats
+            never count as free. Occupied counts checked-in sessions only.
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <div class="banner-region">
+      <div class="banner" id="banner-refreshed" role="status" hidden>
+        <i class="icon i-check"></i>
+        <div class="banner__text">
+          <span class="banner__title">Updated</span>
+          <span class="t-small t-muted"
+            >Seat counts are current as of now.</span
+          >
+        </div>
+        <button
+          class="icon-button"
+          type="button"
+          data-banner-close
+          aria-label="Dismiss"
+        >
+          <i class="icon i-close"></i>
+        </button>
+      </div>
+    </div>
+
+  <dialog class="dialog" id="dlg-delete-space" aria-labelledby="delete-space-title">
+    <div class="dialog__head"><h2 class="dialog__title" id="delete-space-title">Delete study place?</h2><button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button></div>
+    <div class="dialog__body"><p id="delete-space-description"></p><p class="t-small t-muted">The study place and saved layout will leave the spaces list. Reservation history stays available. You can undo from the spaces list.</p><p id="delete-space-error" class="t-small" role="alert" hidden></p></div>
+    <div class="dialog__foot"><button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button><button class="btn btn--danger" type="button" id="confirm-delete-space">Delete study place</button></div>
+  </dialog>
+  <div class="banner-region"><div class="banner" id="space-deleted-banner" role="status" hidden><div class="banner__text"><span class="banner__title">Study place deleted</span><span class="t-small t-muted" id="space-deleted-name"></span></div><button class="btn btn--quiet" type="button" id="undo-space-delete">Undo</button><button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button></div></div>
+
+</body>
+</html>

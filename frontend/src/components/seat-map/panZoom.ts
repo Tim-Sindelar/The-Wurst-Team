@@ -7,6 +7,8 @@ const MAX_SCALE = 2.5;
 const FIT_MARGIN = 24;
 const TAP_SLOP = 6;
 const KEY_STEP = 48;
+/* Glide to a selected seat: transform only, within the 150 to 250ms motion rule. */
+const GLIDE_MS = 240;
 
 type Point = { x: number; y: number };
 
@@ -27,27 +29,25 @@ type Gesture =
       worldY: number;
     };
 
-export type PanZoomView = {
-  scale: number;
-  canZoomIn: boolean;
-  canZoomOut: boolean;
-};
-
 export type PanZoomOptions = {
   viewport: HTMLElement;
   world: HTMLElement;
-  /** Called after every redraw. */
-  onDraw: (view: PanZoomView) => void;
+  /** Pixels at the bottom of the viewport that something (the seat card) covers right now. */
+  getCovered?: () => number;
   /** A seat was tapped without dragging. */
   onSeatTap: (seat: HTMLElement) => void;
-  /** Any pointer press on the map outside the info key (closes the key). */
+  /** Any pointer press on the map outside the buttons (closes the colour key). */
   onMapPress: () => void;
+  /** The empty map (no seat, not the buttons) was tapped without dragging. */
+  onMapTap: () => void;
 };
 
 export type PanZoom = {
   fit: () => void;
   zoomBy: (factor: number) => void;
   centerOn: (x: number, y: number) => void;
+  /** Glides back inside the bounds, e.g. after the seat card closed. */
+  settle: () => void;
   destroy: () => void;
 };
 
@@ -57,9 +57,10 @@ const clamp = (v: number, lo: number, hi: number) =>
 export function createPanZoom({
   viewport,
   world,
-  onDraw,
+  getCovered,
   onSeatTap,
   onMapPress,
+  onMapTap,
 }: PanZoomOptions): PanZoom {
   const pointers = new Map<number, Point>();
   const worldWidth = world.offsetWidth;
@@ -71,33 +72,86 @@ export function createPanZoom({
   let y = 0;
   let fitted = false;
   let gesture: Gesture | null = null;
+  let frame = 0;
+  let tapping = false;
 
+  /* The part of the map the seat card doesn't cover. */
+  const visibleHeight = () => Math.max(1, height - (getCovered?.() ?? 0));
+
+  /* Zooming out stops when the whole room fits above the seat card. */
   const minScale = () =>
     Math.min(
       (width - FIT_MARGIN) / worldWidth,
-      (height - FIT_MARGIN) / worldHeight,
+      (visibleHeight() - FIT_MARGIN) / worldHeight,
     );
 
-  const draw = () => {
-    const w = worldWidth * scale;
-    const h = worldHeight * scale;
-    x = w <= width ? (width - w) / 2 : clamp(x, width - w, 0);
-    y = h <= height ? (height - h) / 2 : clamp(y, height - h, 0);
+  /* Keeps the room in view: centred when it is smaller than the visible
+     area, otherwise no empty edge, so the room's bottom can be dragged up
+     above the seat card. */
+  const bound = (s: number, nx: number, ny: number) => {
+    const w = worldWidth * s;
+    const h = worldHeight * s;
+    const visible = visibleHeight();
+    return {
+      x: w <= width ? (width - w) / 2 : clamp(nx, width - w, 0),
+      y: h <= visible ? (visible - h) / 2 : clamp(ny, visible - h, 0),
+    };
+  };
+
+  const apply = () => {
     world.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-    onDraw({
-      scale,
-      canZoomIn: scale < MAX_SCALE - 0.001,
-      canZoomOut: scale > minScale() + 0.001,
-    });
+  };
+
+  const stop = () => {
+    cancelAnimationFrame(frame);
+    frame = 0;
+  };
+
+  const draw = () => {
+    stop();
+    ({ x, y } = bound(scale, x, y));
+    apply();
+  };
+
+  /* Glides to a view. Any touch, wheel or key stops the glide where it is. */
+  const glideTo = (nextScale: number, nextX: number, nextY: number) => {
+    stop();
+    const to = { scale: nextScale, ...bound(nextScale, nextX, nextY) };
+    const reduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    if (reduced) {
+      ({ scale, x, y } = to);
+      apply();
+      return;
+    }
+    const from = { scale, x, y };
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / GLIDE_MS);
+      const k = 1 - (1 - t) ** 3;
+      scale = from.scale + (to.scale - from.scale) * k;
+      x = from.x + (to.x - from.x) * k;
+      y = from.y + (to.y - from.y) * k;
+      apply();
+      frame = t < 1 ? requestAnimationFrame(step) : 0;
+    };
+    frame = requestAnimationFrame(step);
   };
 
   /* Selecting from the overview zooms back to at least 100% to inspect. */
   const centerOn = (wx: number, wy: number) => {
     fitted = false;
-    scale = Math.max(1, scale);
-    x = width / 2 - wx * scale;
-    y = height / 2 - wy * scale;
-    draw();
+    const next = Math.max(1, scale);
+    /* Centre in the part of the map the seat card doesn't cover. */
+    glideTo(next, width / 2 - wx * next, visibleHeight() / 2 - wy * next);
+  };
+
+  const settle = () => {
+    if (fitted) {
+      const next = minScale();
+      glideTo(next, 0, 0);
+    } else glideTo(scale, x, y);
   };
 
   const zoomTo = (
@@ -115,8 +169,6 @@ export function createPanZoom({
   const fit = () => {
     fitted = true;
     scale = minScale();
-    x = (width - worldWidth * scale) / 2;
-    y = (height - worldHeight * scale) / 2;
     draw();
   };
 
@@ -143,7 +195,7 @@ export function createPanZoom({
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== 0 || inside(event, '[data-map-info]')) return;
     onMapPress();
-    if (inside(event, '[data-map-controls]')) return;
+    stop();
     event.preventDefault();
     const p = point(event);
     pointers.set(event.pointerId, p);
@@ -189,6 +241,11 @@ export function createPanZoom({
       gesture?.kind === 'pan' && !gesture.moved && event.type === 'pointerup'
         ? gesture.seat
         : null;
+    const tappedEmpty =
+      gesture?.kind === 'pan' &&
+      !gesture.moved &&
+      !gesture.seat &&
+      event.type === 'pointerup';
     pointers.delete(event.pointerId);
     if (viewport.hasPointerCapture(event.pointerId))
       viewport.releasePointerCapture(event.pointerId);
@@ -208,8 +265,11 @@ export function createPanZoom({
     }
     if (tapped) {
       onSeatTap(tapped);
+      /* The tap itself brings the seat into view, once the card's height is known. */
+      tapping = true;
       tapped.focus({ preventScroll: true });
-    }
+      tapping = false;
+    } else if (tappedEmpty) onMapTap();
   };
 
   const onWheel = (event: WheelEvent) => {
@@ -222,11 +282,7 @@ export function createPanZoom({
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (
-      inside(event, '[data-map-controls]') ||
-      inside(event, '[data-map-info]')
-    )
-      return;
+    if (inside(event, '[data-map-info]')) return;
     if (event.key === '+' || event.key === '=') zoomTo(scale * 1.25);
     else if (event.key === '-') zoomTo(scale * 0.8);
     else if (event.key === '0' || event.key === 'Home') fit();
@@ -257,7 +313,8 @@ export function createPanZoom({
       event.target instanceof Element
         ? event.target.closest<HTMLElement>('[data-seat-id]')
         : null;
-    if (seat) centerOn(Number(seat.dataset.x), Number(seat.dataset.y));
+    if (seat && !tapping)
+      centerOn(Number(seat.dataset.x), Number(seat.dataset.y));
   };
 
   const onResize = () => {
@@ -292,7 +349,9 @@ export function createPanZoom({
     fit,
     zoomBy: (factor) => zoomTo(scale * factor),
     centerOn,
+    settle,
     destroy: () => {
+      stop();
       viewport.removeEventListener('pointerdown', onPointerDown);
       viewport.removeEventListener('pointermove', onPointerMove);
       viewport.removeEventListener('pointerup', onPointerEnd);

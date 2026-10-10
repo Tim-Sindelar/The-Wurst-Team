@@ -314,3 +314,15 @@ def test_profile_rejects_conflicting_photo_changes(profile_client):
         files={"photo": ("photo.png", photo_bytes(), "image/png")},
     )
     assert response.status_code == 400
+
+
+def test_proxy_admin_allowlist_is_server_controlled(profile_client):
+    client, settings = profile_client
+    owner = {"X-User-Id": "admin@ethz.ch"}
+    other = {"X-User-Id": "student@ethz.ch", "X-Demo-Admin": "true"}
+    admin_id = UUID(client.get("/api/v1/me", headers=owner).json()["id"])
+    assert client.get("/api/v1/admin/spaces", headers=owner).status_code == 403
+    settings.admin_user_ids = [admin_id]
+    assert client.get("/api/v1/admin/spaces", headers=owner).status_code == 200
+    assert client.get("/api/v1/admin/spaces", headers=other).status_code == 403
+    assert client.get("/api/v1/admin/spaces").status_code == 401

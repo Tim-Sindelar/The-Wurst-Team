@@ -6,6 +6,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import TypeAdapter
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -15,6 +16,8 @@ from app.config import get_settings
 from app.database import engine, get_session
 from app.features.campus_map.router import router as campus_map_router
 from app.features.campus_map.services import shutdown_services
+from app.features.events.router import router as events_router
+from app.features.events.schemas import ServerEvent
 from app.features.reservations.admin_router import router as admin_router
 from app.features.reservations.admin_service import AdminConflict
 from app.features.reservations.router import router
@@ -50,6 +53,22 @@ app.mount(
 )
 app.include_router(auth_router)
 app.include_router(social_router)
+app.include_router(events_router)
+
+
+def openapi() -> dict:
+    # The events stream isn't in OpenAPI; list its messages so the client gets their types.
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = FastAPI.openapi(app)
+    events = TypeAdapter(ServerEvent).json_schema(ref_template="#/components/schemas/{model}")
+    schemas = schema.setdefault("components", {}).setdefault("schemas", {})
+    schemas.update(events.pop("$defs", {}))
+    schemas["ServerEvent"] = events
+    return schema
+
+
+app.openapi = openapi
 
 
 @app.exception_handler(AdminConflict)

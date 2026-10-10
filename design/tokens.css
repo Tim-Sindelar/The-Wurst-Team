@@ -45,6 +45,7 @@
   /* --- Camera view: dark in both themes -------------------------------- */
   --camera-bg: #0a0a0a;
   --camera-fg: #ffffff;
+  --camera-dim: rgb(0 0 0 / 0.5);
 
   /* --- Type ----------------------------------------------------------- */
   --font: 'DIN Next LT W05', 'Barlow', ui-sans-serif, system-ui, sans-serif;
@@ -77,6 +78,8 @@
   --radius-seat: 5px;
   --radius-sheet: 8px; /* top corners of bottom sheets */
   --overlay: rgb(0 0 0 / 0.6); /* dim layer behind popups */
+  --photo-scrim: rgb(0 0 0 / 0.55); /* darkens a photo behind card text */
+  --on-photo: #ffffff; /* text and icons over a photo, both themes */
   --shadow: 0 1px 3px rgb(0 0 0 / 0.4); /* raised cards, sheets. Faint on dark: the border does the work */
   --stroke: 1px; /* hairline borders */
   --stripe: 6px; /* card left status stripe */
@@ -89,6 +92,12 @@
   --map-world-w: 640px; /* full room coordinate canvas */
   --map-world-h: 760px;
   --map-viewport-h: 420px; /* pan/zoom window in a phone screen */
+
+  /* --- Admin dashboard (desktop) --------------------------------------- */
+  --sidebar-w: 15rem; /* 240px side menu */
+  --content-max: 72rem; /* about 1150px, widest admin page content */
+  --row-h: 4rem; /* 64px table row */
+  --dialog-w: 32rem; /* 512px centred dialog */
 
   /* --- Motion ---------------------------------------------------------- */
   --dur-fast: 150ms;
@@ -132,3 +141,8 @@
     --dur-base: 0ms;
   }
 }
+
+:root { --admin-sidebar:15rem; --admin-canvas:min(65vh,40rem); --admin-canvas-min:24rem; --admin-properties:16rem; --admin-tool:2rem; }
+
+/* Shared React/admin dimensions (the existing HTML layouts use these same values). */
+:root { --admin-option:1.625rem; --admin-row:4rem; --admin-map:26rem; --admin-dialog:32rem; --admin-form:44rem; --admin-search:24rem; --admin-qr-fields:20rem; --admin-chart:6rem; }

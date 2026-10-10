@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Closures · Study Spaces Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../base.css">
+  <link rel="stylesheet" href="../admin.css">
+  <script src="../base.js"></script>
+<script src="layout-data.js" defer></script>
+<script src="spaces-data.js" defer></script>
+<script src="room-context.js" defer></script>
+</head>
+<body class="admin-body">
+  <div class="admin">
+    <aside class="sidebar">
+      <a class="sidebar__brand" href="01-spaces.html" aria-label="Study Spaces admin, back to the spaces list">
+        <strong>Study Spaces</strong>
+        <span class="t-label">Admin</span>
+      </a>
+      <nav class="nav" aria-label="Admin">
+        <a class="nav__link" href="01-spaces.html" aria-current="page"><i class="icon i-map"></i> Spaces</a>
+        <a class="nav__link" href="08-users.html"><i class="icon i-user" aria-hidden="true"></i> Users</a>
+<a class="nav__link" href="10-space-qr.html"><i class="icon i-qr" aria-hidden="true"></i> QR codes</a>
+      </nav>
+      <div class="sidebar__foot">
+        <a class="nav__link" href="../index.html"><i class="icon i-home"></i> Student app</a>
+        <div class="sidebar__user">
+          <span class="avatar" aria-hidden="true">AD</span>
+          <span class="t-small">Admin</span>
+          <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme" style="margin-left: auto">
+            <i class="icon i-sun"></i><i class="icon i-moon"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin__main">
+      <div class="page">
+        <a class="crumbs" href="01-spaces.html"><i class="icon icon--sm i-back"></i> Spaces</a>
+        <header class="page-header">
+          <div class="page-header__text">
+            <h1 class="t-heading">Hauptbibliothek · Lesesaal</h1>
+            <p class="t-muted"><span class="chip is-free">Open</span> &nbsp;Europe/Zurich · Updated 10:42:05</p>
+          </div>
+          <div class="page-header__actions">
+            <button class="btn btn--primary" type="button" data-sheet-open="dlg-new-closure"><i class="icon i-plus"></i> New closure</button>
+          </div>
+        </header>
+        <nav class="subnav" aria-label="This space"><a href="03-space-seats.html">Seats</a><a href="04-space-hours.html">Opening hours</a><a href="05-space-closures.html" aria-current="page">Closures</a><a href="06-space-layout.html">Layout</a><a href="10-space-qr.html">QR codes</a><a href="07-space-settings.html">Settings</a></nav>
+
+        <p class="t-muted">Close the whole space or a single seat for a period, for example for cleaning or repairs. Nobody can reserve a closed seat in that time.</p>
+
+        <div class="table-wrap" data-if-no-param="empty">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Closed</th>
+                <th scope="col">From</th>
+                <th scope="col">To</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Status</th>
+                <th scope="col"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Whole space</strong></td>
+                <td>Sat 25 Oct, 06:00</td>
+                <td>Mon 27 Oct, 06:00</td>
+                <td>Floor cleaning</td>
+                <td><span class="chip chip--plain is-shift">Upcoming</span></td>
+                <td class="actions"><button class="btn btn--quiet is-risky" type="button" data-sheet-open="dlg-del-closure">Delete</button></td>
+              </tr>
+              <tr>
+                <td><strong>Seat 2</strong></td>
+                <td>Thu 30 Oct, 08:00</td>
+                <td>Thu 30 Oct, 13:00</td>
+                <td>Power outlet repair</td>
+                <td><span class="chip chip--plain is-shift">Upcoming</span></td>
+                <td class="actions"><button class="btn btn--quiet is-risky" type="button" data-sheet-open="dlg-del-closure">Delete</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="empty" data-if-param="empty=1" hidden>
+          <p class="t-title">No closures planned</p>
+          <p class="t-muted">Closing a space or a seat stops reservations for that time.</p>
+          <button class="btn btn--primary" type="button" data-sheet-open="dlg-new-closure"><i class="icon i-plus"></i> New closure</button>
+        </div>
+
+        <p class="t-small t-muted">Mock: <a href="05-space-closures.html?empty=1">show the empty state</a> · <button class="btn btn--quiet" type="button" data-sheet-open="dlg-new-closure" style="min-height: 0; padding: 0">open the form</button> · <button class="btn btn--quiet" type="button" data-sheet-open="dlg-closure-clean" style="min-height: 0; padding: 0">a closure with no impact</button></p>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="dialog" id="dlg-new-closure" aria-labelledby="dlg-new-closure-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-new-closure-title">New closure</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <div class="form-grid">
+        <div class="field span-2">
+          <label class="field__label" for="scope">What to close</label>
+          <div class="select">
+            <select id="scope"><option>Whole space</option><option>Seat 1</option><option>Seat 2</option><option>Seat 3</option><option>Seat 4</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="from">From</label>
+          <input class="input" id="from" type="datetime-local" value="2026-10-25T06:00">
+        </div>
+        <div class="field">
+          <label class="field__label" for="to">To</label>
+          <input class="input" id="to" type="datetime-local" value="2026-10-27T06:00">
+        </div>
+        <div class="field span-2">
+          <label class="field__label" for="reason">Reason <span class="t-muted">(optional)</span></label>
+          <input class="input" id="reason" value="Floor cleaning">
+          <p class="field__helper">Only admins see this.</p>
+        </div>
+      </div>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button>
+      <button class="btn btn--primary" type="button" data-sheet-swap="dlg-closure-impact">Preview impact</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-closure-impact" aria-labelledby="dlg-closure-impact-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-closure-impact-title">Close Sat 25 Oct, 06:00 to Mon 27 Oct, 06:00?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Whole space. This would change 3 bookings:</p>
+      <ul class="impact">
+        <li class="impact__item is-shorten">
+          <div class="impact__who"><strong>Noah Weber</strong><span class="t-small t-muted">Seat 1</span></div>
+          <span class="chip chip--plain is-shorten">Shorten</span>
+          <p class="impact__detail">Fri 24 Oct 22:00 – Sat 25 Oct 08:00 → ends 06:00</p>
+        </li>
+        <li class="impact__item is-shift">
+          <div class="impact__who"><strong>Mia Huber</strong><span class="t-small t-muted">Seat 2</span></div>
+          <span class="chip chip--plain is-shift">Shift</span>
+          <p class="impact__detail">Mon 27 Oct 05:00–07:00 → 06:00–08:00</p>
+        </li>
+        <li class="impact__item is-cancel">
+          <div class="impact__who"><strong>Tim Vogt</strong><span class="t-small t-muted">Seat 3</span></div>
+          <span class="chip chip--plain is-cancel">Cancel</span>
+          <p class="impact__detail">Sat 25 Oct 10:00–12:00 → cancelled</p>
+        </li>
+      </ul>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-swap="dlg-new-closure">Back</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-closure">Apply closure</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-closure-clean" aria-labelledby="dlg-closure-clean-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-closure-clean-title">Close Thu 30 Oct, 08:00 to 13:00?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Seat 2.</p>
+      <p><strong>No bookings are affected.</strong></p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Back</button>
+      <button class="btn btn--primary" type="button" data-sheet-close data-then-banner="banner-closure-clean">Apply closure</button>
+    </div>
+  </dialog>
+
+  <dialog class="dialog" id="dlg-del-closure" aria-labelledby="dlg-del-closure-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="dlg-del-closure-title">Delete this closure?</h2>
+      <button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button>
+    </div>
+    <div class="dialog__body">
+      <p class="t-muted">Seats can be reserved again in that time. <strong>No bookings are affected.</strong></p>
+    </div>
+    <div class="dialog__foot">
+      <button class="btn btn--secondary" type="button" data-sheet-close>Keep closure</button>
+      <button class="btn btn--danger" type="button" data-sheet-close data-then-banner="banner-deleted">Delete closure</button>
+    </div>
+  </dialog>
+
+  <div class="banner-region">
+    <div class="banner" id="banner-closure" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Closure created</span>
+        <span class="t-small t-muted">3 bookings were changed.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-closure-clean" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Closure created</span>
+        <span class="t-small t-muted">No bookings were changed.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+    <div class="banner" id="banner-deleted" role="status" hidden>
+      <i class="icon i-check"></i>
+      <div class="banner__text">
+        <span class="banner__title">Closure deleted</span>
+        <span class="t-small t-muted">Seats can be reserved in that time again.</span>
+      </div>
+      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+    </div>
+  </div>
+</body>
+</html>

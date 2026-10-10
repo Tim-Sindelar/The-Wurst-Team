@@ -63,9 +63,9 @@ save_name() {
     -H 'X-User-Id: persistence-test@example.invalid' -F "name=$2" "$1/api/v1/me" >/dev/null
 }
 check_social_mode() {
-  local entry=$1 demo=$2
+  local entry=$1
   curl --fail --silent --show-error --max-time 10 "$entry/social-config.json" |
-    python3 -c 'import json,sys; mode=json.load(sys.stdin); assert mode == {"enabled": True, "demo": sys.argv[1] == "true"}, mode' "$demo"
+    python3 -c 'import json,sys; mode=json.load(sys.stdin); assert mode == {"enabled": True}, mode'
   curl -fsS "$entry/api/v1/social/capabilities" |
     python3 -c 'import json,sys; assert json.load(sys.stdin)["enabled"] is True'
 }
@@ -94,7 +94,7 @@ for space in spaces:
 # Test both frontend prefixes regardless of whether CI is a push or PR run.
 if [[ "$base" == / ]]; then
   docker tag "wurst-web:$sha" "wurst-web:$prod_sha"
-  docker build --build-arg "APP_BASE_PATH=/pr/$pr/" --build-arg SOCIAL_DEMO_ENABLED=false -f frontend/Dockerfile -t "wurst-web:$pr_sha" .
+  docker build --build-arg "APP_BASE_PATH=/pr/$pr/" -f frontend/Dockerfile -t "wurst-web:$pr_sha" .
 else
   docker tag "wurst-web:$sha" "wurst-web:$pr_sha"
   docker build --build-arg APP_BASE_PATH=/ -f frontend/Dockerfile -t "wurst-web:$prod_sha" .
@@ -142,10 +142,10 @@ check_name "$url" 'Persists across releases'
 package "$pr_sha" "$preview"
 bash "$preview/deploy.sh" "$pr_sha" "$pr"
 [[ "$(readlink -f "$scratch/previews/pr-$pr/current")" == "$preview" ]]
-check_spaces "$url/pr/$pr" 2
+check_spaces "$url/pr/$pr" 12
 check_spaces "$url" 0
-check_social_mode "$url/pr/$pr" false
-check_social_mode "$url" false
+check_social_mode "$url/pr/$pr"
+check_social_mode "$url"
 # Both use live friendships; production starts without sample friends, requests or parties.
 check_empty_social "$url"
 check_empty_social "$url/pr/$pr"

@@ -106,6 +106,15 @@ def test_reserve_any_and_empty_space(client, seats):
     assert client.get(f"/api/v1/spaces/{empty['id']}").json()["space"]["seats"] == []
 
 
+def test_spaces_show_their_eth_room_photo(client, seats, room_photos):
+    room_photos.photos["ETH.HG.E.E_007"] = "/api/v1/map/eth/file?id=42"
+    spaces = {space["name"]: space for space in client.get("/api/v1/spaces").json()["spaces"]}
+    assert spaces["Test reading room"]["photo_url"] == "/api/v1/map/eth/file?id=42"
+    assert spaces["Empty test room"]["photo_url"] is None
+    detail = client.get(f"/api/v1/spaces/{seats[0].space_id}").json()["space"]
+    assert detail["photo_url"] == "/api/v1/map/eth/file?id=42"
+
+
 def test_priority_public_boundary_and_next_reservation(client, seats, clock):
     owner = identity()
     occupant = walk_up(client, seats[0], owner).json()["reservation"]
@@ -474,3 +483,51 @@ def test_favourites_belong_to_the_user_and_are_idempotent(client, seats):
         assert response.status_code == 200
         assert response.json() == {"space_ids": []}
     assert client.delete(f"/api/v1/me/favourites/{uuid4()}").status_code == 200
+
+
+def test_recents_follow_bookings_and_scans_per_user(client, seats):
+    space = str(seats[0].space_id)
+    me, other = identity(), identity()
+    assert client.get("/api/v1/me/recents", headers=me).json() == {"space_ids": []}
+    assert book(client, seats[0], me).status_code == 201
+    assert book(client, seats[1], other).status_code == 201
+    assert walk_up(client, seats[0], me).status_code == 200  # same space again: still one entry
+    assert client.get("/api/v1/me/recents", headers=me).json() == {"space_ids": [space]}
+    assert client.get("/api/v1/me/recents", headers=other).json() == {"space_ids": [space]}
+    assert client.get("/api/v1/me/recents", headers=identity()).json() == {"space_ids": []}
+    # A refused booking leaves no trace.
+    assert book(client, seats[2], me).status_code == 409
+    assert client.get("/api/v1/me/recents", headers=me).json() == {"space_ids": [space]}
+
+
+def test_popular_spaces_rank_last_weeks_occupancy(client, seats, clock):
+    space = str(seats[0].space_id)
+    popular = lambda: client.get("/api/v1/spaces/popular").json()["space_ids"]  # noqa: E731
+    # Nothing used yet: every space at 0%, by name; the seatless room ranks too.
+    assert popular()[1] == space and len(popular()) == 2
+    me = identity()
+    reservation = walk_up(client, seats[0], me).json()["reservation"]
+    clock.advance(minutes=30)
+    assert popular()[0] == space  # a running session counts up to now
+    assert action(client, reservation["id"], "end", me).status_code == 200
+    clock.advance(minutes=60 * 24 * 7 - 1)
+    assert popular()[0] == space  # the last minute of it is still in the window
+    clock.advance(minutes=1)
+    assert popular()[1] == space
+
+
+def test_popular_spaces_compare_shares_not_seat_time(client, db, seats, clock):
+    with Session(db, expire_on_commit=False) as session:
+        small = session.scalar(select(StudySpace).where(StudySpace.name == "Empty test room"))
+        lone = Seat(space_id=small.id, label="B-1", qr_token=uuid4().hex)
+        session.add(lone)
+        session.commit()
+    # An hour on 2 of 3 seats is more seat time than an hour on the only seat,
+    # but a smaller share of the room.
+    for seat in (*seats[:2], lone):
+        assert walk_up(client, seat, identity()).status_code == 200
+    clock.advance(minutes=60)
+    assert client.get("/api/v1/spaces/popular").json()["space_ids"] == [
+        str(small.id),
+        str(seats[0].space_id),
+    ]

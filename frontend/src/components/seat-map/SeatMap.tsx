@@ -1,8 +1,15 @@
-import { ActionIcon, Popover, Text } from '@mantine/core';
+import { ActionIcon, Button, Popover } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
-import { roomGeometry, roomTables, type MapSeat } from '../../domain/room';
-import { Icon } from '../Icon';
+import {
+  roomGeometry,
+  roomTables,
+  type MapSeat,
+  type RoomPlan,
+} from '../../domain/room';
+import geometry from '../../features/admin/geometry';
+import { FeatureBadge, RoomScene } from '../../features/admin/RoomScene';
+import { Icon, type IconName } from '../Icon';
 import { SectionLabel } from '../SectionLabel';
 import { createPanZoom, type PanZoom } from './panZoom';
 import { SeatMarker } from './SeatMarker';
@@ -15,34 +22,62 @@ const keyStates: SeatState[] = [
   'bookable',
 ];
 
+const featureIcon = {
+  outlet: 'outlet',
+  monitor: 'monitor',
+  quiet: 'moon',
+} as const satisfies Record<keyof typeof geometry.BADGES, IconName>;
+
 type SeatMapProps = {
+  /** The room as the admin laid it out; null draws the stand-in plan. */
+  plan: RoomPlan | null;
   seats: MapSeat[];
-  selected: string;
+  /** The selected seat, or null when nothing is selected. */
+  selected: string | null;
   onSelect: (seatId: string) => void;
-  /** Optional group selection; individual-seat screens keep their existing behavior. */
-  highlightedSeats?: string[];
+  /** The empty map was tapped. */
+  onDeselect?: () => void;
+  /** Top-right text button: picks a free seat. Leave out to hide it. */
+  onChooseFree?: () => void;
+  /** No free seat to choose: the button stays but is disabled. */
+  chooseFreeDisabled?: boolean;
+  /** Height in px of the seat card covering the bottom of the map right now. */
+  getCovered?: () => number;
+  /** Group booking: seats given to people, by seat id. They show initials. */
+  people?: Record<string, { initials: string; name: string }>;
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
-   Pan, pinch and zoom; the colour key opens from the (i) button. */
+   Pan, pinch and scroll to zoom; the colour key opens from the (i) button. */
 export function SeatMap({
+  plan,
   seats,
   selected,
   onSelect,
-  highlightedSeats = [],
+  onDeselect,
+  onChooseFree,
+  chooseFreeDisabled = false,
+  getCovered,
+  people,
 }: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
-  const zoomLabelRef = useRef<HTMLOutputElement>(null);
-  const zoomInRef = useRef<HTMLButtonElement>(null);
-  const zoomOutRef = useRef<HTMLButtonElement>(null);
   const panZoomRef = useRef<PanZoom | null>(null);
   const onSelectRef = useRef(onSelect);
+  const onDeselectRef = useRef(onDeselect);
+  const selectedRef = useRef(selected);
+  const coveredRef = useRef(getCovered);
   const [ready, setReady] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+  const features = (
+    Object.keys(featureIcon) as (keyof typeof featureIcon)[]
+  ).filter((feature) => seats.some((seat) => seat.badges.includes(feature)));
 
   useEffect(() => {
     onSelectRef.current = onSelect;
+    onDeselectRef.current = onDeselect;
+    selectedRef.current = selected;
+    coveredRef.current = getCovered;
   });
 
   useEffect(() => {
@@ -52,87 +87,106 @@ export function SeatMap({
     const panZoom = createPanZoom({
       viewport,
       world,
-      onDraw: ({ scale, canZoomIn, canZoomOut }) => {
-        if (zoomLabelRef.current)
-          zoomLabelRef.current.textContent = `${Math.round(scale * 100)}%`;
-        if (zoomInRef.current) zoomInRef.current.disabled = !canZoomIn;
-        if (zoomOutRef.current) zoomOutRef.current.disabled = !canZoomOut;
-      },
+      getCovered: () =>
+        selectedRef.current ? (coveredRef.current?.() ?? 0) : 0,
       onSeatTap: (seat) => onSelectRef.current(String(seat.dataset.seatId)),
       onMapPress: () => setKeyOpen(false),
+      onMapTap: () => onDeselectRef.current?.(),
     });
     panZoomRef.current = panZoom;
     setReady(true);
     return () => panZoom.destroy();
   }, []);
 
-  /* A new selection (tap, keyboard or "Choose any free seat") is brought into view. */
+  /* A new selection (tap, keyboard or "Choose any free seat") glides into
+     view; closing the seat card lets the map settle into the freed space. */
   const shownSelection = useRef(selected);
   useEffect(() => {
     if (shownSelection.current === selected) return;
     shownSelection.current = selected;
     const seat = seats.find((item) => item.id === selected);
     if (seat) panZoomRef.current?.centerOn(seat.x, seat.y);
+    else if (selected === null) panZoomRef.current?.settle();
   }, [selected, seats]);
 
   return (
     <div
       ref={viewportRef}
-      className="relative h-full cursor-grab touch-none overflow-hidden rounded-card border border-border-strong bg-canvas select-none"
+      className="relative size-full cursor-grab touch-none overflow-hidden bg-canvas select-none"
       tabIndex={0}
       role="region"
       aria-label="Interactive room map. Arrow keys move, plus and minus zoom, Home fits the room."
     >
       <div
         ref={worldRef}
-        className={`absolute top-0 left-0 h-190 w-160 origin-top-left ${ready ? 'visible' : 'invisible'}`}
+        className={`absolute top-0 left-0 origin-top-left ${plan ? '' : 'h-190 w-160'} ${ready ? 'visible' : 'invisible'}`}
+        style={
+          plan
+            ? { width: plan.room.width, height: plan.room.height }
+            : undefined
+        }
       >
-        <svg
-          className="pointer-events-none absolute inset-0 size-full"
-          viewBox={`0 0 ${roomGeometry.width} ${roomGeometry.height}`}
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path className="fill-surface" d={roomGeometry.fill} />
-          <path
-            className="fill-none stroke-border-strong stroke-2"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-            d={roomGeometry.walls}
-          />
-          <path
-            className="fill-none stroke-accent stroke-6"
-            vectorEffect="non-scaling-stroke"
-            d={roomGeometry.windows}
-          />
-          <path
-            className="fill-none stroke-border-strong stroke-1"
-            vectorEffect="non-scaling-stroke"
-            d={roomGeometry.door}
-          />
-          {roomTables.map((table) => (
-            <g key={`${table.x}-${table.y}`}>
-              <rect
-                className="fill-surface-2 stroke-border-strong stroke-1"
-                x={table.x}
-                y={table.y}
-                width={table.width}
-                height={table.height}
-                rx={5}
-              />
-              {table.label && (
-                <text
-                  className="fill-text-muted text-label font-semibold"
-                  x={table.x + table.width / 2}
-                  y={table.y + 22}
-                  textAnchor="middle"
-                >
-                  {table.label}
-                </text>
-              )}
-            </g>
-          ))}
-        </svg>
+        {plan ? (
+          <svg
+            className="pointer-events-none absolute inset-0 size-full"
+            viewBox={`0 0 ${plan.room.width} ${plan.room.height}`}
+            aria-hidden="true"
+            focusable="false"
+          >
+            <RoomScene
+              room={plan.room}
+              objects={plan.furniture}
+              interactive={false}
+            />
+          </svg>
+        ) : (
+          <svg
+            className="pointer-events-none absolute inset-0 size-full"
+            viewBox={`0 0 ${roomGeometry.width} ${roomGeometry.height}`}
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path className="fill-surface" d={roomGeometry.fill} />
+            <path
+              className="fill-none stroke-border-strong stroke-2"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              d={roomGeometry.walls}
+            />
+            <path
+              className="fill-none stroke-accent stroke-6"
+              vectorEffect="non-scaling-stroke"
+              d={roomGeometry.windows}
+            />
+            <path
+              className="fill-none stroke-border-strong stroke-1"
+              vectorEffect="non-scaling-stroke"
+              d={roomGeometry.door}
+            />
+            {roomTables.map((table) => (
+              <g key={`${table.x}-${table.y}`}>
+                <rect
+                  className="fill-surface-2 stroke-border-strong stroke-1"
+                  x={table.x}
+                  y={table.y}
+                  width={table.width}
+                  height={table.height}
+                  rx={5}
+                />
+                {table.label && (
+                  <text
+                    className="fill-text-muted text-label font-semibold"
+                    x={table.x + table.width / 2}
+                    y={table.y + 22}
+                    textAnchor="middle"
+                  >
+                    {table.label}
+                  </text>
+                )}
+              </g>
+            ))}
+          </svg>
+        )}
         {seats.map((seat) => (
           <SeatMarker
             key={seat.id}
@@ -141,12 +195,34 @@ export function SeatMap({
             state={seat.state}
             x={seat.x}
             y={seat.y}
-            selected={
-              seat.id === selected || highlightedSeats.includes(seat.id)
-            }
+            angle={seat.angle}
+            features={seat.badges.map((badge) => geometry.BADGES[badge])}
+            selected={seat.id === selected}
             onSelect={() => onSelect(seat.id)}
+            person={people?.[seat.id]}
           />
         ))}
+        {/* Feature badges sit on top of the seats, as in the layout editor. */}
+        {plan && (
+          <svg
+            className="pointer-events-none absolute inset-0 size-full"
+            viewBox={`0 0 ${plan.room.width} ${plan.room.height}`}
+            aria-hidden="true"
+            focusable="false"
+          >
+            {seats.flatMap((seat) =>
+              seat.badges.map((badge, index) => (
+                <FeatureBadge
+                  key={`${seat.id}-${badge}`}
+                  icon={featureIcon[badge]}
+                  title={geometry.BADGES[badge]}
+                  x={seat.x + (index - (seat.badges.length - 1) / 2) * 19}
+                  y={seat.y + 23}
+                />
+              )),
+            )}
+          </svg>
+        )}
       </div>
 
       <div className="absolute top-3 left-3 z-1" data-map-info>
@@ -168,7 +244,7 @@ export function SeatMap({
               <Icon name="info" size="sm" />
             </ActionIcon>
           </Popover.Target>
-          <Popover.Dropdown className="w-55">
+          <Popover.Dropdown className="grid w-55 gap-2">
             <SectionLabel as="h3">Seat colours</SectionLabel>
             <ul className="grid gap-2">
               {keyStates.map((state) => (
@@ -181,52 +257,42 @@ export function SeatMap({
                 </li>
               ))}
             </ul>
+            {features.length > 0 && (
+              <div className="mt-2 grid gap-2">
+                <SectionLabel as="h3">Seat features</SectionLabel>
+                <ul className="grid gap-2">
+                  {features.map((feature) => (
+                    <li
+                      key={feature}
+                      className="flex items-center gap-3 text-small"
+                    >
+                      <span
+                        className="grid size-4.5 flex-none place-items-center rounded-full border border-border-strong bg-surface text-text"
+                        aria-hidden="true"
+                      >
+                        <Icon name={featureIcon[feature]} size="xs" />
+                      </span>
+                      {geometry.BADGES[feature]}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </Popover.Dropdown>
         </Popover>
       </div>
 
-      <div
-        className="absolute top-3 right-3 grid rounded-control border border-border-strong bg-surface shadow-card"
-        role="group"
-        aria-label="Map controls"
-        data-map-controls
-      >
-        <ActionIcon
-          ref={zoomInRef}
-          variant="map"
-          aria-label="Zoom in"
-          onClick={() => panZoomRef.current?.zoomBy(1.25)}
-        >
-          <Icon name="plus" size="sm" />
-        </ActionIcon>
-        <ActionIcon
-          ref={zoomOutRef}
-          variant="map"
-          className="rounded-none border-t border-border"
-          aria-label="Zoom out"
-          onClick={() => panZoomRef.current?.zoomBy(0.8)}
-        >
-          <Icon name="minus" size="sm" />
-        </ActionIcon>
-        <ActionIcon
-          variant="map"
-          className="border-t border-border"
-          aria-label="Fit whole room"
-          title="Fit whole room"
-          onClick={() => panZoomRef.current?.fit()}
-        >
-          <Icon name="fitRoom" size="sm" />
-        </ActionIcon>
-      </div>
-
-      <Text
-        component="output"
-        ref={zoomLabelRef}
-        className="pointer-events-none absolute bottom-3 left-3 rounded-control border border-border bg-surface px-2 py-1 text-label text-text-muted tabular-nums"
-        aria-label="Map zoom"
-      >
-        100%
-      </Text>
+      {onChooseFree && (
+        <div className="absolute top-3 right-3 z-1" data-map-info>
+          <Button
+            variant="map"
+            disabled={chooseFreeDisabled}
+            onClick={onChooseFree}
+          >
+            Choose any free seat
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

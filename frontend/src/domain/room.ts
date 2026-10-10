@@ -1,9 +1,15 @@
 import type { SeatAvailability } from '../api/generated';
+import type {
+  Feature,
+  LayoutDocument,
+  LayoutItem,
+  RoomGeometry,
+} from '../features/admin/models';
 import type { SeatState } from './seat';
 
-/* The API has no seat positions yet (a room's layout is an empty object), so
-   seats are placed on this stand-in floor plan in label order. Replace the
-   slots with SpaceDetail.layout once the backend fills it in. */
+/* Seats are drawn where the admin layout editor put them (SpaceDetail.layout).
+   A space without a saved layout falls back to the stand-in floor plan below,
+   with seats placed in label order. */
 
 /** A seat as the map draws it. */
 export type MapSeat = {
@@ -12,9 +18,18 @@ export type MapSeat = {
   state: SeatState;
   /** When a taken seat can be reserved for, if it can. */
   reservableAt: string | null;
-  /** Centre of the seat on the 640 × 760 room canvas. */
+  /** Centre of the seat on the room canvas. */
   x: number;
   y: number;
+  /** Rotation in degrees, from the layout. */
+  angle: number;
+  badges: Feature[];
+};
+
+/** The room as the layout editor saved it, seats left out. */
+export type RoomPlan = {
+  room: RoomGeometry;
+  furniture: LayoutItem[];
 };
 
 /** Seat positions on the room canvas, at the tables. */
@@ -99,23 +114,62 @@ const stateFromApi: Record<
 };
 
 /** Seats for the map. Out-of-service seats are left off, and so are seats
-    beyond the stand-in plan (counted in `hidden`). */
+    with no place on the plan (counted in `hidden`). With a saved layout each
+    seat sits where its layout object is; otherwise on the stand-in plan. */
 export function layoutSeats(
   seats: SeatAvailability[],
   ownSeatId: string | null,
-): { shown: MapSeat[]; hidden: number } {
+  layout: LayoutDocument | null = null,
+): { plan: RoomPlan | null; shown: MapSeat[]; hidden: number } {
   const inService = seats
     .filter((seat) => seat.is_active && stateFromApi[seat.state] !== null)
     .sort((a, b) =>
       a.label.localeCompare(b.label, undefined, { numeric: true }),
     );
-  const shown = inService.slice(0, seatSlots.length).map((seat, index) => ({
+  const mapSeat = (
+    seat: SeatAvailability,
+    place: Pick<MapSeat, 'x' | 'y' | 'angle' | 'badges'>,
+  ): MapSeat => ({
     id: seat.id,
     label: seat.label,
-    state:
-      seat.id === ownSeatId ? ('yours' as const) : stateFromApi[seat.state]!,
+    state: seat.id === ownSeatId ? 'yours' : stateFromApi[seat.state]!,
     reservableAt: seat.reservable_at,
-    ...seatSlots[index],
-  }));
-  return { shown, hidden: inService.length - shown.length };
+    ...place,
+  });
+
+  if (layout) {
+    const objects = new Map(
+      layout.objects
+        .filter((item) => item.type === 'seat' && item.backendSeatId)
+        .map((item) => [item.backendSeatId!, item]),
+    );
+    const shown = inService.flatMap((seat) => {
+      const item = objects.get(seat.id);
+      return item
+        ? [
+            mapSeat(seat, {
+              x: item.x,
+              y: item.y,
+              angle: item.angle || 0,
+              badges: item.badges ?? [],
+            }),
+          ]
+        : [];
+    });
+    return {
+      plan: {
+        room: layout.room,
+        furniture: layout.objects.filter((item) => item.type !== 'seat'),
+      },
+      shown,
+      hidden: inService.length - shown.length,
+    };
+  }
+
+  const shown = inService
+    .slice(0, seatSlots.length)
+    .map((seat, index) =>
+      mapSeat(seat, { ...seatSlots[index], angle: 0, badges: [] }),
+    );
+  return { plan: null, shown, hidden: inService.length - shown.length };
 }

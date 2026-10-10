@@ -10,22 +10,36 @@ type SeatMarkerProps = {
   /** Centre on the room canvas. */
   x: number;
   y: number;
+  /** Rotation of the seat in degrees; the number stays upright. */
+  angle?: number;
+  /** Seat features, read out after the state ("power outlet"). */
+  features?: string[];
   selected: boolean;
   onSelect: () => void;
+  /** Who the seat is for in a group booking: their initials replace the number. */
+  person?: { initials: string; name: string };
 };
 
 /* A seat on the map: a 44px tap target around a 32 × 36 filled seat with its
-   number. On-break seats add a cup badge, bookable seats a clock badge. */
+   number, turned the way the layout places it. On-break seats add a cup badge, bookable seats a clock badge. */
 export function SeatMarker({
   id,
   label,
   state,
   x,
   y,
+  angle = 0,
+  features = [],
   selected,
   onSelect,
+  person,
 }: SeatMarkerProps) {
-  const description = `Seat ${label}, ${seatStateName[state].toLowerCase()}${selected ? ', selected' : ''}`;
+  const description = [
+    `Seat ${label}`,
+    ...(person ? [`for ${person.name}`] : [seatStateName[state].toLowerCase()]),
+    ...features.map((feature) => feature.toLowerCase()),
+    ...(selected ? ['selected'] : []),
+  ].join(', ');
   const badge =
     state === 'break' ? 'coffee' : state === 'bookable' ? 'clock' : null;
 
@@ -47,9 +61,8 @@ export function SeatMarker({
     >
       <span
         className={[
-          'grid h-9 w-8 place-items-center rounded-control border-2 border-(--state) bg-(--state) text-small leading-none font-bold group-focus-visible:shadow-[0_0_0_2px_var(--color-surface),0_0_0_4px_var(--color-focus)]',
+          'col-start-1 row-start-1 h-9 w-8 rounded-control border-2 border-(--state) bg-(--state) group-focus-visible:shadow-[0_0_0_2px_var(--color-surface),0_0_0_4px_var(--color-focus)]',
           stateVar[state],
-          state === 'occupied' ? 'text-on-seat-muted' : 'text-on-seat',
           selected
             ? 'shadow-[0_0_0_2px_var(--color-surface),0_0_0_4px_var(--color-accent)]'
             : state === 'yours' &&
@@ -57,8 +70,13 @@ export function SeatMarker({
         ]
           .filter(Boolean)
           .join(' ')}
+        style={angle ? { rotate: `${angle}deg` } : undefined}
+        aria-hidden="true"
+      />
+      <span
+        className={`relative col-start-1 row-start-1 text-small leading-none font-bold ${state === 'occupied' ? 'text-on-seat-muted' : 'text-on-seat'}`}
       >
-        {label}
+        {person?.initials ?? label}
       </span>
       {badge && (
         <span

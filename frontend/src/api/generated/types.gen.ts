@@ -192,6 +192,20 @@ export type AdminSeatResponse = {
 };
 
 /**
+ * AdminSpaceDeletedResponse
+ */
+export type AdminSpaceDeletedResponse = {
+    /**
+     * Deleted Space Id
+     */
+    deleted_space_id: string;
+    /**
+     * Server Time
+     */
+    server_time: string;
+};
+
+/**
  * AdminSpaceDetails
  */
 export type AdminSpaceDetails = {
@@ -207,6 +221,10 @@ export type AdminSpaceDetails = {
      * Id
      */
     id: string;
+    /**
+     * Is Archived
+     */
+    is_archived?: boolean;
     /**
      * Is Open
      */
@@ -230,6 +248,10 @@ export type AdminSpaceDetails = {
      */
     map_room_id: string;
     /**
+     * Map Unit Id
+     */
+    map_unit_id?: string | null;
+    /**
      * Name
      */
     name: string;
@@ -245,6 +267,10 @@ export type AdminSpaceDetails = {
      * Opening Hours
      */
     opening_hours: Array<OpeningInterval>;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Timezone
      */
@@ -276,6 +302,10 @@ export type AdminSpaceOverview = {
      */
     id: string;
     /**
+     * Is Archived
+     */
+    is_archived?: boolean;
+    /**
      * Is Open
      */
     is_open: boolean;
@@ -298,6 +328,10 @@ export type AdminSpaceOverview = {
      */
     map_room_id: string;
     /**
+     * Map Unit Id
+     */
+    map_unit_id?: string | null;
+    /**
      * Name
      */
     name: string;
@@ -313,6 +347,10 @@ export type AdminSpaceOverview = {
      * Opening Hours
      */
     opening_hours: Array<OpeningInterval>;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Seats
      */
@@ -370,6 +408,10 @@ export type AdminSpaceSummary = {
      */
     id: string;
     /**
+     * Is Archived
+     */
+    is_archived?: boolean;
+    /**
      * Is Open
      */
     is_open: boolean;
@@ -386,6 +428,10 @@ export type AdminSpaceSummary = {
      */
     map_room_id: string;
     /**
+     * Map Unit Id
+     */
+    map_unit_id?: string | null;
+    /**
      * Name
      */
     name: string;
@@ -397,6 +443,10 @@ export type AdminSpaceSummary = {
      * On Break Seats
      */
     on_break_seats: number;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Timezone
      */
@@ -433,6 +483,61 @@ export type AdminUser = {
      * Id
      */
     id: string;
+};
+
+/**
+ * AdminUserHistoryResponse
+ */
+export type AdminUserHistoryResponse = {
+    /**
+     * Reservations
+     */
+    reservations: Array<AdminReservationDetails>;
+    /**
+     * Server Time
+     */
+    server_time: string;
+    user: AdminUserSummary;
+};
+
+/**
+ * AdminUserSummary
+ */
+export type AdminUserSummary = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Live Reservations
+     */
+    live_reservations: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Reservations
+     */
+    reservations: number;
+    /**
+     * Study Seconds
+     */
+    study_seconds: number;
+};
+
+/**
+ * AdminUsersResponse
+ */
+export type AdminUsersResponse = {
+    /**
+     * Server Time
+     */
+    server_time: string;
+    /**
+     * Users
+     */
+    users: Array<AdminUserSummary>;
 };
 
 /**
@@ -980,6 +1085,20 @@ export type EthSnapshot = {
 };
 
 /**
+ * EventPerson
+ */
+export type EventPerson = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * FavouritesResponse
  */
 export type FavouritesResponse = {
@@ -990,6 +1109,50 @@ export type FavouritesResponse = {
 };
 
 /**
+ * FloorPlanRoom
+ *
+ * A room of the floor plans, found by the room search.
+ */
+export type FloorPlanRoom = {
+    /**
+     * Area
+     */
+    area: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Levelid
+     */
+    levelId: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Use
+     */
+    use: string;
+    [key: string]: unknown;
+};
+
+/**
+ * FriendRequestAcceptedEvent
+ */
+export type FriendRequestAcceptedEvent = {
+    /**
+     * Friendship Id
+     */
+    friendship_id: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'friend_request.accepted';
+};
+
+/**
  * FriendRequestCreate
  */
 export type FriendRequestCreate = {
@@ -997,6 +1160,21 @@ export type FriendRequestCreate = {
      * User Id
      */
     user_id: string;
+};
+
+/**
+ * FriendRequestReceivedEvent
+ */
+export type FriendRequestReceivedEvent = {
+    /**
+     * Friendship Id
+     */
+    friendship_id: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'friend_request.received';
 };
 
 /**
@@ -1355,6 +1533,24 @@ export type PartyBook = {
 };
 
 /**
+ * PartyBookedEvent
+ */
+export type PartyBookedEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    /**
+     * Type
+     */
+    type?: 'party.booked';
+};
+
+/**
  * PartyCancellation
  */
 export type PartyCancellation = {
@@ -1363,6 +1559,24 @@ export type PartyCancellation = {
      */
     cancelled_reservation_ids: Array<string>;
     party: PartyResponse;
+};
+
+/**
+ * PartyCancelledEvent
+ */
+export type PartyCancelledEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    /**
+     * Type
+     */
+    type?: 'party.cancelled';
 };
 
 /**
@@ -1386,6 +1600,44 @@ export type PartyInvite = {
 };
 
 /**
+ * PartyInvitedEvent
+ */
+export type PartyInvitedEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.invited';
+};
+
+/**
+ * PartyLeftEvent
+ */
+export type PartyLeftEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.left';
+};
+
+/**
  * PartyMemberResponse
  */
 export type PartyMemberResponse = {
@@ -1399,6 +1651,29 @@ export type PartyMemberResponse = {
      * Status
      */
     status: 'invited' | 'accepted' | 'declined' | 'left';
+};
+
+/**
+ * PartyRepliedEvent
+ */
+export type PartyRepliedEvent = {
+    /**
+     * Accepted
+     */
+    accepted: boolean;
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.replied';
 };
 
 /**
@@ -1467,6 +1742,30 @@ export type PeopleResponse = {
 };
 
 /**
+ * PingEvent
+ *
+ * Heartbeat so proxies keep an idle stream open. Clients ignore it.
+ */
+export type PingEvent = {
+    /**
+     * Type
+     */
+    type?: 'ping';
+};
+
+/**
+ * PopularSpacesResponse
+ *
+ * Space ids, the most occupied over the last week first.
+ */
+export type PopularSpacesResponse = {
+    /**
+     * Space Ids
+     */
+    space_ids: Array<string>;
+};
+
+/**
  * PrivacyUpdate
  */
 export type PrivacyUpdate = {
@@ -1488,6 +1787,18 @@ export type ReadinessResponse = {
      * Status
      */
     status?: 'ok';
+};
+
+/**
+ * RecentsResponse
+ *
+ * Space ids, most recently used first.
+ */
+export type RecentsResponse = {
+    /**
+     * Space Ids
+     */
+    space_ids: Array<string>;
 };
 
 /**
@@ -1741,6 +2052,18 @@ export type RulesResponse = {
 };
 
 /**
+ * SaveLayoutRequest
+ */
+export type SaveLayoutRequest = {
+    /**
+     * Layout
+     */
+    layout: {
+        [key: string]: unknown;
+    };
+};
+
+/**
  * Seat
  */
 export type Seat = {
@@ -1803,6 +2126,29 @@ export type SeatAvailability = {
      */
     state: 'free' | 'reserved' | 'occupied' | 'on_break' | 'claimable' | 'unavailable';
 };
+
+/**
+ * ServerEvent
+ *
+ * One message on the /api/v1/events stream.
+ */
+export type ServerEvent = ({
+    type: 'friend_request.received';
+} & FriendRequestReceivedEvent) | ({
+    type: 'friend_request.accepted';
+} & FriendRequestAcceptedEvent) | ({
+    type: 'party.invited';
+} & PartyInvitedEvent) | ({
+    type: 'party.replied';
+} & PartyRepliedEvent) | ({
+    type: 'party.left';
+} & PartyLeftEvent) | ({
+    type: 'party.booked';
+} & PartyBookedEvent) | ({
+    type: 'party.cancelled';
+} & PartyCancelledEvent) | ({
+    type: 'ping';
+} & PingEvent);
 
 /**
  * SocialCapabilities
@@ -1911,6 +2257,10 @@ export type SpaceDetail = {
      */
     opening_hours: Array<OpeningInterval>;
     /**
+     * Photo Url
+     */
+    photo_url?: string | null;
+    /**
      * Seats
      */
     seats: Array<SeatAvailability>;
@@ -1967,6 +2317,10 @@ export type SpaceSummary = {
      * Name
      */
     name: string;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Timezone
      */
@@ -2039,6 +2393,16 @@ export type TimeRange = {
      */
     to: string;
     [key: string]: unknown;
+};
+
+/**
+ * UpdateAdminUserRequest
+ */
+export type UpdateAdminUserRequest = {
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -2313,6 +2677,58 @@ export type AdminCreateSpaceResponses = {
 
 export type AdminCreateSpaceResponse = AdminCreateSpaceResponses[keyof AdminCreateSpaceResponses];
 
+export type AdminArchiveSpaceData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}';
+};
+
+export type AdminArchiveSpaceErrors = {
+    /**
+     * Response 400 Admin Archive Space
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
+};
+
+export type AdminArchiveSpaceError = AdminArchiveSpaceErrors[keyof AdminArchiveSpaceErrors];
+
+export type AdminArchiveSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceResponse;
+};
+
+export type AdminArchiveSpaceResponse = AdminArchiveSpaceResponses[keyof AdminArchiveSpaceResponses];
+
 export type AdminUpdateSpaceData = {
     body: UpdateSpaceRequest;
     path: {
@@ -2555,6 +2971,65 @@ export type AdminDeleteClosureResponses = {
 
 export type AdminDeleteClosureResponse = AdminDeleteClosureResponses[keyof AdminDeleteClosureResponses];
 
+export type AdminSaveLayoutData = {
+    body: SaveLayoutRequest;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: {
+        /**
+         * Force
+         */
+        force?: boolean;
+    };
+    url: '/api/v1/admin/spaces/{space_id}/layout';
+};
+
+export type AdminSaveLayoutErrors = {
+    /**
+     * Response 400 Admin Save Layout
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Response 409 Admin Save Layout
+     *
+     * Conflict
+     */
+    409: BookingErrorResponse | AdminConflictResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
+};
+
+export type AdminSaveLayoutError = AdminSaveLayoutErrors[keyof AdminSaveLayoutErrors];
+
+export type AdminSaveLayoutResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceOverviewResponse;
+};
+
+export type AdminSaveLayoutResponse = AdminSaveLayoutResponses[keyof AdminSaveLayoutResponses];
+
 export type AdminReplaceOpeningHoursData = {
     body: ReplaceOpeningHoursRequest;
     path: {
@@ -2665,6 +3140,110 @@ export type AdminGetSpaceOverviewResponses = {
 };
 
 export type AdminGetSpaceOverviewResponse = AdminGetSpaceOverviewResponses[keyof AdminGetSpaceOverviewResponses];
+
+export type AdminPermanentlyDeleteSpaceData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}/permanent';
+};
+
+export type AdminPermanentlyDeleteSpaceErrors = {
+    /**
+     * Response 400 Admin Permanently Delete Space
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
+};
+
+export type AdminPermanentlyDeleteSpaceError = AdminPermanentlyDeleteSpaceErrors[keyof AdminPermanentlyDeleteSpaceErrors];
+
+export type AdminPermanentlyDeleteSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceDeletedResponse;
+};
+
+export type AdminPermanentlyDeleteSpaceResponse = AdminPermanentlyDeleteSpaceResponses[keyof AdminPermanentlyDeleteSpaceResponses];
+
+export type AdminRestoreSpaceData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}/restore';
+};
+
+export type AdminRestoreSpaceErrors = {
+    /**
+     * Response 400 Admin Restore Space
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
+};
+
+export type AdminRestoreSpaceError = AdminRestoreSpaceErrors[keyof AdminRestoreSpaceErrors];
+
+export type AdminRestoreSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceResponse;
+};
+
+export type AdminRestoreSpaceResponse = AdminRestoreSpaceResponses[keyof AdminRestoreSpaceResponses];
 
 export type AdminCreateSeatData = {
     body: CreateSeatRequest;
@@ -2836,6 +3415,157 @@ export type AdminUpdateSeatResponses = {
 };
 
 export type AdminUpdateSeatResponse = AdminUpdateSeatResponses[keyof AdminUpdateSeatResponses];
+
+export type AdminListUsersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/users';
+};
+
+export type AdminListUsersErrors = {
+    /**
+     * Response 400 Admin List Users
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
+};
+
+export type AdminListUsersError = AdminListUsersErrors[keyof AdminListUsersErrors];
+
+export type AdminListUsersResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminUsersResponse;
+};
+
+export type AdminListUsersResponse = AdminListUsersResponses[keyof AdminListUsersResponses];
+
+export type AdminGetUserData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/users/{user_id}';
+};
+
+export type AdminGetUserErrors = {
+    /**
+     * Response 400 Admin Get User
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
+};
+
+export type AdminGetUserError = AdminGetUserErrors[keyof AdminGetUserErrors];
+
+export type AdminGetUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminUserHistoryResponse;
+};
+
+export type AdminGetUserResponse = AdminGetUserResponses[keyof AdminGetUserResponses];
+
+export type AdminUpdateUserData = {
+    body: UpdateAdminUserRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/users/{user_id}';
+};
+
+export type AdminUpdateUserErrors = {
+    /**
+     * Response 400 Admin Update User
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
+};
+
+export type AdminUpdateUserError = AdminUpdateUserErrors[keyof AdminUpdateUserErrors];
+
+export type AdminUpdateUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminUserHistoryResponse;
+};
+
+export type AdminUpdateUserResponse = AdminUpdateUserResponses[keyof AdminUpdateUserResponses];
 
 export type CheckInData = {
     body: CheckInRequest;
@@ -3117,6 +3847,48 @@ export type SaveMapNavigationResponses = {
 };
 
 export type SaveMapNavigationResponse = SaveMapNavigationResponses[keyof SaveMapNavigationResponses];
+
+export type SearchMapRoomsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         *
+         * e.g. "HG E 1"
+         */
+        q: string;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/map/rooms';
+};
+
+export type SearchMapRoomsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Service Unavailable
+     */
+    503: ErrorResponse;
+};
+
+export type SearchMapRoomsError = SearchMapRoomsErrors[keyof SearchMapRoomsErrors];
+
+export type SearchMapRoomsResponses = {
+    /**
+     * Response Search Map Rooms
+     *
+     * Successful Response
+     */
+    200: Array<FloorPlanRoom>;
+};
+
+export type SearchMapRoomsResponse = SearchMapRoomsResponses[keyof SearchMapRoomsResponses];
 
 export type GetMapStyleData = {
     body?: never;
@@ -3411,6 +4183,43 @@ export type AddFavouriteResponses = {
 };
 
 export type AddFavouriteResponse = AddFavouriteResponses[keyof AddFavouriteResponses];
+
+export type ListRecentsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/recents';
+};
+
+export type ListRecentsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListRecentsError = ListRecentsErrors[keyof ListRecentsErrors];
+
+export type ListRecentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecentsResponse;
+};
+
+export type ListRecentsResponse = ListRecentsResponses[keyof ListRecentsResponses];
 
 export type GetMyReservationData = {
     body?: never;
@@ -4481,6 +5290,43 @@ export type ListSpacesResponses = {
 };
 
 export type ListSpacesResponse = ListSpacesResponses[keyof ListSpacesResponses];
+
+export type ListPopularSpacesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/spaces/popular';
+};
+
+export type ListPopularSpacesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListPopularSpacesError = ListPopularSpacesErrors[keyof ListPopularSpacesErrors];
+
+export type ListPopularSpacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PopularSpacesResponse;
+};
+
+export type ListPopularSpacesResponse = ListPopularSpacesResponses[keyof ListPopularSpacesResponses];
 
 export type GetSpaceData = {
     body?: never;

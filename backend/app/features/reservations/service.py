@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.features.campus_map.room_photos import RoomPhotos
 from app.features.reservations.models import (
     Break,
     Reservation,
@@ -24,6 +25,8 @@ from app.features.reservations.schemas import (
     FavouritesResponse,
     MyReservationResponse,
     OpeningInterval,
+    PopularSpacesResponse,
+    RecentsResponse,
     ReservationAction,
     ReservationDetails,
     ReservationResponse,
@@ -37,8 +40,38 @@ from app.features.reservations.schemas import (
     SpaceSummary,
 )
 from app.models.favourite import FavouriteSpace
+from app.models.recent import RecentSpace
 
 LIVE_STATUSES = {"upcoming", "pending", "active", "on_break"}
+RECENTS_LIMIT = 10
+POPULAR_LIMIT = 5
+POPULAR_WINDOW = timedelta(days=7)
+
+# Share of each space's seat time that was checked in during [since, until): seconds
+# sat (breaks included) over active seats times the space's weekly opening hours.
+# A seven-day window covers each weekday once, so the weekly hours are the open time.
+POPULAR_SPACES = text("""
+    WITH used AS (
+        SELECT seat.space_id, sum(extract(epoch FROM
+            LEAST(r.effective_ends_at, :until) - GREATEST(r.checked_in_at, :since)
+        )) AS seconds
+        FROM reservation_states_at(:until) r JOIN seats seat ON seat.id = r.seat_id
+        WHERE r.checked_in_at < :until AND r.effective_ends_at > :since
+        GROUP BY seat.space_id
+    ), capacity AS (
+        SELECT space.id AS space_id,
+            (SELECT count(*) FROM seats seat
+                WHERE seat.space_id = space.id AND seat.is_active)
+            * (SELECT COALESCE(sum(h.end_minute - h.start_minute), 0) * 60
+                FROM space_opening_intervals h WHERE h.space_id = space.id) AS seconds
+        FROM study_spaces space
+    )
+    SELECT c.space_id FROM capacity c
+    JOIN study_spaces space ON space.id = c.space_id
+    LEFT JOIN used u ON u.space_id = c.space_id
+    ORDER BY COALESCE(u.seconds / NULLIF(c.seconds, 0), 0) DESC, space.name, space.id
+    LIMIT :limit
+""")
 
 
 class BookingError(Exception):
@@ -104,6 +137,24 @@ def reservation_states(
     return [ReservationState(**row) for row in session.execute(statement, parameters).mappings()]
 
 
+def layout_with_seats(layout: dict | None, seats: list) -> dict | None:
+    """Fill each bound seat object with its seat row's label and activation.
+
+    The seats table owns both; the stored layout keeps only geometry and the
+    `backendSeatId` link, so the two cannot drift apart.
+    """
+    if not layout or not isinstance(layout.get("objects"), list):
+        return layout
+    by_id = {str(seat.id): seat for seat in seats}
+    objects = []
+    for item in layout["objects"]:
+        seat = by_id.get(item.get("backendSeatId")) if item.get("type") == "seat" else None
+        if seat is not None:
+            item = {**item, "backendLabel": seat.label, "active": seat.is_active}
+        objects.append(item)
+    return {**layout, "objects": objects}
+
+
 class ReservationService:
     def __init__(self, session: Session, settings: Settings):
         self.session = session
@@ -116,11 +167,18 @@ class ReservationService:
     def reservable_end(
         self, seat_id: UUID, starts_at: datetime, ends_at: datetime
     ) -> datetime | None:
+        seat = self.session.get(Seat, seat_id)
+        space = self.session.get(StudySpace, seat.space_id) if seat else None
+        if space is None or space.is_archived:
+            return None
         return self.session.scalar(
             select(func.seat_reservation_end_at(seat_id, starts_at, ends_at))
         )
 
     def is_open(self, space_id: UUID, now: datetime) -> bool:
+        space = self.session.get(StudySpace, space_id)
+        if space is None or space.is_archived:
+            return False
         return self.session.scalar(select(func.space_is_open_at(space_id, now)))
 
     def opening_hours(self, space_id: UUID) -> list[OpeningInterval]:
@@ -369,9 +427,11 @@ class ReservationService:
             server_time=now, reservation=self._details(states[0], now) if states else None
         )
 
-    def spaces(self, map_room_id: str | None = None) -> SpacesResponse:
+    def spaces(
+        self, map_room_id: str | None = None, room_photos: RoomPhotos | None = None
+    ) -> SpacesResponse:
         now = self.now()
-        query = select(StudySpace)
+        query = select(StudySpace).where(StudySpace.is_archived.is_(False))
         if map_room_id is not None:
             query = query.where(StudySpace.map_room_id == map_room_id)
         spaces = self.session.scalars(query.order_by(StudySpace.name, StudySpace.id)).all()
@@ -384,6 +444,7 @@ class ReservationService:
             seats_by_space[seat.space_id].append(
                 self._availability(seat, states_by_seat[seat.id], now)
             )
+        photos = room_photos.lookup(space.map_room_id for space in spaces) if room_photos else {}
         return SpacesResponse(
             server_time=now,
             spaces=[
@@ -397,6 +458,7 @@ class ReservationService:
                     is_open=self.is_open(space.id, now),
                     total_seats=len(seats_by_space[space.id]),
                     free_seats=sum(seat.state == "free" for seat in seats_by_space[space.id]),
+                    photo_url=photos.get(space.map_room_id),
                 )
                 for space in spaces
             ],
@@ -428,9 +490,37 @@ class ReservationService:
         self.session.flush()
         return self.favourites(user_id)
 
-    def space(self, space_id: UUID) -> SpaceResponse:
+    def popular(self) -> PopularSpacesResponse:
+        now = self.now()
+        ids = self.session.scalars(
+            POPULAR_SPACES,
+            {"since": now - POPULAR_WINDOW, "until": now, "limit": POPULAR_LIMIT},
+        ).all()
+        return PopularSpacesResponse(space_ids=list(ids))
+
+    def recents(self, user_id: UUID) -> RecentsResponse:
+        ids = self.session.scalars(
+            select(RecentSpace.space_id)
+            .where(RecentSpace.user_id == user_id)
+            .order_by(RecentSpace.last_used_at.desc(), RecentSpace.space_id)
+            .limit(RECENTS_LIMIT)
+        ).all()
+        return RecentsResponse(space_ids=list(ids))
+
+    def _remember(self, user_id: UUID, seat_ids: list[UUID], now: datetime) -> None:
+        """Marks the space of a booked or scanned seat as recently used."""
+        space_id = self.session.scalar(select(Seat.space_id).where(Seat.id.in_(seat_ids)))
+        stmt = insert(RecentSpace).values(user_id=user_id, space_id=space_id, last_used_at=now)
+        self.session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=[RecentSpace.user_id, RecentSpace.space_id],
+                set_={"last_used_at": stmt.excluded.last_used_at},
+            )
+        )
+
+    def space(self, space_id: UUID, room_photos: RoomPhotos | None = None) -> SpaceResponse:
         space = self.session.get(StudySpace, space_id)
-        if space is None:
+        if space is None or space.is_archived:
             raise BookingError(404, "not_found", "Study space not found")
         now = self.now()
         seats = self.session.scalars(
@@ -440,6 +530,7 @@ class ReservationService:
         for state in self._live(now, seat_ids=[seat.id for seat in seats]):
             states_by_seat[state.seat_id].append(state)
         availability = [self._availability(seat, states_by_seat[seat.id], now) for seat in seats]
+        photos = room_photos.lookup([space.map_room_id]) if room_photos else {}
         return SpaceResponse(
             server_time=now,
             space=SpaceDetail(
@@ -448,12 +539,13 @@ class ReservationService:
                 map_room_id=space.map_room_id,
                 lat=space.lat,
                 lng=space.lng,
-                layout=space.layout,
+                layout=layout_with_seats(space.layout, seats),
                 timezone=space.timezone,
                 is_open=self.is_open(space.id, now),
                 opening_hours=self.opening_hours(space.id),
                 total_seats=len(seats),
                 free_seats=sum(seat.state == "free" for seat in availability),
+                photo_url=photos.get(space.map_room_id),
                 seats=availability,
             ),
         )
@@ -526,6 +618,7 @@ class ReservationService:
                 starts_at=availability.reservable_at,
                 predecessor=current.id if current else None,
             )
+            self._remember(user_id, [seat.id], now)
             return row.id, now
         raise BookingError(409, "seat_unavailable", "No eligible seat is available")
 
@@ -556,10 +649,12 @@ class ReservationService:
                     or row.ends_at
                 )
                 self.session.flush()
+                self._remember(user_id, [seat.id], now)
             return state.id, now
         if self._live(now, seat_ids=[seat.id]):
             raise BookingError(409, "seat_unavailable", "This seat is not free")
         row = self._insert(user_id, seat.id, now, checked_in=True)
+        self._remember(user_id, [seat.id], now)
         return row.id, now
 
     def act(self, user_id: UUID, reservation_id: UUID, action: str) -> tuple[UUID, datetime]:

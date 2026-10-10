@@ -15,8 +15,10 @@ from app.features.campus_map.floor_plans import FloorPlans
 from app.features.campus_map.importer import MAP_DATA_DIR, import_files
 from app.features.campus_map.models import MapOverride
 from app.features.campus_map.overlay import merge_overrides
+from app.features.campus_map.room_photos import RoomPhotos
 from app.features.campus_map.services import MapServices, get_services
 from app.main import app
+from tests.campus_map.test_floor_plans import write_plans
 
 ADMIN = {"X-Demo-Admin": "true"}
 
@@ -65,6 +67,7 @@ def client(db: Engine, tmp_path: Path, datasets_dir: Path) -> Iterator[TestClien
     services = MapServices(
         datasets=DatasetCache(tmp_path / "cache", datasets_dir),
         floor_plans=FloorPlans(tmp_path / "floors"),
+        room_photos=RoomPhotos(),
     )
     app.dependency_overrides[get_session] = test_session
     app.dependency_overrides[get_services] = lambda: services
@@ -190,3 +193,14 @@ def test_eth_rooms_adds_floor_plan_matches(
     assert body["unmatched"] == ["HG E 7"]
     assert body["floorPlans"] is False
     assert client.get("/api/v1/map/eth/rooms", params={"date": "10.10."}).status_code == 422
+
+
+def test_room_search_covers_every_level(client: TestClient, tmp_path: Path) -> None:
+    assert client.get("/api/v1/map/rooms", params={"q": "HG"}).status_code == 503
+    write_plans(tmp_path / "floors")
+    response = client.get("/api/v1/map/rooms", params={"q": "hg e 7"})
+    assert response.status_code == 200
+    assert response.json() == [
+        {"id": "ETH.HG.E.E_007", "name": "HG E 7", "levelId": "ETH.HG.E", "use": "", "area": 0}
+    ]
+    assert client.get("/api/v1/map/rooms", params={"q": ""}).status_code == 422

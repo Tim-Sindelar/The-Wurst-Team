@@ -24,6 +24,12 @@ for check in '/api/v1/me:401' '/api/deployment-nonexistent:404'; do
   fi
 done
 
+# The installable app: manifest and service worker are served as files, not the SPA page.
+curl --fail --silent --show-error --max-time 10 "$base_url/manifest.webmanifest" |
+  python3 -c 'import json,sys; m=json.load(sys.stdin); assert m["start_url"] == "./" and m["icons"], m'
+curl --fail --silent --show-error --max-time 10 "$base_url/sw.js" -o "$scratch/sw.js"
+grep -q 'precache' "$scratch/sw.js"
+
 # Local-only test: these headers must pass through Caddy, not be synthesized.
 curl --fail --silent --show-error --max-time 10 \
   -H 'X-User-Id: deployment-smoke@example.invalid' \

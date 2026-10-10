@@ -1,11 +1,12 @@
 """Idempotent demo catalogue: python -m app.features.reservations.seed."""
 
 import json
+from datetime import timedelta
 from pathlib import Path
 from secrets import token_urlsafe
 from uuid import NAMESPACE_URL, uuid5
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -13,13 +14,33 @@ from app.config import get_settings
 from app.database import SessionLocal
 from app.features.campus_map.floor_plans import FloorPlans
 from app.features.reservations.models import Seat, SpaceOpeningInterval, StudySpace
+from app.models.favourite import FavouriteSpace
+from app.models.recent import RecentSpace
+
+DemoRoom = tuple[str, str, str]  # key, name, map room id
+
+CORE_ROOMS: tuple[DemoRoom, ...] = (
+    ("zentrum", "Demo: HG E 51", "ETH.HG.E.E_051"),
+    ("hoenggerberg", "Demo: Baubibliothek HIL E 2.1", "ETH.HIL.E.E_002.1"),
+)
+# More rooms so Home has something to fill its Favourites and Recent columns with.
+EXTRA_ROOMS: tuple[DemoRoom, ...] = (
+    ("hg-d-3", "Demo: HG D 3.1", "ETH.HG.D.D_003.1"),
+    ("hg-f-5", "Demo: HG F 5", "ETH.HG.F.F_005"),
+    ("cab-e-11", "Demo: CAB E 11.1", "ETH.CAB.E.E_011.1"),
+    ("cab-f-11", "Demo: CAB F 11", "ETH.CAB.F.F_011"),
+    ("hci-g-2", "Demo: HCI G 2", "ETH.HCI.G.G_002"),
+    ("lfw-c-1", "Demo: LFW C 1", "ETH.LFW.C.C_001"),
+    ("ml-h-11", "Demo: ML H 11", "ETH.ML.H.H_011"),
+    ("no-c-5", "Demo: NO C 5", "ETH.NO.C.C_005"),
+    ("hph-g-1", "Demo: HPH G 1", "ETH.HPH.G.G_001"),
+    ("chn-f-14", "Demo: CHN F 14", "ETH.CHN.F.F_014"),
+)
 
 
-def seed_demo(session: Session, floors_dir: Path | None = None) -> list[Seat]:
-    rooms = (
-        ("zentrum", "Demo: HG E 51", "ETH.HG.E.E_051"),
-        ("hoenggerberg", "Demo: Baubibliothek HIL E 2.1", "ETH.HIL.E.E_002.1"),
-    )
+def seed_demo(
+    session: Session, floors_dir: Path | None = None, rooms: tuple[DemoRoom, ...] = CORE_ROOMS
+) -> list[Seat]:
     plans = FloorPlans(floors_dir or get_settings().map_floors_dir).index()
     if plans is None:
         raise ValueError("Floor plans are unavailable; cannot validate demo map rooms")
@@ -74,9 +95,40 @@ def seed_demo(session: Session, floors_dir: Path | None = None) -> list[Seat]:
     return list(session.scalars(select(Seat).where(Seat.id.in_(seat_ids)).order_by(Seat.id)))
 
 
+DEMO_FAVOURITES = ("zentrum", "hg-d-3", "cab-e-11", "hci-g-2", "ml-h-11", "hph-g-1")
+DEMO_RECENTS = ("hoenggerberg", "hg-f-5", "cab-f-11", "lfw-c-1", "no-c-5", "chn-f-14")
+
+
+def seed_demo_shortcuts(session: Session) -> None:
+    """Gives the default demo user favourites and recents (different rooms) for Home."""
+    user_id = get_settings().dummy_user_id
+
+    def space_id(key: str):
+        return uuid5(NAMESPACE_URL, f"eth-study-demo/space/{key}")
+
+    for key in DEMO_FAVOURITES:
+        session.execute(
+            insert(FavouriteSpace)
+            .values(user_id=user_id, space_id=space_id(key))
+            .on_conflict_do_nothing()
+        )
+    for index, key in enumerate(DEMO_RECENTS):
+        # Newest first: each one an hour older than the one before.
+        session.execute(
+            insert(RecentSpace)
+            .values(
+                user_id=user_id,
+                space_id=space_id(key),
+                last_used_at=func.now() - timedelta(hours=index),
+            )
+            .on_conflict_do_nothing()
+        )
+
+
 def main() -> None:
     with SessionLocal() as session:
-        seats = seed_demo(session)
+        seats = seed_demo(session, rooms=CORE_ROOMS + EXTRA_ROOMS)
+        seed_demo_shortcuts(session)
         session.commit()
         print(
             json.dumps(

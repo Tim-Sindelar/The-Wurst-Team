@@ -1,4 +1,5 @@
 import type { SpaceSummary } from '../api/generated';
+import { searchByName } from './similarity.ts';
 
 export type Availability = 'high' | 'mid' | 'none';
 
@@ -9,6 +10,9 @@ export type StudySpace = {
   availability: Availability;
   availabilityText: string;
   favourite: boolean;
+  /** The API path of the space's ETH room photo, if ETH has one. Without it the card
+     stays plain. */
+  photoUrl?: string;
 };
 
 /** At or below this share of free seats a room counts as almost full. */
@@ -42,23 +46,50 @@ export function toStudySpace(
     freeSeats: space.free_seats,
     favourite,
     ...describeAvailability(space.free_seats, space.total_seats, space.is_open),
+    photoUrl: space.photo_url ?? undefined,
   };
 }
 
-/** The spaces whose name contains the search text, ignoring case. */
+/** The spaces that match the search text, best match first. Forgives case,
+   accents, word order, partial words and small typos. */
 export function filterSpaces(
   spaces: StudySpace[],
   search: string,
 ): StudySpace[] {
-  const needle = search.trim().toLowerCase();
-  if (!needle) return spaces;
-  return spaces.filter((space) => space.name.toLowerCase().includes(needle));
+  return searchByName(spaces, search, (space) => space.name);
 }
 
-/** Favourites first; otherwise the order is kept. */
-export function favouritesFirst(spaces: StudySpace[]): StudySpace[] {
+/** The favourite spaces, in their current order. */
+export function favouriteSpaces(spaces: StudySpace[]): StudySpace[] {
+  return spaces.filter((space) => space.favourite);
+}
+
+/** The spaces named in `ids`, in that order (recents, most popular). Ids of
+   spaces not in `spaces` are skipped. */
+export function spacesByIds(
+  spaces: StudySpace[],
+  ids: readonly string[],
+): StudySpace[] {
+  const byId = new Map(spaces.map((space) => [space.id, space]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
+
+export type SpaceRowData = { id: string; title: string; spaces: StudySpace[] };
+
+/** The rows shown before anything is searched, in order: Favourites, Recent
+   (newest first) and Most popular. */
+export function spaceRows(
+  spaces: StudySpace[],
+  recentIds: readonly string[],
+  popularIds: readonly string[],
+): SpaceRowData[] {
   return [
-    ...spaces.filter((space) => space.favourite),
-    ...spaces.filter((space) => !space.favourite),
+    { id: 'favourites', title: 'Favourites', spaces: favouriteSpaces(spaces) },
+    { id: 'recent', title: 'Recent', spaces: spacesByIds(spaces, recentIds) },
+    {
+      id: 'popular',
+      title: 'Most popular',
+      spaces: spacesByIds(spaces, popularIds),
+    },
   ];
 }

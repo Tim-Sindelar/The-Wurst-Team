@@ -10,6 +10,7 @@ type StatusBannerProps = {
   children?: ReactNode;
   /** Urgent banners stay until dismissed; others hide after about 6 seconds. */
   urgent?: boolean;
+  placement?: 'phone' | 'admin';
 };
 
 const AUTO_HIDE_MS = 6000;
@@ -22,6 +23,7 @@ export function StatusBanner({
   title,
   children,
   urgent = false,
+  placement = 'phone',
 }: StatusBannerProps) {
   useEffect(() => {
     if (!opened || urgent) return;
@@ -32,16 +34,20 @@ export function StatusBanner({
   return (
     <div
       className={
-        urgent
-          ? 'pointer-events-none fixed top-16 left-1/2 z-30 grid w-full max-w-phone -translate-x-1/2 gap-2 p-2'
-          : opened
-            ? 'grid gap-2'
-            : 'hidden'
+        placement === 'admin'
+          ? 'admin-banner-region'
+          : urgent
+            ? 'pointer-events-none fixed top-16 left-1/2 z-30 grid w-full tablet:max-w-phone -translate-x-1/2 gap-2 p-2'
+            : opened
+              ? 'grid gap-2'
+              : 'hidden'
       }
     >
       <Transition
         mounted={opened}
-        transition={urgent ? 'slide-down' : 'fade'}
+        transition={
+          placement === 'admin' ? 'slide-up' : urgent ? 'slide-down' : 'fade'
+        }
         duration={250}
         timingFunction="cubic-bezier(0.2, 0, 0, 1)"
       >

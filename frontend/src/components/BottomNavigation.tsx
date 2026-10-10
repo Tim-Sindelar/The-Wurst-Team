@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from 'react-router';
 import { paths } from '../routes';
 import { socialEnabled } from '../features';
+import { socialPaths } from '../features/social/paths';
 import { Icon } from './Icon';
 
 /** The shell keeps navigation separate from scrolling content and actions. */
@@ -8,7 +9,7 @@ export function BottomNavigation() {
   const { pathname } = useLocation();
   return (
     <nav className="ui-bottom-nav" aria-label="Main navigation">
-      <div className="mx-auto grid w-full max-w-phone auto-cols-fr grid-flow-col">
+      <div className="mx-auto grid w-full tablet:max-w-phone auto-cols-fr grid-flow-col">
         <NavLink to={paths.home} end className="ui-bottom-nav-link">
           <Icon name="home" />
           <span>Home</span>
@@ -19,10 +20,14 @@ export function BottomNavigation() {
         </NavLink>
         {socialEnabled && (
           <NavLink
-            to="/social-draft"
+            to={socialPaths.friends}
             className="ui-bottom-nav-link"
             aria-current={
-              pathname.startsWith('/social-draft') ? 'page' : undefined
+              ['/friends', '/requests', '/groups'].some((path) =>
+                pathname.startsWith(path),
+              )
+                ? 'page'
+                : undefined
             }
           >
             <Icon name="friends" />

@@ -21,6 +21,7 @@ from app.features.reservations.schemas import (
     ReservationStatus,
     SeatAvailability,
     SpaceSummary,
+    UTCResponse,
 )
 
 NAMED_TIMEZONES = available_timezones() - {"localtime", "posixrules"}
@@ -120,7 +121,7 @@ class AdminUser(BaseModel):
     display_name: str
 
 
-class ClosureDetails(BaseModel):
+class ClosureDetails(UTCResponse):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     space_id: UUID
@@ -130,7 +131,7 @@ class ClosureDetails(BaseModel):
     reason: str | None
 
 
-class ReservationImpact(BaseModel):
+class ReservationImpact(UTCResponse):
     reservation_id: UUID
     seat_id: UUID
     user: AdminUser
@@ -145,6 +146,8 @@ class ReservationImpact(BaseModel):
 
 
 class AdminSpaceSummary(SpaceSummary):
+    is_archived: bool = False
+    map_unit_id: str | None = None
     active_seats: int
     occupied_seats: int
     on_break_seats: int
@@ -178,46 +181,51 @@ class AdminSpaceOverview(AdminSpaceDetails):
     seats: list[AdminSeatOverview]
 
 
-class AdminSpacesResponse(BaseModel):
+class AdminSpacesResponse(UTCResponse):
     server_time: datetime
     spaces: list[AdminSpaceSummary]
 
 
-class AdminSpaceResponse(BaseModel):
+class AdminSpaceResponse(UTCResponse):
     server_time: datetime
     space: AdminSpaceDetails
     reservation_impacts: list[ReservationImpact]
 
 
-class AdminSeatResponse(BaseModel):
+class AdminSpaceDeletedResponse(UTCResponse):
+    server_time: datetime
+    deleted_space_id: UUID
+
+
+class AdminSeatResponse(UTCResponse):
     server_time: datetime
     seat: AdminSeatDetails
     reservation_impacts: list[ReservationImpact]
 
 
-class AdminSpaceOverviewResponse(BaseModel):
+class AdminSpaceOverviewResponse(UTCResponse):
     server_time: datetime
     space: AdminSpaceOverview
 
 
-class AdminClosuresResponse(BaseModel):
+class AdminClosuresResponse(UTCResponse):
     server_time: datetime
     closures: list[ClosureDetails]
 
 
-class AdminClosureResponse(BaseModel):
+class AdminClosureResponse(UTCResponse):
     server_time: datetime
     closure: ClosureDetails
     reservation_impacts: list[ReservationImpact]
 
 
-class AdminClosureDeletedResponse(BaseModel):
+class AdminClosureDeletedResponse(UTCResponse):
     server_time: datetime
     deleted_closure_id: UUID
     reservation_impacts: list[ReservationImpact]
 
 
-class AdminReservationResponse(BaseModel):
+class AdminReservationResponse(UTCResponse):
     server_time: datetime
     reservation: AdminReservationDetails
 
@@ -226,3 +234,30 @@ class AdminConflictResponse(BaseModel):
     code: Literal["reservation_conflict"] = "reservation_conflict"
     detail: str
     reservation_impacts: list[ReservationImpact]
+
+
+class SaveLayoutRequest(AdminRequest):
+    layout: dict[str, Any]
+
+
+class AdminUserSummary(BaseModel):
+    id: UUID
+    name: str
+    reservations: int
+    study_seconds: int
+    live_reservations: int
+
+
+class AdminUsersResponse(UTCResponse):
+    server_time: datetime
+    users: list[AdminUserSummary]
+
+
+class AdminUserHistoryResponse(UTCResponse):
+    server_time: datetime
+    user: AdminUserSummary
+    reservations: list[AdminReservationDetails]
+
+
+class UpdateAdminUserRequest(AdminRequest):
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]

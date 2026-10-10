@@ -14,6 +14,7 @@ import { Icon } from '../components/Icon';
 import { Screen, ScreenHeader, ScreenMain } from '../components/Screen';
 import { SectionLabel } from '../components/SectionLabel';
 import { StatusBanner } from '../components/StatusBanner';
+import { ThemeSwitch } from '../components/ThemeSwitch';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useNotificationPreferences } from '../hooks/useNotificationPreferences';
 import { paths } from '../routes';
@@ -70,6 +71,10 @@ export function ProfileScreen() {
                   <Icon name="edit" />
                 </ActionIcon>
               </div>
+            </Card>
+            <SectionLabel>Appearance</SectionLabel>
+            <Card component="section" aria-label="Appearance settings">
+              <ThemeSwitch />
             </Card>
             <NotificationSettings key={user.id} user={user} />
           </>

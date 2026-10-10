@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, 
 from PIL import Image, ImageOps
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
+from starlette.requests import HTTPConnection
 
 from app.config import Settings, get_settings
 from app.database import get_session
@@ -20,8 +21,9 @@ MAX_PHOTO_BYTES = 12 * 1024 * 1024
 
 
 def get_current_user(
-    request: Request, settings: Annotated[Settings, Depends(get_settings)]
+    request: HTTPConnection, settings: Annotated[Settings, Depends(get_settings)]
 ) -> UUID:
+    # HTTPConnection, not Request, so it also works for WebSocket routes.
     if settings.auth_mode == "proxy":
         email = request.headers.get("X-User-Id", "").strip()
         if not email:
@@ -41,6 +43,8 @@ def get_current_admin(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> UUID:
     if settings.auth_mode != "demo":
+        if user_id in settings.admin_user_ids:
+            return user_id
         raise HTTPException(status_code=403, detail="Administrator access required")
     is_admin = settings.dummy_is_admin
     override = request.headers.get("X-Demo-Admin")

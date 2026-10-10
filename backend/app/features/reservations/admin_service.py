@@ -5,7 +5,7 @@ from secrets import token_urlsafe
 from uuid import UUID
 
 from fastapi.exceptions import RequestValidationError
-from sqlalchemy import delete, select, text
+from sqlalchemy import delete, func, or_, select, text, update
 
 from app.features.campus_map.floor_plans import FloorPlans
 from app.features.reservations.admin_schemas import (
@@ -18,6 +18,7 @@ from app.features.reservations.admin_schemas import (
     AdminSeatDetails,
     AdminSeatOverview,
     AdminSeatResponse,
+    AdminSpaceDeletedResponse,
     AdminSpaceDetails,
     AdminSpaceOverview,
     AdminSpaceOverviewResponse,
@@ -35,6 +36,7 @@ from app.features.reservations.admin_schemas import (
     UpdateSpaceRequest,
 )
 from app.features.reservations.models import (
+    Break,
     Reservation,
     Seat,
     SpaceClosure,
@@ -46,8 +48,12 @@ from app.features.reservations.service import (
     BookingError,
     ReservationService,
     ReservationState,
+    layout_with_seats,
     reservation_states,
 )
+from app.features.social.models import PartyMember
+from app.models.favourite import FavouriteSpace
+from app.models.profile import UserProfile
 
 
 class AdminConflict(Exception):
@@ -119,6 +125,8 @@ class AdminReservationService(ReservationService):
         return AdminSpaceDetails(
             id=room.id,
             name=room.name,
+            is_archived=room.is_archived,
+            map_unit_id=self.map_unit_id(room.layout or {}),
             map_room_id=room.map_room_id,
             lat=room.lat,
             lng=room.lng,
@@ -129,7 +137,7 @@ class AdminReservationService(ReservationService):
             active_seats=sum(seat.is_active for seat in seats),
             occupied_seats=sum(s.status == "active" for s in states),
             on_break_seats=sum(s.status == "on_break" for s in states),
-            layout=room.layout,
+            layout=layout_with_seats(room.layout, seats),
             opening_hours=self.opening_hours(room.id),
         )
 
@@ -165,7 +173,14 @@ class AdminReservationService(ReservationService):
     def admin_details(self, state: ReservationState, now: datetime) -> AdminReservationDetails:
         return AdminReservationDetails(
             **self._details(state, now).model_dump(),
-            user=demo_user(state.user_id),
+            user=AdminUser(
+                id=state.user_id,
+                display_name=(
+                    profile.name
+                    if (profile := self.session.get(UserProfile, state.user_id))
+                    else demo_user(state.user_id).display_name
+                ),
+            ),
         )
 
     def overview(self, space_id: UUID) -> AdminSpaceOverviewResponse:
@@ -255,7 +270,7 @@ class AdminReservationService(ReservationService):
                 ReservationImpact(
                     reservation_id=state.id,
                     seat_id=state.seat_id,
-                    user=demo_user(state.user_id),
+                    user=self.admin_details(state, now).user,
                     status=state.status,
                     action=action,
                     previous_starts_at=state.effective_starts_at,
@@ -287,8 +302,39 @@ class AdminReservationService(ReservationService):
                 ]
             )
 
+    @staticmethod
+    def map_unit_id(layout: dict) -> str | None:
+        boundary = layout.get("room")
+        ref = boundary.get("mapRef") if isinstance(boundary, dict) else None
+        unit = ref.get("unitId") if isinstance(ref, dict) else None
+        return unit if isinstance(unit, str) and unit else None
+
+    def validate_map_binding(self, layout: dict, space_id: UUID | None = None) -> None:
+        unit = self.map_unit_id(layout)
+        if not unit:
+            return
+        self.session.execute(
+            select(func.pg_advisory_xact_lock(func.hashtext("study-room:" + unit)))
+        )
+        if space_id is not None and self.room(space_id).map_room_id != unit:
+            raise BookingError(400, "room_mismatch", "Layout must use the linked campus room")
+        query = select(StudySpace.id).where(
+            or_(
+                StudySpace.map_room_id == unit,
+                StudySpace.layout["room"]["mapRef"]["unitId"].astext == unit,
+            ),
+        )
+        if space_id is not None:
+            query = query.where(StudySpace.id != space_id)
+        if self.session.scalar(query) is not None:
+            raise BookingError(409, "room_registered", "This campus room is already registered")
+
     def create_space(self, request: CreateSpaceRequest) -> AdminSpaceResponse:
         self.validate_timezone(request.timezone)
+        unit = self.map_unit_id(request.layout)
+        if unit and unit != request.map_room_id:
+            raise BookingError(400, "room_mismatch", "Layout must use the linked campus room")
+        self.validate_map_binding(request.layout)
         plans = FloorPlans(self.settings.map_floors_dir).index()
         if plans is None:
             raise BookingError(503, "floor_plans_unavailable", "Floor plans are unavailable")
@@ -325,6 +371,8 @@ class AdminReservationService(ReservationService):
             self.validate_timezone(request.timezone)
         room, seats, now = self.lock_space(space_id)
         states = self._live(now, seat_ids=[seat.id for seat in seats])
+        if request.layout is not None:
+            self.validate_map_binding(request.layout, space_id)
         for name, value in request.model_dump(exclude_unset=True).items():
             setattr(room, name, value)
         impacts = self.apply_policy(states, now, force)
@@ -454,3 +502,258 @@ class AdminReservationService(ReservationService):
             server_time=now,
             reservation=self.admin_details(state, now),
         )
+
+    def archive_space(self, space_id: UUID, archived: bool) -> AdminSpaceResponse:
+        room, seats, now = self.lock_space(space_id)
+        if archived and self._live(now, seat_ids=[s.id for s in seats]):
+            raise BookingError(
+                409,
+                "live_reservations",
+                "End current and upcoming reservations before deleting this study place",
+            )
+        if not archived:
+            self.validate_map_binding(room.layout or {}, space_id)
+        room.is_archived = archived
+        self.session.flush()
+        return self.space_response(room, now, [])
+
+    def permanently_delete_space(self, space_id: UUID) -> AdminSpaceDeletedResponse:
+        room, seats, now = self.lock_space(space_id)
+        if not room.is_archived:
+            raise BookingError(
+                409, "space_not_archived", "Delete this study place before removing it permanently"
+            )
+        seat_ids = [seat.id for seat in seats]
+        if self._live(now, seat_ids=seat_ids):
+            raise BookingError(
+                409,
+                "live_reservations",
+                "End current and upcoming reservations "
+                "before permanently deleting this study place",
+            )
+        reservation_ids = select(Reservation.id).where(Reservation.seat_id.in_(seat_ids))
+        self.session.execute(delete(Break).where(Break.reservation_id.in_(reservation_ids)))
+        # Remove predecessor references first so history chains do not prevent
+        # deletion. Any surviving reservation keeps its own history and identity.
+        self.session.execute(
+            update(Reservation)
+            .where(Reservation.previous_reservation_id.in_(reservation_ids))
+            .values(previous_reservation_id=None)
+        )
+        # Keep party membership and its history, but detach removed bookings.
+        self.session.execute(
+            update(PartyMember)
+            .where(PartyMember.reservation_id.in_(reservation_ids))
+            .values(reservation_id=None)
+        )
+        self.session.execute(delete(Reservation).where(Reservation.seat_id.in_(seat_ids)))
+        self.session.execute(delete(SpaceClosure).where(SpaceClosure.space_id == space_id))
+        self.session.execute(
+            delete(SpaceOpeningInterval).where(SpaceOpeningInterval.space_id == space_id)
+        )
+        self.session.execute(delete(FavouriteSpace).where(FavouriteSpace.space_id == space_id))
+        self.session.execute(delete(Seat).where(Seat.space_id == space_id))
+        self.session.delete(room)
+        self.session.flush()
+        return AdminSpaceDeletedResponse(server_time=now, deleted_space_id=space_id)
+
+    def save_layout(self, space_id: UUID, layout: dict, force: bool) -> AdminSpaceOverviewResponse:
+        from math import isfinite
+
+        room, seats, now = self.lock_space(space_id)
+        if room.is_archived:
+            raise BookingError(
+                409, "archived_space", "Restore this study place before editing its layout"
+            )
+        if layout.get("schemaVersion") != 1 or not isinstance(layout.get("objects"), list):
+            raise BookingError(400, "invalid_layout", "Expected layout schemaVersion 1 and objects")
+        boundary = layout.get("room", {})
+        if (
+            not isinstance(boundary, dict)
+            or not isinstance(boundary.get("points"), list)
+            or len(boundary["points"]) < 3
+        ):
+            raise BookingError(400, "invalid_layout", "A room outline is required")
+        measurements = boundary.get("measurements", {})
+        if not isinstance(measurements, dict):
+            raise BookingError(400, "invalid_layout", "Check room measurements")
+        for key in ("width", "height", "widthMeters", "heightMeters"):
+            value = boundary.get(key, measurements.get(key))
+            if type(value) not in {int, float} or not isfinite(value) or value <= 0:
+                raise BookingError(
+                    400, "invalid_layout", "Room dimensions must be finite and positive"
+                )
+        points = boundary["points"]
+        # Holes (pillars, shafts) are drawn only; furniture is not checked against them.
+        holes = boundary.get("holes", [])
+        if not isinstance(holes, list) or any(not isinstance(h, list) or len(h) < 3 for h in holes):
+            raise BookingError(400, "invalid_layout", "Check room hole coordinates")
+        if len(points) + sum(len(h) for h in holes) > 10000 or any(
+            not isinstance(p, list)
+            or len(p) != 2
+            or any(type(v) not in {int, float} or not isfinite(v) for v in p)
+            for ring in (points, *holes)
+            for p in ring
+        ):
+            raise BookingError(400, "invalid_layout", "Check room outline coordinates")
+        if any(
+            abs(
+                sum(
+                    a[0] * b[1] - b[0] * a[1]
+                    for a, b in zip(ring, ring[1:] + ring[:1], strict=True)
+                )
+            )
+            < 0.001
+            for ring in (points, *holes)
+        ):
+            raise BookingError(400, "invalid_layout", "Room outline must enclose an area")
+        self.validate_map_binding(layout, space_id)
+        objects = [dict(o) for o in layout["objects"] if isinstance(o, dict)]
+        if len(objects) != len(layout["objects"]) or len(objects) > 2000:
+            raise BookingError(400, "invalid_layout", "Use at most 2000 furniture objects")
+        ids = [o.get("id") for o in objects]
+        if any(not isinstance(i, str) or not i for i in ids) or len(ids) != len(set(ids)):
+            raise BookingError(400, "invalid_layout", "Furniture IDs must be unique")
+        for item in objects:
+            if item.get("type") not in {"table", "row", "seat", "window", "door"} or any(
+                type(item.get(k)) not in {int, float} or not isfinite(item[k])
+                for k in ("x", "y", "width", "height", "angle")
+            ):
+                raise BookingError(
+                    400, "invalid_layout", "Check furniture types and finite geometry"
+                )
+            if item["width"] <= 0 or item["height"] <= 0:
+                raise BookingError(400, "invalid_layout", "Furniture dimensions must be positive")
+            if "active" in item and type(item["active"]) is not bool:
+                raise BookingError(400, "invalid_layout", "Seat activation must be a boolean")
+        parent_ids = {o["id"] for o in objects if o["type"] in {"table", "row"}}
+        configured = [o for o in objects if o["type"] == "seat"]
+        if len(configured) > 1000 or any(
+            not isinstance(o.get("tableId"), str) or o.get("tableId") not in parent_ids
+            for o in configured
+        ):
+            raise BookingError(400, "invalid_layout", "Each seat needs a table or seat row")
+        numbers = [o.get("number") for o in configured]
+        if any(type(n) is not int or n < 1 for n in numbers) or sorted(numbers) != list(
+            range(1, len(numbers) + 1)
+        ):
+            raise BookingError(400, "invalid_layout", "Seat numbers must be consecutive from 1")
+        by_id = {str(s.id): s for s in seats}
+        bound = [o.get("backendSeatId") for o in configured if o.get("backendSeatId")]
+        if (
+            any(not isinstance(i, str) for i in bound)
+            or len(bound) != len(set(bound))
+            or any(i not in by_id for i in bound)
+        ):
+            raise BookingError(
+                400, "invalid_seat_binding", "A seat ID must belong to this space and occur once"
+            )
+        states = self._live(now, seat_ids=[s.id for s in seats])
+        # Lock the whole space and move existing labels temporarily: renumbering is atomic.
+        for seat in seats:
+            seat.label = "~layout-" + str(seat.id)
+        self.session.flush()
+        assigned = set()
+        for item in configured:
+            seat = by_id.get(item.get("backendSeatId"))
+            if seat is None:
+                seat = Seat(
+                    space_id=space_id,
+                    label=str(item["number"]).zfill(2),
+                    qr_token=token_urlsafe(32),
+                )
+                self.session.add(seat)
+                self.session.flush()
+            seat.label = str(item["number"]).zfill(2)
+            seat.is_active = item.get("active", True) is not False
+            item["backendSeatId"] = str(seat.id)
+            assigned.add(str(seat.id))
+        for seat in seats:
+            if str(seat.id) not in assigned:
+                seat.is_active = False
+                seat.label = "Removed " + str(seat.id)
+        for item in objects:
+            for key in (
+                "state",
+                "active",
+                "backendLabel",
+                "qr_token",
+                "qrToken",
+                "currentReservation",
+                "upcomingReservation",
+            ):
+                item.pop(key, None)
+        room.layout = {**layout, "objects": objects}
+        self.apply_policy(states, now, force)
+        return self.overview(space_id)
+
+    def users(self):
+        from app.features.reservations.admin_schemas import AdminUsersResponse, AdminUserSummary
+
+        now = self.now()
+        states = reservation_states(self.session, now)
+        profiles = {p.id: p for p in self.session.scalars(select(UserProfile))}
+        ids = set(profiles) | {s.user_id for s in states}
+        users = []
+        for user_id in ids:
+            rows = [s for s in states if s.user_id == user_id]
+            seconds = 0
+            for row in rows:
+                if row.checked_in_at is None:
+                    continue
+                end = min(now, row.effective_ends_at)
+                total = max(0, int((end - row.checked_in_at).total_seconds()))
+                from app.features.reservations.models import Break
+
+                for pause in self.session.scalars(
+                    select(Break).where(Break.reservation_id == row.id)
+                ):
+                    pause_end = min(end, pause.returned_at or pause.ends_at)
+                    total -= max(
+                        0,
+                        int((pause_end - max(row.checked_in_at, pause.started_at)).total_seconds()),
+                    )
+                seconds += max(0, total)
+            profile = profiles.get(user_id)
+            users.append(
+                AdminUserSummary(
+                    id=user_id,
+                    name=profile.name if profile else demo_user(user_id).display_name,
+                    reservations=len(rows),
+                    study_seconds=seconds,
+                    live_reservations=sum(
+                        s.status in {"pending", "upcoming", "active", "on_break"} for s in rows
+                    ),
+                )
+            )
+        return AdminUsersResponse(
+            server_time=now, users=sorted(users, key=lambda u: (u.name, str(u.id)))
+        )
+
+    def user_history(self, user_id: UUID):
+        from app.features.reservations.admin_schemas import AdminUserHistoryResponse
+
+        result = self.users()
+        user = next((u for u in result.users if u.id == user_id), None)
+        if user is None:
+            raise BookingError(404, "not_found", "User not found")
+        rows = reservation_states(self.session, result.server_time, user_id=user_id)
+        return AdminUserHistoryResponse(
+            server_time=result.server_time,
+            user=user,
+            reservations=[
+                self.admin_details(s, result.server_time)
+                for s in sorted(rows, key=lambda s: s.created_at, reverse=True)
+            ],
+        )
+
+    def update_user(self, user_id: UUID, name: str):
+        self.user_history(user_id)
+        profile = self.session.get(UserProfile, user_id)
+        if profile is None:
+            profile = UserProfile(id=user_id, name=name)
+            self.session.add(profile)
+        else:
+            profile.name = name
+        self.session.flush()
+        return self.user_history(user_id)

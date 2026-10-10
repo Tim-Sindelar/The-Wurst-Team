@@ -124,6 +124,8 @@ interface Props {
   theme: Theme;
   index: FloorIndex;
   floor: number;
+  /** Admin keeps intermediate levels separate even when they share a floor number. */
+  pickingLevelId?: string;
   /** PolyMaps room id → library id, for highlighting and selecting library rooms. */
   libraryRooms: Map<string, string>;
   selectedLibraryId: string | null;
@@ -182,6 +184,7 @@ export function FloorLayer({
   theme,
   index,
   floor,
+  pickingLevelId,
   libraryRooms,
   selectedLibraryId,
   onSelectLibrary,
@@ -277,9 +280,12 @@ export function FloorLayer({
       index.levels.filter(
         (l) =>
           l.floor === floor &&
+          (!pickingLevelId ||
+            l.facilityId !== pickingLevelId.split('.').slice(0, 2).join('.') ||
+            l.id === pickingLevelId) &&
           (!stackOnly || !!stackGroup?.facilityIds.has(l.facilityId)),
       ),
-    [index, floor, stackOnly, stackGroup],
+    [index, floor, pickingLevelId, stackOnly, stackGroup],
   );
 
   const levelStyle = (): L.PathOptions =>
@@ -478,10 +484,25 @@ export function FloorLayer({
               )),
         });
         const name = room.name || room.id;
+        if (picking) {
+          const title =
+            room.label && room.label !== name
+              ? room.label + ' · ' + name
+              : name;
+          poly.bindTooltip(
+            '<strong>' +
+              escapeHtml(title) +
+              '</strong><br>' +
+              escapeHtml(room.use || 'Raum') +
+              (room.area ? ' · ' + room.area + ' m²' : ''),
+            { sticky: true, direction: 'top', offset: [0, -6] },
+          );
+        }
         poly.on('click', (e) => {
           const h = handlers.current;
           if (h.picking) {
             L.DomEvent.stop(e);
+            if (pickingLevelId && level.id !== pickingLevelId) return;
             h.onPickRoom({
               id: room.id,
               name,
@@ -571,6 +592,8 @@ export function FloorLayer({
     shownPlans,
     visibleKey,
     libraryRooms,
+    picking,
+    pickingLevelId,
     levelsById,
     theme,
     radius,

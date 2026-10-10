@@ -3,6 +3,27 @@ import type { SVGProps } from 'react';
 /* The design's one icon set: 24px outline, 1.75px stroke, drawn in currentColor.
    Add new icons here only, with the same stroke settings. */
 const paths = {
+  outlet: (
+    <>
+      <path d="M7 3v6M17 3v6M5 9h14v4a7 7 0 0 1-14 0zM12 20v2" />
+    </>
+  ),
+  monitor: (
+    <>
+      <rect x="2" y="3" width="20" height="14" rx="1" />
+      <path d="M12 17v4M7 21h10" />
+    </>
+  ),
+  rotate: (
+    <>
+      <path d="M4 9a8 8 0 1 1 0 7M4 3v6h6" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+    </>
+  ),
   alert: (
     <>
       <path d="M12 3L2.5 20h19z" />
@@ -10,6 +31,12 @@ const paths = {
     </>
   ),
   back: <path d="M15 5l-7 7 7 7" />,
+  bell: (
+    <>
+      <path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4z" />
+      <path d="M10 21a2 2 0 0 0 4 0" />
+    </>
+  ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   chevronRight: <path d="M9 5l7 7-7 7" />,
   clock: (
@@ -64,6 +91,12 @@ const paths = {
       <path d="M3 12.5l9 5 9-5M3 17l9 5 9-5" />
     </>
   ),
+  keyboard: (
+    <>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M6 9h1M10 9h1M14 9h1M18 9h1M6 12.5h1M10 12.5h1M14 12.5h1M18 12.5h1M8 16h8" />
+    </>
+  ),
   minus: <path d="M5 12h14" />,
   moon: <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" />,
   pin: (
@@ -77,6 +110,54 @@ const paths = {
     <>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+    </>
+  ),
+  userPlus: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+      <path d="M19 8v6M16 11h6" />
+    </>
+  ),
+  userCheck: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+      <path d="M16 11l2 2 4-4" />
+    </>
+  ),
+  userX: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+      <path d="M17 9l4 4M21 9l-4 4" />
+    </>
+  ),
+  userMinus: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+      <path d="M16 11h6" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </>
+  ),
+  calendarCheck: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+      <path d="M9 15.5l2 2 4-4" />
+    </>
+  ),
+  calendarX: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+      <path d="M10 13.5l4 4M14 13.5l-4 4" />
     </>
   ),
   friends: (

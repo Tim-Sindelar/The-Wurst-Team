@@ -6,10 +6,12 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   createTheme,
   Drawer,
   Input,
   Notification,
+  Modal,
   Popover,
   Progress,
   Slider,
@@ -18,13 +20,14 @@ import {
   Title,
   type CSSVariablesResolver,
 } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { Icon } from '../components/Icon';
 
 /* Mantine configured to look like design/base.css. Each component gets the
    ui-* classes from components.css; screens pick a variant and never restyle.
 
    Variants:
-   - Button: primary (default), secondary, danger, quiet
+   - Button: primary (default), secondary, danger, quiet, map (32px, on the room map)
    - ActionIcon: icon (default, 44px), map (32px map control), camera
    - Alert: info (default), warning, danger */
 
@@ -72,6 +75,7 @@ export const theme = createTheme({
       classNames: {
         root: 'ui-button',
         inner: 'ui-button-inner',
+        label: 'ui-button-label',
         section: 'ui-button-section',
       },
     }),
@@ -105,6 +109,15 @@ export const theme = createTheme({
 
     TextInput: TextInput.extend({
       defaultProps: { leftSectionWidth: 44 },
+    }),
+
+    Checkbox: Checkbox.extend({
+      defaultProps: { size: 'md' },
+      classNames: {
+        input: 'ui-checkbox',
+        label: 'ui-checkbox-label',
+        icon: 'ui-checkbox-icon',
+      },
     }),
 
     Switch: Switch.extend({
@@ -146,11 +159,18 @@ export const theme = createTheme({
 
     Avatar: Avatar.extend({
       classNames: (_theme, props) => ({
-        root: props.size === 'lg' ? 'ui-avatar ui-avatar--lg' : 'ui-avatar',
+        root:
+          props.size === 'lg'
+            ? 'ui-avatar ui-avatar--lg'
+            : props.size === 'sm'
+              ? 'ui-avatar ui-avatar--sm'
+              : 'ui-avatar',
         placeholder:
           props.size === 'lg'
             ? 'ui-avatar-placeholder ui-avatar-placeholder--lg'
-            : 'ui-avatar-placeholder',
+            : props.size === 'sm'
+              ? 'ui-avatar-placeholder ui-avatar-placeholder--sm'
+              : 'ui-avatar-placeholder',
       }),
     }),
 
@@ -185,6 +205,20 @@ export const theme = createTheme({
       },
     }),
 
+    /* Server events (useServerEvents): a stack of the banners above. */
+    Notifications: Notifications.extend({
+      defaultProps: {
+        position: 'top-center',
+        limit: 3,
+        autoClose: 6000,
+        withAutoCloseProgress: false,
+      },
+      classNames: {
+        root: 'ui-notifications',
+        notification: 'ui-notifications-item',
+      },
+    }),
+
     Popover: Popover.extend({
       defaultProps: { shadow: 'none' },
       classNames: { dropdown: 'ui-popover' },
@@ -201,6 +235,16 @@ export const theme = createTheme({
       },
     }),
 
+    Modal: Modal.extend({
+      classNames: {
+        overlay: 'ui-dialog-overlay',
+        content: 'ui-dialog-content',
+        header: 'ui-dialog-header',
+        title: 'ui-dialog-title',
+        body: 'ui-dialog-body',
+        close: 'ui-dialog-close',
+      },
+    }),
     Title: Title.extend({
       classNames: { root: 'ui-title' },
     }),

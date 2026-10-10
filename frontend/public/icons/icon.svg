@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- The seat mark (design/brand/icon-dark.svg) on the dark background: a desk with four seats, one free.
+       Full bleed so it also works as a maskable icon; the artwork, scaled 1.2x for the home screen, stays inside the middle 80%. -->
+  <rect width="256" height="256" fill="#121212"/>
+  <g transform="translate(128 128) scale(1.2) translate(-128 -128)">
+  <rect x="72" y="111" width="112" height="34" rx="12" fill="#808080"/>
+  <rect x="88" y="68" width="34" height="34" rx="9" fill="#6fbf73"/>
+  <rect x="134" y="68" width="34" height="34" rx="9" fill="#808080"/>
+  <rect x="88" y="154" width="34" height="34" rx="9" fill="#808080"/>
+  <rect x="134" y="154" width="34" height="34" rx="9" fill="#808080"/>
+  </g>
+</svg>

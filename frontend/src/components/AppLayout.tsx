@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { BottomNavigation } from './BottomNavigation';
+import { ServerEventNotifications } from './ServerEventNotifications';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 
 export function AppLayout() {
@@ -20,6 +21,7 @@ export function AppLayout() {
         <Outlet />
       </div>
       <BottomNavigation />
+      <ServerEventNotifications />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import pytest
 from tests.reservations.conftest import client as client
 from tests.reservations.conftest import clock as clock
 from tests.reservations.conftest import policy as policy
+from tests.reservations.conftest import room_photos as room_photos
 from tests.reservations.conftest import seats as seats
 
 
