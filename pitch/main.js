@@ -180,12 +180,12 @@ function go(index,snap=false){
     bathroom.student.userData.arms[1].shoulder.rotation.set(-1.1,0,-.2);
     bathroom.student.userData.arms[1].elbow.rotation.x=-1.5;
   }else if(current===5){filmPlaying=false;positionCamera([0,2.5,8.1],[0,2.5,0]);}
-  else if(current===7){closing.features.root.position.x=1.5;positionCamera([0,3.1,9],[0,1.5,0]);}
+  else if(current===7){positionCamera([0,3.1,9],[0,1.5,0]);}
   else if(current===8){closing.friends.position.x=2.4;closing.friendTable.root.position.set(-2.2,.1,0);positionCamera([0,2.65,9.1],[0,2.1,0]);}
-  else if(current===9){closing.campusMap.position.set(2.65,2,0);positionCamera([0,3.1,10.8],[0,2,0]);}
+  else if(current===9){positionCamera([0,2.65,9.1],[0,2.1,0]);}
   else if(current===10)rolloutCamera();
   else if(current===11){qaExpanded=false;positionCamera([24,17,28],[0,1,-4]);}
-  if(snap&&current!==5)snapCamera();updateAccessibleState();
+  fitClosingLayout();if(snap&&current!==5)snapCamera();updateAccessibleState();
 }
 function cutTo(index){if(cut)return;paused=false;cut={index,elapsed:0,switched:false};}
 function updateCut(delta){
@@ -207,7 +207,7 @@ function showFeature(step){
   featureStep=step;closing.features.show(step);slides.revealFeature(step);forceDraw=true;renderer.shadowMap.needsUpdate=true;updateAccessibleState();
 }
 function rolloutCamera(){
-  const views=[[[6,5,9],[0,1.7,0]],[[22,16,31],[0,6,0]],[[42,32,60],[0,9,-2]]];
+  const views=[[[3,8,17],[-3,1.7,0]],[[22,16,31],[0,6,0]],[[42,32,60],[0,9,-2]]];
   positionCamera(...views[rolloutStep]);
 }
 function showRollout(step){
@@ -289,9 +289,20 @@ function updatePhone(){
   }
   cssPhone.position.copy(phone.root.position);cssPhone.quaternion.copy(phone.root.quaternion);cssPhone.scale.copy(phone.root.scale);
 }
+function fitClosingLayout(){
+  const width=2*9*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect;
+  if(current===7){
+    const scale=Math.min(1,width*.40/4.6);
+    closing.features.root.scale.setScalar(scale);
+    closing.features.root.position.set(width*.24-.60*scale,0,0);
+  }else if(current===9){
+    closing.campusMap.position.set(width*.24,0,0);
+    closing.campusMap.scale.setScalar(Math.min(1,width*.40/2.0));
+  }
+}
 function resize(){
   renderer.setSize(innerWidth,innerHeight);cssRenderer.setSize(innerWidth,innerHeight);
-  camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<700?43:34;camera.updateProjectionMatrix();forceDraw=true;renderer.shadowMap.needsUpdate=true;
+  camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<700?43:34;camera.updateProjectionMatrix();fitClosingLayout();forceDraw=true;renderer.shadowMap.needsUpdate=true;
 }
 function render(now){
   const rawDelta=now-last,delta=Math.min(rawDelta,100);last=now;

@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { group, box, mesh, cylinder, roundedBox, roundedShape, person, chair, laptop, backpack, buildPhone, idle, run, batchStatic } from './world.js';
 import plannerUrl from './assets/party-planner.jpg';
 import qrUrl from './assets/seat-qr.svg';
-import campusMapUrl from './assets/campus-map-3d.jpg';
-import activeUrl from './assets/session-active.jpg';
+import campusMapUrl from './assets/campus-map-phone.jpg';
+import scannerUrl from './assets/session-scanner.jpg';
+import adminUrl from './assets/admin-room-setup.jpg';
 import priorityUrl from './assets/session-priority.jpg';
 import handoverUrl from './assets/session-handover.jpg';
 import breakUrl from './assets/session-break.jpg';
@@ -20,7 +21,7 @@ function staticPhone(parent,texture){
 
 function featureRenders(scene,qr,screens){
   const root=group(scene),variants=Array.from({length:4},()=>group(root));
-  const scan=group(variants[0],[-.45,0,.2]);scan.scale.setScalar(.95);
+  const scan=group(variants[0],[-.9,0,.2]);scan.scale.setScalar(.95);
   const student=happyStudent(scan,[-.6,0,-.35],{rotation:.65});
   const rig=student.userData;rig.torso.rotation.x=.12;rig.head.rotation.x=.35;
   rig.arms[1].shoulder.rotation.x=-1.1;rig.arms[1].elbow.rotation.x=-.9;
@@ -64,7 +65,7 @@ function featureRenders(scene,qr,screens){
   const pin=cylinder(watch,.035,.035,.025,[0,0,.16],'#435346',8);pin.rotation.x=Math.PI/2;
   variants.forEach((variant,i)=>{
     const device=staticPhone(variant,screens[i]);device.scale.setScalar(3.5);
-    device.position.set(i===1?.8:2.3,2,0);device.rotation.set(0,-.1,-.025);
+    device.position.set(i===1?.8:2.0,2,0);device.rotation.set(0,-.1,-.025);
     batchStatic(variant,null);
   });
   return {root,show(step){variants.forEach((variant,i)=>{variant.visible=i===step;});}};
@@ -125,8 +126,7 @@ function tree(root,x,z,size=1){
 
 function mapRender(scene,texture){
   const root=group(scene);
-  roundedBox(root,[5.8,3.38,.12],[0,0,0],'#303731',.12,12);
-  mesh(root,new THREE.PlaneGeometry(5.6,3.15),new THREE.MeshBasicMaterial({map:texture,toneMapped:false}),[0,0,.08]);
+  const phone=staticPhone(root,texture);phone.scale.setScalar(4.2);phone.position.y=2.1;phone.rotation.set(0,-.12,-.045);
   batchStatic(root,null);return root;
 }
 
@@ -163,7 +163,7 @@ function adoptionRender(scene,hgRoot){
 
 export async function buildClosing(scene,hgRoot){
   const loader=new THREE.TextureLoader();
-  const [planner,qr,map,...screens]=await Promise.all([plannerUrl,qrUrl,campusMapUrl,activeUrl,priorityUrl,handoverUrl,breakUrl].map(url=>loader.loadAsync(url)));
+  const [planner,qr,map,...screens]=await Promise.all([plannerUrl,qrUrl,campusMapUrl,scannerUrl,priorityUrl,handoverUrl,breakUrl].map(url=>loader.loadAsync(url)));
   [planner,qr,map,...screens].forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;});
   const features=featureRenders(scene,qr,screens),campusMap=mapRender(scene,map),adoption=adoptionRender(scene,hgRoot);
   const friends=group(scene);
@@ -228,6 +228,7 @@ export function buildSlides(){
     </section>
     <section class="pitch-slide pilot-slide" data-slide="3" hidden aria-label="One library, entire ETH, other universities">
       <div class="pilot-copy"><h1 data-rollout="0">One library</h1><span aria-hidden="true">→</span><p data-rollout="1">Entire ETH</p><span aria-hidden="true">→</span><p data-rollout="2">Other universities</p></div>
+      <div class="pilot-admin"><p>Admin room setup</p><img src="${adminUrl}" alt="Map administration panel showing workspace selection, name, type and address" /></div>
     </section>
     <section class="pitch-slide future-slide" data-slide="4" hidden aria-label="Questions and answers over a happy ETH campus"><h1>Q&amp;A</h1></section>`;
   const pages=[...root.querySelectorAll('[data-slide]')];
