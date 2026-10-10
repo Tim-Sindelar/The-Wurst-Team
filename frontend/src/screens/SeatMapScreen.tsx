@@ -1,7 +1,12 @@
 import { Alert, Button, Text } from '@mantine/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import {
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 import {
   createReservationMutation,
   getMyReservationQueryKey,
@@ -28,7 +33,8 @@ import { useRules } from '../hooks/useRules';
 import { socialEnabled } from '../features';
 import { going } from '../features/social/groups';
 import { groupSeatsPath } from '../features/social/paths';
-import { useGroups } from '../features/social/useSocial';
+import { friendsBySeat } from '../features/social/studying';
+import { useFriendList, useGroups } from '../features/social/useSocial';
 import { paths } from '../routes';
 
 export function SeatMapScreen() {
@@ -44,7 +50,17 @@ export function SeatMapScreen() {
   const { reservation, held, running } = useMyReservation();
   const reserve = useMutation(createReservationMutation());
   const groups = useGroups();
-  const [picked, setPicked] = useState<string | null>(null);
+  const friendList = useFriendList();
+  const friends = useMemo(
+    () => friendsBySeat(friendList, spaceId),
+    [friendList, spaceId],
+  );
+  const friendCount = Object.keys(friends).length;
+  /* Opened from a friend: their seat is selected. */
+  const [searchParams] = useSearchParams();
+  const [picked, setPicked] = useState<string | null>(() =>
+    searchParams.get('seat'),
+  );
   const [sheetOpen, setSheetOpen] = useState(false);
   /* Label of a seat somebody else reserved a moment before us, shown as a warning. */
   const [takenLabel, setTakenLabel] = useState<string | null>(null);
@@ -109,6 +125,8 @@ export function SeatMapScreen() {
             {space.is_open
               ? `${freeCount} free of ${space.seats.length} seats`
               : 'Closed right now'}
+            {friendCount > 0 &&
+              ` · ${friendCount} ${friendCount === 1 ? 'friend' : 'friends'} here`}
           </AvailabilityLabel>
         )
       }
@@ -243,14 +261,17 @@ export function SeatMapScreen() {
     <>Check in within {checkIn} or the seat is released.</>
   );
 
+  const friend = seat ? friends[seat.id] : undefined;
   const seatDetail = seat
-    ? own
-      ? running
-        ? 'Your session'
-        : 'Reserved for you'
-      : later && reservableFrom
-        ? `Occupied · available to reserve from ${reservableFrom}`
-        : seatStateDetail[seat.state]
+    ? friend
+      ? `${friend.name} · ${friend.onBreak ? 'on a break' : 'studying here'}`
+      : own
+        ? running
+          ? 'Your session'
+          : 'Reserved for you'
+        : later && reservableFrom
+          ? `Occupied · available to reserve from ${reservableFrom}`
+          : seatStateDetail[seat.state]
     : null;
 
   return (
@@ -282,6 +303,7 @@ export function SeatMapScreen() {
             onChooseFree={ownSeatId === null ? chooseAnyFree : undefined}
             chooseFreeDisabled={!seats.some((item) => item.state === 'free')}
             getCovered={() => sheetHeight.current}
+            friends={friends}
           />
         ) : (
           <div className="p-4">

@@ -8,6 +8,7 @@ import {
   type RoomPlan,
 } from '../../domain/room';
 import geometry from '../../features/admin/geometry';
+import type { SeatFriend } from '../../features/social/studying';
 import { FeatureBadge, RoomScene } from '../../features/admin/RoomScene';
 import { Icon, type IconName } from '../Icon';
 import { SectionLabel } from '../SectionLabel';
@@ -45,6 +46,8 @@ type SeatMapProps = {
   getCovered?: () => number;
   /** Group booking: seats given to people, by seat id. They show initials. */
   people?: Record<string, { initials: string; name: string }>;
+  /** Friends checked in here, by seat id. Their seats show their faces. */
+  friends?: Record<string, SeatFriend>;
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
@@ -59,6 +62,7 @@ export function SeatMap({
   chooseFreeDisabled = false,
   getCovered,
   people,
+  friends,
 }: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -98,9 +102,9 @@ export function SeatMap({
     return () => panZoom.destroy();
   }, []);
 
-  /* A new selection (tap, keyboard or "Choose any free seat") glides into
-     view; closing the seat card lets the map settle into the freed space. */
-  const shownSelection = useRef(selected);
+  /* A new selection (tap, keyboard, "Choose any free seat", or a friend's seat
+     the map opened on) glides into view; closing the seat card lets the map settle into the freed space. */
+  const shownSelection = useRef<string | null>(null);
   useEffect(() => {
     if (shownSelection.current === selected) return;
     shownSelection.current = selected;
@@ -200,6 +204,7 @@ export function SeatMap({
             selected={seat.id === selected}
             onSelect={() => onSelect(seat.id)}
             person={people?.[seat.id]}
+            friend={friends?.[seat.id]}
           />
         ))}
         {/* Feature badges sit on top of the seats, as in the layout editor. */}
@@ -256,6 +261,15 @@ export function SeatMap({
                   {seatStateName[state]}
                 </li>
               ))}
+              {friends && Object.keys(friends).length > 0 && (
+                <li className="flex items-center gap-3 text-small">
+                  <span
+                    className="size-3 flex-none rounded-full bg-surface ring-2 ring-accent"
+                    aria-hidden="true"
+                  />
+                  Friend
+                </li>
+              )}
             </ul>
             {features.length > 0 && (
               <div className="mt-2 grid gap-2">

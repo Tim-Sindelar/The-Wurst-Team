@@ -1,6 +1,7 @@
 import { UnstyledButton } from '@mantine/core';
 import type { MouseEvent } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
+import type { SeatFriend } from '../../features/social/studying';
 import { Icon } from '../Icon';
 
 type SeatMarkerProps = {
@@ -18,6 +19,9 @@ type SeatMarkerProps = {
   onSelect: () => void;
   /** Who the seat is for in a group booking: their initials replace the number. */
   person?: { initials: string; name: string };
+  /** A friend checked in here: their photo or initials, ringed in the accent,
+      replace the number. */
+  friend?: SeatFriend;
 };
 
 /* A seat on the map: a 44px tap target around a 32 × 36 filled seat with its
@@ -33,10 +37,18 @@ export function SeatMarker({
   selected,
   onSelect,
   person,
+  friend,
 }: SeatMarkerProps) {
   const description = [
     `Seat ${label}`,
-    ...(person ? [`for ${person.name}`] : [seatStateName[state].toLowerCase()]),
+    ...(person
+      ? [`for ${person.name}`]
+      : friend
+        ? [
+            `${friend.name}, your friend`,
+            friend.onBreak ? 'on a break' : 'studying here',
+          ]
+        : [seatStateName[state].toLowerCase()]),
     ...features.map((feature) => feature.toLowerCase()),
     ...(selected ? ['selected'] : []),
   ].join(', ');
@@ -73,11 +85,29 @@ export function SeatMarker({
         style={angle ? { rotate: `${angle}deg` } : undefined}
         aria-hidden="true"
       />
-      <span
-        className={`relative col-start-1 row-start-1 text-small leading-none font-bold ${state === 'occupied' ? 'text-on-seat-muted' : 'text-on-seat'}`}
-      >
-        {person?.initials ?? label}
-      </span>
+      {friend && !person ? (
+        <span
+          className="relative col-start-1 row-start-1 grid size-7 place-items-center overflow-hidden rounded-full bg-surface text-label leading-none font-bold text-text ring-2 ring-accent"
+          aria-hidden="true"
+        >
+          {friend.photoUrl ? (
+            <img
+              src={friend.photoUrl}
+              alt=""
+              className="size-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            friend.initials
+          )}
+        </span>
+      ) : (
+        <span
+          className={`relative col-start-1 row-start-1 text-small leading-none font-bold ${state === 'occupied' ? 'text-on-seat-muted' : 'text-on-seat'}`}
+        >
+          {person?.initials ?? label}
+        </span>
+      )}
       {badge && (
         <span
           className="absolute top-0 right-0 grid size-4.5 place-items-center rounded-full border border-border-strong bg-surface text-text"

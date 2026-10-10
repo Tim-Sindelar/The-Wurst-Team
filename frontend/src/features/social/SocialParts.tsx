@@ -1,21 +1,38 @@
 import { Alert, Avatar, Button, Card, Text } from '@mantine/core';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import type { SocialPerson } from '../../api/generated';
+import { cx } from '../../components/cx';
 import { Icon } from '../../components/Icon';
 import { initials } from './groups';
 
-/** A person's photo, or their initials. */
+/** A person's photo, or their initials. Someone studying right now gets an
+    accent ring and a badge: a pin, or a cup while on a break. */
 export function PersonAvatar({
   person,
   size,
+  studying,
 }: {
   person: SocialPerson;
   size?: 'sm';
+  studying?: 'here' | 'break';
 }) {
-  return (
+  const avatar = (
     <Avatar src={person.photo_url} size={size} aria-hidden="true">
       {initials(person.name)}
     </Avatar>
+  );
+  if (!studying) return avatar;
+  return (
+    <span className="relative flex-none rounded-full ring-2 ring-accent ring-offset-2 ring-offset-surface">
+      {avatar}
+      <span
+        className="absolute -right-1.5 -bottom-1.5 grid size-5 place-items-center rounded-full border-2 border-surface bg-accent text-on-accent"
+        aria-hidden="true"
+      >
+        <Icon name={studying === 'break' ? 'coffee' : 'pin'} size="xs" />
+      </span>
+    </span>
   );
 }
 
@@ -59,19 +76,22 @@ export function PeopleList({
     <Card
       component="ul"
       aria-label={label}
-      className="gap-0 divide-y divide-border p-0"
+      className="gap-0 divide-y divide-border overflow-hidden p-0"
     >
       {children}
     </Card>
   );
 }
 
-/** One person: avatar, name, an optional line under it, and actions at the end. */
+/** One person: avatar, name, an optional line under it, and actions at the end.
+    With `to`, the person (not the actions) is a link with a chevron. */
 export function PersonRow({
   person,
   name = person.name,
   detail,
   pinned = false,
+  studying,
+  to,
   children,
 }: {
   person: SocialPerson;
@@ -80,12 +100,16 @@ export function PersonRow({
   detail?: ReactNode;
   /** The detail is a room: show the pin. */
   pinned?: boolean;
+  /** Checked in right now: marks the avatar. */
+  studying?: 'here' | 'break';
+  /** Where tapping the person goes (their seat on the room map). */
+  to?: string;
   /** Buttons or a switch. */
   children?: ReactNode;
 }) {
-  return (
-    <li className="flex min-h-15 items-center gap-3 py-2 pr-3 pl-4">
-      <PersonAvatar person={person} />
+  const body = (
+    <>
+      <PersonAvatar person={person} studying={studying} />
       <div className="grid min-w-0 flex-1 gap-0.5">
         <Text className="font-medium break-words">{name}</Text>
         {detail && (
@@ -99,6 +123,30 @@ export function PersonRow({
           </Text>
         )}
       </div>
+    </>
+  );
+  return (
+    <li
+      className={cx(
+        'flex min-h-15 items-center gap-3',
+        !to && 'py-2 pl-4',
+        (!to || !!children) && 'pr-3',
+      )}
+    >
+      {to ? (
+        <Link
+          to={to}
+          className={cx(
+            'flex min-w-0 flex-1 items-center gap-3 self-stretch py-2 pl-4 text-text no-underline -outline-offset-2 hover:bg-hover',
+            !children && 'pr-3',
+          )}
+        >
+          {body}
+          {!children && <Icon name="chevronRight" />}
+        </Link>
+      ) : (
+        body
+      )}
       {children}
     </li>
   );

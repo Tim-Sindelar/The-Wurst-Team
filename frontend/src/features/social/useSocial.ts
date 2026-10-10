@@ -98,6 +98,19 @@ export function useFriends() {
   };
 }
 
+/** Your friends and where they study, for screens outside Friends (the
+    seat map). Empty while social is off or loading; errors stay quiet there. */
+export function useFriendList() {
+  const { enabled } = useSocialAvailable();
+  const friends = useQuery({
+    ...listFriendsOptions(live),
+    enabled,
+    ...fresh,
+    refetchInterval: 20_000,
+  });
+  return friends.data?.friends ?? [];
+}
+
 /** People who use the app, by name, for adding friends. Two characters at least. */
 export function usePeopleSearch(search: string) {
   const { enabled } = useSocialAvailable();
