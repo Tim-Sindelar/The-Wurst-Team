@@ -1,6 +1,6 @@
 """Turn the scraped PolyMaps layers into the floor plan files and workspace list of occupancy-map-preview.
 
-Usage: python extract_floors.py [polymaps_dir] [app_dir]
+Usage: python extract_floors.py [polymaps_dir] [app_dir] [--floors-only]
 
 Writes
   <app_dir>/public/floors/index.json        floors, building footprints and level outlines
@@ -15,13 +15,18 @@ stable across runs and the overrides keep pointing at the right workspaces.
 Coordinates in level files are integers in micro-degrees relative to the level's
 `origin` ([lng, lat]); rings and lines are flat [x0, y0, x1, y1, ...] arrays.
 """
-import json, re, sys
+import argparse, json, re, sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-SRC = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).parent / "polymaps_data")
-APP = Path(sys.argv[2] if len(sys.argv) > 2 else Path(__file__).parent.parent / "occupancy-map-preview")
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("polymaps_dir", nargs="?", type=Path, default=Path(__file__).parent / "polymaps_data")
+parser.add_argument("app_dir", nargs="?", type=Path, default=Path(__file__).parent.parent / "occupancy-map-preview")
+parser.add_argument("--floors-only", action="store_true", help="Build floor plans without replacing data/generated.json")
+args = parser.parse_args()
+SRC = args.polymaps_dir
+APP = args.app_dir
 SCALE = 1_000_000  # micro-degrees: ~0.11 m north-south, ~0.08 m east-west in Zurich
 
 # Room use type -> coarse kind used for styling in the app.
@@ -340,7 +345,8 @@ def main():
     print(f"{len(index_levels)} levels, {len(index_facilities)} buildings, floors {all_floors[0]}..{all_floors[-1]}",
           file=sys.stderr)
 
-    write_libraries(units, pois, levels, floors, {f["id"]: f for f in index_facilities})
+    if not args.floors_only:
+        write_libraries(units, pois, levels, floors, {f["id"]: f for f in index_facilities})
 
 
 def write_libraries(units, pois, levels, floors, facilities):

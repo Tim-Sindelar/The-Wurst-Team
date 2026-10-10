@@ -50,7 +50,9 @@ def main():
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "scraper\\polymaps_data")
     workers = int(sys.argv[2]) if len(sys.argv) > 2 else 8
     out.mkdir(parents=True, exist_ok=True)
+    print("Fetching PolyMaps app configuration...", file=sys.stderr)
     app = get(f"{PORTAL}/{APP_ID}/data", {"f": "json"})
+    print("Fetching PolyMaps web map...", file=sys.stderr)
     webmap = get(f"{PORTAL}/{app['values']['webmap']}/data", {"f": "json"})
     (out / "webmap.json").write_text(json.dumps(webmap, indent=1), encoding="utf-8")
 
@@ -59,6 +61,7 @@ def main():
     for l in flatten(webmap["operationalLayers"]):
         layers.setdefault(l["url"], l["title"])
 
+    print(f"Planning downloads for {len(layers)} layers...", file=sys.stderr)
     with ThreadPoolExecutor(workers) as pool:
         plans = dict(zip(layers, pool.map(plan_layer, layers)))
         # Submit every page of every layer to the same pool so large layers don't serialize.

@@ -185,7 +185,15 @@ docker compose exec backend python -m app.features.campus_map.importer --export
 docker compose exec backend python -m app.features.campus_map.importer --generated-only  # after a scraper re-run, keeps admin edits
 ```
 
-ETH bookings and dataset results are cached in the `map_cache` volume (`backend/.cache/campus-map` outside Docker). The dataset fetchers live in `backend/app/features/campus_map/datasets/` (see its README). Floor plans are built into `occupancy-map-preview/public/floors` by `scraper/extract_floors.py` (not in git) and mounted into the backend container; without them the map works without floor plans. `eth_room_dashboard.py` in the repo root is a standalone dashboard over the same ETH code.
+ETH bookings and dataset results are cached in the `map_cache` volume (`backend/.cache/campus-map` outside Docker). The dataset fetchers live in `backend/app/features/campus_map/datasets/` (see its README). The backend Docker build downloads public ETH PolyMaps geometry and generates floor plans and workspace outlines in a separate build stage. Only the generated files are included in the image, at `/app/floors`; no local floor-plan folder is required. Docker caches the download layer between builds; use `docker compose build --no-cache backend` to refresh the source geometry. `eth_room_dashboard.py` in the repo root is a standalone dashboard over the same ETH code.
+
+For the standalone developer preview or a backend running outside Docker, run `make map-floors` to generate `occupancy-map-preview/public/floors` locally. This preserves workspace data and admin edits. With Python but without Make, run:
+
+```sh
+python scraper/scrape_polymaps.py scraper/polymaps_data
+python scraper/extract_floors.py --floors-only
+python scraper/build_library_outlines.py
+```
 
 ## Checks
 
