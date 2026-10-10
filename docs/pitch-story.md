@@ -1,0 +1,142 @@
+# Five-minute pitch: story draft
+
+Working draft for discussion. No presentation technology chosen yet.
+
+## Story
+
+Follow the same ETH student from the end of a lecture to a study seat. The audience should understand the frustration before seeing the app. The booking and physical QR check-in resolve that frustration. Friends join the story after the solo flow is clear.
+
+The two messages to remember are campus-wide discovery and reserving a seat before walking there. Keep the toilet joke as one short reveal.
+
+## Running order
+
+| Time | What happens | What the audience sees |
+| --- | --- | --- |
+| 0:00–0:35 | Lecture ends. The student tries one study area, then another. Both are full. | Recognisable ETH setting, the same student, occupied desks. Minimal or no text. |
+| 0:35–1:00 | Introduce checking availability across campus and reserving remotely. Reveal the student on the toilet, looking at their phone. | Campus view, then the phone. App name can appear here. |
+| 1:00–2:40 | Live demo: explore the campus map, open a bookable room, choose a free seat, reserve it, walk to the demonstration seat and scan its QR code. | Real app, large enough to read. Printed QR attached to the demonstration seat. Session confirmation, then a short lo-fi study scene. |
+| 2:40–3:15 | Explain why a reservation remains useful when everyone starts using the app. | Actual session screen and prepared views of extension/handover states. Small labels only if needed. |
+| 3:15–4:00 | Friends want to study together. Show a prepared party with accepted members, choose seats in one room, and show the group booking. | Real group-booking flow on a separate prepared account, or an explicitly introduced recording. End on the group studying. |
+| 4:00–4:40 | Propose one library pilot, explain setup and success criteria, then expansion to the faculty. | One library highlighted on the campus map. Optional labels: Pilot library, then Faculty. |
+| 4:40–5:00 | Margin for laughs, camera acquisition and transitions. | Final image remains on screen. |
+
+The timestamps are a rehearsal budget, not automatic slide advances. Target a 4:40 run.
+
+## Spoken draft
+
+These are speaker notes. They do not go on the slides.
+
+### Opening
+
+“Your lecture just finished. You have an assignment to work on, so you head to your usual study spot. Full. You try the next floor. Full too. Now you're walking through ETH, looking for somewhere to sit.”
+
+Let the repeated failed attempts carry the frustration. No invented campus-wide statistics or claimed average minutes lost.
+
+### Reveal
+
+“We want you to check availability across the whole campus before you start walking. Find a seat and reserve it from your phone.”
+
+Reveal the toilet scene.
+
+“You can literally book your next seat from the toilet.”
+
+Pause for the reaction, then zoom into the phone.
+
+“Let's get this student somewhere to study.”
+
+### Live demo
+
+“Here's the campus. We can look through the buildings and floors. This study space has a free seat.”
+
+Open its room plan and choose the seat.
+
+“I'll reserve this one. It's held while I get there. If I don't check in before the deadline, it becomes available again.”
+
+Walk to the demonstration seat with the phone.
+
+“Each seat has its own QR code. I scan this seat's code to check in.”
+
+Show successful check-in before triggering the lo-fi scene. Let that scene breathe briefly. The student is finally sitting down.
+
+For the prototype demonstration, describe bookable seats as participating spaces. The whole-campus phrase is the intended product promise, not a claim that every ETH seat already reports occupancy.
+
+### Sessions and handovers
+
+“Sessions have a clear end time. If I need longer, I get the first chance to extend. After that window, someone else can reserve the next session. If I leave early, their booking can start earlier. And I can take a timed break without losing my seat immediately.”
+
+Use prepared state views for this explanation. Do not wait for a two-hour session to reach its extension window or run another complete scan loop on stage.
+
+### Friends and impact
+
+“Now my friends want to join. We've already formed a study party. I choose a seat for each of us in the same room and reserve them together. Everyone checks in at their own seat.”
+
+Show the assignments and group result.
+
+“We know where we're going, and we know we'll have somewhere to sit.”
+
+The group studying is the impact image. Avoid a separate list repeating reduced stress and less walking.
+
+### Pilot and close
+
+“The next step is a pilot in one library. We'd work with the library team to map its seats, attach the QR codes and agree how bookings work on site. We'd measure how long students spend finding seats and how often reservations go unused. Then we'd expand to the faculty.”
+
+“We're looking for one library to try it with.”
+
+This is a proposed closing ask. Adjust it to the audience and any existing pilot agreement.
+
+## Where the other features fit
+
+- Campus exploration and the floor stack appear during the first demo action. Use real ETH building and room names to establish the local fit.
+- Limited sessions, no-show expiry, extension priority, breaks and handovers belong together, immediately after successful check-in.
+- Friend sessions provide the second payoff. Prepare invitations and acceptances before presenting. The implementation assigns seats manually in the same room; it does not automatically find adjacent seats.
+- Favourites, profile editing, menus and sports data can remain visible or support questions. They do not each need narration in five minutes.
+- ETH sign-in and department permissions belong in the pilot discussion to the extent they are implemented and verified. Administrative support should be described as a pilot requirement until agreed.
+- If free access is the intended policy, say “free for students.” Do not imply that operating the system has no cost.
+
+## Visual direction and live transition
+
+Use one consistent student, setting and visual style. The opening can feel mildly frantic. After check-in, hold a calmer composition with an ETH study scene and a short lo-fi cue. The contrast should be visible without explanatory captions.
+
+A possible Three.js treatment is a small set of click-controlled camera positions: hallway, toilet/phone, study desk. Prototype the phone-to-live-app transition first. Choose Three.js only if this transition looks good and works reliably in rehearsal.
+
+For the handoff, bring the phone screen square to the audience and expand it into the same rectangle occupied by the real app or phone mirror. Keep the live interface readable. Zoom back out into the study scene only after check-in succeeds. Embedding, camera access and mirroring still need testing on the presentation setup.
+
+Every narrative beat advances on a click. Avoid a timed sequence that runs ahead while the camera is scanning. Keep a recording of the core flow available, and introduce it as a recording if used.
+
+Slide copy: optional short title, useful labels, or no text. Avoid generic chapter slides, repeated three-card layouts, decorative icons, filler subtitles, stock business language and conclusions printed under every image. The spoken notes carry the explanation.
+
+## Repo and app findings
+
+Inspection on 10 October 2026. This was code inspection and a read-only look at the local Home and Map screens, not an end-to-end booking rehearsal.
+
+| Claim | What the current project supports | Evidence |
+| --- | --- | --- |
+| Individual reservation and QR check-in | Frontend uses generated backend mutations. Scan supports camera and typed seat code. | `frontend/src/screens/SeatMapScreen.tsx`, `ReservationScreen.tsx`, `ScanScreen.tsx` |
+| Session rules | Configurable defaults: 120-minute sessions, 15-minute check-in window, priority from 20 to 10 minutes before end, 30-minute break allowance. Verify deployed values before naming numbers on stage. | `backend/app/config.py`, `frontend/src/screens/SessionScreen.tsx` |
+| Group booking | Real party flow, explicit membership acceptance, manual same-room assignments, all-or-nothing reservations, individual check-in. | `docs/social-backend.md`, `frontend/src/features/social-draft/LivePartyBookingScreen.tsx` |
+| ETH-specific map | Campus map and floor stack, workspaces, room booking information and selected campus datasets. Room bookings are not physical occupancy sensors. | `AGENTS.md`, `occupancy-map-preview/README.md` |
+| Campus-wide live seat occupancy | Not established. The local Home screen showed two demo spaces with four free seats each. | Local app at `http://localhost:5173/` |
+| Actual seat geometry | Booking screen still uses a stand-in room layout. Do not present it as a surveyed seating plan. | `frontend/src/domain/room.ts` |
+| Login and departmental access | Proxy identity exists. No department access rules found. Current admin authentication denies proxy-mode admin access. | `backend/app/auth.py` |
+| Admin mapping | Developer map editor exists. Production library administration and enforcement require further work and institutional agreement. | `occupancy-map-preview/README.md`, `backend/app/auth.py` |
+| Lo-fi mode | No app feature found. Treat this as the presentation's visual payoff unless subsequently implemented. | Inspected session screen and frontend feature search |
+| Notifications | Preferences exist; delivery is deferred. Avoid promising delivered push notifications. | `README.md` |
+| Market uniqueness | Not researched. Use concrete ETH-specific capabilities rather than “no other app does this.” | Requires separate competitor research |
+
+## Rehearsal decisions still needed
+
+- Audience: hackathon judges, ETH administrators, students, or a mix; any judging criteria.
+- Number of presenters and who controls the presentation, phone and physical QR demonstration.
+- Presentation device and phone-mirroring setup.
+- Final app name. Current UI says Study Spaces.
+
+For the friends segment, use a separate prepared organizer account with no active reservation. The solo demo account will already be checked in and cannot simultaneously take another seat in a party booking. An explicitly introduced recording is another option.
+
+The group account needs accepted members without conflicting reservations. Verify the deployed social feature is enabled and uses the real backend rather than local sample screens.
+
+## Presentation references
+
+The requested search surfaced recurring complaints about dense text, generic images, repetitive layouts and unsupported facts. Use these as editing checks rather than treating punctuation or a particular word as proof of AI authorship.
+
+- [Common AI presentation mistakes](https://www.presentations.ai/blog/common-ai-presentation-mistakes)
+- [Why AI presentations look generic](https://kinsy.ai/blog/why-ai-presentations-look-generic/)

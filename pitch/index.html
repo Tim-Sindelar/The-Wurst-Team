@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#eeece6" />
+    <title>Study Spaces — Pitch</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main id="stage" aria-label="Study Spaces presentation">
+      <canvas id="scene" tabindex="0" role="button" aria-label="Advance presentation scene"></canvas>
+      <div id="screens"></div>
+      <div id="taken" aria-hidden="true">TAKEN</div>
+      <div id="curtain" aria-hidden="true"></div>
+      <p id="status" class="sr-only" role="status" aria-live="polite"></p>
+      <section id="error" hidden><h1>3D preview unavailable</h1><p>Enable WebGL and reload.</p></section>
+    </main>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
