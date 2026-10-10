@@ -30,7 +30,7 @@ export function StatusBanner({
   }, [opened, urgent, onClose]);
 
   return (
-    <div className="pointer-events-none fixed top-0 left-1/2 z-30 grid w-full max-w-phone -translate-x-1/2 gap-2 p-2">
+    <div className="pointer-events-none fixed top-0 left-1/2 z-30 grid w-full tablet:max-w-phone -translate-x-1/2 gap-2 p-2">
       <Transition
         mounted={opened}
         transition="slide-down"

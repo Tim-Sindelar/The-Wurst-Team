@@ -64,7 +64,7 @@ export function HomeScreen() {
 
   return (
     <Screen>
-      <ScreenMain>
+      <ScreenMain safeTop>
         <div className="flex items-center justify-between gap-2">
           <Title order={1}>Study Spaces</Title>
           <div className="flex items-center gap-2">

@@ -4,8 +4,9 @@ import { Link } from 'react-router';
 import { cx } from './cx';
 import { Icon } from './Icon';
 
-/* The phone column every screen sits in: 390px wide, centred on desktop,
-   full height, with the action bar pinned to the bottom. */
+/* The screen frame: fills the whole width of any phone (no side margins),
+   becomes a centred 390px column from 480px up. Full height, with the
+   action bar pinned to the bottom. */
 
 export function Screen({
   children,
@@ -17,7 +18,7 @@ export function Screen({
   return (
     <div
       className={cx(
-        'relative mx-auto flex min-h-dvh w-full max-w-phone flex-col border-x border-border bg-bg',
+        'relative mx-auto flex min-h-dvh w-full flex-col bg-bg tablet:max-w-phone tablet:border-x tablet:border-border',
         className,
       )}
     >
@@ -42,7 +43,7 @@ export function ScreenHeader({
   subtitle,
 }: ScreenHeaderProps) {
   return (
-    <header className="border-b border-border bg-surface">
+    <header className="border-b border-border bg-surface pt-[env(safe-area-inset-top)]">
       <div className="flex min-h-16 items-center gap-2 pr-2 pl-4">
         <ActionIcon component={Link} to={backTo} aria-label={backLabel}>
           <Icon name="back" />
@@ -67,14 +68,18 @@ export function ScreenHeader({
 export function ScreenMain({
   children,
   fit = false,
+  safeTop = false,
 }: {
   children: ReactNode;
   fit?: boolean;
+  /** No header above: keep clear of the phone's notch or status bar. */
+  safeTop?: boolean;
 }) {
   return (
     <main
       className={cx(
-        'flex flex-1 flex-col px-4 py-4',
+        'flex flex-1 flex-col px-4 pb-4',
+        safeTop ? 'pt-[calc(--spacing(4)+env(safe-area-inset-top))]' : 'pt-4',
         fit ? 'min-h-0 gap-3 [&>*]:shrink-0' : 'gap-4',
       )}
     >

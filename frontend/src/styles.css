@@ -82,7 +82,8 @@
   /* Colour is a runtime variable so light mode can soften it (see below). */
   --shadow-card: 0 1px 3px var(--shadow-card-color);
 
-  --container-phone: 390px; /* design width; the column is centred on desktop */
+  --container-phone: 390px; /* design width; kept as a centred column from 480px up */
+  --breakpoint-tablet: 30rem; /* below this the app is full width, no side margins */
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
