@@ -54,10 +54,11 @@ export function VpsDebugPanel({ attempts }: { attempts: VpsDebugAttempt[] }) {
   const dHeading = r?.ok && r.heading != null ? ((r.heading - a.rendered.heading + 540) % 360) - 180 : null;
   const timing = d?.timing ? Object.entries(d.timing).map(([k, v]) => `${k} ${v}`).join(', ') : '';
   const rows: [string, string][] = [
-    ['result', a.error ? `error: ${a.error}` : r?.ok ? `fix, ${r.inliers} inliers / ${r.matches} matches` : `${r?.reason ?? '?'}${r?.inliers != null ? ` (${r.inliers} inliers)` : ''}`],
+    ['result', a.error ? `error: ${a.error}` : r?.ok ? `fix, ${r.inliers} inliers / ${r.matches} matches${r.confirmedBySensors ? ' (few, confirmed by heading + pitch)' : ''}` : `${r?.reason ?? '?'}${r?.inliers != null ? ` (${r.inliers} inliers)` : ''}`],
     ['heading', r?.ok ? `visual ${f0(r.heading)}°, AR ${f0(a.rendered.heading)}° → ${dHeading! >= 0 ? '+' : ''}${f1(dHeading)}°` : `AR ${f0(a.rendered.heading)}°${d?.pose ? `, rejected pose ${f0(d.pose.heading)}°` : ''}`],
     ['pose', d?.pose ? `${f1(d.pose.priorDist)} m from beacon fix, ${d.pose.levelId?.replace('ETH.', '')}, camera ${f1(d.pose.height)} m, pitch ${f0(d.pose.pitch)}° (AR ${f0(a.rendered.pitch)}°)` : '–'],
     ['solver', d?.solvers ? `${Object.entries(d.solvers).map(([k, s]) => `${k}: ${s ? `${s.inliers} inl, fov ${f0(s.fov)}°` : 'failed'}`).join(' · ')} → ${d.solver ?? '–'}; reproj ${f1(d.reprojError?.median)} / ${f1(d.reprojError?.p90)} px; depth ${f1(d.inlierDepth?.median)} m` : '–'],
+    ['sensors', d?.sensorCheck ? `check of a pose with few inliers: ${d.sensorCheck.ok ? 'agrees' : 'disagrees'}${d.sensorCheck.why ? ` (${d.sensorCheck.why})` : ` (heading ${f1(d.sensorCheck.headingDiff)}°, pitch ${f1(d.sensorCheck.pitchDiff)}°, roll ${f1(d.sensorCheck.rollDiff)}°, height ${f1(d.sensorCheck.height)} m, focal ${f0(100 * (d.sensorCheck.focalChange ?? 0))} %)`}` : '–'],
     ['focal', a.frame ? `guess ${f0(a.frame.focal)} px${d?.pose ? `, refined ${f0(d.pose.focal)} px` : ''}` : '–'],
     ['map', d ? `${d.candidates?.length ?? 0} images near the fix (r ${f0(d.prior?.radius)} m, ${d.prior?.levelId?.replace('ETH.', '') ?? 'any level'}); shortlist mnn/lg/3d: ${(d.shortlist ?? []).map((s) => `${s.mnn}${s.used ? `/${s.matches}/${s.matches3d}` : '✗'}`).join(' ') || '–'}` : '–'],
     ['features', a.features ? `${a.features.n} kp, coverage ${Math.round(100 * a.features.coverage)} %, score median ${a.features.scoreMedian}` : '–'],

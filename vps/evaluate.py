@@ -37,6 +37,8 @@ def main():
     p.add_argument('--n', type=int, default=200)
     p.add_argument('--prior-noise', type=float, default=1.2, help='per-axis sigma, m (1.2 -> 1.5 m mean error)')
     p.add_argument('--focal-noise', type=float, default=0.15)
+    p.add_argument('--sensor-noise', type=float, default=12.0,
+                   help='sigma of the phone heading sent along, degrees (pitch: a fifth of it); 0: none sent')
     p.add_argument('--shortlist', type=int, default=LocalizerConfig.shortlist)
     p.add_argument('--threads', type=int, default=0)
     p.add_argument('--out', type=Path)
@@ -73,8 +75,15 @@ def main():
         lng, lat = from_local(noisy[0], noisy[1], *db.origin)
         level = db.levels[db.level_of_height(center[2])]['id']
         focal = f_gt * (1 + rng.uniform(-args.focal_noise, args.focal_noise))
+        fwd = R_wc @ np.array([0.0, 0.0, 1.0])  # COLMAP camera z: view direction, world ENU
+        sensor = None
+        if args.sensor_noise:
+            right, up = R_wc @ np.array([1.0, 0.0, 0.0]), -R_wc @ np.array([0.0, 1.0, 0.0])
+            sensor = {'heading': float((np.degrees(np.arctan2(fwd[0], fwd[1])) + rng.normal(0, args.sensor_noise)) % 360),
+                      'pitch': float(np.degrees(np.arcsin(np.clip(fwd[2], -1, 1))) + rng.normal(0, args.sensor_noise / 5)),
+                      'roll': float(np.degrees(np.arctan2(right[2], up[2])) + rng.normal(0, args.sensor_noise / 5))}
         buf = encode(kp, pred['keypoint_scores'][0].numpy(), pred['descriptors'][0].numpy(), int(w), int(h), focal,
-                     {'lng': float(lng), 'lat': float(lat), 'levelId': level, 'accuracy': 1.5})
+                     {'lng': float(lng), 'lat': float(lat), 'levelId': level, 'accuracy': 1.5}, sensor=sensor)
         q = decode(buf)
         t0 = time.time()
         out = loc.localize(q)
@@ -88,7 +97,8 @@ def main():
             dR = np.degrees(np.arccos(np.clip((np.trace(R_three.T @ R_three_gt) - 1) / 2, -1, 1)))
             dyaw = np.degrees(np.angle(np.exp(1j * (yaw_three(R_three) - yaw_three(R_three_gt)))))
             row.update(pos_err=float(np.hypot(x - center[0], y - center[1])), rot_err=float(dR), yaw_err=float(abs(dyaw)),
-                       inliers=out['inliers'], level_ok=out['levelId'] == level, focal_err=out['focal'] / f_gt - 1)
+                       inliers=out['inliers'], level_ok=out['levelId'] == level, focal_err=out['focal'] / f_gt - 1,
+                       confirmed=bool(out.get('confirmedBySensors')))
         else:
             row['reason'] = out.get('reason')
         rows.append(row)
@@ -108,6 +118,9 @@ def main():
         'within_1m_5deg': float(np.mean([(r['ok'] and r['pos_err'] < 1 and r['rot_err'] < 5) for r in rows])),
         'within_0.25m_2deg': float(np.mean([(r['ok'] and r['pos_err'] < 0.25 and r['rot_err'] < 2) for r in rows])),
         'level_ok': float(np.mean([r['level_ok'] for r in ok])) if ok else None,
+        'confirmed_by_sensors': sum(r['confirmed'] for r in ok),
+        'confirmed_wrong': sum(r['confirmed'] and (r['pos_err'] > 2 or r['rot_err'] > 5) for r in ok),
+        'wrong_poses': sum(r['pos_err'] > 2 or r['rot_err'] > 5 for r in ok),
         'server_ms_median': float(np.median([r['ms'] for r in rows])),
         'request_kib_median': float(np.median([r['bytes'] for r in rows]) / 1024),
         'prior_err_mean': float(np.mean([r['prior_err'] for r in rows])),

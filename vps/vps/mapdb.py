@@ -74,6 +74,7 @@ class MapDB:
         R_wc = R_cw.T
         center = -R_wc @ t_cw
         fwd = R_wc @ np.array([0.0, 0.0, 1.0])
+        right, up = R_wc @ np.array([1.0, 0.0, 0.0]), -R_wc @ np.array([0.0, 1.0, 0.0])
         lng, lat = from_local(center[0], center[1], *self.origin)
         li = self.level_of_height(center[2])
         q = Rotation.from_matrix(ENU_TO_AR @ R_wc @ COLMAP_TO_THREE_CAM).as_quat()  # x, y, z, w
@@ -83,6 +84,8 @@ class MapDB:
             'quaternion': [float(v) for v in q],
             'heading': float(np.degrees(np.arctan2(fwd[0], fwd[1])) % 360),
             'pitch': float(np.degrees(np.arcsin(np.clip(fwd[2], -1, 1)))),
+            # Rotation about the view direction, positive when the image's right side is raised.
+            'roll': float(np.degrees(np.arctan2(right[2], up[2]))),
         }
 
 

@@ -53,7 +53,12 @@ Check a fit with `tests/plot_overlay.py` (points in red, cameras in blue on the 
 Map images within 12 m (or 3× the beacon accuracy) of the beacon fix on its level → 5 with the most
 mutual NN descriptor matches → LightGlue against each → 2D-3D correspondences → P3P with the
 app's focal guess, P4Pf only if it explains 30 % more matches (far, flat views trade focal length
-against distance) → reject < 50 inliers or > 8 m from the beacon fix.
+against distance) → reject < 50 inliers or > 8 m from the beacon fix. 30–49 inliers are accepted only
+if the pose agrees with the phone's own orientation (heading within 20°, pitch and roll from gravity
+within 6°, camera 0.5–2.3 m above the floor, focal length within 20 % of the phone's guess): wrong
+poses from few matches are far off, right ones in places that changed since the map agree. On the
+validation queries with a σ 12° compass this added 4 CAB fixes (all within 1.5 m and 6.1°) and none
+in HG. A beacon floor that isn't mapped (HG J) is answered at once.
 
 ## Accuracy (`evaluate.py`, LaMAR validation phone queries, 100 each)
 

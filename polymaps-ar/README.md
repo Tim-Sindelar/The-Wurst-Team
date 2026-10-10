@@ -122,8 +122,11 @@ the comparison.
 
 - Camera feed (`getUserMedia`, back camera) with a transparent three.js canvas on top.
 - Camera pose: position from the current fix (BLE, else GPS), 1.5 m above the floor, gliding
-  between the 1 Hz fixes. Rotation from `deviceorientationabsolute` (Android) or `deviceorientation`
-  plus `webkitCompassHeading` (iOS, after the permission prompt).
+  between the 1 Hz fixes. Rotation: the gyro-based `deviceorientation` stream, with its heading
+  slowly pulled to the compass (`deviceorientationabsolute` on Android, `webkitCompassHeading` on
+  iOS) and its roll and pitch pulled to gravity from the accelerometer whenever the phone is held
+  still (`TiltCorrection`: Android's own fusion leaves the tilt degrees off for a long time after
+  a turn).
 - Scene: rooms of the current level on the floor, coloured by use; translucent walls 2.6 m high;
   doors green, stairs yellow; room names as labels.
 - The compass is often 10–30° off indoors: drag sideways (or use the slider) until walls line up.

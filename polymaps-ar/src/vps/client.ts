@@ -80,17 +80,22 @@ export class VpsClient {
    */
   async localize(
     source: CanvasImageSource, srcW: number, srcH: number, focalSrcPx: number, prior: LocalizeRequest['prior'],
-    /** Debug mode: the server answers with its intermediate results and keeps the query under this id. */
-    debugId?: string,
+    opts: {
+      /** Debug mode: the server answers with its intermediate results and keeps the query under this id. */
+      debugId?: string;
+      sensor?: LocalizeRequest['sensor'];
+    } = {},
   ): Promise<VpsResult> {
+    const { debugId, sensor } = opts;
     const t0 = performance.now();
     const { gray, width, height, scaleX, scaleY } = toGray(source, srcW, srcH, FEATURE_MAX_SIDE);
     const kept = debugId ? gray.slice() : null; // the worker takes `gray` over
     const extractor = await this.load();
     const features: Features = await extractor.extract(gray, width, height, MAX_KEYPOINTS);
     const t1 = performance.now();
-    const focal = focalSrcPx * scaleX;
-    const body = encodeRequest({ features, focal, prior, debug: debugId });
+    // A view without size (hidden) gives no FOV: assume 60 deg vertically.
+    const focal = Number.isFinite(focalSrcPx) && focalSrcPx > 0 ? focalSrcPx * scaleX : height / 2 / Math.tan(Math.PI / 6);
+    const body = encodeRequest({ features, focal, prior, debug: debugId, sensor });
     const res = await fetch(this.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body });
     if (!res.ok) throw new Error(`VPS server: HTTP ${res.status}`);
     const out = (await res.json()) as LocalizeResponse;

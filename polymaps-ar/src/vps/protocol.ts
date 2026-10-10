@@ -20,6 +20,11 @@ export interface LocalizeRequest {
   prior: { lng: number; lat: number; levelId: string | null; accuracy: number } | null;
   /** Debug mode: the server answers with its intermediate results and stores the query under this id. */
   debug?: string;
+  /**
+   * The phone's own camera orientation at capture (degrees: heading from north, pitch above the
+   * horizon, roll about the view direction). The server accepts a pose from few matches only if it agrees with this.
+   */
+  sensor?: { heading: number; pitch: number; roll: number } | null;
 }
 
 /** The localizer's intermediate results in debug mode (vps/vps/localizer.py). */
@@ -39,6 +44,7 @@ export interface LocalizeDebug {
   inlierDepth?: { median: number; min: number; max: number };
   solvers?: Record<string, { inliers: number; focal: number; fov: number } | null>;
   solver?: string | null;
+  sensorCheck?: { ok: boolean; why?: string; headingDiff?: number; pitchDiff?: number; rollDiff?: number; height?: number; focalChange?: number };
   /** The pose found, also when it was rejected. */
   pose?: { lng: number; lat: number; levelId: string; height: number; heading: number; pitch: number; focal: number; priorDist?: number };
 }
@@ -62,6 +68,8 @@ export interface LocalizeResponse {
   matches?: number;
   /** Map images the query was matched against. */
   candidates?: number;
+  /** A pose from fewer matches, accepted because the phone's heading and pitch agree. */
+  confirmedBySensors?: boolean;
   /** Server time, ms. */
   ms?: number;
   scene?: string;
@@ -74,7 +82,7 @@ export function encodeRequest(req: LocalizeRequest): ArrayBuffer {
   const f = req.features;
   const n = f.scores.length;
   const header = new TextEncoder().encode(
-    JSON.stringify({ n, width: f.width, height: f.height, focal: req.focal, prior: req.prior, descScale: DESC_SCALE, dim: DESCRIPTOR_DIM, ...(req.debug ? { debug: req.debug } : {}) }),
+    JSON.stringify({ n, width: f.width, height: f.height, focal: req.focal, prior: req.prior, descScale: DESC_SCALE, dim: DESCRIPTOR_DIM, ...(req.debug ? { debug: req.debug } : {}), ...(req.sensor ? { sensor: req.sensor } : {}) }),
   );
   const size = 8 + header.length + n * 8 + n * 4 + n * DESCRIPTOR_DIM;
   const buf = new ArrayBuffer(size);

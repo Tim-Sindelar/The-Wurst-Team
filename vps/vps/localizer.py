@@ -28,6 +28,13 @@ class LocalizerConfig:
     min_mnn: int = 12
     ransac_px: float = 10.0  # in a 640 px image
     min_inliers: int = 50  # fewer: often a wrong pose (CAB validation queries)
+    # Between these, a pose is accepted only if the phone's own heading and pitch confirm it: a wrong
+    # pose from few matches is usually tens of degrees off, a right one in a changed place agrees.
+    min_inliers_confirmed: int = 30
+    max_heading_diff: float = 20.0  # degrees; the indoor compass is often 10-20 off
+    max_pitch_diff: float = 6.0  # pitch and roll come from gravity: good to a few degrees
+    max_roll_diff: float = 6.0
+    max_focal_change: float = 0.2  # refined focal vs. the phone's guess (wrong poses often trade focal for distance)
     max_prior_dist: float = 8.0  # metres
     device: str = 'cpu'
 
@@ -167,16 +174,38 @@ class Localizer:
         n = 0 if ret is None else int(ret['num_inliers'])
         if ret is not None and debug:
             self.describe_inliers(q, ret, pairs, pts2d, pts3d, dbg)
-        if ret is None or n < self.conf.min_inliers:
+        out = None if ret is None else self.db.describe_pose(ret['cam_from_world'])
+        confirmed = None
+        if out is not None and self.conf.min_inliers_confirmed <= n < self.conf.min_inliers:
+            confirmed = self.sensor_agrees(q, out, float(ret['focal']))
+            dbg['sensorCheck'] = confirmed
+        if ret is None or (n < self.conf.min_inliers and not (confirmed and confirmed['ok'])):
             return done({'ok': False, 'reason': f'pose not found ({n} inliers)', 'candidates': len(cands),
                          'matches': len(pairs), 'inliers': n})
-        out = self.db.describe_pose(ret['cam_from_world'])
         if not self.plausible(q, out):
             return done({'ok': False, 'reason': 'pose too far from the beacon position', 'candidates': len(cands),
                          'matches': len(pairs), 'inliers': n})
         out.update(ok=True, focal=float(ret['focal']), inliers=n, matches=len(pairs),
                    candidates=len(cands), shortlist=len(short))
+        if confirmed:
+            out['confirmedBySensors'] = True
         return done(out)
+
+    def sensor_agrees(self, q: Query, pose: dict, focal: float) -> dict:
+        """Does a pose with few inliers agree with the phone's heading and pitch, at a hand-held height
+        and with about the focal length the phone expects?"""
+        s = q.sensor
+        if not s:
+            return {'ok': False, 'why': 'no sensor orientation sent'}
+        dh = (pose['heading'] - float(s['heading']) + 180) % 360 - 180
+        dp = pose['pitch'] - float(s['pitch'])
+        dr = (pose['roll'] - float(s['roll']) + 180) % 360 - 180 if isinstance(s.get('roll'), (int, float)) else 0.0
+        df = focal / q.focal - 1
+        ok = (abs(dh) <= self.conf.max_heading_diff and abs(dp) <= self.conf.max_pitch_diff and abs(dr) <= self.conf.max_roll_diff
+              and 0.5 <= pose['height'] <= 2.3 and abs(df) <= self.conf.max_focal_change)
+        return {'ok': bool(ok), 'headingDiff': round(dh, 1), 'pitchDiff': round(dp, 1), 'rollDiff': round(dr, 1),
+                'height': round(pose['height'], 2),
+                'focalChange': round(df, 3)}
 
     def describe_inliers(self, q: Query, ret: dict, pairs, pts2d, pts3d, dbg: dict):
         """Inlier keypoints, where the pose puts their 3D points in the image, and the pose itself

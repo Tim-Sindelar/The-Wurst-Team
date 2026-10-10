@@ -13,7 +13,7 @@ import { buildLevelScene, disposeGroup } from './scene';
 import { XrAlignment } from './xrAlignment';
 import { buildRouteMesh } from '../pathfinding/routeMesh';
 import type { Route } from '../pathfinding/route';
-import { HeadingFusion, orientationQuaternion, requestOrientationPermission, screenAngle, watchOrientation, type OrientationReading } from './orientation';
+import { HeadingFusion, TiltCorrection, orientationQuaternion, requestOrientationPermission, screenAngle, watchOrientation, type OrientationReading } from './orientation';
 import { VpsClient, focalFromFov, fovFromFocal, type VpsResult } from '../vps/client';
 import { VisualOffset, headingCorrection } from '../vps/fusion';
 import { debugInitiallyOn, featureStats, imageStats, newDebugId, rememberDebug, uploadDebug } from '../vps/debug';
@@ -51,10 +51,15 @@ interface VpsState {
   error: string | null;
 }
 
-/** Heading (degrees clockwise from north) and pitch of a three.js camera in the AR world (x east, y up, z south). */
-function viewAngles(q: Quaternion): { heading: number; pitch: number } {
+/**
+ * Heading (degrees clockwise from north), pitch and roll (positive: image's right side raised) of a
+ * three.js camera in the AR world (x east, y up, z south).
+ */
+function viewAngles(q: Quaternion): { heading: number; pitch: number; roll: number } {
   const f = new Vector3(0, 0, -1).applyQuaternion(q);
+  const right = new Vector3(1, 0, 0).applyQuaternion(q), up = new Vector3(0, 1, 0).applyQuaternion(q);
   return {
+    roll: (Math.atan2(right.y, up.y) * 180) / Math.PI,
     heading: ((((Math.atan2(f.x, -f.z) * 180) / Math.PI) % 360) + 360) % 360,
     pitch: (Math.asin(Math.max(-1, Math.min(1, f.y))) * 180) / Math.PI,
   };
@@ -83,6 +88,7 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
   const [status, setStatus] = useState('');
   const orientationRef = useRef<OrientationReading | null>(null);
   const fusionRef = useRef(new HeadingFusion());
+  const tiltRef = useRef(new TiltCorrection());
   // Lining up walls by hand beats the indoor compass: stop it from pulling the heading away.
   const [compassLocked, setCompassLocked] = useState(false);
   fusionRef.current.locked = compassLocked;
@@ -164,7 +170,11 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
     try {
       const res = await vpsClient.current.localize(video, vw, vh, focalFromFov(fovRef.current, vw, vh, viewW, viewH), {
         lng: p.lng, lat: p.lat, levelId: p.levelId, accuracy: p.accuracy,
-      }, debugId);
+      }, {
+        debugId,
+        // Only real sensors: without them the rendered direction is just where the view was dragged.
+        sensor: orientationRef.current ? viewAngles(qAtCapture) : null,
+      });
       if (res.ok && res.quaternion && res.lng != null && res.lat != null) {
         const visual = new Quaternion(...res.quaternion);
         const d = headingCorrection(qAtCapture, visual);
@@ -205,6 +215,7 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
         orientation: {
           sensors, reading: o, ...angles, quaternion: q.toArray(), angularSpeed: o ? fusionRef.current.speed : null,
           headingOffset: headingRef.current, compassLocked: fusionRef.current.locked, screenAngle: screenAngle(),
+          tiltCorrection: { degrees: tiltRef.current.angle, quaternion: tiltRef.current.q.toArray(), gravityWeight: tiltRef.current.weight },
         },
         camera: {
           videoWidth: vw, videoHeight: vh, viewWidth: viewW, viewHeight: viewH, devicePixelRatio: window.devicePixelRatio,
@@ -285,7 +296,7 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
       seen = true;
       orientationRef.current = r;
       setSensors((s) => (s === (r.absolute ? 'absolute' : 'relative') ? s : r.absolute ? 'absolute' : 'relative'));
-    }, fusionRef.current);
+    }, fusionRef.current, tiltRef.current);
     const t = setTimeout(() => !seen && setSensors('none'), 1500);
     return () => {
       stop();
@@ -394,7 +405,7 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
         world.visible = true;
         orientationQuaternion(q, o.alpha, o.beta, o.gamma, screenAngle());
         yawFix.setFromAxisAngle(up, (headingRef.current * Math.PI) / 180);
-        camera.quaternion.copy(yawFix).multiply(q);
+        camera.quaternion.copy(yawFix).multiply(tiltRef.current.q).multiply(q);
         renderedQ.current.copy(camera.quaternion);
       } else {
         world.position.set(0, 0, 0);
