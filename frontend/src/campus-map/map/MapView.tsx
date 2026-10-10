@@ -102,6 +102,8 @@ interface Props {
   onSelectMensa: (mensaId: string) => void;
   /** 3D view: the other floors stacked around the selected one; null when off. */
   view3d: View3DStyle | null;
+  /** 3D view: also draw the stack's edges, faint. */
+  edges3d: boolean;
   /** More map layers (the campus datasets), rendered inside the map. */
   children?: ReactNode;
 }
@@ -122,13 +124,6 @@ export function MapView(props: Props) {
   /** Libraries without a floor (not in PolyMaps) are shown on every floor. */
   const onFloor = (lib: { floor: number | null }) =>
     lib.floor === null || lib.floor === floor;
-  const librariesOnFloor = new Set(
-    data.libraries.filter(onFloor).map((l) => l.id),
-  );
-  const tablesOnFloor = data.tables.filter((t) =>
-    librariesOnFloor.has(t.libraryId),
-  );
-  const tableIdsOnFloor = new Set(tablesOnFloor.map((t) => t.id));
   const libraryRooms = useMemo(
     () =>
       new Map(
@@ -202,6 +197,15 @@ export function MapView(props: Props) {
   const [focusGroup, setFocusGroup] = useState<BuildingGroup | null>(null);
   const stackGroup = props.view3d && zoom >= STACK_ZOOM ? focusGroup : null;
   const spacing = props.view3d?.spacing ?? 0;
+  /** 3D on: only the stacked group draws a floor, the rest are footprints. */
+  const stackOnly = !!props.view3d;
+  const footprints = useMemo(
+    () =>
+      stackOnly && groups
+        ? [...groups.values()].filter((g) => g !== stackGroup)
+        : [],
+    [stackOnly, groups, stackGroup],
+  );
   /** How far north a workspace or pin of a building's floor is drawn. */
   const liftOf = (facilityId: string | null, f: number | null) =>
     stackGroup &&
@@ -210,6 +214,22 @@ export function MapView(props: Props) {
     stackGroup.facilityIds.has(facilityId)
       ? floorLift(stackGroup, f, spacing)
       : 0;
+  // A stacked group without the selected floor switches to its nearest floor.
+  const onFloorChange = props.onFloorChange;
+  useEffect(() => {
+    if (!stackGroup?.floors.length || stackGroup.floors.includes(floor)) return;
+    const nearest = stackGroup.floors.reduce((a, b) =>
+      Math.abs(b - floor) < Math.abs(a - floor) ? b : a,
+    );
+    onFloorChange(nearest);
+  }, [stackGroup, floor, onFloorChange]);
+  /** Room layouts show from the building level: the lowest zoom a building zone flies to. */
+  const roomZoom = useMemo(() => {
+    const zooms = (props.navigation?.zones ?? [])
+      .filter((z) => z.kind === 'building')
+      .map((z) => z.zoom);
+    return zooms.length ? Math.min(...zooms) : undefined;
+  }, [props.navigation]);
   const planLift = useMemo(
     () =>
       stackGroup
@@ -223,9 +243,24 @@ export function MapView(props: Props) {
     return lib ? liftOf(lib.facilityId, lib.floor) : 0;
   };
 
-  // In 3D, a workspace shows only on its own floor; flat, the other floors' show too.
-  const shown = (lib: { floor: number | null }) =>
-    !props.view3d || onFloor(lib);
+  /* In 3D, a workspace shows only on its own floor and only in the stacked
+     group (the other buildings are just footprints); flat, the other floors'
+     show too. */
+  const shown = (lib: { floor: number | null; facilityId: string | null }) =>
+    !props.view3d ||
+    (onFloor(lib) &&
+      (!stackOnly ||
+        lib.floor === null ||
+        (!!stackGroup &&
+          !!lib.facilityId &&
+          stackGroup.facilityIds.has(lib.facilityId))));
+  const librariesOnFloor = new Set(
+    data.libraries.filter((l) => onFloor(l) && shown(l)).map((l) => l.id),
+  );
+  const tablesOnFloor = data.tables.filter((t) =>
+    librariesOnFloor.has(t.libraryId),
+  );
+  const tableIdsOnFloor = new Set(tablesOnFloor.map((t) => t.id));
   const outlinedLibraries = data.libraries
     .filter((l) => shown(l) && outlineOf(l))
     .sort((a, b) => drawOrder(a) - drawOrder(b));
@@ -291,16 +326,19 @@ export function MapView(props: Props) {
             selectedMensaId={props.selectedMensaId}
             onSelectMensa={props.onSelectMensa}
             lift={planLift}
+            stackOnly={stackOnly}
+            footprints={footprints}
+            roomZoom={roomZoom}
           />
           {props.view3d && (
             <Floors3D
               theme={props.theme}
-              index={props.floorIndex}
               group={stackGroup}
               floor={floor}
               onFloorChange={props.onFloorChange}
               style={props.view3d}
               minimal={minimal}
+              edges={props.edges3d}
             />
           )}
           <FloorPicker
@@ -308,6 +346,8 @@ export function MapView(props: Props) {
             floor={floor}
             libraries={data.libraries}
             onChange={props.onFloorChange}
+            view3d={!!props.view3d}
+            group={stackGroup}
           />
         </>
       )}

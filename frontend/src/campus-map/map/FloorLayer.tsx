@@ -29,7 +29,7 @@ import {
 import type { RoomInfo } from '../roomFeatures';
 import { liftRings, type BuildingGroup } from './buildingGroups';
 
-/** Rooms are drawn from this zoom level on, walls and doors from LINE_ZOOM. */
+/** Rooms are drawn from this zoom level on (unless `roomZoom` says otherwise), walls and doors from LINE_ZOOM. */
 export const ROOM_ZOOM = 18;
 export const LINE_ZOOM = 19;
 const LABEL_ZOOM = 19;
@@ -150,6 +150,12 @@ interface Props {
   onSelectMensa: (mensaId: string) => void;
   /** 3D view: this group's part of the floor is drawn `dLat` degrees further north, with the group's outline (see Floors3D). */
   lift: { group: BuildingGroup; dLat: number } | null;
+  /** 3D view on: only the lifted group draws its floor; every other building is just its footprint. */
+  stackOnly: boolean;
+  /** 3D view on: the groups drawn as footprints, their 3D outline flat in place (see buildingGroups). */
+  footprints: readonly BuildingGroup[];
+  /** Rooms are drawn from this zoom on; default ROOM_ZOOM. */
+  roomZoom?: number;
 }
 
 /** A PolyMaps room belonging to a mensa. */
@@ -192,6 +198,9 @@ export function FloorLayer({
   selectedMensaId,
   onSelectMensa,
   lift,
+  stackOnly,
+  footprints,
+  roomZoom = ROOM_ZOOM,
 }: Props) {
   const map = useMap();
   const [view, setView] = useState(() => ({
@@ -262,16 +271,19 @@ export function FloorLayer({
   const isLifted = (facilityId: string) =>
     !!lift && lift.group.facilityIds.has(facilityId);
 
+  const stackGroup = lift?.group ?? null;
   const floorLevels = useMemo(
-    () => index.levels.filter((l) => l.floor === floor),
-    [index, floor],
+    () =>
+      index.levels.filter(
+        (l) =>
+          l.floor === floor &&
+          (!stackOnly || !!stackGroup?.facilityIds.has(l.facilityId)),
+      ),
+    [index, floor, stackOnly, stackGroup],
   );
 
-  // Outlines of the levels on the selected floor.
-  useEffect(() => {
-    if (view.zoom < OUTLINE_ZOOM || (minimal && !minimal.parts.levels.show))
-      return;
-    const style = minimal
+  const levelStyle = (): L.PathOptions =>
+    minimal
       ? partPathOptions(minimal, 'levels')
       : {
           color: BUILDING_STYLE[theme].levelColor,
@@ -279,14 +291,41 @@ export function FloorLayer({
           fillColor: BUILDING_STYLE[theme].levelFill,
           fillOpacity: 0.9,
         };
-    // A lifted group shows its one outline instead of its levels' own.
+
+  // In 3D, the footprints of the groups not stacked, at every zoom.
+  useEffect(() => {
+    if (!footprints.length || (minimal && !minimal.parts.levels.show)) return;
+    const style = levelStyle();
+    const group = L.layerGroup(
+      footprints
+        .map((g) => g.outline())
+        .filter((polys) => !polygonsSmallerThan(polys, minSize))
+        .map((polys) =>
+          L.polygon(roundPolygons(polys, radius), {
+            renderer: renderers.buildings,
+            interactive: false,
+            ...style,
+          }),
+        ),
+    ).addTo(map);
+    return () => void group.remove();
+  }, [map, footprints, renderers, theme, minimal, radius, minSize]);
+
+  // Outlines of the levels on the selected floor.
+  useEffect(() => {
+    if (view.zoom < OUTLINE_ZOOM || (minimal && !minimal.parts.levels.show))
+      return;
+    const style = levelStyle();
+    // A lifted group shows its floor's merged outline instead of its levels' own.
     const lifted = lift && floorLevels.some((l) => isLifted(l.facilityId));
     const group = L.layerGroup(
       [
         ...floorLevels
           .filter((l) => !isLifted(l.facilityId))
           .map((l) => outlineToLatLngs(l.outline)),
-        ...(lifted ? [liftRings(lift.group.outline(), lift.dLat)] : []),
+        ...(lifted
+          ? [liftRings(lift.group.floorOutline(floor), lift.dLat)]
+          : []),
       ]
         .filter((polys) => !polygonsSmallerThan(polys, minSize))
         .map((polys) =>
@@ -300,6 +339,7 @@ export function FloorLayer({
     return () => void group.remove();
   }, [
     map,
+    floor,
     floorLevels,
     renderers,
     theme,
@@ -312,7 +352,7 @@ export function FloorLayer({
 
   // Rooms and lines of the levels in view, loaded on demand.
   const visibleIds = useMemo(() => {
-    if (view.zoom < ROOM_ZOOM) return [];
+    if (view.zoom < roomZoom) return [];
     const b = view.bounds.pad(0.2);
     const box = {
       west: b.getWest(),
@@ -329,7 +369,7 @@ export function FloorLayer({
         );
       })
       .map((l) => l.id);
-  }, [floorLevels, view, lift]);
+  }, [floorLevels, view, lift, roomZoom]);
   const visibleKey = visibleIds.join('|');
 
   const [plans, setPlans] = useState<Map<string, LevelPlan>>(new Map());

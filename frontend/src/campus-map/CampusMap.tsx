@@ -17,7 +17,6 @@ import { Icon } from '../components/Icon';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { paths } from '../routes';
 import { LiveRooms } from './components/LiveRooms';
-import { OccupancyLegend } from './components/OccupancyLegend';
 import { RoomDetails } from './components/RoomDetails';
 import { RoomPhotos } from './components/RoomPhotos';
 import { WorkspaceDetails } from './components/WorkspaceDetails';
@@ -61,11 +60,13 @@ import { MapSheet } from './MapSheet';
 import {
   bookableLibraryIds,
   load3d,
+  load3dEdges,
   loadMapMode,
   MAP_MODE_LABELS,
   MAP_MODES,
   MODE_DATASETS,
   save3d,
+  save3dEdges,
   saveMapMode,
   type MapMode,
 } from './mapMode';
@@ -151,6 +152,11 @@ export function CampusMap() {
   const setView3d = (on: boolean) => {
     setView3dState(on);
     save3d(on);
+  };
+  const [edges3d, setEdges3dState] = useState(load3dEdges);
+  const setEdges3d = (on: boolean) => {
+    setEdges3dState(on);
+    save3dEdges(on);
   };
 
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -494,16 +500,6 @@ export function CampusMap() {
     ? (mensaItems?.find((i) => i.id === workspaceMensaId) ?? null)
     : null;
 
-  const legendNote = !snapshot
-    ? ethResponse?.state === 'running'
-      ? `Fetching today's bookings from ETH… ${ethResponse.done} / ${ethResponse.total || '?'}`
-      : ethError || ethResponse?.error
-        ? 'Room data unavailable right now'
-        : 'Loading room data…'
-    : dayMismatch
-      ? "Fetching today's bookings…"
-      : null;
-
   // ---- the card for the current selection ----
   let peek: { title: string; detail: string; dot?: string } | null = null;
   if (target?.kind === 'room' && selectedRoomInfo) {
@@ -526,8 +522,6 @@ export function CampusMap() {
     };
   }
 
-  const showLegend = rooms && roomFeatures.occupancy;
-
   return (
     <div className="campus-map relative h-dvh w-full overflow-hidden bg-bg">
       <MapView
@@ -549,6 +543,7 @@ export function CampusMap() {
         onZoomChange={setZoom}
         minimal={style}
         view3d={view3d ? style.view3d : null}
+        edges3d={edges3d}
         navigation={navigation}
         homePositions={homePositions(data.libraries)}
         ethRooms={roomsOnPlan}
@@ -600,20 +595,8 @@ export function CampusMap() {
         </div>
       </header>
 
-      {/* Bottom: legend, selection card, toolbar */}
+      {/* Bottom: selection card, toolbar */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-1100 grid gap-2 px-3 pb-[calc(--spacing(3)+env(safe-area-inset-bottom))]">
-        {showLegend && (
-          <div className="pointer-events-auto mr-16">
-            <OccupancyLegend
-              infos={roomInfos}
-              colors={roomStyle}
-              showColors={roomFeatures.occupancy}
-              label={`Now ${hhmm(minute)}`}
-              note={legendNote}
-            />
-          </div>
-        )}
-
         {peek && (
           <div className="pointer-events-auto flex items-center gap-1 rounded-card border border-border bg-surface py-1 pr-1 pl-4 shadow-card">
             <button
@@ -702,6 +685,12 @@ export function CampusMap() {
             label="3D: stack the floors of the building in focus"
             checked={view3d}
             onChange={(e) => setView3d(e.currentTarget.checked)}
+          />
+          <Switch
+            label="3D edges: trace where the floors change shape"
+            checked={edges3d}
+            disabled={!view3d}
+            onChange={(e) => setEdges3d(e.currentTarget.checked)}
           />
           {mode === 'study' && spacesQuery.isError && (
             <Alert variant="danger" title="Couldn't load the study spaces">

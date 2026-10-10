@@ -13,8 +13,8 @@ import { outlineToLatLngs } from './geo';
 // The 3D view stacks one building group at a time: the buildings inside one
 // building zoom zone of navigation.json (the zones only hold outlines, so the
 // grouping is written out here). A building outside every zone is a group of
-// its own. Every floor of a group is drawn with the same outline, the union of
-// all its buildings and levels, and the stack stands on the group's ground
+// its own. Every floor of a group is drawn with its own outline, the union of
+// the group's levels on that floor, and the stack stands on the group's ground
 // floor, which keeps its real place on the map.
 
 const GROUPS: Record<string, string[]> = {
@@ -77,8 +77,10 @@ export interface BuildingGroup {
   ground: number;
   /** [west, south, east, north] of the outline. */
   bbox: [number, number, number, number];
-  /** One outline for every floor: all buildings and levels of the group merged, as [lat, lng]. */
+  /** The whole group: all buildings and levels merged, as [lat, lng] (its footprint when not stacked). */
   outline: () => L.LatLngTuple[][][];
+  /** One floor: the group's levels on it merged, as [lat, lng]. */
+  floorOutline: (floor: number) => L.LatLngTuple[][][];
 }
 
 export function buildGroups(index: FloorIndex): Map<string, BuildingGroup> {
@@ -119,6 +121,7 @@ export function buildGroups(index: FloorIndex): Map<string, BuildingGroup> {
           bbox[3] = Math.max(bbox[3], lat);
         }
     let outline: L.LatLngTuple[][][] | null = null;
+    const byFloor = new Map<number, L.LatLngTuple[][][]>();
     out.set(id, {
       id,
       facilityIds: new Set(groupLevels.map((l) => l.facilityId)),
@@ -130,6 +133,15 @@ export function buildGroups(index: FloorIndex): Map<string, BuildingGroup> {
       ground: groundFloor(groupLevels),
       bbox,
       outline: () => (outline ??= mergeOutlines(shapes)),
+      floorOutline: (floor) => {
+        let o = byFloor.get(floor);
+        if (!o) {
+          const here = groupLevels.filter((l) => l.floor === floor);
+          o = here.length ? mergeOutlines(here.map((l) => l.outline)) : [];
+          byFloor.set(floor, o);
+        }
+        return o;
+      },
     });
   }
   return out;

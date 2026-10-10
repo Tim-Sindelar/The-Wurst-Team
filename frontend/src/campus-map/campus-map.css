@@ -1212,40 +1212,6 @@
       font-size: 10px;
     }
 
-    /* room status legend and time slider, above the bottom bar */
-    .occ-legend {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 8px 12px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      font-size: var(--text-label);
-    }
-    .occ-legend-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px 12px;
-    }
-    .occ-legend-items span {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-    }
-    .occ-legend-time {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .occ-time {
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
     /* Leaflet controls: 44px touch targets, below the top bar */
     .leaflet-container {
       font: inherit;

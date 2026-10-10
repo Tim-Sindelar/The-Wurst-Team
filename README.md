@@ -167,7 +167,7 @@ Overview names are deterministic placeholders (`Demo user <full UUID>`). The cur
 
 ## Campus map
 
-The layers button at the top right of the map opens **Map view**, a slider with three positions and a switch for the 3D floor stack (on by default):
+The layers button at the top right of the map opens **Map view**, a slider with three positions and a switch for the 3D floor stack and one for its faint edges (both on by default):
 
 | Position | Shows |
 | --- | --- |

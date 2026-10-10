@@ -8,6 +8,7 @@ import {
   type FloorIndex,
 } from '../floors/floorData';
 import type { Library } from '../domain/types';
+import type { BuildingGroup } from './buildingGroups';
 
 /** The picker shows from this zoom on, like the floor plans. */
 const SHOW_FROM_ZOOM = 16;
@@ -19,15 +20,26 @@ interface Props {
   floor: number;
   libraries: Library[];
   onChange: (floor: number) => void;
+  /** 3D view: the wheel lists only the stacked group's floors, and hides without one. */
+  view3d: boolean;
+  group: BuildingGroup | null;
 }
 
 /**
  * Floor wheel: the floors of the buildings in view, top floor first, scrolled
  * so the selected one sits in the middle. Scrolling the wheel picks the floor
  * that comes to rest in the middle; tapping a floor picks it too. Each floor
- * shows one letter, the one the building in focus uses for it.
+ * shows one letter, the one the building in focus uses for it. In 3D only the
+ * stacked group's floors are listed, with the group's letters.
  */
-export function FloorPicker({ index, floor, libraries, onChange }: Props) {
+export function FloorPicker({
+  index,
+  floor,
+  libraries,
+  onChange,
+  view3d,
+  group,
+}: Props) {
   const map = useMap();
   const [bounds, setBounds] = useState(() => map.getBounds());
   const [center, setCenter] = useState(() => map.getCenter());
@@ -46,24 +58,29 @@ export function FloorPicker({ index, floor, libraries, onChange }: Props) {
   };
   const inView = index.levels.filter((l) => intersects(l.bbox, view));
   const shown = inView.length ? inView : index.levels;
-  const floors = [...new Set([...shown.map((l) => l.floor), floor])].sort(
-    (a, b) => b - a,
-  );
+  const floors = group
+    ? [...group.floors].reverse()
+    : [...new Set([...shown.map((l) => l.floor), floor])].sort((a, b) => b - a);
   const focus = focusFacility(shown, center.lat, center.lng);
-  const labelOf = (f: number) => singleFloorLabel(f, shown, focus);
+  const labelOf = (f: number) =>
+    group?.labels.get(f) ?? singleFloorLabel(f, shown, focus);
 
   const libraryFloors = new Set(
     libraries
       .filter(
         (l) =>
-          l.floor !== null && bounds.contains([l.position.lat, l.position.lng]),
+          l.floor !== null &&
+          (group
+            ? !!l.facilityId && group.facilityIds.has(l.facilityId)
+            : bounds.contains([l.position.lat, l.position.lng])),
       )
       .map((l) => l.floor as number),
   );
 
   // Zoomed out over a whole campus the floors mean little, and the wheel
-  // would cover the map on a phone.
-  if (map.getZoom() < SHOW_FROM_ZOOM) return null;
+  // would cover the map on a phone. In 3D there is nothing to pick without a
+  // stacked group.
+  if (map.getZoom() < SHOW_FROM_ZOOM || (view3d && !group)) return null;
 
   return (
     <FloorWheel
