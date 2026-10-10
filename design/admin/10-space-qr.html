@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QR codes · Study Spaces Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="stylesheet" href="../admin.css" />
+    <script src="../base.js"></script>
+    <script src="layout-data.js" defer></script>
+    <script src="spaces-data.js" defer></script>
+    <script src="qr-data.js" defer></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/dist/qrcode.js"
+      defer
+    ></script>
+    <script src="qr-generator.js" defer></script>
+  </head>
+  <body class="admin-body qr-admin">
+    <div class="admin">
+      <aside class="sidebar">
+        <a
+          class="sidebar__brand"
+          href="01-spaces.html"
+          aria-label="Study Spaces admin, back to the spaces list"
+        >
+          <strong>Study Spaces</strong>
+          <span class="t-label">Admin</span>
+        </a>
+        <nav class="nav" aria-label="Admin">
+          <a class="nav__link" href="01-spaces.html"
+            ><i class="icon i-map"></i> Spaces</a
+          >
+          <a class="nav__link" href="08-users.html"
+            ><i class="icon i-user" aria-hidden="true"></i> Users</a
+          >
+          <a class="nav__link" href="10-space-qr.html" aria-current="page"
+            ><i class="icon i-qr" aria-hidden="true"></i> QR codes</a
+          >
+        </nav>
+        <div class="sidebar__foot">
+          <a class="nav__link" href="../index.html"
+            ><i class="icon i-home"></i> Student app</a
+          >
+          <div class="sidebar__user">
+            <span class="avatar" aria-hidden="true">AD</span>
+            <span class="t-small">Admin</span>
+            <button
+              class="icon-button theme-toggle"
+              type="button"
+              data-theme-toggle
+              aria-pressed="false"
+              aria-label="Switch to light theme"
+              style="margin-left: auto"
+            >
+              <i class="icon i-sun"></i><i class="icon i-moon"></i>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="admin__main">
+        <div class="page">
+          <a class="crumbs qr-screen-only" href="01-spaces.html"
+            ><i class="icon i-back" aria-hidden="true"></i> Spaces</a
+          >
+          <header class="page-header qr-screen-only">
+            <div class="page-header__text">
+              <h1 class="t-heading">QR codes</h1>
+              <p class="t-muted">
+                Generate and print one label for each seat in a study space.
+              </p>
+            </div>
+            <button
+              class="btn btn--secondary"
+              type="button"
+              id="qr-print"
+              disabled
+            >
+              Print / Save PDF
+            </button>
+          </header>
+          <nav class="subnav qr-screen-only" aria-label="This space">
+            <a href="03-space-seats.html">Seats</a
+            ><a href="04-space-hours.html">Opening hours</a
+            ><a href="05-space-closures.html">Closures</a
+            ><a href="06-space-layout.html">Layout</a
+            ><a href="10-space-qr.html" aria-current="page">QR codes</a
+            ><a href="07-space-settings.html">Settings</a>
+          </nav>
+          <div class="qr-workspace">
+            <form id="qr-form" class="form qr-screen-only" novalidate>
+              <h2 class="t-title">Seat labels</h2>
+              <fieldset id="qr-fields" class="qr-fields">
+                <div class="field">
+                  <label class="field__label" for="qr-space">Study space</label>
+                  <div class="select" id="qr-space-picker">
+                    <select id="qr-space" required></select>
+                  </div>
+                  <p id="qr-space-name" class="qr-space-name" hidden></p>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="qr-room">Room label</label
+                  ><input
+                    class="input"
+                    id="qr-room"
+                    maxlength="64"
+                    placeholder="e.g. HG E 1.1"
+                    aria-describedby="qr-room-help"
+                    required
+                  />
+                  <p class="field__helper" id="qr-room-help">
+                    Building, floor and room. This is printed on every label.
+                  </p>
+                </div>
+                <p class="t-small t-muted" id="qr-seat-count" role="status"></p>
+                <a
+                  class="btn btn--quiet"
+                  id="qr-layout"
+                  href="06-space-layout.html"
+                  >Edit seats in Layout</a
+                >
+                <div class="field">
+                  <label class="field__label" for="qr-address"
+                    >Student app address</label
+                  ><input
+                    class="input"
+                    id="qr-address"
+                    type="url"
+                    value="https://example.com"
+                    placeholder="https://your-app.com"
+                    required
+                  />
+                  <p class="field__helper">
+                    Use the stable app address students will open when scanning.
+                  </p>
+                </div>
+                <div class="field">
+                  <span class="field__label" id="qr-size-label"
+                    >QR image size</span
+                  >
+                  <div
+                    class="qr-size-picker"
+                    role="group"
+                    aria-labelledby="qr-size-label"
+                  >
+                    <button
+                      type="button"
+                      class="btn btn--secondary"
+                      data-qr-size="3"
+                      aria-pressed="false"
+                    >
+                      3 × 3 cm</button
+                    ><button
+                      type="button"
+                      class="btn btn--secondary"
+                      data-qr-size="4"
+                      aria-pressed="true"
+                    >
+                      4 × 4 cm
+                    </button>
+                  </div>
+                </div>
+                <p
+                  class="user-form-error t-small"
+                  id="qr-error"
+                  role="alert"
+                  tabindex="-1"
+                  hidden
+                ></p>
+                <button type="submit" class="btn btn--primary" id="qr-generate">
+                  Generate QR codes
+                </button>
+              </fieldset>
+              <p class="t-small t-muted">
+                Label generation only. Reservation check-in is not connected.
+              </p>
+            </form>
+            <section
+              class="user-card qr-preview"
+              aria-labelledby="qr-preview-title"
+            >
+              <div class="user-section-head qr-screen-only">
+                <h2 class="t-title" id="qr-preview-title">Print preview</h2>
+                <span class="t-small t-muted" id="qr-summary" role="status"
+                  >No labels generated</span
+                >
+              </div>
+              <p class="t-small t-muted qr-screen-only" id="qr-empty">
+                Select a space and generate its seat labels.
+              </p>
+              <p
+                class="t-small user-form-error qr-screen-only"
+                id="qr-stale"
+                role="status"
+                hidden
+              >
+                Settings changed. Generate again before printing.
+              </p>
+              <p
+                class="t-small t-muted qr-screen-only"
+                id="qr-address-note"
+                hidden
+              ></p>
+              <div
+                class="qr-labels"
+                id="qr-labels"
+                style="--qr-size: 4cm"
+              ></div>
+              <p
+                class="t-small t-muted qr-screen-only"
+                id="qr-print-tip"
+                hidden
+              >
+                Print at 100% / actual size with headers and footers off. QR
+                sizes include white margins; room and seat captions stay outside
+                the code.
+              </p>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div class="banner-region"></div>
+  </body>
+</html>

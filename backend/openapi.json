@@ -371,6 +371,11 @@
             "title": "Id",
             "type": "string"
           },
+          "is_archived": {
+            "default": false,
+            "title": "Is Archived",
+            "type": "boolean"
+          },
           "is_open": {
             "title": "Is Open",
             "type": "boolean"
@@ -387,6 +392,17 @@
           "lng": {
             "title": "Lng",
             "type": "number"
+          },
+          "map_unit_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Map Unit Id"
           },
           "name": {
             "title": "Name",
@@ -456,6 +472,11 @@
             "title": "Id",
             "type": "string"
           },
+          "is_archived": {
+            "default": false,
+            "title": "Is Archived",
+            "type": "boolean"
+          },
           "is_open": {
             "title": "Is Open",
             "type": "boolean"
@@ -472,6 +493,17 @@
           "lng": {
             "title": "Lng",
             "type": "number"
+          },
+          "map_unit_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Map Unit Id"
           },
           "name": {
             "title": "Name",
@@ -587,6 +619,11 @@
             "title": "Id",
             "type": "string"
           },
+          "is_archived": {
+            "default": false,
+            "title": "Is Archived",
+            "type": "boolean"
+          },
           "is_open": {
             "title": "Is Open",
             "type": "boolean"
@@ -598,6 +635,17 @@
           "lng": {
             "title": "Lng",
             "type": "number"
+          },
+          "map_unit_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Map Unit Id"
           },
           "name": {
             "title": "Name",
@@ -677,6 +725,191 @@
         "title": "AdminUser",
         "type": "object"
       },
+      "AdminUserHistoryResponse": {
+        "properties": {
+          "reservations": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReservationDetails"
+            },
+            "title": "Reservations",
+            "type": "array"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AdminUserSummary"
+          }
+        },
+        "required": [
+          "server_time",
+          "user",
+          "reservations"
+        ],
+        "title": "AdminUserHistoryResponse",
+        "type": "object"
+      },
+      "AdminUserSummary": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "live_reservations": {
+            "title": "Live Reservations",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reservations": {
+            "title": "Reservations",
+            "type": "integer"
+          },
+          "study_seconds": {
+            "title": "Study Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "reservations",
+          "study_seconds",
+          "live_reservations"
+        ],
+        "title": "AdminUserSummary",
+        "type": "object"
+      },
+      "AdminUsersResponse": {
+        "properties": {
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserSummary"
+            },
+            "title": "Users",
+            "type": "array"
+          }
+        },
+        "required": [
+          "server_time",
+          "users"
+        ],
+        "title": "AdminUsersResponse",
+        "type": "object"
+      },
+      "Body_update_me": {
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "contentMediaType": "application/octet-stream",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo"
+          },
+          "remove_photo": {
+            "default": false,
+            "title": "Remove Photo",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "Body_update_me",
+        "type": "object"
+      },
+      "Booking": {
+        "additionalProperties": true,
+        "description": "One booking of the day, in minutes after midnight (Zurich time).",
+        "properties": {
+          "e": {
+            "title": "E",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "lecture",
+              "exercise",
+              "lecture_exercise",
+              "course_other",
+              "event",
+              "reserved",
+              "cancelled",
+              "closed"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "organiser": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organiser"
+          },
+          "s": {
+            "title": "S",
+            "type": "integer"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "s",
+          "e",
+          "kind",
+          "title",
+          "number",
+          "organiser"
+        ],
+        "title": "Booking",
+        "type": "object"
+      },
       "BookingErrorResponse": {
         "properties": {
           "code": {
@@ -693,6 +926,39 @@
           "detail"
         ],
         "title": "BookingErrorResponse",
+        "type": "object"
+      },
+      "BookingWindow": {
+        "additionalProperties": true,
+        "properties": {
+          "max": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          }
+        },
+        "required": [
+          "min",
+          "max"
+        ],
+        "title": "BookingWindow",
         "type": "object"
       },
       "CheckInRequest": {
@@ -908,6 +1174,288 @@
         "title": "CurrentBreak",
         "type": "object"
       },
+      "DatasetDocument": {
+        "additionalProperties": true,
+        "description": "What datasets/<id>/fetch.py produces.",
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "fetchedAt": {
+            "title": "Fetchedat",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dataset",
+          "fetchedAt",
+          "sources",
+          "errors",
+          "items"
+        ],
+        "title": "DatasetDocument",
+        "type": "object"
+      },
+      "DatasetItem": {
+        "additionalProperties": true,
+        "properties": {
+          "approximate": {
+            "title": "Approximate",
+            "type": "boolean"
+          },
+          "campus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campus"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "lat",
+          "lng",
+          "approximate",
+          "category",
+          "campus",
+          "subtitle",
+          "url",
+          "details"
+        ],
+        "title": "DatasetItem",
+        "type": "object"
+      },
+      "DatasetMeta": {
+        "additionalProperties": true,
+        "description": "datasets/<id>/dataset.json",
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "defaultOn": {
+            "title": "Defaulton",
+            "type": "boolean"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "glyph": {
+            "title": "Glyph",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DatasetTime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "ttlSeconds": {
+            "title": "Ttlseconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "glyph",
+          "color",
+          "ttlSeconds",
+          "defaultOn"
+        ],
+        "title": "DatasetMeta",
+        "type": "object"
+      },
+      "DatasetResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "ageSeconds": {
+            "title": "Ageseconds",
+            "type": "integer"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "document": {
+            "$ref": "#/components/schemas/DatasetDocument"
+          },
+          "lastError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lasterror"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/DatasetMeta"
+          },
+          "refreshing": {
+            "title": "Refreshing",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "meta",
+          "document",
+          "at",
+          "ageSeconds",
+          "refreshing",
+          "lastError"
+        ],
+        "title": "DatasetResponse",
+        "type": "object"
+      },
+      "DatasetTime": {
+        "additionalProperties": true,
+        "properties": {
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "enum": [
+                  "day",
+                  "hour",
+                  "minute"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "support": {
+            "enum": [
+              "full",
+              "partial",
+              "live"
+            ],
+            "title": "Support",
+            "type": "string"
+          }
+        },
+        "required": [
+          "support",
+          "note"
+        ],
+        "title": "DatasetTime",
+        "type": "object"
+      },
       "ErrorResponse": {
         "properties": {
           "detail": {
@@ -921,6 +1469,292 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "EthRoom": {
+        "additionalProperties": true,
+        "properties": {
+          "bookings": {
+            "items": {
+              "$ref": "#/components/schemas/Booking"
+            },
+            "title": "Bookings",
+            "type": "array"
+          },
+          "building": {
+            "title": "Building",
+            "type": "string"
+          },
+          "campus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campus"
+          },
+          "equipment": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Equipment",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "floor": {
+            "title": "Floor",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "room": {
+            "title": "Room",
+            "type": "string"
+          },
+          "seats": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seats"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "workplaces": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workplaces"
+          }
+        },
+        "required": [
+          "id",
+          "building",
+          "floor",
+          "room",
+          "type",
+          "seats",
+          "workplaces",
+          "campus",
+          "equipment",
+          "bookings",
+          "error"
+        ],
+        "title": "EthRoom",
+        "type": "object"
+      },
+      "EthRoomsResponse": {
+        "additionalProperties": true,
+        "description": "running: fetching from ETH; error: the last fetch failed and there is no\ncurrent snapshot.",
+        "properties": {
+          "ageSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ageseconds"
+          },
+          "done": {
+            "title": "Done",
+            "type": "integer"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "floorPlans": {
+            "title": "Floorplans",
+            "type": "boolean"
+          },
+          "matches": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/RoomPlace"
+              },
+              "type": "array"
+            },
+            "title": "Matches",
+            "type": "object"
+          },
+          "nextFetchInSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextfetchinseconds"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EthSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "running",
+              "error"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "unmatched": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmatched",
+            "type": "array"
+          },
+          "window": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BookingWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "state",
+          "done",
+          "total",
+          "error",
+          "stale",
+          "ageSeconds",
+          "nextFetchInSeconds",
+          "snapshot",
+          "matches",
+          "unmatched",
+          "floorPlans",
+          "window"
+        ],
+        "title": "EthRoomsResponse",
+        "type": "object"
+      },
+      "EthSnapshot": {
+        "additionalProperties": true,
+        "properties": {
+          "buildings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Buildings",
+            "type": "object"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "errors": {
+            "title": "Errors",
+            "type": "integer"
+          },
+          "fetchedAt": {
+            "title": "Fetchedat",
+            "type": "string"
+          },
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/EthRoom"
+            },
+            "title": "Rooms",
+            "type": "array"
+          },
+          "schemaVersion": {
+            "const": 1,
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "ttlSeconds": {
+            "title": "Ttlseconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "fetchedAt",
+          "date",
+          "ttlSeconds",
+          "buildings",
+          "rooms",
+          "errors"
+        ],
+        "title": "EthSnapshot",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "status": {
@@ -931,6 +1765,263 @@
           }
         },
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "LatLng": {
+        "additionalProperties": true,
+        "properties": {
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "title": "LatLng",
+        "type": "object"
+      },
+      "Library": {
+        "additionalProperties": true,
+        "description": "A place with seats: a library, study area, group room, etc. (\"workspace\").",
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "availabilityNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Availabilitynote"
+          },
+          "campus": {
+            "enum": [
+              "Zentrum",
+              "H\u00f6nggerberg"
+            ],
+            "title": "Campus",
+            "type": "string"
+          },
+          "cardAccess24h": {
+            "default": false,
+            "title": "Cardaccess24H",
+            "type": "boolean"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "facilityId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facilityid"
+          },
+          "floor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floor"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "library",
+              "study",
+              "group",
+              "computer",
+              "lounge",
+              "other"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "levelId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Levelid"
+          },
+          "levels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Levels",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "openingHours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpeningHours"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operator": {
+            "title": "Operator",
+            "type": "string"
+          },
+          "outline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MultiPolygon"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "$ref": "#/components/schemas/LatLng"
+          },
+          "positionApproximate": {
+            "title": "Positionapproximate",
+            "type": "boolean"
+          },
+          "rooms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rooms",
+            "type": "array"
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceurl"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "address",
+          "campus",
+          "operator",
+          "openingHours",
+          "description",
+          "position",
+          "positionApproximate",
+          "sourceUrl",
+          "outline",
+          "facilityId",
+          "levelId",
+          "floor",
+          "rooms",
+          "levels"
+        ],
+        "title": "Library",
+        "type": "object"
+      },
+      "MapStyle": {
+        "additionalProperties": true,
+        "description": "The per-theme minimal map styles (map-data/map-style.json).",
+        "properties": {
+          "dark": {
+            "$ref": "#/components/schemas/ThemeStyle"
+          },
+          "light": {
+            "$ref": "#/components/schemas/ThemeStyle"
+          }
+        },
+        "required": [
+          "light",
+          "dark"
+        ],
+        "title": "MapStyle",
+        "type": "object"
+      },
+      "MultiPolygon": {
+        "additionalProperties": true,
+        "description": "GeoJSON MultiPolygon, coordinates as [lng, lat].",
+        "properties": {
+          "coordinates": {
+            "items": {
+              "items": {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "MultiPolygon",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "MultiPolygon",
         "type": "object"
       },
       "MyReservationResponse": {
@@ -956,6 +2047,202 @@
           "reservation"
         ],
         "title": "MyReservationResponse",
+        "type": "object"
+      },
+      "NavZone": {
+        "additionalProperties": true,
+        "description": "Clicking inside a zone flies the map to it, while the zoom is in its active range.",
+        "properties": {
+          "activeBelowZoom": {
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Activebelowzoom",
+            "type": "number"
+          },
+          "activeFromZoom": {
+            "anyOf": [
+              {
+                "maximum": 24.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activefromzoom"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "area",
+              "building"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "outline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MultiPolygon"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "zoom": {
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Zoom",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "outline",
+          "zoom",
+          "activeBelowZoom",
+          "activeFromZoom"
+        ],
+        "title": "NavZone",
+        "type": "object"
+      },
+      "NavigationConfig": {
+        "additionalProperties": true,
+        "properties": {
+          "zones": {
+            "items": {
+              "$ref": "#/components/schemas/NavZone"
+            },
+            "title": "Zones",
+            "type": "array"
+          }
+        },
+        "required": [
+          "zones"
+        ],
+        "title": "NavigationConfig",
+        "type": "object"
+      },
+      "OccupancyData": {
+        "additionalProperties": true,
+        "description": "All workspaces, their tables and seats: the generated data with the admin\noverrides applied.",
+        "properties": {
+          "libraries": {
+            "items": {
+              "$ref": "#/components/schemas/Library"
+            },
+            "title": "Libraries",
+            "type": "array"
+          },
+          "schemaVersion": {
+            "const": 1,
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "seats": {
+            "items": {
+              "$ref": "#/components/schemas/Seat"
+            },
+            "title": "Seats",
+            "type": "array"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/Table"
+            },
+            "title": "Tables",
+            "type": "array"
+          },
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "updatedAt",
+          "libraries",
+          "tables",
+          "seats"
+        ],
+        "title": "OccupancyData",
+        "type": "object"
+      },
+      "OpeningHours": {
+        "additionalProperties": true,
+        "description": "Opening ranges per weekday; an empty list means closed that day.",
+        "properties": {
+          "fri": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRange"
+            },
+            "title": "Fri",
+            "type": "array"
+          },
+          "mon": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRange"
+            },
+            "title": "Mon",
+            "type": "array"
+          },
+          "sat": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRange"
+            },
+            "title": "Sat",
+            "type": "array"
+          },
+          "sun": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRange"
+            },
+            "title": "Sun",
+            "type": "array"
+          },
+          "thu": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRange"
+            },
+            "title": "Thu",
+            "type": "array"
+          },
+          "tue": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRange"
+            },
+            "title": "Tue",
+            "type": "array"
+          },
+          "wed": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRange"
+            },
+            "title": "Wed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ],
+        "title": "OpeningHours",
         "type": "object"
       },
       "OpeningInterval": {
@@ -1350,6 +2637,94 @@
         "title": "ReserveSeatRequest",
         "type": "object"
       },
+      "RoomPlace": {
+        "additionalProperties": true,
+        "description": "Where an ETH room is on the floor plans.",
+        "properties": {
+          "floor": {
+            "title": "Floor",
+            "type": "integer"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "levelId": {
+            "title": "Levelid",
+            "type": "string"
+          },
+          "lng": {
+            "title": "Lng",
+            "type": "number"
+          },
+          "unitId": {
+            "title": "Unitid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitId",
+          "levelId",
+          "floor",
+          "lat",
+          "lng"
+        ],
+        "title": "RoomPlace",
+        "type": "object"
+      },
+      "SaveLayoutRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "layout": {
+            "additionalProperties": true,
+            "title": "Layout",
+            "type": "object"
+          }
+        },
+        "required": [
+          "layout"
+        ],
+        "title": "SaveLayoutRequest",
+        "type": "object"
+      },
+      "Seat": {
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "position": {
+            "$ref": "#/components/schemas/LatLng"
+          },
+          "status": {
+            "enum": [
+              "free",
+              "occupied",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tableId": {
+            "title": "Tableid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tableId",
+          "label",
+          "position",
+          "status"
+        ],
+        "title": "Seat",
+        "type": "object"
+      },
       "SeatAvailability": {
         "properties": {
           "id": {
@@ -1560,6 +2935,85 @@
         "title": "SpacesResponse",
         "type": "object"
       },
+      "Table": {
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "libraryId": {
+            "title": "Libraryid",
+            "type": "string"
+          },
+          "position": {
+            "$ref": "#/components/schemas/LatLng"
+          }
+        },
+        "required": [
+          "id",
+          "libraryId",
+          "label",
+          "position"
+        ],
+        "title": "Table",
+        "type": "object"
+      },
+      "ThemeStyle": {
+        "additionalProperties": true,
+        "properties": {
+          "parts": {
+            "additionalProperties": true,
+            "title": "Parts",
+            "type": "object"
+          }
+        },
+        "required": [
+          "parts"
+        ],
+        "title": "ThemeStyle",
+        "type": "object"
+      },
+      "TimeRange": {
+        "additionalProperties": true,
+        "description": "Times as \"HH:MM\" (24h), from < to, within one day.",
+        "properties": {
+          "from": {
+            "title": "From",
+            "type": "string"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "title": "TimeRange",
+        "type": "object"
+      },
+      "UpdateAdminUserRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "UpdateAdminUserRequest",
+        "type": "object"
+      },
       "UpdateSeatRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1658,6 +3112,151 @@
           }
         },
         "title": "UpdateSpaceRequest",
+        "type": "object"
+      },
+      "UserResponse": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
+        "title": "UserResponse",
+        "type": "object"
+      },
+      "UzhLocation": {
+        "additionalProperties": true,
+        "properties": {
+          "fraction": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fraction"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "label",
+          "fraction"
+        ],
+        "title": "UzhLocation",
+        "type": "object"
+      },
+      "UzhOccupancy": {
+        "additionalProperties": true,
+        "properties": {
+          "fetchedAt": {
+            "title": "Fetchedat",
+            "type": "string"
+          },
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/UzhLocation"
+            },
+            "title": "Locations",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fetchedAt",
+          "source",
+          "locations"
+        ],
+        "title": "UzhOccupancy",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
         "type": "object"
       }
     }
@@ -1926,6 +3525,95 @@
       }
     },
     "/api/v1/admin/spaces/{space_id}": {
+      "delete": {
+        "operationId": "admin_archive_space",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSpaceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 400 Admin Archive Space"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Archive Space",
+        "tags": [
+          "admin"
+        ]
+      },
       "patch": {
         "operationId": "admin_update_space",
         "parameters": [
@@ -2405,6 +4093,125 @@
         ]
       }
     },
+    "/api/v1/admin/spaces/{space_id}/layout": {
+      "put": {
+        "operationId": "admin_save_layout",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Force",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveLayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSpaceOverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 400 Admin Save Layout"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/BookingErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AdminConflictResponse"
+                    }
+                  ],
+                  "title": "Response 409 Admin Save Layout"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Save Layout",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/spaces/{space_id}/opening-hours": {
       "put": {
         "operationId": "admin_replace_opening_hours",
@@ -2610,6 +4417,97 @@
           }
         },
         "summary": "Get Space Overview",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/spaces/{space_id}/restore": {
+      "post": {
+        "operationId": "admin_restore_space",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSpaceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 400 Admin Restore Space"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Restore Space",
         "tags": [
           "admin"
         ]
@@ -2944,6 +4842,275 @@
         ]
       }
     },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "admin_list_users",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUsersResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 400 Admin List Users"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}": {
+      "get": {
+        "operationId": "admin_get_user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 400 Admin Get User"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get User",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "admin_update_user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 400 Admin Update User"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Update User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/check-ins": {
       "post": {
         "operationId": "check_in",
@@ -3033,6 +5200,632 @@
         "summary": "Get Health",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/map/datasets": {
+      "get": {
+        "description": "The campus datasets (mensas, transport, sport, ...) without their data.",
+        "operationId": "list_map_datasets",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DatasetMeta"
+                  },
+                  "title": "Response List Map Datasets",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Datasets",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/map/datasets/{dataset_id}": {
+      "get": {
+        "description": "A dataset's items, from the cache; fetched again when older than its ttl.",
+        "operationId": "get_map_dataset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Zurich time, YYYY-MM-DDTHH:MM (default: now)",
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Zurich time, YYYY-MM-DDTHH:MM (default: now)",
+              "title": "At"
+            }
+          },
+          {
+            "description": "Fetch now instead of using the cache",
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Fetch now instead of using the cache",
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "summary": "Get Dataset",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/map/eth/room": {
+      "get": {
+        "description": "The full room sheet from ETH (overview, equipment, photos), as ETH sends it.",
+        "operationId": "get_eth_room",
+        "parameters": [
+          {
+            "description": "e.g. \"HG E 7\"",
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "e.g. \"HG E 7\"",
+              "pattern": "^[A-Z0-9]{1,6} [A-Z0-9]{1,3} [A-Za-z0-9.\\-]{1,12}$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Eth Room",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "summary": "Get Eth Room",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/map/eth/rooms": {
+      "get": {
+        "description": "Every ETH room with its bookings of `date` (default today) and where it is on the\nfloor plans. Fetching from ETH runs in the background; `state` says how far it is.",
+        "operationId": "get_eth_rooms",
+        "parameters": [
+          {
+            "description": "YYYY-MM-DD",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM-DD",
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EthRoomsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "summary": "Get Eth Rooms",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/map/eth/uzh": {
+      "get": {
+        "description": "Live seat occupancy of the UZH libraries (sensor based).",
+        "operationId": "get_uzh_occupancy",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UzhOccupancy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "summary": "Get Uzh Occupancy",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/map/navigation": {
+      "get": {
+        "description": "The click-to-zoom areas and buildings.",
+        "operationId": "get_map_navigation",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NavigationConfig"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "summary": "Get Navigation",
+        "tags": [
+          "campus-map"
+        ]
+      },
+      "put": {
+        "operationId": "save_map_navigation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NavigationConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Navigation",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/map/style": {
+      "get": {
+        "description": "The standard map colours per theme.",
+        "operationId": "get_map_style",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapStyle"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        },
+        "summary": "Get Style",
+        "tags": [
+          "campus-map"
+        ]
+      },
+      "put": {
+        "operationId": "save_map_style",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MapStyle"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Style",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/map/workspaces": {
+      "get": {
+        "description": "All workspaces, tables and seats: the generated data with the admin edits applied.",
+        "operationId": "get_map_workspaces",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OccupancyData"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Workspaces",
+        "tags": [
+          "campus-map"
+        ]
+      },
+      "put": {
+        "description": "Stores the edits that turn the generated data into `data`.",
+        "operationId": "save_map_workspaces",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OccupancyData"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Workspaces",
+        "tags": [
+          "campus-map"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "get_me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "summary": "Get Me",
+        "tags": [
+          "auth"
+        ]
+      },
+      "patch": {
+        "operationId": "update_me",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_update_me"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Me",
+        "tags": [
+          "auth"
         ]
       }
     },

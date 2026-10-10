@@ -27,8 +27,8 @@ npm run dev --prefix frontend
 ```
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
-The frontend implements the mock screens from `design/` with mock data only (no API calls yet); Mantine, TanStack Query, and the API client are configured for wiring the backend in.
-Vite proxies `/api` requests to the backend on port 8000. Backend source changes reload automatically; migrations run when the backend container starts.
+The React admin panel at `/admin`, campus map and profile use the backend API. Student seat selection, reservation timers and session screens still use mock booking state. The HTML references remain in `design/admin/`.
+Vite proxies relative `/api` requests to the backend on port 8000. Set `VITE_API_PROXY_TARGET` when running a local backend on another port. Backend source changes reload automatically; migrations run when the backend container starts.
 
 Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend/package-lock.json`. Rebuild the backend container after changing Python dependencies.
 
@@ -102,7 +102,7 @@ Use http://localhost:8000/docs to explore the API. `POST /api/v1/reservations` a
 
 `GET /api/v1/me/reservation` returns the current or upcoming booking, effective deadlines, remaining break allowance, and available actions. Its `reservation` is null when there is no live booking. Reservation actions are `POST /api/v1/reservations/{id}/extend`, `/break`, `/return`, and `/end`. Space endpoints expose availability without returning user identities or QR tokens.
 
-Authentication is a development stub. Requests use `DUMMY_USER_ID` by default; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. This stub does not authenticate users and must be replaced before public deployment.
+For local development set `AUTH_MODE=demo` in `backend/.env`. Demo authentication is a development stub. Requests use `DUMMY_USER_ID` by default; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. Proxy mode uses the existing trusted identity header from the authentication proxy.
 
 Timing rules live in `backend/app/config.py` and can be overridden in `backend/.env`:
 
@@ -120,13 +120,20 @@ The `reservation_states` database view derives availability from the clock, incl
 
 ## Admin API demo
 
-Admin routes live under `/api/v1/admin`. Send `X-Demo-Admin: true` to use them in the local demo. Without it, requests receive `403`; set `DUMMY_IS_ADMIN=true` to make the configured demo identity an admin by default. `DUMMY_ADMIN_ALLOW_HEADER=false` disables the header override. `X-Demo-Admin` accepts only `true` or `false`. This is a development stub, like the existing user identity middleware, and must be replaced before public deployment.
+Open the React panel at `http://localhost:5173/admin`. Admin routes live under `/api/v1/admin`. In `AUTH_MODE=demo`, send `X-Demo-Admin: true` to use them; the Vite development UI adds this header. Without it, requests receive `403`; set `DUMMY_IS_ADMIN=true` to make the configured demo identity an admin by default. `DUMMY_ADMIN_ALLOW_HEADER=false` disables the header override. `X-Demo-Admin` accepts only `true` or `false`.
+
+For proxy authentication configure `ADMIN_USER_IDS` as a JSON array of administrator UUIDs, returned by `/api/v1/me`. The default is empty. Demo admin headers are ignored in proxy mode. The reverse proxy must provide the trusted identity header; the browser cannot grant itself an admin role.
 
 | Method | Path (under `/api/v1/admin`) | Purpose |
 | --- | --- | --- |
 | GET | `/spaces` | Rooms with opening status and seat/occupancy counts |
 | POST | `/spaces` | Create a room with name, coordinates, optional layout, timezone, and hours |
 | PATCH | `/spaces/{space_id}` | Edit room metadata, layout, or timezone |
+| DELETE | `/spaces/{space_id}` | Archive a study place and preserve its history |
+| POST | `/spaces/{space_id}/restore` | Restore an archived place |
+| PUT | `/spaces/{space_id}/layout` | Atomically save placements and numbered seats, preserving bound IDs and QR tokens |
+| GET | `/users` / `/users/{user_id}` | User list, study-time totals and reservation history |
+| PATCH | `/users/{user_id}` | Edit the saved display name |
 | GET | `/spaces/{space_id}/overview` | All seats with current/pending and upcoming bookings, demo names, and deadlines |
 | POST | `/spaces/{space_id}/seats` | Add a seat; generate its QR token |
 | GET | `/spaces/{space_id}/seats/{seat_id}` | Seat configuration and QR token |
@@ -147,7 +154,31 @@ Room/seat PATCH, opening-hours PUT, and closure POST/DELETE accept `?force=false
 
 Bookings, walk-up check-ins, and extensions obey hours, closures, and seat activation. Sessions can be shortened to the next unavailable boundary; check-in deadlines are capped at the shortened end. Public space responses include hours, timezone, opening status, and seat activation, with unavailable seats excluded from `free_seats`. User identities, QR tokens, and closure reasons are exposed only through admin routes.
 
-Overview names are deterministic placeholders (`Demo user <full UUID>`). The current booking includes pending, active, or on-break status; upcoming bookings are separate. `occupied_seats` counts active checked-in users and `on_break_seats` counts breaks. Ending a booking frees its user to reserve again; it does not ban the user. No admin UI or notifications are included.
+Overview names come from saved profiles, with `Demo user <UUID>` fallbacks. The current booking includes pending, active, or on-break status; upcoming bookings are separate. `occupied_seats` counts active checked-in users and `on_break_seats` counts breaks. Ending a booking frees its user to reserve again; it does not ban the user. Notifications outside the UI are deferred.
+
+## React admin panel
+
+The HTML mockups stay in `design/admin/`. React feature code lives in `frontend/src/features/admin/` and uses the generated SDK and TanStack Query helpers.
+
+- Spaces: search, create from campus room outlines, settings, archive and restore. Deletion blocks new reservations while preserving seats and history. End live bookings before deleting a place.
+- Room management: seats and current users, multiple weekly opening intervals, dated room/seat closures, and conflict review before affecting bookings.
+- Layout: table shapes, snapped resizing, upright labels, clockwise numbering, straight and curved seat rows, windows/doors, table and seat features, undo/redo, shortcuts, wheel zoom and middle-button pan. Saves are atomic. Use **Backend seat** on a placed seat to assign an existing QR label. Unassigned positions receive new IDs and tokens; removed positions deactivate their seats and preserve history.
+- Users: search profiles and reservation records, edit display names, review history and study time excluding breaks, and end live bookings. Email, ban and account deletion controls are omitted because the backend does not model them.
+- QR codes: select seats, generate 3 × 3 or 4 × 4 cm QR images from backend tokens, export SVGs and print bordered labels. Room submenus stay locked to that room. Use a stable student-app address for real printing. `/check-in?qr_token=…` reads the current reservation; opening the link does not check in. An explicit button submits the authenticated POST.
+
+Apply the new archive migration before running this version. From `backend/`, run `uv run --locked alembic upgrade head` if not using Compose. Schema-version-1 layouts retain campus unit/workspace references in `room.mapRef`, geographic coordinates and approximate metre scale. These link the catalogs; the mobile map's generated inventory remains a separate model and is not rewritten by layout saves.
+
+### Room borders
+
+Room selection requires generated PolyMaps files, which are intentionally untracked. Build them from the public ETH data once:
+
+```sh
+python scraper/scrape_polymaps.py scraper/polymaps_data
+python scraper/extract_floors.py --floors-only
+python scraper/build_library_outlines.py
+```
+
+Or use `make map-floors`. The extractor writes `occupancy-map-preview/public/floors/`; the backend serves it at `/api/v1/map/floors`. Set `MAP_FLOORS_DIR` for another location. This downloads a sizeable campus dataset. Rooms with holes or disconnected outlines are rejected by the editor. Legacy demo rooms can be linked to a border from their Layout tab.
 
 ## Checks
 

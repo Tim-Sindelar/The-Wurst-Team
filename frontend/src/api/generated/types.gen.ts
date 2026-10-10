@@ -208,6 +208,10 @@ export type AdminSpaceDetails = {
      */
     id: string;
     /**
+     * Is Archived
+     */
+    is_archived?: boolean;
+    /**
      * Is Open
      */
     is_open: boolean;
@@ -225,6 +229,10 @@ export type AdminSpaceDetails = {
      * Lng
      */
     lng: number;
+    /**
+     * Map Unit Id
+     */
+    map_unit_id?: string | null;
     /**
      * Name
      */
@@ -272,6 +280,10 @@ export type AdminSpaceOverview = {
      */
     id: string;
     /**
+     * Is Archived
+     */
+    is_archived?: boolean;
+    /**
      * Is Open
      */
     is_open: boolean;
@@ -289,6 +301,10 @@ export type AdminSpaceOverview = {
      * Lng
      */
     lng: number;
+    /**
+     * Map Unit Id
+     */
+    map_unit_id?: string | null;
     /**
      * Name
      */
@@ -362,6 +378,10 @@ export type AdminSpaceSummary = {
      */
     id: string;
     /**
+     * Is Archived
+     */
+    is_archived?: boolean;
+    /**
      * Is Open
      */
     is_open: boolean;
@@ -373,6 +393,10 @@ export type AdminSpaceSummary = {
      * Lng
      */
     lng: number;
+    /**
+     * Map Unit Id
+     */
+    map_unit_id?: string | null;
     /**
      * Name
      */
@@ -424,6 +448,112 @@ export type AdminUser = {
 };
 
 /**
+ * AdminUserHistoryResponse
+ */
+export type AdminUserHistoryResponse = {
+    /**
+     * Reservations
+     */
+    reservations: Array<AdminReservationDetails>;
+    /**
+     * Server Time
+     */
+    server_time: string;
+    user: AdminUserSummary;
+};
+
+/**
+ * AdminUserSummary
+ */
+export type AdminUserSummary = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Live Reservations
+     */
+    live_reservations: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Reservations
+     */
+    reservations: number;
+    /**
+     * Study Seconds
+     */
+    study_seconds: number;
+};
+
+/**
+ * AdminUsersResponse
+ */
+export type AdminUsersResponse = {
+    /**
+     * Server Time
+     */
+    server_time: string;
+    /**
+     * Users
+     */
+    users: Array<AdminUserSummary>;
+};
+
+/**
+ * Body_update_me
+ */
+export type BodyUpdateMe = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Photo
+     */
+    photo?: Blob | File | null;
+    /**
+     * Remove Photo
+     */
+    remove_photo?: boolean;
+};
+
+/**
+ * Booking
+ *
+ * One booking of the day, in minutes after midnight (Zurich time).
+ */
+export type Booking = {
+    /**
+     * E
+     */
+    e: number;
+    /**
+     * Kind
+     */
+    kind: 'lecture' | 'exercise' | 'lecture_exercise' | 'course_other' | 'event' | 'reserved' | 'cancelled' | 'closed';
+    /**
+     * Number
+     */
+    number: string | null;
+    /**
+     * Organiser
+     */
+    organiser: string | null;
+    /**
+     * S
+     */
+    s: number;
+    /**
+     * Title
+     */
+    title: string | null;
+    [key: string]: unknown;
+};
+
+/**
  * BookingErrorResponse
  */
 export type BookingErrorResponse = {
@@ -435,6 +565,21 @@ export type BookingErrorResponse = {
      * Detail
      */
     detail: string;
+};
+
+/**
+ * BookingWindow
+ */
+export type BookingWindow = {
+    /**
+     * Max
+     */
+    max: string | null;
+    /**
+     * Min
+     */
+    min: string | null;
+    [key: string]: unknown;
 };
 
 /**
@@ -564,6 +709,170 @@ export type CurrentBreak = {
 };
 
 /**
+ * DatasetDocument
+ *
+ * What datasets/<id>/fetch.py produces.
+ */
+export type DatasetDocument = {
+    /**
+     * At
+     */
+    at?: string | null;
+    /**
+     * Dataset
+     */
+    dataset: string;
+    /**
+     * Errors
+     */
+    errors: Array<string>;
+    /**
+     * Fetchedat
+     */
+    fetchedAt: string;
+    /**
+     * Items
+     */
+    items: Array<DatasetItem>;
+    /**
+     * Sources
+     */
+    sources: Array<string>;
+    [key: string]: unknown;
+};
+
+/**
+ * DatasetItem
+ */
+export type DatasetItem = {
+    /**
+     * Approximate
+     */
+    approximate: boolean;
+    /**
+     * Campus
+     */
+    campus: string | null;
+    /**
+     * Category
+     */
+    category: string;
+    /**
+     * Details
+     */
+    details: {
+        [key: string]: unknown;
+    };
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Subtitle
+     */
+    subtitle: string | null;
+    /**
+     * Url
+     */
+    url: string | null;
+    [key: string]: unknown;
+};
+
+/**
+ * DatasetMeta
+ *
+ * datasets/<id>/dataset.json
+ */
+export type DatasetMeta = {
+    /**
+     * Color
+     */
+    color: string;
+    /**
+     * Defaulton
+     */
+    defaultOn: boolean;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Glyph
+     */
+    glyph: string;
+    /**
+     * Id
+     */
+    id: string;
+    time?: DatasetTime | null;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Ttlseconds
+     */
+    ttlSeconds: number;
+    [key: string]: unknown;
+};
+
+/**
+ * DatasetResponse
+ */
+export type DatasetResponse = {
+    /**
+     * Ageseconds
+     */
+    ageSeconds: number;
+    /**
+     * At
+     */
+    at: string | null;
+    document: DatasetDocument;
+    /**
+     * Lasterror
+     */
+    lastError: string | null;
+    meta: DatasetMeta;
+    /**
+     * Refreshing
+     */
+    refreshing: boolean;
+    [key: string]: unknown;
+};
+
+/**
+ * DatasetTime
+ */
+export type DatasetTime = {
+    /**
+     * Note
+     */
+    note: string;
+    /**
+     * Resolution
+     */
+    resolution?: 'day' | 'hour' | 'minute' | null;
+    /**
+     * Support
+     */
+    support: 'full' | 'partial' | 'live';
+    [key: string]: unknown;
+};
+
+/**
  * ErrorResponse
  */
 export type ErrorResponse = {
@@ -571,6 +880,158 @@ export type ErrorResponse = {
      * Detail
      */
     detail: string;
+};
+
+/**
+ * EthRoom
+ */
+export type EthRoom = {
+    /**
+     * Bookings
+     */
+    bookings: Array<Booking>;
+    /**
+     * Building
+     */
+    building: string;
+    /**
+     * Campus
+     */
+    campus: string | null;
+    /**
+     * Equipment
+     */
+    equipment: Array<string>;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Floor
+     */
+    floor: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Room
+     */
+    room: string;
+    /**
+     * Seats
+     */
+    seats: number | null;
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Workplaces
+     */
+    workplaces: number | null;
+    [key: string]: unknown;
+};
+
+/**
+ * EthRoomsResponse
+ *
+ * running: fetching from ETH; error: the last fetch failed and there is no
+ * current snapshot.
+ */
+export type EthRoomsResponse = {
+    /**
+     * Ageseconds
+     */
+    ageSeconds: number | null;
+    /**
+     * Done
+     */
+    done: number;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Floorplans
+     */
+    floorPlans: boolean;
+    /**
+     * Matches
+     */
+    matches: {
+        [key: string]: Array<RoomPlace>;
+    };
+    /**
+     * Nextfetchinseconds
+     */
+    nextFetchInSeconds: number | null;
+    snapshot: EthSnapshot | null;
+    /**
+     * Stale
+     */
+    stale: boolean;
+    /**
+     * State
+     */
+    state: 'ok' | 'running' | 'error';
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Unmatched
+     */
+    unmatched: Array<string>;
+    window: BookingWindow | null;
+    [key: string]: unknown;
+};
+
+/**
+ * EthSnapshot
+ */
+export type EthSnapshot = {
+    /**
+     * Buildings
+     */
+    buildings: {
+        [key: string]: string | null;
+    };
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Errors
+     */
+    errors: number;
+    /**
+     * Fetchedat
+     */
+    fetchedAt: string;
+    /**
+     * Rooms
+     */
+    rooms: Array<EthRoom>;
+    /**
+     * Schemaversion
+     */
+    schemaVersion: 1;
+    /**
+     * Ttlseconds
+     */
+    ttlSeconds: number;
+    [key: string]: unknown;
+};
+
+/**
+ * HTTPValidationError
+ */
+export type HttpValidationError = {
+    /**
+     * Detail
+     */
+    detail?: Array<ValidationError>;
 };
 
 /**
@@ -584,6 +1045,129 @@ export type HealthResponse = {
 };
 
 /**
+ * LatLng
+ */
+export type LatLng = {
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lng
+     */
+    lng: number;
+    [key: string]: unknown;
+};
+
+/**
+ * Library
+ *
+ * A place with seats: a library, study area, group room, etc. ("workspace").
+ */
+export type Library = {
+    /**
+     * Address
+     */
+    address: string | null;
+    /**
+     * Availabilitynote
+     */
+    availabilityNote?: string | null;
+    /**
+     * Campus
+     */
+    campus: 'Zentrum' | 'Hönggerberg';
+    /**
+     * Cardaccess24H
+     */
+    cardAccess24h?: boolean;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Facilityid
+     */
+    facilityId: string | null;
+    /**
+     * Floor
+     */
+    floor: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'library' | 'study' | 'group' | 'computer' | 'lounge' | 'other';
+    /**
+     * Levelid
+     */
+    levelId: string | null;
+    /**
+     * Levels
+     */
+    levels: Array<string>;
+    /**
+     * Name
+     */
+    name: string;
+    openingHours: OpeningHours | null;
+    /**
+     * Operator
+     */
+    operator: string;
+    outline: MultiPolygon | null;
+    position: LatLng;
+    /**
+     * Positionapproximate
+     */
+    positionApproximate: boolean;
+    /**
+     * Rooms
+     */
+    rooms: Array<string>;
+    /**
+     * Sourceurl
+     */
+    sourceUrl: string | null;
+    [key: string]: unknown;
+};
+
+/**
+ * MapStyle
+ *
+ * The per-theme minimal map styles (map-data/map-style.json).
+ */
+export type MapStyle = {
+    dark: ThemeStyle;
+    light: ThemeStyle;
+    [key: string]: unknown;
+};
+
+/**
+ * MultiPolygon
+ *
+ * GeoJSON MultiPolygon, coordinates as [lng, lat].
+ */
+export type MultiPolygon = {
+    /**
+     * Coordinates
+     */
+    coordinates: Array<Array<Array<Array<number>>>>;
+    /**
+     * Type
+     */
+    type: 'MultiPolygon';
+    [key: string]: unknown;
+};
+
+/**
  * MyReservationResponse
  */
 export type MyReservationResponse = {
@@ -592,6 +1176,118 @@ export type MyReservationResponse = {
      * Server Time
      */
     server_time: string;
+};
+
+/**
+ * NavZone
+ *
+ * Clicking inside a zone flies the map to it, while the zoom is in its active range.
+ */
+export type NavZone = {
+    /**
+     * Activebelowzoom
+     */
+    activeBelowZoom: number;
+    /**
+     * Activefromzoom
+     */
+    activeFromZoom: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'area' | 'building';
+    /**
+     * Name
+     */
+    name: string;
+    outline: MultiPolygon | null;
+    /**
+     * Zoom
+     */
+    zoom: number;
+    [key: string]: unknown;
+};
+
+/**
+ * NavigationConfig
+ */
+export type NavigationConfig = {
+    /**
+     * Zones
+     */
+    zones: Array<NavZone>;
+    [key: string]: unknown;
+};
+
+/**
+ * OccupancyData
+ *
+ * All workspaces, their tables and seats: the generated data with the admin
+ * overrides applied.
+ */
+export type OccupancyData = {
+    /**
+     * Libraries
+     */
+    libraries: Array<Library>;
+    /**
+     * Schemaversion
+     */
+    schemaVersion: 1;
+    /**
+     * Seats
+     */
+    seats: Array<Seat>;
+    /**
+     * Tables
+     */
+    tables: Array<Table>;
+    /**
+     * Updatedat
+     */
+    updatedAt: string;
+    [key: string]: unknown;
+};
+
+/**
+ * OpeningHours
+ *
+ * Opening ranges per weekday; an empty list means closed that day.
+ */
+export type OpeningHours = {
+    /**
+     * Fri
+     */
+    fri: Array<TimeRange>;
+    /**
+     * Mon
+     */
+    mon: Array<TimeRange>;
+    /**
+     * Sat
+     */
+    sat: Array<TimeRange>;
+    /**
+     * Sun
+     */
+    sun: Array<TimeRange>;
+    /**
+     * Thu
+     */
+    thu: Array<TimeRange>;
+    /**
+     * Tue
+     */
+    tue: Array<TimeRange>;
+    /**
+     * Wed
+     */
+    wed: Array<TimeRange>;
+    [key: string]: unknown;
 };
 
 /**
@@ -820,6 +1516,71 @@ export type ReserveSeatRequest = {
 };
 
 /**
+ * RoomPlace
+ *
+ * Where an ETH room is on the floor plans.
+ */
+export type RoomPlace = {
+    /**
+     * Floor
+     */
+    floor: number;
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Levelid
+     */
+    levelId: string;
+    /**
+     * Lng
+     */
+    lng: number;
+    /**
+     * Unitid
+     */
+    unitId: string;
+    [key: string]: unknown;
+};
+
+/**
+ * SaveLayoutRequest
+ */
+export type SaveLayoutRequest = {
+    /**
+     * Layout
+     */
+    layout: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * Seat
+ */
+export type Seat = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    position: LatLng;
+    /**
+     * Status
+     */
+    status: 'free' | 'occupied' | 'unknown';
+    /**
+     * Tableid
+     */
+    tableId: string;
+    [key: string]: unknown;
+};
+
+/**
  * SeatAvailability
  */
 export type SeatAvailability = {
@@ -961,6 +1722,66 @@ export type SpacesResponse = {
 };
 
 /**
+ * Table
+ */
+export type Table = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Libraryid
+     */
+    libraryId: string;
+    position: LatLng;
+    [key: string]: unknown;
+};
+
+/**
+ * ThemeStyle
+ */
+export type ThemeStyle = {
+    /**
+     * Parts
+     */
+    parts: {
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+};
+
+/**
+ * TimeRange
+ *
+ * Times as "HH:MM" (24h), from < to, within one day.
+ */
+export type TimeRange = {
+    /**
+     * From
+     */
+    from: string;
+    /**
+     * To
+     */
+    to: string;
+    [key: string]: unknown;
+};
+
+/**
+ * UpdateAdminUserRequest
+ */
+export type UpdateAdminUserRequest = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * UpdateSeatRequest
  */
 export type UpdateSeatRequest = {
@@ -1000,6 +1821,98 @@ export type UpdateSpaceRequest = {
      * Timezone
      */
     timezone?: string | null;
+};
+
+/**
+ * UserResponse
+ */
+export type UserResponse = {
+    /**
+     * Email
+     */
+    email: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
+};
+
+/**
+ * UzhLocation
+ */
+export type UzhLocation = {
+    /**
+     * Fraction
+     */
+    fraction: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Name
+     */
+    name: string;
+    [key: string]: unknown;
+};
+
+/**
+ * UzhOccupancy
+ */
+export type UzhOccupancy = {
+    /**
+     * Fetchedat
+     */
+    fetchedAt: string;
+    /**
+     * Locations
+     */
+    locations: Array<UzhLocation>;
+    /**
+     * Source
+     */
+    source: string;
+    [key: string]: unknown;
+};
+
+/**
+ * ValidationError
+ */
+export type ValidationError = {
+    /**
+     * Context
+     */
+    ctx?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Input
+     */
+    input?: unknown;
+    /**
+     * Location
+     */
+    loc: Array<string | number>;
+    /**
+     * Message
+     */
+    msg: string;
+    /**
+     * Error Type
+     */
+    type: string;
 };
 
 export type AdminEndReservationData = {
@@ -1135,6 +2048,54 @@ export type AdminCreateSpaceResponses = {
 };
 
 export type AdminCreateSpaceResponse = AdminCreateSpaceResponses[keyof AdminCreateSpaceResponses];
+
+export type AdminArchiveSpaceData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}';
+};
+
+export type AdminArchiveSpaceErrors = {
+    /**
+     * Response 400 Admin Archive Space
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminArchiveSpaceError = AdminArchiveSpaceErrors[keyof AdminArchiveSpaceErrors];
+
+export type AdminArchiveSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceResponse;
+};
+
+export type AdminArchiveSpaceResponse = AdminArchiveSpaceResponses[keyof AdminArchiveSpaceResponses];
 
 export type AdminUpdateSpaceData = {
     body: UpdateSpaceRequest;
@@ -1362,6 +2323,61 @@ export type AdminDeleteClosureResponses = {
 
 export type AdminDeleteClosureResponse = AdminDeleteClosureResponses[keyof AdminDeleteClosureResponses];
 
+export type AdminSaveLayoutData = {
+    body: SaveLayoutRequest;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: {
+        /**
+         * Force
+         */
+        force?: boolean;
+    };
+    url: '/api/v1/admin/spaces/{space_id}/layout';
+};
+
+export type AdminSaveLayoutErrors = {
+    /**
+     * Response 400 Admin Save Layout
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Response 409 Admin Save Layout
+     *
+     * Conflict
+     */
+    409: BookingErrorResponse | AdminConflictResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminSaveLayoutError = AdminSaveLayoutErrors[keyof AdminSaveLayoutErrors];
+
+export type AdminSaveLayoutResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceOverviewResponse;
+};
+
+export type AdminSaveLayoutResponse = AdminSaveLayoutResponses[keyof AdminSaveLayoutResponses];
+
 export type AdminReplaceOpeningHoursData = {
     body: ReplaceOpeningHoursRequest;
     path: {
@@ -1464,6 +2480,54 @@ export type AdminGetSpaceOverviewResponses = {
 };
 
 export type AdminGetSpaceOverviewResponse = AdminGetSpaceOverviewResponses[keyof AdminGetSpaceOverviewResponses];
+
+export type AdminRestoreSpaceData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/spaces/{space_id}/restore';
+};
+
+export type AdminRestoreSpaceErrors = {
+    /**
+     * Response 400 Admin Restore Space
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminRestoreSpaceError = AdminRestoreSpaceErrors[keyof AdminRestoreSpaceErrors];
+
+export type AdminRestoreSpaceResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminSpaceResponse;
+};
+
+export type AdminRestoreSpaceResponse = AdminRestoreSpaceResponses[keyof AdminRestoreSpaceResponses];
 
 export type AdminCreateSeatData = {
     body: CreateSeatRequest;
@@ -1624,6 +2688,145 @@ export type AdminUpdateSeatResponses = {
 
 export type AdminUpdateSeatResponse = AdminUpdateSeatResponses[keyof AdminUpdateSeatResponses];
 
+export type AdminListUsersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/users';
+};
+
+export type AdminListUsersErrors = {
+    /**
+     * Response 400 Admin List Users
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminListUsersError = AdminListUsersErrors[keyof AdminListUsersErrors];
+
+export type AdminListUsersResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminUsersResponse;
+};
+
+export type AdminListUsersResponse = AdminListUsersResponses[keyof AdminListUsersResponses];
+
+export type AdminGetUserData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/users/{user_id}';
+};
+
+export type AdminGetUserErrors = {
+    /**
+     * Response 400 Admin Get User
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminGetUserError = AdminGetUserErrors[keyof AdminGetUserErrors];
+
+export type AdminGetUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminUserHistoryResponse;
+};
+
+export type AdminGetUserResponse = AdminGetUserResponses[keyof AdminGetUserResponses];
+
+export type AdminUpdateUserData = {
+    body: UpdateAdminUserRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/users/{user_id}';
+};
+
+export type AdminUpdateUserErrors = {
+    /**
+     * Response 400 Admin Update User
+     *
+     * Bad Request
+     */
+    400: ErrorResponse | BookingErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AdminUpdateUserError = AdminUpdateUserErrors[keyof AdminUpdateUserErrors];
+
+export type AdminUpdateUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminUserHistoryResponse;
+};
+
+export type AdminUpdateUserResponse = AdminUpdateUserResponses[keyof AdminUpdateUserResponses];
+
 export type CheckInData = {
     body: CheckInRequest;
     path?: never;
@@ -1676,6 +2879,407 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type ListMapDatasetsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/datasets';
+};
+
+export type ListMapDatasetsResponses = {
+    /**
+     * Response List Map Datasets
+     *
+     * Successful Response
+     */
+    200: Array<DatasetMeta>;
+};
+
+export type ListMapDatasetsResponse = ListMapDatasetsResponses[keyof ListMapDatasetsResponses];
+
+export type GetMapDatasetData = {
+    body?: never;
+    path: {
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: {
+        /**
+         * At
+         *
+         * Zurich time, YYYY-MM-DDTHH:MM (default: now)
+         */
+        at?: string | null;
+        /**
+         * Refresh
+         *
+         * Fetch now instead of using the cache
+         */
+        refresh?: boolean;
+    };
+    url: '/api/v1/map/datasets/{dataset_id}';
+};
+
+export type GetMapDatasetErrors = {
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Bad Gateway
+     */
+    502: ErrorResponse;
+};
+
+export type GetMapDatasetError = GetMapDatasetErrors[keyof GetMapDatasetErrors];
+
+export type GetMapDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DatasetResponse;
+};
+
+export type GetMapDatasetResponse = GetMapDatasetResponses[keyof GetMapDatasetResponses];
+
+export type GetEthRoomData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Id
+         *
+         * e.g. "HG E 7"
+         */
+        id: string;
+    };
+    url: '/api/v1/map/eth/room';
+};
+
+export type GetEthRoomErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Bad Gateway
+     */
+    502: ErrorResponse;
+};
+
+export type GetEthRoomError = GetEthRoomErrors[keyof GetEthRoomErrors];
+
+export type GetEthRoomResponses = {
+    /**
+     * Response Get Eth Room
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type GetEthRoomResponse = GetEthRoomResponses[keyof GetEthRoomResponses];
+
+export type GetEthRoomsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Date
+         *
+         * YYYY-MM-DD
+         */
+        date?: string | null;
+    };
+    url: '/api/v1/map/eth/rooms';
+};
+
+export type GetEthRoomsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Bad Gateway
+     */
+    502: ErrorResponse;
+};
+
+export type GetEthRoomsError = GetEthRoomsErrors[keyof GetEthRoomsErrors];
+
+export type GetEthRoomsResponses = {
+    /**
+     * Successful Response
+     */
+    200: EthRoomsResponse;
+};
+
+export type GetEthRoomsResponse = GetEthRoomsResponses[keyof GetEthRoomsResponses];
+
+export type GetUzhOccupancyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/eth/uzh';
+};
+
+export type GetUzhOccupancyErrors = {
+    /**
+     * Bad Gateway
+     */
+    502: ErrorResponse;
+};
+
+export type GetUzhOccupancyError = GetUzhOccupancyErrors[keyof GetUzhOccupancyErrors];
+
+export type GetUzhOccupancyResponses = {
+    /**
+     * Successful Response
+     */
+    200: UzhOccupancy;
+};
+
+export type GetUzhOccupancyResponse = GetUzhOccupancyResponses[keyof GetUzhOccupancyResponses];
+
+export type GetMapNavigationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/navigation';
+};
+
+export type GetMapNavigationErrors = {
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+};
+
+export type GetMapNavigationError = GetMapNavigationErrors[keyof GetMapNavigationErrors];
+
+export type GetMapNavigationResponses = {
+    /**
+     * Successful Response
+     */
+    200: NavigationConfig;
+};
+
+export type GetMapNavigationResponse = GetMapNavigationResponses[keyof GetMapNavigationResponses];
+
+export type SaveMapNavigationData = {
+    body: NavigationConfig;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/navigation';
+};
+
+export type SaveMapNavigationErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveMapNavigationError = SaveMapNavigationErrors[keyof SaveMapNavigationErrors];
+
+export type SaveMapNavigationResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SaveMapNavigationResponse = SaveMapNavigationResponses[keyof SaveMapNavigationResponses];
+
+export type GetMapStyleData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/style';
+};
+
+export type GetMapStyleErrors = {
+    /**
+     * Not Found
+     */
+    404: ErrorResponse;
+};
+
+export type GetMapStyleError = GetMapStyleErrors[keyof GetMapStyleErrors];
+
+export type GetMapStyleResponses = {
+    /**
+     * Successful Response
+     */
+    200: MapStyle;
+};
+
+export type GetMapStyleResponse = GetMapStyleResponses[keyof GetMapStyleResponses];
+
+export type SaveMapStyleData = {
+    body: MapStyle;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/style';
+};
+
+export type SaveMapStyleErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveMapStyleError = SaveMapStyleErrors[keyof SaveMapStyleErrors];
+
+export type SaveMapStyleResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SaveMapStyleResponse = SaveMapStyleResponses[keyof SaveMapStyleResponses];
+
+export type GetMapWorkspacesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/workspaces';
+};
+
+export type GetMapWorkspacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: OccupancyData;
+};
+
+export type GetMapWorkspacesResponse = GetMapWorkspacesResponses[keyof GetMapWorkspacesResponses];
+
+export type SaveMapWorkspacesData = {
+    body: OccupancyData;
+    path?: never;
+    query?: never;
+    url: '/api/v1/map/workspaces';
+};
+
+export type SaveMapWorkspacesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveMapWorkspacesError = SaveMapWorkspacesErrors[keyof SaveMapWorkspacesErrors];
+
+export type SaveMapWorkspacesResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SaveMapWorkspacesResponse = SaveMapWorkspacesResponses[keyof SaveMapWorkspacesResponses];
+
+export type GetMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me';
+};
+
+export type GetMeErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+};
+
+export type GetMeError = GetMeErrors[keyof GetMeErrors];
+
+export type GetMeResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type GetMeResponse = GetMeResponses[keyof GetMeResponses];
+
+export type UpdateMeData = {
+    body: BodyUpdateMe;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me';
+};
+
+export type UpdateMeErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Request Entity Too Large
+     */
+    413: ErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMeError = UpdateMeErrors[keyof UpdateMeErrors];
+
+export type UpdateMeResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type UpdateMeResponse = UpdateMeResponses[keyof UpdateMeResponses];
 
 export type GetMyReservationData = {
     body?: never;

@@ -18,7 +18,7 @@ One version of everything. Nothing is duplicated.
 |---|---|
 | `tokens.css` | Every colour, size and motion value, dark default + light |
 | `base.css` | Every shared component, plus the icon set |
-| `base.js` | The only script: theme switch, bottom sheets, banners |
+| `base.js` | Shared script: theme switch, bottom sheets, banners |
 | `index.html` | Home of the mocks, links to every screen |
 | `design-system.html` | Live view of the tokens (switch theme to see both) |
 | `components.html` | Every component with copyable HTML, and the popups to try |
@@ -26,6 +26,7 @@ One version of everything. Nothing is duplicated.
 | `screens/NN-name.html` | The screens, in flow order |
 | `docs.css` | Layout of the guide pages only. Screens never load it |
 | `admin.css` | Layout and parts for the admin dashboard only (side menu, tables, dialogs). Student screens never load it |
+| `admin/users-data.js`, `admin/users.js` | Local sample data and interactive Users UI; no backend calls |
 | `admin/NN-name.html` | The admin dashboard pages, desktop-first |
 | `user-flow.drawio.xml` | The user flow, source of truth |
 
@@ -226,3 +227,17 @@ Use the backend's demo spaces so the mockups match what will be wired later: "Ha
 ## Working together
 - Split by screens, not by shared files. `tokens.css` and base styles change only after a quick message.
 - Commit small, pull often, one commit per screen.
+
+
+### Users and activity (mockup proposal)
+- Users appears directly below Spaces in the admin side menu. The directory links to an individual profile for every sample user.
+- Directory metrics use the last 30 days; the profile separates that summary from the dated weekly activity chart and recent reservations.
+- Study time means checked-in time excluding breaks. Waiting for check-in, cancelled reservations and missed arrivals count as zero study time.
+- Booking status uses existing seat-state chips; historical outcomes use neutral labelled chips. Activity charts use the accent token, never seat-state colours.
+- Users is an interactive local mockup: search, booking-status filters, sorting, validated profile editing, reservation details, full history and confirmed reservation ending work against sample data. Changes persist in browser storage; Reset demo data restores the initial dataset after confirmation.
+- Sample people and statistics are fictional; summary numbers and charts are derived from the same reservation records. The current backend provides user IDs on reservations but no user directory, profile-management or user-history endpoint. Backend integration remains future work.
+
+### Create spaces and layout editor (local mockup)
+Select a room on the sample backend-style floor map, name it and create the space. Creation opens its furniture editor. The backend-owned polygon remains fixed; tables, seats, windows and doors are editable local objects. Windows and doors snap to walls. Seats and tables use the phone map's dimensions, numbering and design tokens. Save layout persists furniture and recalculates seat totals. This mockup makes no backend calls and does not modify the React student fixture.
+
+The furniture editor is the Layout tab inside the original room menu. Spaces > Manage opens Seats with current occupants and reservations; Opening hours, Closures and Settings remain available. Create space enters Layout directly, and all room tabs preserve the selected space ID.

@@ -1,89 +1,171 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Add space · Study Spaces Admin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="../tokens.css">
-  <link rel="stylesheet" href="../base.css">
-  <link rel="stylesheet" href="../admin.css">
-  <script src="../base.js"></script>
-</head>
-<body class="admin-body">
-  <div class="admin">
-    <aside class="sidebar">
-      <a class="sidebar__brand" href="01-spaces.html" aria-label="Study Spaces admin, back to the spaces list">
-        <strong>Study Spaces</strong>
-        <span class="t-label">Admin</span>
-      </a>
-      <nav class="nav" aria-label="Admin">
-        <a class="nav__link" href="01-spaces.html" aria-current="page"><i class="icon i-map"></i> Spaces</a>
-      </nav>
-      <div class="sidebar__foot">
-        <a class="nav__link" href="../index.html"><i class="icon i-home"></i> Student app</a>
-        <div class="sidebar__user">
-          <span class="avatar" aria-hidden="true">AD</span>
-          <span class="t-small">Admin</span>
-          <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme" style="margin-left: auto">
-            <i class="icon i-sun"></i><i class="icon i-moon"></i>
-          </button>
-        </div>
-      </div>
-    </aside>
-
-    <main class="admin__main">
-      <div class="page">
-        <a class="crumbs" href="01-spaces.html"><i class="icon icon--sm i-back"></i> Spaces</a>
-        <header class="page-header">
-          <div class="page-header__text">
-            <h1 class="t-heading">Add space</h1>
-            <p class="t-muted">A new space starts open 24 hours a day. You can change the hours afterwards.</p>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Add space · Study Spaces Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="stylesheet" href="../admin.css" />
+    <script src="../base.js"></script>
+    <script src="layout-data.js" defer></script>
+    <script src="spaces-data.js" defer></script>
+    <script src="spaces.js" defer></script>
+  </head>
+  <body class="admin-body">
+    <div class="admin">
+      <aside class="sidebar">
+        <a
+          class="sidebar__brand"
+          href="01-spaces.html"
+          aria-label="Study Spaces admin, back to the spaces list"
+        >
+          <strong>Study Spaces</strong>
+          <span class="t-label">Admin</span>
+        </a>
+        <nav class="nav" aria-label="Admin">
+          <a class="nav__link" href="01-spaces.html" aria-current="page"
+            ><i class="icon i-map"></i> Spaces</a
+          >
+          <a class="nav__link" href="08-users.html"
+            ><i class="icon i-user" aria-hidden="true"></i> Users</a
+          >
+<a class="nav__link" href="10-space-qr.html"><i class="icon i-qr" aria-hidden="true"></i> QR codes</a>
+        </nav>
+        <div class="sidebar__foot">
+          <a class="nav__link" href="../index.html"
+            ><i class="icon i-home"></i> Student app</a
+          >
+          <div class="sidebar__user">
+            <span class="avatar" aria-hidden="true">AD</span>
+            <span class="t-small">Admin</span>
+            <button
+              class="icon-button theme-toggle"
+              type="button"
+              data-theme-toggle
+              aria-pressed="false"
+              aria-label="Switch to light theme"
+              style="margin-left: auto"
+            >
+              <i class="icon i-sun"></i><i class="icon i-moon"></i>
+            </button>
           </div>
-        </header>
+        </div>
+      </aside>
 
-        <div class="form form--narrow">
-          <div class="form-grid">
-            <div class="field span-2" data-if-no-param="error">
-              <label class="field__label" for="name">Name</label>
-              <input class="input" id="name" placeholder="e.g. Hauptbibliothek · Lesesaal">
+      <main class="admin__main">
+        <div class="page">
+          <a class="crumbs" href="01-spaces.html"
+            ><i class="icon i-back"></i> Spaces</a
+          >
+          <header class="page-header">
+            <div class="page-header__text">
+              <h1 class="t-heading">Add space</h1>
+              <p class="t-muted">
+                Choose a room, then arrange its tables and seats.
+              </p>
             </div>
-            <div class="field field--error span-2" data-if-param="error=1" hidden>
-              <label class="field__label" for="name-err">Name</label>
-              <input class="input" id="name-err" aria-invalid="true" aria-describedby="name-err-help">
-              <p class="field__helper" id="name-err-help">Enter a name for the space.</p>
-            </div>
-            <div class="field">
-              <label class="field__label" for="lat">Latitude</label>
-              <input class="input" id="lat" inputmode="decimal" placeholder="47.37648">
-              <p class="field__helper">Decimal degrees, north is positive.</p>
-            </div>
-            <div class="field">
-              <label class="field__label" for="lng">Longitude</label>
-              <input class="input" id="lng" inputmode="decimal" placeholder="8.548268">
-              <p class="field__helper">Decimal degrees, east is positive.</p>
-            </div>
-            <div class="field span-2">
-              <label class="field__label" for="tz">Time zone</label>
-              <div class="select">
-                <select id="tz"><option>Europe/Zurich</option><option>Europe/Berlin</option><option>UTC</option></select>
+          </header>
+          <form id="space-create-form" class="space-create-grid">
+            <section class="user-card room-picker-card">
+              <div class="user-section-head">
+                <h2 class="t-title">Select a room</h2>
+                <span class="t-small t-muted">HG · Floor E</span>
               </div>
-              <p class="field__helper">Opening hours and reservations use this time zone.</p>
-            </div>
-          </div>
-          <div class="form-actions">
-            <a class="btn btn--secondary" href="01-spaces.html">Cancel</a>
-            <a class="btn btn--primary" href="03-space-seats.html">Create space</a>
-          </div>
+              <p class="t-small t-muted">
+                Sample floor map. Room boundaries will come from the backend.
+              </p>
+              <svg
+                id="room-picker"
+                viewBox="0 0 900 480"
+                role="group"
+                aria-label="Choose a room on the floor map"
+              >
+                <path class="picker-corridor" d="M20 20H880V460H20Z" />
+                <text
+                  class="picker-floor-label"
+                  x="450"
+                  y="260"
+                  text-anchor="middle"
+                >
+                  HG · FLOOR E
+                </text>
+                <g id="room-picker-items"></g>
+              </svg>
+              <p class="t-small t-muted" id="room-selection" role="status">
+                No room selected
+              </p>
+              <input type="hidden" name="roomId" id="room-id" />
+            </section>
+            <section class="form">
+              <h2 class="t-title">Space details</h2>
+              <div class="field room-search" id="room-search-field">
+                <label class="field__label" for="room-search"
+                  >Search rooms</label
+                >
+                <div class="search">
+                  <i class="icon i-search" aria-hidden="true"></i>
+                  <input
+                    id="room-search"
+                    type="search"
+                    required
+                    autocomplete="off"
+                    placeholder="Search room number or type"
+                    aria-controls="room-search-results"
+                    aria-describedby="room-search-hint"
+                  />
+                </div>
+                <div
+                  id="room-search-results"
+                  class="room-search-results"
+                  role="group"
+                  aria-label="Room search results"
+                  hidden
+                ></div>
+                <p class="t-small t-muted" id="room-search-hint">
+                  Search for a room or select it on the map.
+                </p>
+                <input type="hidden" id="name" name="name" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="tz">Time zone</label>
+                <div class="select">
+                  <select name="timeZone" id="tz">
+                    <option>Europe/Zurich</option>
+                    <option>Europe/Berlin</option>
+                    <option>UTC</option>
+                  </select>
+                </div>
+              </div>
+              <p class="t-small t-muted">
+                The next step opens the room editor. Add tables, seats, windows
+                and doors inside its fixed outline.
+              </p>
+              <p
+                class="user-form-error t-small"
+                id="space-form-error"
+                role="alert"
+                tabindex="-1"
+                hidden
+              ></p>
+              <div class="form-actions">
+                <a class="btn btn--secondary" href="01-spaces.html">Cancel</a
+                ><button class="btn btn--primary" type="submit">
+                  Create space
+                </button>
+              </div>
+            </section>
+          </form>
         </div>
-        <p class="t-small t-muted">Mock: <a href="02-space-new.html?error=1">show a validation error</a></p>
-      </div>
-    </main>
-  </div>
+      </main>
+    </div>
 
-  <div class="banner-region">
-  </div>
-</body>
+    <div class="banner-region"></div>
+  </body>
 </html>

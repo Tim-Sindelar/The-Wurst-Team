@@ -11,6 +11,10 @@
   <link rel="stylesheet" href="../base.css">
   <link rel="stylesheet" href="../admin.css">
   <script src="../base.js"></script>
+<script src="layout-data.js" defer></script>
+<script src="spaces-data.js" defer></script>
+<script src="room-context.js" defer></script>
+<script src="space-actions.js" defer></script>
 </head>
 <body class="admin-body">
   <div class="admin">
@@ -21,6 +25,8 @@
       </a>
       <nav class="nav" aria-label="Admin">
         <a class="nav__link" href="01-spaces.html" aria-current="page"><i class="icon i-map"></i> Spaces</a>
+        <a class="nav__link" href="08-users.html"><i class="icon i-user" aria-hidden="true"></i> Users</a>
+<a class="nav__link" href="10-space-qr.html"><i class="icon i-qr" aria-hidden="true"></i> QR codes</a>
       </nav>
       <div class="sidebar__foot">
         <a class="nav__link" href="../index.html"><i class="icon i-home"></i> Student app</a>
@@ -46,7 +52,7 @@
 
           </div>
         </header>
-        <nav class="subnav" aria-label="This space"><a href="03-space-seats.html">Seats</a><a href="04-space-hours.html">Opening hours</a><a href="05-space-closures.html">Closures</a><a href="06-space-layout.html">Layout</a><a href="07-space-settings.html" aria-current="page">Settings</a></nav>
+        <nav class="subnav" aria-label="This space"><a href="03-space-seats.html">Seats</a><a href="04-space-hours.html">Opening hours</a><a href="05-space-closures.html">Closures</a><a href="06-space-layout.html">Layout</a><a href="10-space-qr.html">QR codes</a><a href="07-space-settings.html" aria-current="page">Settings</a></nav>
 
         <div class="form form--narrow">
           <div class="form-grid">
@@ -77,6 +83,11 @@
             <button class="btn btn--primary" type="button" data-banner-open="banner-saved">Save changes</button>
           </div>
         </div>
+        <section class="user-card">
+          <h2 class="t-title">Delete study place</h2>
+          <p class="t-small t-muted">Remove this study place and its saved layout from the local admin mockup. Reservation history is kept.</p>
+          <button class="btn btn--danger" type="button" data-delete-current-space>Delete study place</button>
+        </section>
         <p class="t-small t-muted">Mock: <button class="btn btn--quiet" type="button" data-sheet-open="dlg-tz-impact" style="min-height: 0; padding: 0">save a time-zone change</button></p>
       </div>
     </main>
@@ -126,5 +137,13 @@
       <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
     </div>
   </div>
+
+  <dialog class="dialog" id="dlg-delete-space" aria-labelledby="delete-space-title">
+    <div class="dialog__head"><h2 class="dialog__title" id="delete-space-title">Delete study place?</h2><button class="icon-button" type="button" data-sheet-close aria-label="Close"><i class="icon i-close"></i></button></div>
+    <div class="dialog__body"><p id="delete-space-description"></p><p class="t-small t-muted">The study place and saved layout will leave the spaces list. Reservation history stays available. You can undo from the spaces list.</p><p id="delete-space-error" class="t-small" role="alert" hidden></p></div>
+    <div class="dialog__foot"><button class="btn btn--secondary" type="button" data-sheet-close>Cancel</button><button class="btn btn--danger" type="button" id="confirm-delete-space">Delete study place</button></div>
+  </dialog>
+  <div class="banner-region"><div class="banner" id="space-deleted-banner" role="status" hidden><div class="banner__text"><span class="banner__title">Study place deleted</span><span class="t-small t-muted" id="space-deleted-name"></span></div><button class="btn btn--quiet" type="button" id="undo-space-delete">Undo</button><button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button></div></div>
+
 </body>
 </html>

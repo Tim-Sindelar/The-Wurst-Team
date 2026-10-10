@@ -4,6 +4,8 @@
 @import '@mantine/core/styles.layer.css';
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import './theme/components.css';
+@import 'leaflet/dist/leaflet.css' layer(base);
+@import './campus-map/campus-map.css';
 
 /* ==========================================================================
    Design tokens, ported from design/tokens.css. Dark is the default theme;
@@ -13,6 +15,10 @@
    ========================================================================== */
 
 @theme static {
+  --spacing-admin-sidebar: 15rem;
+  --spacing-admin-canvas: 36rem;
+  --spacing-admin-properties: 18rem;
+  --spacing-admin-tool: 2rem;
   --color-*: initial;
   --color-bg: #2a2420;
   --color-surface: #342d28;

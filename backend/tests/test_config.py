@@ -27,8 +27,9 @@ def test_timing_settings_can_be_overridden_by_environment(monkeypatch):
         {"private_priority_window_minutes": 120},
         {"public_reservation_window_minutes": 20},
         {"public_reservation_window_minutes": -1},
+        {"auth_mode": "disabled"},
     ],
 )
-def test_invalid_timing_settings_are_rejected(overrides):
+def test_invalid_settings_are_rejected(overrides):
     with pytest.raises(ValidationError):
         Settings(_env_file=None, **overrides)

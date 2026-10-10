@@ -116,6 +116,19 @@
     @apply text-text-muted;
   }
 
+  .ui-checkbox {
+    @apply border-border-strong bg-surface;
+    &:checked {
+      @apply border-accent bg-accent;
+    }
+  }
+  .ui-checkbox-label {
+    @apply text-body text-text;
+  }
+  .ui-checkbox-icon {
+    @apply text-on-accent;
+  }
+
   /* --- Switch: 48 × 28 track, 20px thumb ---------------------------------- */
   .ui-switch {
     @apply w-full;
@@ -250,4 +263,156 @@
   .ui-title {
     @apply text-text;
   }
+}
+
+@layer components {
+  .admin-frame {
+    @apply min-h-dvh bg-bg md:grid md:grid-cols-[var(--spacing-admin-sidebar)_minmax(0,1fr)];
+  }
+  .admin-sidebar {
+    @apply sticky top-0 z-20 flex flex-col gap-6 border-b border-border bg-surface p-4 md:h-dvh md:border-r md:border-b-0;
+  }
+  .admin-nav {
+    @apply flex min-h-11 items-center gap-3 rounded-control px-3 text-text-muted no-underline hover:bg-hover;
+  }
+  .admin-nav[aria-current='page'] {
+    @apply bg-surface-2 font-semibold text-text;
+  }
+  .admin-content {
+    @apply min-w-0 p-4 md:p-8;
+  }
+  .admin-tabs {
+    @apply flex flex-wrap gap-4 border-b border-border;
+  }
+  .admin-tabs a {
+    @apply border-b-2 border-transparent py-3 text-text-muted;
+  }
+  .admin-tabs a[aria-current='page'] {
+    @apply border-accent font-semibold text-text;
+  }
+  .admin-stats {
+    @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+  }
+  .admin-table {
+    @apply w-full border-collapse text-left text-small;
+  }
+  .admin-table th {
+    @apply bg-surface-2 px-4 py-3 font-semibold text-text-muted;
+  }
+  .admin-table td {
+    @apply border-b border-border px-4 py-3 align-middle;
+  }
+  .admin-input {
+    @apply min-h-11 rounded-control border border-border-strong bg-surface px-3 text-text;
+  }
+  .admin-picker-grid {
+    @apply grid gap-4 lg:grid-cols-[minmax(0,1fr)_var(--spacing-admin-properties)];
+  }
+  .admin-room-map {
+    @apply h-admin-canvas overflow-hidden rounded-card border border-border-strong bg-surface;
+  }
+  .admin-room-results {
+    @apply grid max-h-admin-canvas content-start gap-1 overflow-y-auto;
+  }
+  .admin-room-choice {
+    @apply grid min-h-11 cursor-pointer gap-1 rounded-control border-0 bg-surface px-3 py-2 text-left text-text hover:bg-hover;
+  }
+  .admin-room-choice[aria-pressed='true'] {
+    @apply border border-accent bg-surface-2;
+  }
+  .admin-editor-grid {
+    @apply grid gap-4 xl:grid-cols-[minmax(0,1fr)_var(--spacing-admin-properties)];
+  }
+  .admin-editor-canvas {
+    @apply relative h-admin-canvas overflow-hidden rounded-card border border-border-strong bg-canvas;
+  }
+  .admin-editor-canvas > svg {
+    @apply h-full w-full touch-none select-none;
+  }
+  .admin-editor-tools {
+    @apply flex flex-wrap items-center gap-1;
+  }
+  .admin-editor-tools .ui-button {
+    @apply h-admin-tool min-h-admin-tool px-3 text-small;
+  }
+  .admin-editor-tools kbd {
+    @apply ml-1 text-label text-text-muted;
+  }
+  .admin-scene-item {
+    @apply cursor-pointer outline-none;
+  }
+  .admin-scene-table {
+    @apply fill-surface-2 stroke-border-strong;
+  }
+  .admin-scene-item[aria-pressed='true'] > rect,
+  .admin-scene-item[aria-pressed='true'] > circle,
+  .admin-scene-item[aria-pressed='true'] > path {
+    @apply stroke-accent;
+    stroke-width: 3;
+  }
+  .admin-scene-item:focus-visible > rect,
+  .admin-scene-item:focus-visible > circle,
+  .admin-scene-item:focus-visible > path {
+    @apply stroke-focus;
+    stroke-width: 3;
+  }
+  .admin-qr-labels {
+    display: grid;
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(calc(var(--admin-qr-size) + var(--spacing) * 8), 1fr)
+    );
+    @apply gap-3;
+  }
+  .admin-qr-label {
+    @apply flex flex-col items-center gap-1 p-3 text-center;
+    break-inside: avoid;
+  }
+  .admin-qr-image {
+    width: var(--admin-qr-size);
+    height: var(--admin-qr-size);
+  }
+}
+@media print {
+  body:has(.admin-qr-page) {
+    page: admin-qr;
+    background: white;
+    color: black;
+  }
+  body:has(.admin-qr-page) .admin-sidebar,
+  body:has(.admin-qr-page) .admin-tabs,
+  body:has(.admin-qr-page) .admin-qr-controls,
+  body:has(.admin-qr-page) header,
+  body:has(.admin-qr-page) h1,
+  body:has(.admin-qr-page) h2 {
+    display: none;
+  }
+  body:has(.admin-qr-page) .admin-frame {
+    display: block;
+  }
+  body:has(.admin-qr-page) .admin-content {
+    padding: 0;
+  }
+  .admin-qr-labels {
+    grid-template-columns: repeat(auto-fill, calc(var(--admin-qr-size) + 6mm));
+    gap: 3mm;
+  }
+  .admin-qr-label {
+    background: white;
+    color: black;
+    border: 0.25mm solid #777;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 2mm;
+    break-inside: avoid;
+  }
+  .admin-qr-label strong {
+    font-size: 8pt;
+  }
+  .admin-qr-label p {
+    font-size: 13pt;
+  }
+}
+@page admin-qr {
+  margin: 12mm;
 }

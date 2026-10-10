@@ -105,11 +105,18 @@ class ReservationService:
     def reservable_end(
         self, seat_id: UUID, starts_at: datetime, ends_at: datetime
     ) -> datetime | None:
+        seat = self.session.get(Seat, seat_id)
+        space = self.session.get(StudySpace, seat.space_id) if seat else None
+        if space is None or space.is_archived:
+            return None
         return self.session.scalar(
             select(func.seat_reservation_end_at(seat_id, starts_at, ends_at))
         )
 
     def is_open(self, space_id: UUID, now: datetime) -> bool:
+        space = self.session.get(StudySpace, space_id)
+        if space is None or space.is_archived:
+            return False
         return self.session.scalar(select(func.space_is_open_at(space_id, now)))
 
     def opening_hours(self, space_id: UUID) -> list[OpeningInterval]:
@@ -318,7 +325,9 @@ class ReservationService:
     def spaces(self) -> SpacesResponse:
         now = self.now()
         spaces = self.session.scalars(
-            select(StudySpace).order_by(StudySpace.name, StudySpace.id)
+            select(StudySpace)
+            .where(StudySpace.is_archived.is_(False))
+            .order_by(StudySpace.name, StudySpace.id)
         ).all()
         seats = self.session.scalars(select(Seat)).all()
         states_by_seat: dict[UUID, list[ReservationState]] = defaultdict(list)
@@ -348,7 +357,7 @@ class ReservationService:
 
     def space(self, space_id: UUID) -> SpaceResponse:
         space = self.session.get(StudySpace, space_id)
-        if space is None:
+        if space is None or space.is_archived:
             raise BookingError(404, "not_found", "Study space not found")
         now = self.now()
         seats = self.session.scalars(

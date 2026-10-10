@@ -1,4 +1,4 @@
-.PHONY: install dev backend frontend generate lint format test build seed
+.PHONY: install dev backend frontend generate lint format test build seed map-floors
 
 install:
 	cd backend && uv sync --locked
@@ -34,3 +34,9 @@ seed:
 
 build:
 	cd frontend && npm run build
+
+# Generate local room borders without replacing workspace data.
+map-floors:
+	python scraper/scrape_polymaps.py scraper/polymaps_data
+	python scraper/extract_floors.py --floors-only
+	python scraper/build_library_outlines.py

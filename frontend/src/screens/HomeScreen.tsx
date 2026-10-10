@@ -9,13 +9,13 @@ import {
 import { Link, useSearchParams } from 'react-router';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
-import { Placeholder } from '../components/Placeholder';
 import { Screen, ScreenMain } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 import type { BookingState } from '../mock/bookingContext';
-import { mockSpace, mockUser, studySpaces } from '../mock/data';
+import { mockSpace, studySpaces } from '../mock/data';
 import { useMockBooking } from '../mock/useMockBooking';
 import { paths } from '../routes';
 
@@ -26,6 +26,7 @@ const forcedState = (value: string | null): BookingState | null =>
     : null;
 
 export function HomeScreen() {
+  const { user, initials, isPending, isError } = useCurrentUser();
   const { seat, booking } = useMockBooking();
   const [params] = useSearchParams();
   const state = forcedState(params.get('state')) ?? booking;
@@ -40,10 +41,13 @@ export function HomeScreen() {
             <ActionIcon
               component={Link}
               to={paths.profile}
-              aria-label="Profile"
+              aria-label={isError ? 'Profile unavailable' : 'Profile'}
+              aria-busy={isPending}
               className="-mr-0.5"
             >
-              <Avatar aria-hidden="true">{mockUser.initials}</Avatar>
+              <Avatar src={user?.photo_url} aria-hidden="true">
+                {initials}
+              </Avatar>
             </ActionIcon>
           </div>
         </div>
@@ -85,14 +89,24 @@ export function HomeScreen() {
           ))}
         </ul>
 
-        <Title order={2} className="sr-only">
-          Campus map
-        </Title>
-        <Placeholder
-          icon="map"
-          label="Campus map goes here"
-          description="Placeholder: the campus map goes here"
-        />
+        <Card
+          component={Link}
+          to={paths.map}
+          className="no-underline hover:shadow-[inset_0_0_0_100px_var(--color-hover),var(--shadow-card)]"
+        >
+          <div className="flex items-center gap-3">
+            <Icon name="map" size="lg" className="flex-none text-accent" />
+            <div className="grid min-w-0 flex-1 gap-1">
+              <Title order={2} className="text-title">
+                Campus map
+              </Title>
+              <Text size="sm" c="dimmed">
+                Workspaces, free rooms, mensas and transport on the floor plans
+              </Text>
+            </div>
+            <Icon name="chevronRight" />
+          </div>
+        </Card>
       </ScreenMain>
     </Screen>
   );

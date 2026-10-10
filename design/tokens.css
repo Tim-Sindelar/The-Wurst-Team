@@ -138,3 +138,5 @@
     --dur-base: 0ms;
   }
 }
+
+:root { --admin-sidebar:15rem; --admin-canvas:36rem; --admin-properties:18rem; --admin-tool:2rem; }

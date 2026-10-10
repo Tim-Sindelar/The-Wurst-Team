@@ -6,6 +6,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   createTheme,
   Drawer,
   Input,
@@ -104,6 +105,14 @@ export const theme = createTheme({
 
     TextInput: TextInput.extend({
       defaultProps: { leftSectionWidth: 44 },
+    }),
+
+    Checkbox: Checkbox.extend({
+      classNames: {
+        input: 'ui-checkbox',
+        label: 'ui-checkbox-label',
+        icon: 'ui-checkbox-icon',
+      },
     }),
 
     Switch: Switch.extend({

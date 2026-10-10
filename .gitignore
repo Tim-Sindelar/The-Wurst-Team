@@ -11,3 +11,12 @@
 !.env.example
 !**/.env.example
 .DS_Store
+
+.npm-cache/
+.pip-cache/
+.runtime-tmp/
+
+.uv-cache/
+
+scraper/polymaps_data/
+occupancy-map-preview/public/floors/

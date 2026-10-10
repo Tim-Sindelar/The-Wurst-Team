@@ -32,7 +32,7 @@ def clock(monkeypatch: pytest.MonkeyPatch) -> Clock:
 
 @pytest.fixture
 def policy() -> Settings:
-    return Settings(_env_file=None)
+    return Settings(_env_file=None, auth_mode="demo")
 
 
 @pytest.fixture

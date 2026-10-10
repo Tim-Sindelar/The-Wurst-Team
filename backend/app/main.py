@@ -5,13 +5,16 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.auth import DummyAdminMiddleware, DummyAuthMiddleware
+from app.auth import router as auth_router
 from app.config import get_settings
 from app.database import engine, get_session
+from app.features.campus_map.router import router as campus_map_router
+from app.features.campus_map.services import shutdown_services
 from app.features.reservations.admin_router import router as admin_router
 from app.features.reservations.admin_service import AdminConflict
 from app.features.reservations.router import router
@@ -23,12 +26,11 @@ from app.schemas import ErrorResponse, HealthResponse, ReadinessResponse
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
+    shutdown_services()
     engine.dispose()
 
 
 app = FastAPI(title="The Wurst Team API", version="0.1.0", lifespan=lifespan)
-app.add_middleware(DummyAuthMiddleware)
-app.add_middleware(DummyAdminMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
@@ -38,6 +40,14 @@ app.add_middleware(
 )
 app.include_router(router)
 app.include_router(admin_router)
+app.include_router(campus_map_router)
+# Floor plans of the campus map (index.json, levels/<id>.json), as static files.
+app.mount(
+    "/api/v1/map/floors",
+    StaticFiles(directory=get_settings().map_floors_dir, check_dir=False),
+    name="map-floors",
+)
+app.include_router(auth_router)
 
 
 @app.exception_handler(AdminConflict)

@@ -1,0 +1,9 @@
+{
+  "_comment": "ASVZ sport centers used by ETH/UZH students. 'match' are lower-case substrings of the facility names in the ASVZ API; 'facilityId' is the Sportfahrplan filter id where known (from github.com/fbuetler/asvz-bot). Positions are approximate.",
+  "facilities": [
+    {"id": "polyterrasse", "name": "Sport Center Polyterrasse", "facilityId": 45594, "match": ["polyterrasse"], "campus": "Zentrum", "lat": 47.37608, "lng": 8.54655, "approximate": true},
+    {"id": "hoenggerberg", "name": "Sport Center Hönggerberg", "facilityId": null, "match": ["hönggerberg", "hoenggerberg"], "campus": "Hönggerberg", "lat": 47.40765, "lng": 8.5108, "approximate": true},
+    {"id": "fluntern", "name": "Sport Center Fluntern", "facilityId": 45575, "match": ["fluntern"], "campus": "Zentrum", "lat": 47.3795, "lng": 8.5705, "approximate": true},
+    {"id": "irchel", "name": "Sport Center Irchel", "facilityId": null, "match": ["irchel"], "campus": "Irchel", "lat": 47.3984, "lng": 8.5478, "approximate": true}
+  ]
+}

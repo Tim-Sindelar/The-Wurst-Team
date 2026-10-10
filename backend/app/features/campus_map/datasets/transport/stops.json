@@ -1,0 +1,20 @@
+{
+  "_comment": "Stops near the ETH and UZH campuses. 'station' is the name transport.opendata.ch resolves; its coordinates replace these approximate ones when the live fetch works. kind 'shuttle' has no public timetable API.",
+  "stops": [
+    {"id": "eth-unispital", "name": "ETH/Universitätsspital", "station": "Zürich, ETH/Universitätsspital", "campus": "Zentrum", "lat": 47.37702, "lng": 8.54786, "approximate": true, "kind": "tram"},
+    {"id": "haldenegg", "name": "Haldenegg", "station": "Zürich, Haldenegg", "campus": "Zentrum", "lat": 47.37975, "lng": 8.54315, "approximate": true, "kind": "tram"},
+    {"id": "central", "name": "Central (Polybahn)", "station": "Zürich, Central", "campus": "Zentrum", "lat": 47.37707, "lng": 8.54412, "approximate": true, "kind": "tram"},
+    {"id": "kantonsschule", "name": "Kantonsschule", "station": "Zürich, Kantonsschule", "campus": "Zentrum", "lat": 47.37235, "lng": 8.5489, "approximate": true, "kind": "tram"},
+    {"id": "hb", "name": "Zürich HB", "station": "Zürich HB", "campus": "Zentrum", "lat": 47.37817, "lng": 8.54021, "approximate": true, "kind": "train"},
+    {"id": "stadelhofen", "name": "Zürich Stadelhofen", "station": "Zürich Stadelhofen", "campus": "Zentrum", "lat": 47.36672, "lng": 8.54846, "approximate": true, "kind": "train"},
+    {"id": "eth-hoenggerberg", "name": "ETH Hönggerberg", "station": "Zürich, ETH Hönggerberg", "campus": "Hönggerberg", "lat": 47.40845, "lng": 8.50685, "approximate": true, "kind": "bus"},
+    {"id": "oerlikon", "name": "Zürich Oerlikon", "station": "Zürich Oerlikon", "campus": "Oerlikon", "lat": 47.41152, "lng": 8.54418, "approximate": true, "kind": "train"},
+    {"id": "irchel", "name": "Universität Irchel", "station": "Zürich, Universität Irchel", "campus": "Irchel", "lat": 47.39612, "lng": 8.5452, "approximate": true, "kind": "tram"},
+    {"id": "elink-zentrum", "name": "eLink shuttle · Zentrum", "station": null, "campus": "Zentrum", "lat": 47.37650, "lng": 8.54640, "approximate": true, "kind": "shuttle",
+     "note": "ETH shuttle bus eLink to Hönggerberg, in the passageway under the Polyterrasse (floor C, main building). Mon–Fri, several times an hour, one stop at Haldenegg, about 15 min. Free for ETH students, staff and guests.",
+     "url": "https://ethz.ch/services/en/service/mobility-transport/link.html"},
+    {"id": "elink-hoenggerberg", "name": "eLink shuttle · Hönggerberg", "station": null, "campus": "Hönggerberg", "lat": 47.40880, "lng": 8.50750, "approximate": true, "kind": "shuttle",
+     "note": "ETH shuttle bus eLink to Zentrum (Polyterrasse), via Haldenegg, about 15 min. Mon–Fri. Free for ETH students, staff and guests.",
+     "url": "https://ethz.ch/services/en/service/mobility-transport/link.html"}
+  ]
+}

@@ -31,6 +31,7 @@ class StudySpace(Base):
     lat: Mapped[float]
     lng: Mapped[float]
     layout: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     timezone: Mapped[str] = mapped_column(
         Text, default="Europe/Zurich", server_default="Europe/Zurich"
     )
