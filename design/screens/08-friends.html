@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends · Study Spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../base.css">
+  <script src="../base.js"></script>
+  <!-- PROTOTYPE. Proposed components for the social redesign. Tokens only.
+       Once the design is approved they move to base.css + components.html. -->
+  <style>
+    /* Fixed frame: header, scrolling main, action bar and bottom nav always visible. */
+    .app--frame { height: 100dvh; min-height: 0; }
+    .app--frame > .app__main { min-height: 0; overflow-y: auto; }
+    .app--frame > :not(.app__main) { flex-shrink: 0; }
+    .app--frame > .app__actions { position: static; }
+
+    /* List card: rows inside one card, divided by hairlines. */
+    .list { display: grid; padding: 0; gap: 0; }
+    .list__row {
+      display: flex; align-items: center; gap: var(--sp-3);
+      min-height: calc(var(--tap-min) + var(--sp-4));
+      padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4);
+    }
+    .list__row + .list__row { border-top: var(--stroke) solid var(--border); }
+    .list__text { flex: 1; min-width: 0; display: grid; gap: var(--sp-1); }
+    .list__name { overflow-wrap: anywhere; font-weight: var(--fw-medium); }
+    .list__meta { display: flex; align-items: flex-start; gap: var(--sp-1); color: var(--text-muted); font-size: var(--fs-small); overflow-wrap: anywhere; }
+    .list__meta .icon { flex: none; width: var(--sp-4); height: var(--sp-4); margin-top: calc(var(--stroke) * 2); }
+    .list__meta--here { color: var(--text); }
+    label.list__row { cursor: pointer; }
+    label.list__row:hover { background: var(--hover); }
+
+    /* Compact button for row actions (still 44px tall). */
+    .btn--row { min-height: var(--tap-min); padding: 0 var(--sp-3); }
+    .btn--danger-quiet { color: var(--danger); }
+
+    /* Overlapping avatars. */
+    .avatars { display: flex; }
+    .avatars .avatar { width: var(--sp-8); height: var(--sp-8); font-size: var(--fs-label); box-shadow: 0 0 0 calc(var(--stroke) * 2) var(--surface); }
+    .avatars .avatar + .avatar { margin-left: calc(-1 * var(--sp-2)); }
+    .avatars--lg .avatar { width: var(--tap-min); height: var(--tap-min); font-size: var(--fs-small); }
+    .avatar.is-you { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+    .sec { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); min-height: var(--tap-min); margin-bottom: calc(-1 * var(--sp-2)); }
+    .hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+    .empty { display: grid; justify-items: center; gap: var(--sp-2); padding: var(--sp-8) var(--sp-4); text-align: center; }
+    .empty .icon { width: var(--sp-8); height: var(--sp-8); color: var(--text-muted); }
+
+    /* Mock-only preview tools: not product UI. */
+    .proto-tools { position: fixed; right: var(--sp-2); top: calc(var(--sp-8) * 2 + var(--sp-2)); z-index: 40; max-width: calc(100vw - var(--sp-4)); background: var(--surface-2); border: var(--stroke) solid var(--border-strong); border-radius: var(--radius-card); font-size: var(--fs-small); box-shadow: var(--shadow); }
+    .proto-tools summary { padding: var(--sp-2) var(--sp-3); cursor: pointer; font-weight: var(--fw-semibold); }
+    .proto-tools__body { display: grid; gap: var(--sp-2); padding: 0 var(--sp-3) var(--sp-3); }
+    .proto-tools__body .row { flex-wrap: wrap; }
+    .proto-tools button { min-height: var(--sp-8); padding: 0 var(--sp-2); background: var(--surface); border: var(--stroke) solid var(--border-strong); border-radius: var(--radius-control); font-size: var(--fs-small); }
+    .proto-tools button[aria-pressed='true'] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <!-- One page, three screens: #friends, #requests, #group. Rendered from the mock state below. -->
+  <div class="app app--frame" id="app">
+    <header class="app-header">
+      <a class="icon-button" id="back" href="#friends" aria-label="Back to friends" hidden><i class="icon i-back" aria-hidden="true"></i></a>
+      <h1 class="app-header__title" id="title">Friends</h1>
+      <a class="icon-button has-badge" id="inbox" href="#requests" aria-label="Requests"><i class="icon i-bell" aria-hidden="true"></i></a>
+      <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme"><i class="icon i-sun" aria-hidden="true"></i><i class="icon i-moon" aria-hidden="true"></i></button>
+    </header>
+    <!-- Confirmations float below the header, over the content; nothing moves. -->
+    <div class="banner-region" id="banners" aria-live="polite"></div>
+    <main class="app__main" id="main"></main>
+    <div class="app__actions" id="actions"></div>
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <a class="bottom-nav__link" href="01-home.html"><i class="icon i-home" aria-hidden="true"></i><span>Home</span></a>
+      <a class="bottom-nav__link" href="02-seat-arrangement.html"><i class="icon i-map" aria-hidden="true"></i><span>Map</span></a>
+      <a class="bottom-nav__link" href="#friends" aria-current="page"><i class="icon i-friends" aria-hidden="true"></i><span>Friends</span></a>
+      <a class="bottom-nav__link" href="06-profile.html"><i class="icon i-user" aria-hidden="true"></i><span>Profile</span></a>
+    </nav>
+  </div>
+
+  <!-- The one decision sheet, filled per action. -->
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close" aria-hidden="true"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-title"></h2>
+      <p class="t-muted" id="sheet-text"></p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel" id="sheet-safe"></button>
+        <button class="btn btn--primary" value="ok" id="sheet-act"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <details class="proto-tools">
+    <summary>Preview tools</summary>
+    <div class="proto-tools__body">
+      <span class="t-label">Your study group</span>
+      <div class="row" id="tool-scenario"></div>
+      <span class="t-label">Requests</span>
+      <div class="row"><button type="button" data-tool="reset">Reset all</button><button type="button" data-tool="clear">Clear requests</button></div>
+    </div>
+  </details>
+
+  <script>
+  (() => {
+    /* ---------------------------------------------------------------- data */
+    const P = {
+      you: { name: 'Anna Meier', short: 'You' },
+      luca: { name: 'Luca Rossi', room: 'HG E 41', since: '13:40' },
+      mia: { name: 'Mia Schneider', room: 'CAB G 61', since: '14:05' },
+      sofia: { name: 'Sofia Marques-Villanueva von Hohenberg-Rietberg', room: 'ML J 34.1 · Mechanical Engineering Library', since: '12:30' },
+      theo: { name: 'Theo Baumann' },
+      lena: { name: 'Lena Fischer' },
+      jonas: { name: 'Jonas Weber' },
+      nora: { name: 'Nora Keller' },
+      felix: { name: 'Felix Brunner' },
+      sam: { name: 'Sam Huber' },
+      samira: { name: 'Samira Okafor' },
+      samuel: { name: 'Samuel Frei' },
+    };
+    const initials = (id) => id === 'you' ? 'AM' : P[id].name.split(/[\s-]+/).slice(0, 2).map((w) => w[0]).join('');
+    const nameOf = (id) => id === 'you' ? 'You' : P[id].name;
+    const first = (id) => id === 'you' ? 'You' : P[id].name.split(' ')[0];
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+    const SCENARIOS = {
+      none: 'No group', organizer: 'Organizer', member: 'Member', booked: 'Booked', cancelled: 'Cancelled',
+    };
+    const groupFor = (scenario) => ({
+      none: null,
+      organizer: { name: 'Afternoon study', organizer: 'you', status: 'open', members: { you: 'joined', mia: 'joined', theo: 'joined', lena: 'invited', jonas: 'declined' } },
+      member: { name: 'Thesis grind', organizer: 'luca', status: 'open', members: { luca: 'joined', you: 'joined', mia: 'joined', theo: 'invited' } },
+      booked: { name: 'Afternoon study', organizer: 'you', status: 'booked', room: 'HG E 41', members: { you: 'joined', mia: 'joined', theo: 'joined', jonas: 'declined' },
+        seats: { you: { seat: 14, state: 'reserved' }, mia: { seat: 16, state: 'occupied' }, theo: { seat: 12, state: 'reserved' } } },
+      cancelled: null,
+    })[scenario];
+
+    const fresh = (scenario) => ({
+      scenario,
+      group: groupFor(scenario),
+      /* Your last cancelled group, offered again on the create screen. */
+      last: scenario === 'cancelled' ? { name: 'Afternoon study', people: ['mia', 'theo', 'lena'] } : null,
+      share: false,
+      friends: ['luca', 'mia', 'sofia', 'theo', 'lena', 'jonas'],
+      incoming: ['nora'],
+      outgoing: ['felix'],
+      invite: { id: 'exam', name: 'Exam prep', from: 'jonas', going: ['jonas', 'luca', 'sofia'] },
+      query: '', manage: false, inviting: false,
+      draft: { name: '', pick: [] },
+    });
+    const params = new URLSearchParams(location.search);
+    let S = fresh(params.get('scenario') in SCENARIOS ? params.get('scenario') : 'organizer');
+
+    /* --------------------------------------------------------- small parts */
+    const icon = (n, cls = '') => `<i class="icon ${cls} i-${n}" aria-hidden="true"></i>`;
+    const avatar = (id, extra = '') => `<span class="avatar ${id === 'you' ? 'is-you' : ''} ${extra}" aria-hidden="true">${initials(id)}</span>`;
+    const avatars = (ids, max = 4, lg = false) => `<span class="avatars ${lg ? 'avatars--lg' : ''}" aria-hidden="true">${ids.slice(0, max).map((id) => avatar(id)).join('')}${ids.length > max ? `<span class="avatar">+${ids.length - max}</span>` : ''}</span>`;
+    const row = (id, meta, action = '', here = false) => `
+      <div class="list__row">
+        ${avatar(id)}
+        <div class="list__text">
+          <span class="list__name">${esc(nameOf(id))}</span>
+          ${meta ? `<span class="list__meta ${here ? 'list__meta--here' : ''}">${meta}</span>` : ''}
+        </div>
+        ${action}
+      </div>`;
+    const where = (id) => P[id].room
+      ? `${icon('pin')}<span>${esc(P[id].room)}</span>`
+      : '';
+    const g = () => S.group;
+    const isOrganizer = () => g()?.organizer === 'you';
+    const going = () => Object.keys(g()?.members ?? {}).filter((id) => g().members[id] === 'joined');
+    const waiting = () => Object.keys(g()?.members ?? {}).filter((id) => g().members[id] === 'invited');
+    const declined = () => Object.keys(g()?.members ?? {}).filter((id) => g().members[id] === 'declined');
+    const activeGroup = () => g() && g().status !== 'cancelled';
+    const inviteOpen = () => !!S.invite && !(g()?.name === S.invite.name);
+    const requestCount = () => S.incoming.length + (inviteOpen() ? 1 : 0);
+
+    const summary = () => {
+      const st = g();
+      if (st.status === 'booked') {
+        const inCount = Object.values(st.seats).filter((s) => s.state === 'occupied').length;
+        return `${st.room} · ${inCount} of ${Object.keys(st.seats).length} checked in`;
+      }
+      return `${going().length} going${waiting().length ? ` · ${waiting().length} invited` : ''}`;
+    };
+
+    /* The create button says what's missing until the group has a name. */
+    const createLabel = () => !S.draft.name.trim() ? 'Name your group'
+      : S.draft.pick.length ? `Create and invite ${S.draft.pick.length}` : 'Create study group';
+
+    /* -------------------------------------------------------- the screens */
+    const primaryForGroup = () => {
+      const st = g();
+      if (!st) return `<a class="btn btn--primary btn--block" href="#group">${icon('plus')}Start a study group</a>`;
+      if (st.status === 'booked') return `<a class="btn btn--primary btn--block" href="04-qr-scan.html">${icon('qr')}Check in at seat ${st.seats.you.seat}</a>`;
+      if (isOrganizer() && going().length < 2) return `<button class="btn btn--primary btn--block" disabled>Waiting for friends to join</button>`;
+      if (isOrganizer()) return `<a class="btn btn--primary btn--block" href="09-book-together.html">${icon('seat')}Choose seats for ${going().length}</a>`;
+      return `<a class="btn btn--primary btn--block" href="#group">Open ${esc(st.name)}</a>`;
+    };
+
+    function friendsScreen() {
+      const q = S.query.trim().toLowerCase();
+      let html = '';
+      html += `
+        <label class="search">${icon('search')}
+          <span class="sr-only">Search friends or add people</span>
+          <input type="search" id="q" placeholder="Search friends or add people" value="${esc(S.query)}" autocomplete="off">
+        </label>`;
+
+      if (q.length >= 2) {
+        const mine = S.friends.filter((id) => P[id].name.toLowerCase().includes(q));
+        const others = ['sam', 'samira', 'samuel', 'nora', 'felix', 'luca', 'mia', 'theo', 'lena', 'jonas', 'sofia']
+          .filter((id) => !S.friends.includes(id) && P[id].name.toLowerCase().includes(q));
+        if (mine.length) html += `<h2 class="t-label">Friends</h2><div class="card list">${mine.map((id) => row(id, where(id), '', true)).join('')}</div>`;
+        html += `<h2 class="t-label">Add people</h2>`;
+        html += others.length ? `<div class="card list">${others.map((id) => {
+          if (S.incoming.includes(id)) return row(id, '', `<button class="btn btn--secondary btn--row" data-act="accept" data-id="${id}">Accept</button>`);
+          if (S.outgoing.includes(id)) return row(id, '', `<button class="btn btn--quiet btn--row" data-act="cancel-req" data-id="${id}" aria-label="Cancel request to ${esc(P[id].name)}">Requested</button>`);
+          return row(id, '', `<button class="btn btn--secondary btn--row" data-act="add" data-id="${id}" aria-label="Send friend request to ${esc(P[id].name)}">${icon('plus')}Add</button>`);
+        }).join('')}</div>` : `<p class="t-muted">No one found.</p>`;
+        return html;
+      }
+
+      /* Study group */
+      const st = g();
+      if (activeGroup()) {
+        html += `
+          <a class="card card--stripe" href="#group" aria-label="Open ${esc(st.name)}">
+            <div class="row row--spread">
+              <span class="list__text"><span class="t-title">${esc(st.name)}</span><span class="t-small t-muted">${summary()}</span></span>
+              ${icon('chevron-right')}
+            </div>
+            ${avatars(going(), 6, true)}
+          </a>`;
+      }
+
+      /* Friends */
+      const here = S.friends.filter((id) => P[id].room);
+      const away = S.friends.filter((id) => !P[id].room);
+      const remove = (id) => S.manage ? `<button class="btn btn--quiet btn--row btn--danger-quiet" data-act="remove" data-id="${id}" aria-label="Remove ${esc(P[id].name)}">Remove</button>` : '';
+      html += `<div class="sec"><h2 class="t-label">Studying now</h2>
+        <button class="btn btn--quiet btn--row" data-act="manage" aria-pressed="${S.manage}">${S.manage ? 'Done' : 'Edit'}</button></div>`;
+      html += `<div class="card list">
+        <div class="list__row">
+          ${avatar('you')}
+          <label class="list__text" for="share">
+            <span class="list__name">You</span>
+            <span class="list__meta">${S.share ? 'Sharing your room' : 'Room hidden'}</span>
+          </label>
+          <input class="toggle" type="checkbox" role="switch" id="share" ${S.share ? 'checked' : ''} aria-label="Share my room with friends">
+        </div>
+        ${here.map((id) => row(id, where(id), remove(id), true)).join('')}
+      </div>`;
+      if (away.length) html += `<h2 class="t-label">Others</h2><div class="card list">${away.map((id) => row(id, '', remove(id))).join('')}</div>`;
+      return html;
+    }
+
+    function requestsScreen() {
+      let html = '';
+      if (!requestCount() && !S.outgoing.length) {
+        return html + `<div class="empty">${icon('check')}<p class="t-title">All caught up</p></div>`;
+      }
+      if (inviteOpen()) {
+        const inv = S.invite;
+        const conflict = activeGroup() ? g() : null;
+        html += `
+          <article class="card card--stripe" aria-label="Study group invitation from ${esc(P[inv.from].name)}">
+            <div class="list__text">
+              <span class="t-small t-muted">${esc(P[inv.from].name)} invited you</span>
+              <span class="t-title">${esc(inv.name)}</span>
+            </div>
+            ${avatars(inv.going, 6, true)}
+            ${conflict ? `<div class="notice notice--danger" role="note">${icon('alert')}<div class="notice__text"><span class="t-small">You’re already in <a href="#group">${esc(conflict.name)}</a></span></div></div>` : ''}
+            <div class="split">
+              <button class="btn btn--quiet" data-act="decline-inv">Decline</button>
+              <button class="btn btn--secondary" data-act="join" ${conflict ? 'disabled' : ''}>Join</button>
+            </div>
+          </article>`;
+      }
+      if (S.incoming.length) html += `<div class="card list">${S.incoming.map((id) => row(id, 'Friend request', `
+        <button class="btn btn--quiet btn--row" data-act="decline" data-id="${id}" aria-label="Decline ${esc(P[id].name)}">Decline</button>
+        <button class="btn btn--secondary btn--row" data-act="accept" data-id="${id}" aria-label="Accept ${esc(P[id].name)}">Accept</button>`)).join('')}</div>`;
+      if (S.outgoing.length) html += `<h2 class="t-label">Sent</h2>
+        <div class="card list">${S.outgoing.map((id) => row(id, '', `<button class="btn btn--quiet btn--row" data-act="cancel-req" data-id="${id}" aria-label="Cancel request to ${esc(P[id].name)}">Cancel</button>`)).join('')}</div>`;
+      return html;
+    }
+
+    function groupScreen() {
+      let html = '';
+      const st = g();
+      if (!st) {
+        const pick = S.draft.pick;
+        const last = S.last;
+        const reused = last && S.draft.name === last.name && pick.length === last.people.length && last.people.every((id) => pick.includes(id));
+        if (last) html += `
+          <h2 class="t-label">Last group</h2>
+          <article class="card" aria-label="${esc(last.name)}, cancelled">
+            <div class="row row--spread">
+              <span class="list__text"><span class="t-title">${esc(last.name)}</span><span class="t-small t-muted">Cancelled</span></span>
+              <button class="btn btn--secondary btn--row" data-act="reuse" aria-pressed="${reused}">${reused ? `${icon('check')}Filled in` : 'Use again'}</button>
+            </div>
+            ${avatars(last.people, 6, true)}
+          </article>
+          <h2 class="t-label">New group</h2>`;
+        html += `
+          <form class="field" id="create" onsubmit="return false">
+            <span class="row row--spread"><label class="field__label" for="gname">Group name</label><span class="t-small t-muted" id="gname-req">Required</span></span>
+            <input class="input" id="gname" maxlength="80" placeholder="e.g. Exam prep" value="${esc(S.draft.name)}" required aria-required="true" aria-describedby="gname-req">
+          </form>
+          <h2 class="t-label">Invite${pick.length ? ` · ${pick.length}` : ''}</h2>
+          <div class="card list">${S.friends.map((id) => `
+            <label class="list__row">
+              ${avatar(id)}
+              <span class="list__text"><span class="list__name">${esc(P[id].name)}</span></span>
+              <span class="check"><input type="checkbox" data-pick="${id}" ${pick.includes(id) ? 'checked' : ''} aria-label="Invite ${esc(P[id].name)}"></span>
+            </label>`).join('')}
+          </div>`;
+        return html;
+      }
+      const org = isOrganizer();
+      html += `
+        <section class="card card--stripe" aria-label="Study group">
+          <div class="list__text">
+            <h2 class="t-heading" style="overflow-wrap:anywhere">${esc(st.name)}</h2>
+            <span class="t-small t-muted">${st.status === 'cancelled' ? 'Cancelled' : summary()}</span>
+          </div>
+        </section>`;
+
+      if (st.status === 'booked') {
+        const mine = st.seats.you;
+        html += `
+          <section class="timer-card card" aria-label="Your seat">
+            <div class="row row--spread"><p class="t-title">Seat ${mine.seat}</p><span class="chip is-reserved">Reserved</span></div>
+            <p class="t-label">Check in within</p>
+            <p class="t-timer" data-tick="754">12:34</p>
+            <div class="progress" role="progressbar" aria-label="Check-in time left" aria-valuemin="0" aria-valuemax="900" aria-valuenow="754"><div class="progress__bar" style="--value: 84%"></div></div>
+          </section>
+          <div class="card list">${Object.entries(st.seats).map(([id, s]) => row(id,
+            s.state === 'occupied' ? `${icon('check')}<span>Checked in</span>` : '',
+            `<span class="chip is-${id === 'you' ? 'yours' : s.state}">Seat ${s.seat}</span>`)).join('')}</div>`;
+      }
+      if (st.status === 'open') {
+        html += `<h2 class="t-label">Going</h2>
+          <div class="card list">${going().map((id) => row(id, id === st.organizer ? 'Organizer' : '')).join('')}</div>`;
+        if (waiting().length) html += `<h2 class="t-label">Invited</h2>
+          <div class="card list">${waiting().map((id) => row(id, '')).join('')}</div>`;
+        if (org) {
+          const free = S.friends.filter((id) => !st.members[id]);
+          if (free.length) html += `<div class="sec"><h2 class="t-label">Invite more</h2>
+            <button class="btn btn--quiet btn--row" data-act="inviting" aria-expanded="${S.inviting}">${S.inviting ? 'Hide' : 'Show'}</button></div>`;
+          if (S.inviting && free.length) html += `<div class="card list">${free.map((id) => row(id, '',
+            `<button class="btn btn--secondary btn--row" data-act="invite" data-id="${id}" aria-label="Invite ${esc(P[id].name)}">Invite</button>`)).join('')}</div>`;
+        }
+      }
+      if (st.status === 'open' && org) html += `<button class="btn btn--quiet btn--danger-quiet" data-act="cancel-group">Cancel study group</button>`;
+      if (st.status === 'booked' && org) html += `<button class="btn btn--quiet btn--danger-quiet" data-act="cancel-group">Cancel booking</button>`;
+      return html;
+    }
+
+    /* ----------------------------------------------------------- render */
+    const view = () => (['friends', 'requests', 'group'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'friends');
+    const $ = (id) => document.getElementById(id);
+    let lastView = null;
+    function render(keepFocus) {
+      const v = view();
+      const st = g();
+      $('title').textContent = v === 'requests' ? 'Requests' : v === 'group' ? (st ? 'Study group' : 'New study group') : 'Friends';
+      $('back').hidden = v === 'friends';
+      if (v === 'requests') $('inbox').setAttribute('aria-current', 'page'); else $('inbox').removeAttribute('aria-current');
+      const n = requestCount();
+      const badge = n ? `<span class="badge">${n}</span>` : '';
+      $('inbox').innerHTML = icon('bell') + badge;
+      $('inbox').setAttribute('aria-label', n ? `Requests, ${n} waiting` : 'Requests');
+      $('main').innerHTML = v === 'requests' ? requestsScreen() : v === 'group' ? groupScreen() : friendsScreen();
+
+      let actions = '';
+      if (v === 'friends') actions = primaryForGroup();
+      if (v === 'group') {
+        if (!st) {
+          const k = S.draft.pick.length;
+          actions = `<button class="btn btn--primary btn--block" data-act="create" ${S.draft.name.trim() ? '' : 'disabled'}>${createLabel()}</button>`;
+        } else if (st.status === 'booked') actions = primaryForGroup();
+        else if (isOrganizer()) actions = primaryForGroup();
+        else actions = `<button class="btn btn--secondary btn--block btn--danger-quiet" style="border-color:var(--danger)" data-act="leave">Leave study group</button>`;
+      }
+      $('actions').innerHTML = actions;
+      $('actions').hidden = !actions;
+
+      if (keepFocus) {
+        const el = $(keepFocus);
+        if (el) { el.focus(); const len = el.value.length; el.setSelectionRange?.(len, len); }
+      }
+      if (v !== lastView) { $('main').scrollTop = 0; lastView = v; }
+      showPending();
+      document.querySelectorAll('#tool-scenario button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scenario === S.scenario)));
+    }
+
+    /* ------------------------------------------------------- feedback */
+    let pendingBanner = '';
+    function banner(text) {
+      pendingBanner = text;
+      showPending();
+    }
+    function showPending() {
+      if (!pendingBanner) return;
+      const region = $('banners');
+      if (!region) return;
+      region.innerHTML = `<div class="banner" role="status">${icon('check')}<div class="banner__text"><span class="banner__title">${esc(pendingBanner)}</span></div><button class="icon-button" type="button" data-banner-close aria-label="Dismiss">${icon('close')}</button></div>`;
+      pendingBanner = '';
+      const el = region.firstElementChild;
+      setTimeout(() => { if (el.isConnected) el.hidden = true; }, 6000);
+    }
+    let onConfirm = null;
+    function sheet({ title, text, safe, act, danger, then }) {
+      $('sheet-title').textContent = title;
+      $('sheet-text').textContent = text;
+      $('sheet-text').hidden = !text;
+      $('sheet-safe').textContent = safe;
+      $('sheet-act').textContent = act;
+      $('sheet-act').className = `btn ${danger ? 'btn--danger' : 'btn--primary'}`;
+      onConfirm = then;
+      $('sheet').returnValue = '';
+      $('sheet').showModal();
+    }
+    $('sheet').querySelector('form').addEventListener('submit', (e) => {
+      const then = onConfirm;
+      onConfirm = null;
+      if (e.submitter?.value === 'ok' && then) setTimeout(then);
+    });
+    const update = (fn, message, focus) => { fn(); render(focus); if (message) banner(message); };
+
+    /* -------------------------------------------------------- actions */
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-act], [data-tool], [data-scenario]');
+      if (!t) return;
+      const id = t.dataset.id;
+      if (t.dataset.scenario) { const keep = S; S = fresh(t.dataset.scenario); S.share = keep.share; render(); return; }
+      if (t.dataset.tool === 'reset') { S = fresh(S.scenario); render(); return; }
+      if (t.dataset.tool === 'clear') { S.incoming = []; S.outgoing = []; S.invite = null; render(); return; }
+      switch (t.dataset.act) {
+        case 'manage': update(() => (S.manage = !S.manage)); break;
+        case 'add': update(() => S.outgoing.push(id), `Friend request sent to ${P[id].name}`, 'q'); break;
+        case 'accept': update(() => { S.incoming = S.incoming.filter((x) => x !== id); S.friends.push(id); }, `You’re now friends with ${P[id].name}`); break;
+        case 'decline': update(() => (S.incoming = S.incoming.filter((x) => x !== id)), 'Request declined'); break;
+        case 'cancel-req': update(() => (S.outgoing = S.outgoing.filter((x) => x !== id)), 'Request cancelled'); break;
+        case 'remove': sheet({ title: `Remove ${P[id].name}?`, text: 'You’ll stop seeing each other’s rooms.', safe: 'Keep friend', act: 'Remove friend', danger: true,
+          then: () => update(() => (S.friends = S.friends.filter((x) => x !== id)), 'Friend removed') }); break;
+        case 'decline-inv': sheet({ title: `Decline ${S.invite.name}?`, text: '', safe: 'Not now', act: 'Decline', danger: true,
+          then: () => update(() => (S.invite = null), 'Invitation declined') }); break;
+        case 'join': sheet({ title: `Join ${S.invite.name}?`, text: `${first(S.invite.from)} picks your seat. You check in yourself.`, safe: 'Not now', act: 'Join group',
+          then: () => { const inv = S.invite; S.group = { name: inv.name, organizer: inv.from, status: 'open', members: Object.fromEntries([...inv.going.map((x) => [x, 'joined']), ['you', 'joined']]) }; S.scenario = 'member'; pendingBanner = `You joined ${inv.name}`; location.hash = 'group'; } }); break;
+        case 'leave': sheet({ title: `Leave ${g().name}?`, text: '', safe: 'Stay', act: 'Leave group', danger: true,
+          then: () => { S.group = null; S.scenario = 'none'; pendingBanner = 'You left the study group'; location.hash = 'friends'; } }); break;
+        case 'cancel-group': sheet({ title: g().status === 'booked' ? 'Cancel the group booking?' : `Cancel ${g().name}?`, text: g().status === 'booked' ? 'Seats nobody checked in to are released.' : '', safe: 'Keep group', act: 'Cancel group', danger: true,
+          then: () => { const st = g(); S.last = { name: st.name, people: Object.keys(st.members).filter((x) => x !== 'you' && st.members[x] !== 'declined') }; S.group = null; S.scenario = 'cancelled'; pendingBanner = 'Study group cancelled'; location.hash = 'friends'; } }); break;
+        case 'reuse': update(() => (S.draft = { name: S.last.name, pick: S.last.people.filter((x) => S.friends.includes(x)) })); break;
+        case 'inviting': update(() => (S.inviting = !S.inviting)); break;
+        case 'invite': update(() => (g().members[id] = 'invited'), `Invited ${P[id].name}`); break;
+        case 'create': {
+          const name = S.draft.name.trim();
+          if (!name) return;
+          S.group = { name, organizer: 'you', status: 'open', members: Object.fromEntries([['you', 'joined'], ...S.draft.pick.map((x) => [x, 'invited'])]) };
+          const invited = S.draft.pick.length;
+          S.scenario = 'organizer'; S.draft = { name: '', pick: [] }; S.last = null;
+          render(); banner(invited ? `${name} created · ${invited} invited` : `${name} created`);
+          break;
+        }
+      }
+    });
+    document.addEventListener('input', (e) => {
+      if (e.target.id === 'q') { S.query = e.target.value; render('q'); }
+      if (e.target.id === 'gname' && S.last) { S.draft.name = e.target.value; render('gname'); return; }
+      if (e.target.id === 'gname') { S.draft.name = e.target.value; const b = document.querySelector('[data-act="create"]'); if (b) { b.disabled = !S.draft.name.trim(); b.textContent = createLabel(); } }
+    });
+    document.addEventListener('change', (e) => {
+      if (e.target.id === 'share') update(() => (S.share = e.target.checked));
+      if (e.target.dataset.pick) {
+        const id = e.target.dataset.pick;
+        S.draft.pick = e.target.checked ? [...S.draft.pick, id] : S.draft.pick.filter((x) => x !== id);
+        render();
+      }
+    });
+    window.addEventListener('hashchange', () => { S.query = ''; S.manage = false; render(); });
+
+    /* Countdown for the booked state. */
+    setInterval(() => {
+      document.querySelectorAll('[data-tick]').forEach((el) => {
+        const s = Math.max(0, Number(el.dataset.tick) - 1); el.dataset.tick = s;
+        el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      });
+    }, 1000);
+
+    $('tool-scenario').innerHTML = Object.entries(SCENARIOS).map(([k, l]) => `<button type="button" data-scenario="${k}">${l}</button>`).join('');
+    render();
+  })();
+  </script>
+</body>
+</html>
