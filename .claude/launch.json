@@ -2,10 +2,84 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "frontend",
+        "--",
+        "--port",
+        "5176"
+      ],
+      "port": 5176
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "backend/.venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "backend",
+        "--port",
+        "8000",
+        "--reload",
+        "--reload-dir",
+        "backend/app"
+      ],
+      "port": 8000,
+      "url": "http://127.0.0.1:8000"
+    },
+    {
       "name": "occupancy-map-preview",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "occupancy-map-preview", "--", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "occupancy-map-preview",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173
+    },
+    {
+      "name": "occupancy-map-preview-5174",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "occupancy-map-preview"
+      ],
+      "port": 5180,
+      "autoPort": true
+    },
+    {
+      "name": "eth-room-dashboard",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "eth_room_dashboard.py",
+        "--no-browser"
+      ],
+      "port": 8765
+    },
+    {
+      "name": "polymaps-ar",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "C:/Users/diffr/code/wurst team repo 2/polymaps-ar"
+      ],
+      "port": 5443,
+      "url": "https://localhost:5443"
     }
   ]
 }

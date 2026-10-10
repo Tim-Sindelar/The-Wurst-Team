@@ -1,0 +1,8 @@
+{
+  "_comment": "Search circles (center lng/lat, radius m) for the sharedmobility.ch identify API.",
+  "areas": [
+    {"id": "zentrum", "name": "Zentrum", "lat": 47.3770, "lng": 8.5480, "radius": 600},
+    {"id": "hoenggerberg", "name": "Hönggerberg", "lat": 47.4085, "lng": 8.5085, "radius": 600},
+    {"id": "oerlikon", "name": "Oerlikon", "lat": 47.4130, "lng": 8.5400, "radius": 400}
+  ]
+}

@@ -5,9 +5,11 @@
 **/__pycache__
 **/.pytest_cache
 **/.ruff_cache
-**/.env
-**/.env.*
+**/.env*
 !**/.env.example
-design
+**/*.pyc
+**/.cache
+scraper/polymaps_data
 occupancy-map-preview
+design
 user-flwo.drawio.html

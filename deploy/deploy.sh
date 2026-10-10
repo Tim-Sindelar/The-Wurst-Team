@@ -110,6 +110,7 @@ compose exec -T db pg_dump -U hackathon -d hackathon --format=custom > "$backup.
 compose exec -T db pg_restore --list < "$backup.partial" > /dev/null
 mv "$backup.partial" "$backup"
 compose run --rm --no-deps backend alembic upgrade head
+compose run --rm --no-deps backend python -m app.features.campus_map.importer --if-empty
 
 apps_changed=true
 compose up -d --wait --wait-timeout 120 backend

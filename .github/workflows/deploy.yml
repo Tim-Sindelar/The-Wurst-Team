@@ -97,7 +97,7 @@ jobs:
       - name: Build and test deployment images
         run: |
           set -euo pipefail
-          docker build --platform linux/amd64 --build-arg INSTALL_DEV=false -t "wurst-backend:$GITHUB_SHA" backend
+          docker build --platform linux/amd64 --build-arg INSTALL_DEV=false -f backend/Dockerfile -t "wurst-backend:$GITHUB_SHA" .
           docker build --platform linux/amd64 --build-arg "APP_BASE_PATH=$APP_BASE_PATH" -f frontend/Dockerfile -t "wurst-web:$GITHUB_SHA" .
           docker run --rm --entrypoint caddy "wurst-web:$GITHUB_SHA" validate --config /etc/caddy/Caddyfile
           bash deploy/tests/integration.sh "$GITHUB_SHA" "$APP_BASE_PATH"

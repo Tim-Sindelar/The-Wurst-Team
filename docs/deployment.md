@@ -77,7 +77,7 @@ The script automatically creates `/home/viscon/wurst/` and a random database pas
 
 The workflow validates the frontend/backend, builds digest-pinned production images, tests deployment locally on the runner, and uploads checksummed image archives plus scripts. No registry credentials or source checkout are needed on the VM. Production backend builds omit development dependencies; local backend builds retain them.
 
-The server script serializes deployments with flock, loads the images, validates Caddy, starts PostgreSQL, saves and validates a logical backup, then runs Alembic as a one-off container. It starts the backend and tests the candidate Caddy on loopback port 18080 before switching the environment’s web server behind the gateway. It verifies readiness, SPA routes, authentication behavior, and identity header forwarding before updating the successful-release pointer. Expect a brief interruption while the backend is replaced.
+The server script serializes deployments with flock, loads the images, validates Caddy, starts PostgreSQL, saves and validates a logical backup, then runs Alembic as a one-off container and imports campus-map data if the database has none. It starts the backend and tests the candidate Caddy on loopback port 18080 before switching the environment’s web server behind the gateway. It verifies readiness, SPA routes, authentication behavior, and identity header forwarding before updating the successful-release pointer. Expect a brief interruption while the backend is replaced.
 
 At the public URL, log in and check Profile shows your actual identity. Save a name/photo and reload; check another account receives a separate profile. A response from the portal's login page is not an authenticated application check. Confirm external access to the direct hostname on 8080 remains blocked, including with forged identity headers. Study-space/booking screens currently still use mocked frontend data.
 
@@ -168,7 +168,7 @@ The integration test exercises real image loading, initial migration, updates, p
 
 ```sh
 sha=$(git rev-parse HEAD)
-docker build --platform linux/amd64 --build-arg INSTALL_DEV=false -t "wurst-backend:$sha" backend
+docker build --platform linux/amd64 --build-arg INSTALL_DEV=false -f backend/Dockerfile -t "wurst-backend:$sha" .
 docker build --platform linux/amd64 -f frontend/Dockerfile -t "wurst-web:$sha" .
 bash deploy/tests/integration.sh "$sha"
 ```

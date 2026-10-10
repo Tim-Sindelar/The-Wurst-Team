@@ -1,0 +1,7 @@
+{
+  "places": [
+    {"id": "zentrum", "name": "Zentrum", "lat": 47.3763, "lng": 8.5478},
+    {"id": "hoenggerberg", "name": "Hönggerberg", "lat": 47.4083, "lng": 8.5078},
+    {"id": "irchel", "name": "Irchel", "lat": 47.3970, "lng": 8.5485}
+  ]
+}

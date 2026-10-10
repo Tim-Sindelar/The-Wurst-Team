@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import (
     Break,
+    MapDocument,
+    MapEntity,
+    MapOverride,
     Reservation,
     Seat,
     SpaceClosure,
@@ -64,6 +67,9 @@ def db(test_engine: Engine) -> Iterator[Engine]:
             SpaceOpeningInterval,
             Seat,
             StudySpace,
+            MapEntity,
+            MapOverride,
+            MapDocument,
             UserProfile,
         ):
             session.execute(delete(model))
