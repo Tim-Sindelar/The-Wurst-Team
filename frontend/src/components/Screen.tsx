@@ -44,22 +44,22 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   return (
     <header className="border-b border-border bg-surface pt-[env(safe-area-inset-top)]">
-      <div className="flex min-h-16 items-center gap-2 pr-2 pl-4">
+      <div
+        className={cx(
+          'flex items-center gap-2 pr-2 pl-4',
+          subtitle ? 'min-h-14 py-1' : 'min-h-16',
+        )}
+      >
         <ActionIcon component={Link} to={backTo} aria-label={backLabel}>
           <Icon name="back" />
         </ActionIcon>
-        <Title
-          order={1}
-          className={cx(
-            'min-w-0 flex-1 text-title font-bold',
-            subtitle ? 'line-clamp-2 [overflow-wrap:anywhere]' : 'truncate',
-          )}
-        >
-          {title}
-        </Title>
+        <div className="min-w-0 flex-1">
+          <Title order={1} className="truncate text-title font-bold">
+            {title}
+          </Title>
+          {subtitle}
+        </div>
       </div>
-      {/* Lines up under the title: gutter + 44px back button + gap. */}
-      {subtitle && <div className="-mt-4 pr-4 pb-3 pl-17">{subtitle}</div>}
     </header>
   );
 }
