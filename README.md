@@ -167,6 +167,16 @@ Overview names are deterministic placeholders (`Demo user <full UUID>`). The cur
 
 ## Campus map
 
+The layers button at the top right of the map opens **Map view**, a slider with three positions and a switch for the 3D floor stack (on by default; its faint visible edges are always drawn):
+
+| Position | Shows |
+| --- | --- |
+| Study spaces (left) | Only the study spaces that can be booked in the app (the home screen's, from `GET /api/v1/spaces`); only their rooms are highlighted and clickable |
+| Workspaces (middle) | Every workspace, and live rooms (lecture rooms colored by today's ETH bookings) |
+| Campus (right) | Every workspace, live rooms, ASVZ sport and the mensas |
+
+The map always uses the clean base map. The other map features (other campus datasets such as transport, weather and shared mobility; picking another date and time; detailed floor plans; the streets and satellite base maps; the free rooms and UZH library lists) are always off in the app and have no switch. `occupancy-map-preview/` still has all of them.
+
 The map's backend is the feature `backend/app/features/campus_map/`:
 
 | Route | What |

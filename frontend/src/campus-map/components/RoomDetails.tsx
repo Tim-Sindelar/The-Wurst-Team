@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   BOOKING_KIND_LABELS,
   duration,
@@ -17,6 +16,7 @@ import {
 } from '../data/ethRoomsRepository';
 import type { OccupancyStyle } from '../map/minimalStyle';
 import type { RoomInfo } from '../roomFeatures';
+import { RoomPhotos } from './RoomPhotos';
 
 const DAY_START = 7 * 60;
 const DAY_END = 22 * 60;
@@ -44,12 +44,10 @@ export function RoomDetails({
     data: RoomSheet | null;
     error: string | null;
   } | null>(null);
-  const [photo, setPhoto] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setSheet(null);
-    setPhoto(null);
     fetchRoomSheet(room.id).then(
       (data) => !cancelled && setSheet({ id: room.id, data, error: null }),
       (err) =>
@@ -65,11 +63,10 @@ export function RoomDetails({
     };
   }, [room.id]);
 
-  const images: RoomSheetFile[] = [];
   const docs: RoomSheetFile[] = [];
   for (const tab of sheet?.data?.tabs ?? []) {
     for (const [kind, files] of Object.entries(tab.attachments ?? {}))
-      for (const f of files ?? []) (kind === 'images' ? images : docs).push(f);
+      if (kind !== 'images') for (const f of files ?? []) docs.push(f);
   }
 
   const seats =
@@ -128,26 +125,7 @@ export function RoomDetails({
         </div>
       </div>
 
-      {images.length > 0 && (
-        <div className="room-photos">
-          {images.map((img, i) => (
-            <button
-              key={img.id}
-              className="room-photo"
-              onClick={() => setPhoto(i)}
-              title={img.altText || 'Show larger'}
-            >
-              <img
-                src={ethFileUrl(img.id)}
-                alt={
-                  img.altText || img.filename || `Photo ${i + 1} of ${room.id}`
-                }
-                loading="lazy"
-              />
-            </button>
-          ))}
-        </div>
-      )}
+      <RoomPhotos roomIds={[room.id]} title={room.id} />
       {sheet === null && <p className="note">Loading room sheet…</p>}
       {sheet?.error && (
         <p className="note error-text">Room sheet unavailable: {sheet.error}</p>
@@ -255,16 +233,6 @@ export function RoomDetails({
           ETH room page ↗
         </a>
       </div>
-
-      {photo !== null && images[photo] && (
-        <Lightbox
-          images={images}
-          index={photo}
-          title={room.id}
-          onIndex={setPhoto}
-          onClose={() => setPhoto(null)}
-        />
-      )}
     </section>
   );
 }
@@ -317,88 +285,5 @@ function DayBar({
         ))}
       </div>
     </div>
-  );
-}
-
-function Lightbox({
-  images,
-  index,
-  title,
-  onIndex,
-  onClose,
-}: {
-  images: RoomSheetFile[];
-  index: number;
-  title: string;
-  onIndex: (i: number) => void;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight') onIndex((index + 1) % images.length);
-      if (e.key === 'ArrowLeft')
-        onIndex((index - 1 + images.length) % images.length);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [index, images.length, onIndex, onClose]);
-  const img = images[index];
-  // On <body>: the side panel's stacking context would keep it below the map.
-  return createPortal(
-    <div
-      className="lightbox"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Photos of ${title}`}
-      onClick={onClose}
-    >
-      <figure onClick={(e) => e.stopPropagation()}>
-        <img
-          src={ethFileUrl(img.id)}
-          alt={img.altText || img.filename || title}
-        />
-        <figcaption>
-          <span>
-            {title} · {index + 1} / {images.length}
-            {img.altText && ` · ${img.altText}`}
-          </span>
-          <span className="row">
-            {images.length > 1 && (
-              <>
-                <button
-                  className="btn-ghost"
-                  onClick={() =>
-                    onIndex((index - 1 + images.length) % images.length)
-                  }
-                  aria-label="Previous photo"
-                >
-                  ‹
-                </button>
-                <button
-                  className="btn-ghost"
-                  onClick={() => onIndex((index + 1) % images.length)}
-                  aria-label="Next photo"
-                >
-                  ›
-                </button>
-              </>
-            )}
-            <a
-              className="btn-ghost"
-              href={ethFileUrl(img.id)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Full size ↗
-            </a>
-            <button className="btn-ghost" onClick={onClose}>
-              Close
-            </button>
-          </span>
-        </figcaption>
-      </figure>
-    </div>,
-    document.body,
   );
 }

@@ -93,6 +93,19 @@ export function zoneAt(
   return hits.find((z) => z.kind === 'building') ?? hits[0] ?? null;
 }
 
+/** Where a click on each campus area flies to, Zentrum first (the start view). */
+export const campusViews = (
+  config: NavigationConfig,
+): { center: LatLng; zoom: number }[] =>
+  config.zones
+    .filter((z) => z.kind === 'area' && z.outline)
+    .sort(
+      (a, b) =>
+        Number(b.name === 'Zentrum') - Number(a.name === 'Zentrum') ||
+        a.name.localeCompare(b.name),
+    )
+    .map((z) => ({ center: outlineCenter(z.outline!), zoom: z.zoom }));
+
 export function outlineCenter(outline: MultiPolygon): LatLng {
   let [minLat, minLng, maxLat, maxLng] = [
     Infinity,
