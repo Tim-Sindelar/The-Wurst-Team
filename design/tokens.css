@@ -12,6 +12,7 @@
   /* --- Colour: surfaces & text (dark) -------------------------------- */
   --bg: #121212;
   --surface: #212121;
+  --toolbar: var(--surface);
   --surface-2: #3c3c3c; /* selected rows, inactive controls */
   --border: #333333;
   --border-strong: #808080; /* input and control outlines, 4.7:1 */
@@ -102,6 +103,7 @@
   --bg: #f5f5f5;
   --surface: #ffffff;
   --surface-2: #ebebeb;
+  --toolbar: var(--surface-2);
   --border: #dcdcdc;
   --border-strong: #808080; /* 3.6:1 */
   --canvas: #e8e8e8;

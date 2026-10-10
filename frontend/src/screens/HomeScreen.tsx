@@ -13,7 +13,8 @@ import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
-import { Screen, ScreenMain } from '../components/Screen';
+import { AppLogo } from '../components/AppLogo';
+import { Screen, ScreenMain, ScreenToolbar } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
@@ -44,25 +45,23 @@ export function HomeScreen() {
 
   return (
     <Screen>
+      <ScreenToolbar>
+        <Title order={1} className="min-w-0 flex-1">
+          <AppLogo />
+        </Title>
+        <ThemeToggle />
+        <ActionIcon
+          component={Link}
+          to={paths.profile}
+          aria-label={isError ? 'Profile unavailable' : 'Profile'}
+          aria-busy={isPending}
+        >
+          <Avatar src={user?.photo_url} aria-hidden="true">
+            {initials}
+          </Avatar>
+        </ActionIcon>
+      </ScreenToolbar>
       <ScreenMain>
-        <div className="flex items-center justify-between gap-2">
-          <Title order={1}>Study Spaces</Title>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <ActionIcon
-              component={Link}
-              to={paths.profile}
-              aria-label={isError ? 'Profile unavailable' : 'Profile'}
-              aria-busy={isPending}
-              className="-mr-0.5"
-            >
-              <Avatar src={user?.photo_url} aria-hidden="true">
-                {initials}
-              </Avatar>
-            </ActionIcon>
-          </div>
-        </div>
-
         <div className="sticky top-0 z-2 -mx-4 -mt-4 -mb-2 bg-bg px-4 pt-4 pb-2">
           <TextInput
             type="search"

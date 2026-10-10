@@ -5,7 +5,7 @@ Values live in `tokens.css`. **This file says how to use them.** If a rule and a
 
 ## Direction
 - Copy the visual language of the ETH EduApp: neutral greys (near-black dark theme), uppercase labels, outline icons. Soft shapes (7px cards, 5px controls) with a light shadow, thin outline kept on every card.
-- App name on screens is a placeholder: **Study Spaces**. One word to change later.
+- Home uses the **ASS / Academic Study Spaces** wordmark in the grey toolbar: the black logo in light mode and the white logo in dark mode, in a compact 168px-wide, 32px-high frame. A 4px grey divider separates the toolbar from the content. Other screen headings retain their page titles.
 - Components come from the shared set (button, chip, tab, input, search, dropdown, toggle, checkbox, notice, table card, seat marker, break timer, QR check-in, modal, app header, bottom navigation). Reuse them; do not restyle per screen.
 - Phone first, 390px wide. On desktop, centre a 390px column. Do not stretch.
 - Dark is the default theme. Light is toggled with `<html data-theme="light">`. Every screen must work in both.
@@ -40,6 +40,7 @@ A new component goes into `base.css` **and** `components.html`, in the same comm
 |---|---|
 | `--bg` | Page background |
 | `--surface` | Cards, sidebars, sheets |
+| `--toolbar` | Full-width app toolbar: dark grey in dark mode, light grey in light mode |
 | `--border` | 1px dividers and card outlines |
 | `--text` / `--text-muted` | Primary / secondary text |
 | `--accent` | Primary button, links, selected state, focus |

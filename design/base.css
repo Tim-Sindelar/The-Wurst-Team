@@ -230,8 +230,8 @@ button {
   gap: var(--sp-2);
   min-height: 64px;
   padding: 0 var(--sp-2) 0 var(--gutter);
-  background: var(--surface);
-  border-bottom: var(--stroke) solid var(--border);
+  background: var(--toolbar);
+  border-bottom: calc(var(--stroke) * 4) solid var(--border);
 }
 .app-header__title {
   flex: 1;
@@ -242,6 +242,20 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.app-header__brand {
+  flex: 1;
+  min-width: 0;
+}
+.app-logo {
+  display: block;
+  height: var(--sp-8);
+  width: 100%;
+  max-width: calc(var(--sp-6) * 7);
+  object-fit: cover;
+}
+.app-logo--light { display: none; }
+html[data-theme="light"] .app-logo--dark { display: none; }
+html[data-theme="light"] .app-logo--light { display: block; }
 .icon-button {
   display: inline-grid;
   place-items: center;

@@ -33,10 +33,19 @@ type ScreenHeaderProps = {
   backLabel: string;
 };
 
+/** Shared grey toolbar, separated from the screen's content gutter. */
+export function ScreenToolbar({ children }: { children: ReactNode }) {
+  return (
+    <header className="flex min-h-16 shrink-0 items-center gap-2 border-b-4 border-border bg-toolbar pr-2 pl-4">
+      {children}
+    </header>
+  );
+}
+
 /** Top bar: back arrow, screen title, theme switch. */
 export function ScreenHeader({ title, backTo, backLabel }: ScreenHeaderProps) {
   return (
-    <header className="flex min-h-16 items-center gap-2 border-b border-border bg-surface pr-2 pl-4">
+    <ScreenToolbar>
       <ActionIcon component={Link} to={backTo} aria-label={backLabel}>
         <Icon name="back" />
       </ActionIcon>
@@ -44,7 +53,7 @@ export function ScreenHeader({ title, backTo, backLabel }: ScreenHeaderProps) {
         {title}
       </Title>
       <ThemeToggle />
-    </header>
+    </ScreenToolbar>
   );
 }
 

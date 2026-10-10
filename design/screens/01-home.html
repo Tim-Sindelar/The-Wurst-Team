@@ -13,9 +13,11 @@
 </head>
 <body>
   <div class="app">
-    <main class="app__main">
-      <div class="row row--spread">
-        <h1 class="t-heading">Study Spaces</h1>
+    <header class="app-header">
+        <h1 class="app-header__brand">
+          <img class="app-logo app-logo--light" src="../../frontend/src/assets/branding/study-spaces-logo-light.png" alt="Academic Study Spaces">
+          <img class="app-logo app-logo--dark" src="../../frontend/src/assets/branding/study-spaces-logo-dark.png" alt="Academic Study Spaces">
+        </h1>
         <div class="row">
           <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme">
             <i class="icon i-sun"></i><i class="icon i-moon"></i>
@@ -24,8 +26,8 @@
             <span class="avatar" aria-hidden="true">AM</span>
           </a>
         </div>
-      </div>
-
+    </header>
+    <main class="app__main">
       <div class="sticky-top">
         <label class="search">
           <i class="icon i-search"></i>
