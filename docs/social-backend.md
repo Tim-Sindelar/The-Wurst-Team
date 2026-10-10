@@ -136,7 +136,8 @@ locking helper, Alembic's revision graph, and generated API files. The social an
 heads are joined by `b7e2f91a4c60`, so databases on either feature branch can upgrade without
 rewriting applied revisions. Join any future competing heads with a merge revision. Regenerate
 the client from the merged backend using `make generate`.
-The latest merge `d9f607c2a184` joins that head with favourites and study-space room links.
+The merge `d9f607c2a184` joins that head with favourites and study-space room links.
+The latest merge `c8a72d6e1940` also joins main’s `f4c9d812a6e7` head, with no schema/data changes.
 Main's room-link migration requires empty study-space tables if room links have not yet been
 applied; it refuses to discard existing rooms. Resolve room mapping before upgrading a populated
 older database. Migration tests cover the earlier social/map heads and all three newer heads.

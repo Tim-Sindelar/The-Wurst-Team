@@ -671,7 +671,16 @@ def test_social_defaults_off_and_can_be_enabled_by_environment(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "revision", ["8fd4c12b6a90", "a1f3c7d92e54", "b7e2f91a4c60", "5d1c7e2a9b34", "b7a41f2c9d60"]
+    "revision",
+    [
+        "8fd4c12b6a90",
+        "a1f3c7d92e54",
+        "b7e2f91a4c60",
+        "5d1c7e2a9b34",
+        "b7a41f2c9d60",
+        "d9f607c2a184",
+        "f4c9d812a6e7",
+    ],
 )
 def test_merge_migration_upgrades_either_feature_branch_without_losing_data(db, revision):
     migrate(db, "92a543e210ab", downgrade=True)
