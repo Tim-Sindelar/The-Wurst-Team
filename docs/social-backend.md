@@ -20,7 +20,7 @@ to disable social features. Existing reservations remain usable through the stan
 check-in, and session endpoints. Do not downgrade the database just to disable the feature.
 
 The frontend uses `getSocialCapabilitiesOptions()` to choose real friendships when enabled and
-an explicitly labelled sample preview when disabled. Network or authentication failures never
+a sample preview when disabled. The UI notice has been removed; this remains demo data. Network or authentication failures never
 fall back to sample mutations. All social APIs except capabilities are gated in the backend.
 The build-time demo flag still controls whether these screens and navigation are included.
 

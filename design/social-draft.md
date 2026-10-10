@@ -3,7 +3,8 @@
 This is a working design preview, available locally at `http://127.0.0.1:5173/social-draft`
 and in CI-deployed PR previews under `/pr/<number>/social-draft`. Friends, people search,
 requests, privacy and shared rooms use the real social backend when its capabilities say enabled.
-Disabled social shows an explicit sample-data notice; network/auth failures show errors. PR
+Disabled social uses sample data; the preview notice has been removed at the user’s request.
+Network/auth failures still show errors and never fall back to sample mutations. PR
 deployments enable the real directory in their isolated database. Party screens retain sample
 data and do not modify live bookings.
 
@@ -26,8 +27,8 @@ There are no new design tokens, component variants, stylesheets, or dependencies
 | Own QR scan | `screens/04-qr-scan.html`: labelled mock scan target | Scan the assigned seat |
 
 Screens use the existing 390px `Screen` frame, `ScreenHeader`, `ScreenMain`, and pinned `ActionBar`.
-At the user’s request, Friends places its single Add a friend primary action after the friend list
-inside scrolling `ScreenMain`, rather than in a pinned action bar.
+Friends keeps Add a friend in the sticky `ActionBar` above bottom navigation, accessible
+while scrolling through the list.
 Cards, buttons, switches, text, inputs, and notices use the Mantine theme. Native selects inherit
 the shared Input theme; their arrows come from `Icon`. Long names wrap in content. Seat-state
 colours appear only on seats and seat summaries. Non-seat membership states use text and icons.
@@ -40,7 +41,7 @@ Friends has privacy first, a study-party entry, then one combined friend list sh
 rooms. Friends with a permitted active location come first; names order each group. No shared
 room is deliberately ambiguous about privacy versus no active session. Search filters this list;
 removal uses its inline button and a decision sheet. A Requests link opens pending requests.
-Add a friend sits at the bottom of the scrolling list. The old location route redirects to Friends.
+Add a friend stays pinned above bottom navigation. The old location route redirects to Friends.
 There is no separate Stalk my friends screen or duplicated friend list.
 Create asks only for a name, then opens invitations. Each friend has an **Invite** button that
 changes to **Invited**; there are no invitation switches. **Done** opens the party roster.

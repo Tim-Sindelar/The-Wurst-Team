@@ -39,7 +39,20 @@ export function FriendsDraftScreen() {
   const [notice, setNotice] = useState('');
   const friends = friendsWithLocationsFirst(social.friends, search);
   return (
-    <DraftFrame title="Friends" backTo={paths.home}>
+    <DraftFrame
+      title="Friends"
+      backTo={paths.home}
+      actions={
+        <Button
+          component={Link}
+          to={draftPaths.add}
+          fullWidth
+          leftSection={<Icon name="plus" />}
+        >
+          Add a friend
+        </Button>
+      }
+    >
       <SectionLabel>Privacy</SectionLabel>
       <Card component="section" aria-label="Location sharing">
         <Switch
@@ -123,14 +136,6 @@ export function FriendsDraftScreen() {
             : 'Add a friend to start studying together.'}
         </Text>
       )}
-      <Button
-        component={Link}
-        to={draftPaths.add}
-        fullWidth
-        leftSection={<Icon name="plus" />}
-      >
-        Add a friend
-      </Button>
       <DecisionSheet
         opened={!!remove}
         onClose={() => setRemove(null)}
@@ -370,12 +375,6 @@ function FriendsDataNotice({
 }) {
   return (
     <>
-      {social.demo && (
-        <Alert title="Friends preview">
-          Sample people and requests only. Enable the social backend to connect
-          with signed-in users.
-        </Alert>
-      )}
       {social.loading && !social.error && (
         <Text role="status" c="dimmed">
           Loading friends…

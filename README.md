@@ -145,12 +145,12 @@ for setup, endpoints, consent rules, and the frontend integration boundary.
 A separate frontend draft is at `http://127.0.0.1:5173/social-draft` and in CI-deployed PR previews.
 Open it through **Friends** in the Home / Map / Friends bottom navigation. Its hub
 shows privacy first, a party entry and one friend list with shared rooms first. Requests have
-their own page; Add a friend sits below the scrolling list. People search, friend requests,
+their own page; Add a friend stays pinned above bottom navigation. People search, friend requests,
 friendships and privacy use the real backend when enabled; signing in makes names and avatars
 discoverable, with room sharing off by default. PR deployments enable this in their isolated database.
 Party screens still use sample data saved locally and support switching perspectives. Only one
 joined active party per person is allowed; invitations can wait until that slot is free. A disabled
-backend shows a labelled friendship preview. Ordinary bookings are unchanged.
+backend uses sample friendships. Ordinary bookings are unchanged.
 See [the draft walkthrough](design/social-draft.md). `VITE_SOCIAL_DEMO_ENABLED=true` includes the draft
 in a build; CI enables it for PRs and disables it for regular production. Docker accepts the build
 argument `SOCIAL_DEMO_ENABLED=true`. Local development defaults on when the flag is omitted.
