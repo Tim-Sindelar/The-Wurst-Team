@@ -1,21 +1,13 @@
 import type { SeatState } from '../domain/seat';
+import type { StudySpace } from '../domain/space';
 
 /* Sample data for the mock screens, copied from design/screens.
    Replaced by API data once the backend is wired in. */
 
-export type Availability = 'high' | 'mid' | 'none';
+/** The API has no building yet, so the other mock screens keep it here. */
+export type MockSpace = StudySpace & { building: string };
 
-export type StudySpace = {
-  id: string;
-  name: string;
-  building: string;
-  freeSeats: number;
-  availability: Availability;
-  availabilityText: string;
-  favourite: boolean;
-};
-
-export const studySpaces: StudySpace[] = [
+export const studySpaces: MockSpace[] = [
   {
     id: 'hg-e-41',
     name: 'HG E 41',

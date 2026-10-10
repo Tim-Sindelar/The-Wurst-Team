@@ -1,7 +1,7 @@
 import { ActionIcon, Anchor, Card, Title } from '@mantine/core';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import type { StudySpace } from '../mock/data';
+import type { StudySpace } from '../domain/space';
 import { paths } from '../routes';
 import { AvailabilityLabel } from './AvailabilityLabel';
 import { Icon } from './Icon';

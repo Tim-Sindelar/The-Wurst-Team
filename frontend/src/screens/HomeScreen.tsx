@@ -1,12 +1,18 @@
 import {
   ActionIcon,
+  Alert,
   Avatar,
   Card,
   Text,
   TextInput,
   Title,
 } from '@mantine/core';
-import { Link, useSearchParams } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router';
+import {
+  getMyReservationOptions,
+  listSpacesOptions,
+} from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
 import { Placeholder } from '../components/Placeholder';
@@ -14,21 +20,19 @@ import { Screen, ScreenMain } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
-import type { BookingState } from '../mock/bookingContext';
-import { mockSpace, mockUser, studySpaces } from '../mock/data';
-import { useMockBooking } from '../mock/useMockBooking';
+import { toStudySpace } from '../domain/space';
+import { mockUser } from '../mock/data';
 import { paths } from '../routes';
 
-/* ?state=reserved, ?state=session or ?state=none forces the booking card. */
-const forcedState = (value: string | null): BookingState | null =>
-  value === 'reserved' || value === 'session' || value === 'none'
-    ? value
-    : null;
-
 export function HomeScreen() {
-  const { seat, booking } = useMockBooking();
-  const [params] = useSearchParams();
-  const state = forcedState(params.get('state')) ?? booking;
+  const spacesQuery = useQuery(listSpacesOptions());
+  const reservationQuery = useQuery(getMyReservationOptions());
+  const spaces = spacesQuery.data?.spaces.map(toStudySpace);
+  const reservation = reservationQuery.data?.reservation;
+  const held =
+    reservation?.status === 'upcoming' || reservation?.status === 'pending';
+  const running =
+    reservation?.status === 'active' || reservation?.status === 'on_break';
 
   return (
     <Screen>
@@ -57,33 +61,52 @@ export function HomeScreen() {
           />
         </div>
 
-        {state === 'reserved' && (
+        {reservation && (held || running) && (
           <BookingCard
-            to={paths.reservation}
-            stripe="reserved"
-            title={`Seat ${seat} · ${mockSpace.name}`}
-            detail="Reserved · tap to check in"
+            to={held ? paths.reservation : paths.session}
+            stripe={held ? 'reserved' : 'yours'}
+            title={`Seat ${reservation.seat.label} · ${reservation.space.name}`}
+            detail={
+              held ? 'Reserved · tap to check in' : 'In session · tap to open'
+            }
           />
         )}
-        {state === 'session' && (
-          <BookingCard
-            to={paths.session}
-            stripe="yours"
-            title={`Seat ${seat} · ${mockSpace.name}`}
-            detail="In session · tap to open"
-          />
+        {reservationQuery.isError && (
+          <Alert
+            variant="danger"
+            role="alert"
+            icon={<Icon name="alert" />}
+            title="Couldn't load your booking"
+          >
+            <Text size="sm">Check your connection and try again.</Text>
+          </Alert>
         )}
 
-        <ul
-          className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          aria-label="Recent and favourite study spaces"
-        >
-          {studySpaces.map((space) => (
-            <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
-              <SpaceCard space={space} />
-            </li>
-          ))}
-        </ul>
+        {spacesQuery.isError ? (
+          <Alert
+            variant="danger"
+            role="alert"
+            icon={<Icon name="alert" />}
+            title="Couldn't load study spaces"
+          >
+            <Text size="sm">Check your connection and try again.</Text>
+          </Alert>
+        ) : !spaces ? (
+          <Text c="dimmed" role="status">
+            Loading study spaces…
+          </Text>
+        ) : (
+          <ul
+            className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="Study spaces"
+          >
+            {spaces.map((space) => (
+              <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
+                <SpaceCard space={space} />
+              </li>
+            ))}
+          </ul>
+        )}
 
         <Title order={2} className="sr-only">
           Campus map

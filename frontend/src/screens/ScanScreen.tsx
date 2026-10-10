@@ -6,8 +6,10 @@ import {
   Text,
   UnstyledButton,
 } from '@mantine/core';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router';
+import { getMyReservationOptions } from '../api/generated/@tanstack/react-query.gen';
 import { Icon } from '../components/Icon';
 import { Screen } from '../components/Screen';
 import { mockSpace } from '../mock/data';
@@ -43,7 +45,13 @@ const isFlow = (value: string | null): value is keyof typeof flows =>
   value !== null && value in flows;
 
 export function ScanScreen() {
-  const { seat, booking } = useMockBooking();
+  const { seat } = useMockBooking();
+  const { data } = useQuery(getMyReservationOptions());
+  const reservation = data?.reservation;
+  const held =
+    reservation?.status === 'upcoming' || reservation?.status === 'pending';
+  const seatLabel = reservation?.seat.label ?? String(seat);
+  const spaceName = reservation?.space.name ?? mockSpace.name;
   const [params] = useSearchParams();
   const [flashlight, setFlashlight] = useState(false);
   const from = params.get('from');
@@ -59,7 +67,7 @@ export function ScanScreen() {
     return query ? `${paths.scan}?${query}` : paths.scan;
   };
 
-  if (flow === flows.checkIn && booking !== 'reserved')
+  if (flow === flows.checkIn && data && !held)
     return <Navigate to={paths.reservation} replace />;
 
   return (
@@ -96,7 +104,7 @@ export function ScanScreen() {
           <div className="grid gap-2">
             <Text className="text-title">{flow.title}</Text>
             <Text size="sm" className="text-camera-fg/72">
-              Seat {seat} · {mockSpace.name}
+              Seat {seatLabel} · {spaceName}
             </Text>
           </div>
         </div>
@@ -111,7 +119,7 @@ export function ScanScreen() {
               title="You don't seem to be at this seat"
             >
               <Text size="sm" c="dimmed">
-                Move closer to seat {seat} and try again.
+                Move closer to seat {seatLabel} and try again.
               </Text>
               <div className="mt-2">
                 <Button
