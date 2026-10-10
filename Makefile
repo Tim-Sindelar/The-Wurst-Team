@@ -1,4 +1,4 @@
-.PHONY: install dev backend frontend generate lint format test build seed map-sync
+.PHONY: install dev backend frontend generate lint format test build seed map-sync map-floors
 
 install:
 	cd backend && uv sync --locked
@@ -31,6 +31,12 @@ test:
 
 seed:
 	docker compose exec -T backend python -m app.features.reservations.seed
+
+# Generate the untracked floor plans and outlines without replacing workspace data.
+map-floors:
+	python scraper/scrape_polymaps.py scraper/polymaps_data
+	python scraper/extract_floors.py --floors-only
+	python scraper/build_library_outlines.py
 
 # Copy the campus map files saved by occupancy-map-preview and import them into the database.
 map-sync:

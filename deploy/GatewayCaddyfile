@@ -1,0 +1,13 @@
+:8080 {
+	encode zstd gzip
+	route {
+		respond /__gateway_health "ok" 200
+		import previews/*.caddy
+		handle /pr/* {
+			respond "Preview not available" 404
+		}
+		handle {
+			reverse_proxy {$PRODUCTION_WEB_ALIAS}:8080
+		}
+	}
+}

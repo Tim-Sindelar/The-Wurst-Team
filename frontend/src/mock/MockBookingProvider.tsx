@@ -4,8 +4,10 @@ import { MockBookingContext, type BookingState } from './bookingContext';
 /* Remembers the chosen seat and booking state across screens and reloads.
    Storage can be blocked (private window), so every access is guarded. */
 
-const SEAT_KEY = 'study-seat';
-const STATE_KEY = 'study-state';
+const storagePrefix =
+  import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL;
+const SEAT_KEY = `${storagePrefix}study-seat`;
+const STATE_KEY = `${storagePrefix}study-state`;
 const DEFAULT_SEAT = 14;
 
 const read = (key: string) => {

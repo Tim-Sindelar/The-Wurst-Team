@@ -16,7 +16,9 @@ services:
       retries: 20
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     env_file:
       - path: ./backend/.env
         required: false
@@ -33,8 +35,6 @@ services:
       - ./backend/migrations:/app/migrations
       - ./backend/tests:/app/tests
       - ./backend/alembic.ini:/app/alembic.ini
-      # Campus map floor plans, built by scraper/extract_floors.py (not in git).
-      - ./occupancy-map-preview/public/floors:/app/floors:ro
       - map_cache:/app/.cache
     depends_on:
       db:

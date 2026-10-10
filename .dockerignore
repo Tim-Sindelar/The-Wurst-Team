@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.env*
+!**/.env.example
+**/*.pyc
+**/.cache
+scraper/polymaps_data
+occupancy-map-preview
+design
+user-flwo.drawio.html
