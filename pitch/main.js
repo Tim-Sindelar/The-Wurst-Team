@@ -48,10 +48,12 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;sce
 const hall=buildHall(scene),bathroom=buildBathroom(scene),phone=buildPhone(scene);
 const exterior=buildHG(scene);
 const closing=await buildClosing(scene,exterior.root),slides=buildSlides();
-const sets=[exterior.root,hall.root,bathroom.root,closing.features.root,closing.friends,closing.campus];
+const sets=[exterior.root,hall.root,bathroom.root,closing.features.root,closing.friends,closing.friendTable.root,closing.campus];
 batchStatic(hall.root,hall.student);batchStatic(bathroom.root,bathroom.student);
 const cssScene=new THREE.Scene();
 const cssRenderer=new CSS3DRenderer({element:document.getElementById('screens')});cssRenderer.setSize(innerWidth,innerHeight);
+// Focus inside a transformed iframe must not scroll the phone away from its 3D frame.
+cssRenderer.domElement.style.overflow='clip';
 const screenElement=document.createElement('div');screenElement.className='phone-screen';
 const appFrame=document.createElement('iframe');appFrame.title='Study Spaces live booking app';appFrame.allow='camera';
 const requestedApp=new URLSearchParams(location.search).get('app');
@@ -89,6 +91,8 @@ const finalPhonePosition=new THREE.Vector3(0,2.5,0);
 const finalPhoneScale=4.65;
 let current=0,elapsed=0,last=performance.now(),transition=0,filmPlaying=false,paused=true,exteriorStarted=false,cut=null;
 let featureStep=0;
+let qaExpanded=false;
+const qaPhonePosition=new THREE.Vector3();
 let clickDown=null,impactTime=-1000,lastDraw=0,forceDraw=true,frameSamples=0,frameTotal=0,resumeAfterVisibility=false;
 const impacts=new Set();
 const taken=document.getElementById('taken'),blackout=document.getElementById('blackout'),liveLayer=document.getElementById('live');
@@ -111,7 +115,7 @@ function captureCamera(){cameraFrom.copy(camera.position);lookFrom.copy(look);tr
 function positionCamera(pos,target){cameraTo.set(...pos);lookTo.set(...target);}
 function snapCamera(){camera.position.copy(cameraTo);look.copy(lookTo);cameraFrom.copy(cameraTo);lookFrom.copy(lookTo);}
 function updateAccessibleState(){
-  stage.dataset.scene=String(current+1);stage.dataset.interactive=String(current===5&&elapsed>=durations[5]);
+  stage.dataset.scene=String(current+1);stage.dataset.interactive=String((current===5&&elapsed>=durations[5])||(current===11&&!cut));
   stage.dataset.playing=String(filmPlaying&&!paused);stage.dataset.liveSource=liveFrame?'browser':'external';
   canvas.setAttribute('aria-label',current===0?'Play opening film':current===4?'Open the phone to reserve a seat':current===5?'Start live teammate handoff':current===11?'Happy ETH campus':current>=7?'Pitch slide':'Opening film playing');
   advanceButton.hidden=current<6||current===11;
@@ -134,12 +138,16 @@ function go(index,snap=false){
   sets.forEach(root=>{root.visible=false;root.position.set(0,0,0);root.scale.setScalar(1);});
   exterior.root.visible=current===0||current===9;hall.root.visible=current>=1&&current<=3;
   closing.friends.visible=current===8;closing.campus.visible=current===11;
+  closing.friendTable.root.visible=current===8;
   closing.features.root.visible=current===7;
   if(current===7){closing.features.show(featureStep);slides.revealFeature(featureStep);}
   slides.show(current>=7?current-7:-1);
-  bathroom.root.visible=current===4||current===5;phone.root.visible=current===4||current===5;
-  screenElement.classList.toggle('visible',current===5);screenElement.inert=current!==5;
-  screenElement.setAttribute('aria-hidden',String(current!==5));screenElement.classList.remove('interactive');phoneCover.hidden=false;
+  bathroom.root.visible=current===4||current===5;phone.root.visible=current===4||current===5||current===11;
+  const showApp=current===5||current===11;
+  screenElement.classList.toggle('visible',showApp);screenElement.inert=!showApp;
+  screenElement.setAttribute('aria-hidden',String(!showApp));screenElement.classList.remove('interactive');phoneCover.hidden=current===11;
+  screenElement.classList.toggle('qa-phone',current===11);
+  phone.root.traverse(object=>{if(object.isMesh)object.castShadow=current!==11;});
   cssPhone.visible=true;if(!phone.root.visible){cssPhone.position.set(0,-60,0);cssPhone.scale.setScalar(1);}
   if(liveFrame){liveLayer.style.transform=current===6?'none':'translateY(110vh)';liveLayer.hidden=false;}
   else liveLayer.hidden=current!==6;
@@ -168,9 +176,9 @@ function go(index,snap=false){
     bathroom.student.userData.arms[1].elbow.rotation.x=-1.5;
   }else if(current===5){filmPlaying=false;positionCamera([0,2.5,8.1],[0,2.5,0]);}
   else if(current===7){closing.features.root.position.x=1.8;positionCamera([0,3.1,9],[0,1.5,0]);}
-  else if(current===8){closing.friends.position.x=2.4;positionCamera([0,2.65,9.1],[0,2.1,0]);}
+  else if(current===8){closing.friends.position.x=2.4;closing.friendTable.root.position.set(-2.2,.1,0);positionCamera([0,2.65,9.1],[0,2.1,0]);}
   else if(current===9){exterior.root.position.set(6.5,0,0);exterior.root.scale.setScalar(.64);positionCamera([12,10,24],[0,1,0]);}
-  else if(current===11){positionCamera([24,17,28],[0,1,-4]);}
+  else if(current===11){qaExpanded=false;positionCamera([24,17,28],[0,1,-4]);}
   if(snap&&current!==5)snapCamera();updateAccessibleState();
 }
 function cutTo(index){if(cut)return;paused=false;cut={index,elapsed:0,switched:false};}
@@ -181,7 +189,7 @@ function updateCut(delta){
   if(cut.elapsed>=out&&!cut.switched){go(cut.index,true);cut.switched=true;}
   const opacity=cut.elapsed<out?cut.elapsed/out:cut.elapsed<out+hold?1:1-(cut.elapsed-out-hold)/inTime;
   blackout.style.opacity=String(Math.max(0,Math.min(1,opacity)));
-  if(cut.elapsed>=out+hold+inTime){cut=null;blackout.style.opacity=current===6&&!liveFrame?'1':'0';if(current>=6&&current<11)paused=true;}
+  if(cut.elapsed>=out+hold+inTime){cut=null;blackout.style.opacity=current===6&&!liveFrame?'1':'0';if(current>=6&&current<11&&current!==8)paused=true;}
 }
 function startFilm(){
   filmPlaying=true;exteriorStarted=true;paused=false;elapsed=0;transition=0;score.start();forceDraw=true;updateAccessibleState();
@@ -248,6 +256,18 @@ function updatePhone(){
     bathroom.root.position.y=-8*p*p;bathroom.root.visible=p<.85;
     const ready=p>=1;screenElement.classList.toggle('interactive',ready);phoneCover.hidden=ready;
     if(stage.dataset.interactive!==String(ready)){stage.dataset.interactive=String(ready);forceDraw=true;}
+  }else if(current===11){
+    // Place the existing live phone in camera space so it stays fixed in the corner.
+    const depth=6,viewHeight=2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),viewWidth=viewHeight*camera.aspect;
+    const heightPx=Math.min(innerHeight*(qaExpanded?.90:.68),qaExpanded?960:700);
+    const scale=(heightPx/innerHeight)*viewHeight/.929;
+    const height=.929*scale,width=.449*scale;
+    const marginX=Math.max(24,innerWidth*.04)/innerWidth*viewWidth,marginY=Math.max(20,innerHeight*.04)/innerHeight*viewHeight;
+    qaPhonePosition.set(qaExpanded?0:viewWidth/2-marginX-width/2,qaExpanded?0:viewHeight/2-marginY-height/2,-depth);
+    qaPhonePosition.applyQuaternion(camera.quaternion).add(camera.position);
+    phone.root.position.copy(qaPhonePosition);phone.root.quaternion.copy(camera.quaternion);phone.root.scale.setScalar(scale);
+    const ready=!cut;screenElement.classList.toggle('interactive',ready);screenElement.inert=!ready;phoneCover.hidden=true;
+    stage.dataset.interactive=String(ready);stage.dataset.qaPhone=qaExpanded?'expanded':'corner';
   }
   cssPhone.position.copy(phone.root.position);cssPhone.quaternion.copy(phone.root.quaternion);cssPhone.scale.copy(phone.root.scale);
 }
@@ -264,6 +284,7 @@ function render(now){
   else if(current===2)searchMotion();
   else if(current===3)defeated(hall.student,elapsed*.001);
   else if(current===4){droneMotion();idle(bathroom.student,elapsed*.001);bathroom.student.userData.head.rotation.x=.15;}
+  else if(current===8)closing.friendTable.animate(elapsed*.001,reducedMotion);
   else if(current===11){const p=reducedMotion?1:ease(Math.min(elapsed/9000,1));positionCamera([lerp(24,19,p),lerp(17,13,p),lerp(28,23,p)],[0,1,-4]);closing.animate(elapsed*.001,reducedMotion);}
   if(filmPlaying&&!paused&&current<4&&elapsed>=durations[current]){
     // Keep the hallway walk continuous; location changes pass through black.
@@ -278,9 +299,9 @@ function render(now){
   if(current===2&&impactAge>=0&&impactAge<.24&&!reducedMotion)camera.rotateZ(Math.sin(impactAge*65)*.022*Math.exp(-impactAge*14));
   updatePhone();
   const settledPhone=current===5&&elapsed>=durations[5];
-  const animated=!paused&&current!==6&&!settledPhone&&(current<7||(current===11&&(!reducedMotion||elapsed<1000)));
-  if(forceDraw||(animated&&now-lastDraw>=1000/(current===11?30:45))){
-    renderer.shadowMap.needsUpdate=forceDraw||current===1||current===2||current===3||current===11||(current===5&&!settledPhone);
+  const animated=!paused&&current!==6&&!settledPhone&&(current<7||((current===8||current===11)&&(!reducedMotion||elapsed<1000)));
+  if(forceDraw||(animated&&now-lastDraw>=1000/(current===8||current===11?30:45))){
+    renderer.shadowMap.needsUpdate=forceDraw||current===1||current===2||current===3||current===8||current===11||(current===5&&!settledPhone);
     renderer.render(scene,camera);cssRenderer.render(cssScene,camera);lastDraw=now;forceDraw=false;stage.dataset.drawCalls=String(renderer.info.render.calls);
   }
   requestAnimationFrame(render);
@@ -296,6 +317,7 @@ canvas.addEventListener('pointerup',event=>{
   if(current===0&&!exteriorStarted)startFilm();
   else if(current===4&&phoneClicked(event))openPhone();
   else if(current===5)handoff();
+  else if(current===11){canvas.focus();if(phoneClicked(event)){qaExpanded=!qaExpanded;forceDraw=true;}}
 });
 phoneCover.addEventListener('click',()=>{score.unlock();openPhone();});
 advanceButton.addEventListener('click',nextSlide);
@@ -303,7 +325,7 @@ async function fullscreen(){try{if(document.fullscreenElement)await document.exi
 window.addEventListener('keydown',event=>{
   if(event.target.closest('input,textarea,[contenteditable=true]'))return;
   const key=event.key.toLowerCase();
-  if(![' ','arrowright','arrowleft','home','escape','f','r','s','l','p','e','1','2','3','4','5','6','7'].includes(key))return;
+  if(![' ','arrowright','arrowleft','home','escape','f','r','s','l','p','e','d','1','2','3','4','5','6','7'].includes(key))return;
   event.preventDefault();score.unlock();
   if(key==='home'||key==='r'){cut=null;go(0);}
   else if(key==='f')void fullscreen();
@@ -311,6 +333,7 @@ window.addEventListener('keydown',event=>{
   else if(key==='l')handoff();
   else if(key==='p'){if(current>=5)cutTo(7);}
   else if(key==='e'){if(current>=6)cutTo(11);}
+  else if(key==='d'&&current===11){qaExpanded=!qaExpanded;forceDraw=true;}
   else if(key==='arrowright')nextSlide();
   else if(key==='arrowleft')previousSlide();
   else if(key==='escape'){paused=true;score.stop();updateAccessibleState();}

@@ -22,8 +22,8 @@ Click once or press Space to play the opening film. No scene-by-scene advances a
 6. Use the real app to reserve a seat. Click the surrounding background or press L / Space with the presentation focused to cue the live handoff.
 7. Blackout while the video operator switches to the teammate livestream, or show the configured browser feed.
 8. After the teammate checks in and sits down, click the live image or press Right / Space to cut to the closing slides.
-9. Four quick slides: a four-step session explanation, the party planner on a phone, ETH fit, then One library → Entire ETH → Other universities.
-10. End on Q&A over an imagined happy ETH campus: friends study and chat, while students stroll along varied paths. It keeps moving gently until you leave the scene; reduced motion freezes the campus.
+9. Four quick slides: a four-step session explanation (coffee and stopwatch for timed breaks), four students chatting beside the party planner phone, ETH fit, then One library → Entire ETH → Other universities.
+10. End on Q&A over an imagined happy ETH campus: friends study and chat, while students stroll along varied paths. The same live app remains interactive in a phone at the top right, retaining the demo's state. The campus keeps moving gently until you leave the scene; reduced motion freezes it.
 
 The live camera starts tight on the teammate's phone showing the reservation, then physically pulls back and follows them into the pitch room. The teammate scans the QR on the demonstration desk and starts studying. There is no rendered lo-fi ending. Stream transport is still to be chosen and rehearsed.
 
@@ -36,6 +36,8 @@ Space pauses/resumes the opening film; clicking the background during the film d
 HG's simplified outlines come from the local backend's ETH PolyMaps floor index. The façade, windows, heights and dome are an artistic interpretation, not a surveyed exterior model. The small geometry snapshot is bundled, so the opening does not require a network request.
 
 Keyboard events stay inside the live app while its iframe has focus. Click the surrounding scene to return control to the presentation. The phone's application is real: submitting a booking will make a real booking in the connected app. The room geometry and characters are illustrative.
+
+On Q&A, D toggles between the top-right phone and a larger centred phone. Clicking the phone's outer frame does the same; clicking inside its screen operates the app. Click the surrounding campus first if the app has keyboard focus. The phone tracks the camera so it stays in position while the campus moves.
 
 The prototype does not automatically detect reservation or check-in success. The presenter cues the livestream after reservation and narrates the physical check-in. The slide copy is in `closing.js`; the 60–75 second closing script is in `../docs/pitch-closing.md`, with the broader story in `../docs/pitch-story.md`.
 

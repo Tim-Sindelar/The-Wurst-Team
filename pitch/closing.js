@@ -50,15 +50,30 @@ function featureRenders(scene,qr){
   for(const x of [0,1])for(const z of [.5,1.1])box(handover,[.055,1,.055],[x,.5,z],'#88998c');
   laptop(handover,.5,1.12,.65);backpack(handover,[-1.1,0,.75]);
 
-  const coffee=variants[3];coffee.scale.setScalar(2);
-  cylinder(coffee,.57,.49,1.1,[0,.7,0],'#d5b49a',16);
-  cylinder(coffee,.50,.50,.015,[0,1.258,0],'#765744',16);
-  mesh(coffee,new THREE.TorusGeometry(.55,.045,5,20),'#e9d6bd',[0,1.265,0],[Math.PI/2,0,0]);
-  mesh(coffee,new THREE.TorusGeometry(.29,.095,6,16),'#d5b49a',[.61,.78,0]);
+  const coffee=variants[3];coffee.scale.setScalar(1.65);
+  const mug=group(coffee,[-.35,0,0]);mug.scale.setScalar(.85);
+  cylinder(mug,.57,.49,1.1,[0,.7,0],'#d5b49a',16);
+  cylinder(mug,.50,.50,.015,[0,1.258,0],'#765744',16);
+  mesh(mug,new THREE.TorusGeometry(.55,.045,5,20),'#e9d6bd',[0,1.265,0],[Math.PI/2,0,0]);
+  mesh(mug,new THREE.TorusGeometry(.29,.095,6,16),'#d5b49a',[.61,.78,0]);
   for(const x of [-.18,0,.18]){
     const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(x,1.4,0),new THREE.Vector3(x-.05,1.63,0),new THREE.Vector3(x+.05,1.85,0)]);
-    mesh(coffee,new THREE.TubeGeometry(curve,8,.015,4,false),'#d8ddd2');
+    mesh(mug,new THREE.TubeGeometry(curve,8,.015,4,false),'#d8ddd2');
   }
+  const watch=group(coffee,[.95,.8,.18]);watch.rotation.y=-.2;
+  const caseBody=cylinder(watch,.55,.55,.16,[0,0,0],'#84947e',24);caseBody.rotation.x=Math.PI/2;
+  const face=cylinder(watch,.47,.47,.02,[0,0,.09],'#f1eee0',24);face.rotation.x=Math.PI/2;
+  cylinder(watch,.055,.06,.15,[0,.60,0],'#84947e',8);
+  roundedBox(watch,[.22,.07,.13],[0,.69,0],'#84947e',.02);
+  for(let i=0;i<12;i++){
+    const angle=i*Math.PI/6;
+    box(watch,[.018,i%3===0?.07:.04,.018],[Math.sin(angle)*.40,Math.cos(angle)*.40,.11],'#6a7a66',[0,0,-angle]);
+  }
+  const minute=group(watch,[0,0,.125]);minute.rotation.z=-.55;
+  box(minute,[.022,.35,.02],[0,.15,0],'#435346');
+  const second=group(watch,[0,0,.15]);second.rotation.z=1.9;
+  box(second,[.014,.41,.012],[0,.15,0],'#bd795b');
+  const pin=cylinder(watch,.035,.035,.025,[0,0,.16],'#435346',8);pin.rotation.x=Math.PI/2;
   variants.forEach(variant=>batchStatic(variant,null));
   return {root,show(step){variants.forEach((variant,i)=>{variant.visible=i===step;});}};
 }
@@ -86,6 +101,30 @@ function sharedTable(root,at,scale=1){
   backpack(table,[-1.8,0,-.75]);return table;
 }
 
+function conversationTable(scene){
+  const root=group(scene),motion=group(root);
+  roundedBox(root,[2.5,.12,1.6],[0,1.04,0],'#d4c5ad',.05);
+  for(const x of [-1,1])for(const z of [-.55,.55])box(root,[.07,1,.07],[x,.5,z],'#88998c');
+  const placements=[[-.65,-1.12,0],[.65,-1.12,0],[-1.65,.35,Math.PI/2],[1.65,.35,-Math.PI/2]];
+  const talkers=placements.map(([x,z,rotation],i)=>{
+    chair(root,x,z,rotation);
+    const student=happyStudent(motion,[x,0,z],{rotation,seated:true,color:['#859678','#b58f75','#8dabb0','#b8a38d'][i]});
+    student.userData.arms[i%2].shoulder.rotation.x=-1.0;
+    cylinder(root,.055,.055,.16,[x*.5,1.2,z*.4],'#c99b78');
+    return student;
+  });
+  backpack(root,[-1.5,0,-1]);
+  batchStatic(root,motion);
+  return {root,animate(time,reducedMotion){
+    if(reducedMotion)return;
+    talkers.forEach((student,i)=>{
+      idle(student,time+i*1.7);
+      student.userData.head.rotation.y=Math.sin(time*.8+i*1.7)*.15;
+      student.userData.arms[i%2].elbow.rotation.x=-1+Math.sin(time*1.1+i*2)*.12;
+    });
+  }};
+}
+
 function tree(root,x,z,size=1){
   cylinder(root,.08*size,.12*size,1.1*size,[x,.55*size,z],'#a28b70',6);
   mesh(root,new THREE.IcosahedronGeometry(.85*size,0),'#91ab7e',[x,1.55*size,z]);
@@ -100,6 +139,7 @@ export async function buildClosing(scene,hgRoot){
   const friends=group(scene);
   const partyPhone=staticPhone(friends,planner);partyPhone.scale.setScalar(4.2);partyPhone.position.y=2.1;partyPhone.rotation.set(0,-.12,-.045);
   batchStatic(friends,null);
+  const friendTable=conversationTable(scene);
 
   const campus=group(scene);
   box(campus,[33,.16,32],[0,-.23,-1],'#d5dfbd');
@@ -127,7 +167,7 @@ export async function buildClosing(scene,hgRoot){
   }
   batchStatic(campus,motion);
   const point=new THREE.Vector3(),tangent=new THREE.Vector3();
-  return {features,friends,campus,animate(time,reducedMotion){
+  return {features,friends,friendTable,campus,animate(time,reducedMotion){
     if(reducedMotion)return;
     chatters.forEach((student,i)=>{idle(student,time+i*2.1);});
     chatters[0].userData.arms[0].elbow.rotation.z=Math.sin(time*1.3)*.15;
