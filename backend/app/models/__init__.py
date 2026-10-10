@@ -10,6 +10,7 @@ from app.features.reservations.models import (
 from app.features.social.models import Friendship, Party, PartyMember, SocialUser
 from app.models.favourite import FavouriteSpace
 from app.models.profile import UserProfile
+from app.models.recent import RecentSpace
 
 __all__ = [
     "Break",
@@ -17,6 +18,7 @@ __all__ = [
     "MapDocument",
     "MapEntity",
     "MapOverride",
+    "RecentSpace",
     "Reservation",
     "Seat",
     "SpaceClosure",

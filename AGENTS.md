@@ -19,6 +19,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/routes.ts` | Screen paths |
 | `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
+| `src/pwa.ts`, `pwa/service-worker.js`, `public/manifest.webmanifest`, `public/icons/` | The installable app: worker registration, the service worker (the `service-worker` plugin in `vite.config.ts` emits it as `sw.js`), the manifest and the app icons. See "Installable app" below |
 
 ### Styling
 
@@ -27,13 +28,13 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 3. **Layers decide who wins:** `theme < base < mantine < components < utilities`. Theme classes beat Mantine's defaults, and utilities beat theme classes. Don't use `!important`, and don't put utility classes in theme `classNames` (they would tie with screen classes).
 4. **Tailwind for everything custom**: layout, spacing, one-off elements. No CSS modules and no new CSS files. Inline `style` is only for computed geometry (seat positions on the map).
 5. **Write class names out in full.** Tailwind only finds literal strings, so `` `bg-seat-${state}` `` will not work. Put per-state classes in a lookup (`stateVar`, `stripeClass` in `src/domain/seat.ts`).
-6. **Both themes.** Dark is the default; light is toggled by `ThemeToggle` through Mantine's colour scheme. Check every change in both.
+6. **Both themes.** Dark is the default; light is switched on the Profile screen (`ThemeSwitch`) through Mantine's colour scheme. Check every change in both.
 
 ### Components and variants
 
 | Need | Use |
 | --- | --- |
-| Button | `Button` with `variant="primary"` (default), `"secondary"`, `"danger"` or `"quiet"`. Links: `component={Link} to=...` |
+| Button | `Button` with `variant="primary"` (default), `"secondary"`, `"danger"`, `"quiet"` or `"map"` (32px text button floating on the room map). Links: `component={Link} to=...` |
 | Icon-only button | `ActionIcon` with `variant="icon"` (default, 44px), `"map"` (32px map control) or `"camera"`. Always give it an `aria-label` |
 | Card | `Card`; add `stripeClass[state]` for the 6px status stripe |
 | Seat state chip | `SeatChip state=... [plain]` (Mantine `Badge` underneath) |
@@ -56,7 +57,7 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Visible focus ring on everything focusable (Mantine's focus ring is mapped to `--color-focus`).
 - Motion only on `transform` and `opacity`, 150 to 250ms, and respect reduced motion.
 - Text never below 12px; long names (40+ characters) must wrap or truncate cleanly.
-- Phone first: a 390px column, centred on desktop. Don't stretch layouts wider.
+- Phone first: below 480px (the `tablet` breakpoint) screens fill the full width with no side margins; from 480px up they are a centred 390px column. Don't stretch layouts wider. Headers and `SafeAreaTop` (Home) keep clear of the notch with `env(safe-area-inset-top)`.
 
 ### Campus map
 
@@ -70,6 +71,14 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - `occupancy-map-preview/` stays the developer tool for the map: its Admin mode edits workspaces and navigation, its Style panel edits the map style. After saving there, run `make map-sync` to import the files into the backend. There is no admin or style editor in this app.
 - The backend Docker build generates floor plans and workspace outlines into `/app/floors` and sets `MAP_FLOORS_DIR` to that directory. Outside Docker, floor plans are read from `occupancy-map-preview/public/floors` (built by `make map-floors`, not in git), or from the backend's `MAP_FLOORS_DIR`.
 
+### Installable app (PWA)
+
+- The app installs from https://02.hackathon.ethz.ch (and from each PR preview, as a separate app). The manifest uses relative URLs (`./`) and the worker registers at `BASE_URL`, so both work under `/pr/N/`. The manifest link has `crossorigin="use-credentials"` because the organisers' login proxy needs the session cookie.
+- The service worker only exists in production builds. It caches the app shell on install, serves hashed `assets/` from the cache, goes to the network first for pages (offline: the cached `index.html`), and never touches `/api`. Production's worker leaves `/pr/` and `/ar/` alone. Every build gets a new worker that replaces the old one and its cache.
+- Caddy serves `index.html`, `sw.js` and `manifest.webmanifest` with `no-cache`, so a deploy reaches installed apps on their next launch.
+- The icon (`public/icons/icon.svg`, `public/favicon.svg`) is a seat map with your seat checked. After changing it, re-render `icon-192.png`, `icon-512.png` (also the maskable icon, so keep the artwork within the middle 80%) and `apple-touch-icon.png` (180px).
+- `meta[name=theme-color]` follows the colour scheme (`--color-bg`), so the installed app's status bar matches the theme.
+
 ### Data and state
 
 - Screens fetch with the generated TanStack Query helpers from `src/api/generated/` (`useQuery(listSpacesOptions())`, `useMutation(checkInMutation())`). Don't hand-write fetch calls or API types. The Vite dev server proxies `/api` to the backend on port 8000.
@@ -77,10 +86,14 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Failed calls are shown in place: use `apiProblem(error)` for the sentence, in a `danger` `Alert` or inside the `DecisionSheet`.
 - Timing rules (check-in window, session length, extension windows, break allowance) are set in `backend/app/config.py` and read through `useRules()` (`GET /api/v1/rules`). Never hardcode them in the frontend.
 - The seat map draws the room the admin laid out (`SpaceDetail.layout`, read with `savedLayout` and drawn with the admin `RoomScene` in read-only mode), so users see the same room, furniture and seat positions as the layout editor. `layoutSeats` in `src/domain/room.ts` places each seat at its layout object (`backendSeatId`). A space without a saved layout falls back to the stand-in floor plan there.
-- Profile and the home avatar use `/api/v1/me` through `useCurrentUser`. Profile saves a display name and optional photo through the generated `updateMeMutation`; the backend persists these in `user_profiles` without changing auth identity.
-- Favourites live in `favourite_spaces` and come through `useFavourites()` (`/api/v1/me/favourites`). The star updates at once and rolls back if the call fails. Home puts favourites first and filters by the search box (`filterSpaces`, `favouritesFirst` in `domain/space.ts`).
-- Still mock: the notification switches on Profile.
-- Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`; the scan screen also takes a typed code for devices without a camera. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
+- Profile (opened from the bottom navigation) uses `/api/v1/me` through `useCurrentUser`. Its account-card pencil opens `/profile/edit`, where name and photo edits save together through the generated `updateMeMutation` and return to Profile. Leaving with unsaved edits uses `DecisionSheet`. Photo uploads allow 12 MiB and 16 megapixels; the circular drag/zoom preview uploads a square 256×256 PNG. The backend persists these in `user_profiles` without changing auth identity. Profile also has the Appearance card with the dark theme switch.
+- Favourites live in `favourite_spaces` and come through `useFavourites()` (`/api/v1/me/favourites`). The star updates at once and rolls back if the call fails. Home shows them as their own row and filters by the search box (`filterSpaces`, `favouriteSpaces` in `domain/space.ts`).
+- Recents live in `recent_spaces` and come through `useRecents()` (`/api/v1/me/recents`, newest first, at most 10). The backend records a space when the user books a seat there or checks in by scan; the migration seeds it from past reservations. Home shows two swipeable rows under `SectionLabel`s: Favourites (`favouriteSpaces`) and Recent (`recentSpaces`, newest first); an empty row is hidden. There is no all-spaces row: typing in the search box replaces the rows with a plain vertical list of matches. Home has no link to the map. Booking changes refresh it through `useRefreshBooking`.
+- Home search uses `filterSpaces`, a dependency-free similarity search (`domain/similarity.ts`): it forgives typos, word order, accents and partial words, and lists the best match first.
+- Space cards are plain surface cards. When a space has a photo (`StudySpace.photoUrl`, unset until the API provides one) it shows behind the text, always blurred 2px and dimmed with `bg-photo-scrim`, and the text on it uses `text-on-photo`. There are no placeholder photos.
+- The room screen (`/seats/:spaceId`, `SeatMapScreen`) is a full-bleed `SeatMap` under the header with nothing selected at first. Tapping a seat opens `SeatSheet` (a non-modal card at the bottom, not a third popup); its action opens the decision sheet to confirm. The `map` button "Choose any free seat" top right picks a random other free seat and is hidden while the user holds a seat. If the server answers `seat_unavailable` to a reservation (someone else was first), the sheet closes and a danger `Alert` "Seat X was just taken" with "Choose another seat" shows over the map; other errors stay inside the decision sheet.
+- The notification switches on Profile save per-user preferences automatically in localStorage on this device; notification delivery is not implemented.
+- Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`. The camera feed fills the scan screen, dimmed outside the scan frame; there is no typed-code fallback. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
 
 ### Code conventions
 

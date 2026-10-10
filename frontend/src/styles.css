@@ -38,6 +38,8 @@
   --color-canvas: #0a0a0a; /* page behind the phone column */
   --color-hover: rgb(255 255 255 / 0.08);
   --color-overlay: rgb(0 0 0 / 0.6); /* dim layer behind popups */
+  --color-photo-scrim: rgb(0 0 0 / 0.55); /* darkens a photo behind card text */
+  --color-on-photo: #ffffff; /* text and icons drawn over a photo, both themes */
   --color-text: #ffffff;
   --color-text-muted: #bdbdbd;
 
@@ -64,6 +66,8 @@
   /* Camera view: dark in both themes. */
   --color-camera-bg: #0a0a0a;
   --color-camera-fg: #ffffff;
+  /* Dims the camera feed outside the scan frame. */
+  --color-camera-dim: rgb(0 0 0 / 0.5);
 
   --font-sans:
     'DIN Next LT W05', 'Barlow', ui-sans-serif, system-ui, sans-serif;
@@ -95,12 +99,28 @@
   --shadow-*: initial;
   /* Colour is a runtime variable so light mode can soften it (see below). */
   --shadow-card: 0 1px 3px var(--shadow-card-color);
+  /* A spread big enough to cover the screen: dims everything around the scan frame. */
+  --shadow-camera-dim: 0 0 0 100vmax var(--color-camera-dim);
 
-  --container-phone: 390px; /* design width; the column is centred on desktop */
+  --container-phone: 390px; /* design width; kept as a centred column from 480px up */
+  --breakpoint-tablet: 30rem; /* below this the app is full width, no side margins */
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   --animate-scan-line: scan-line 2.4s var(--ease-standard) infinite alternate;
+
+  --animate-sheet-up: sheet-up 220ms var(--ease-standard);
+
+  @keyframes sheet-up {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   @keyframes scan-line {
     from {

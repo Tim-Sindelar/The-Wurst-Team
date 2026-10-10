@@ -26,7 +26,7 @@ import { Icon } from '../components/Icon';
    ui-* classes from components.css; screens pick a variant and never restyle.
 
    Variants:
-   - Button: primary (default), secondary, danger, quiet
+   - Button: primary (default), secondary, danger, quiet, map (32px, on the room map)
    - ActionIcon: icon (default, 44px), map (32px map control), camera
    - Alert: info (default), warning, danger */
 

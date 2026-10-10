@@ -41,6 +41,14 @@
         @apply bg-accent text-on-accent;
       }
     }
+    /* Text button floating on a map, the same 32px height and look as the map's icon buttons. */
+    &[data-variant='map'] {
+      @apply h-8 border-border-strong bg-surface px-3 text-small text-text shadow-card;
+
+      &:disabled {
+        @apply opacity-40;
+      }
+    }
     &[data-variant='quiet'] {
       @apply h-11 bg-transparent px-2 text-accent underline underline-offset-3;
 
@@ -285,7 +293,7 @@
     @apply bg-overlay;
   }
   .ui-sheet-content {
-    @apply h-auto max-h-[90vh] max-w-phone overflow-auto rounded-t-sheet rounded-b-none border border-b-0 border-border bg-surface text-text shadow-card;
+    @apply h-auto max-h-[90vh] tablet:max-w-phone overflow-auto rounded-t-sheet rounded-b-none border border-b-0 border-border bg-surface text-text shadow-card;
   }
   .ui-sheet-body {
     @apply p-0;

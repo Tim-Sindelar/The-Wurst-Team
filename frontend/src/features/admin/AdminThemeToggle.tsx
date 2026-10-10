@@ -3,10 +3,10 @@ import {
   useComputedColorScheme,
   useMantineColorScheme,
 } from '@mantine/core';
-import { Icon } from './Icon';
+import { Icon } from '../../components/Icon';
 
-/** Sun/moon button that switches the whole app between dark and light. */
-export function ThemeToggle() {
+/** Sun/moon button in the admin header; the app itself switches theme on Profile. */
+export function AdminThemeToggle() {
   const { setColorScheme } = useMantineColorScheme();
   const light = useComputedColorScheme('dark') === 'light';
 

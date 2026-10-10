@@ -40,6 +40,12 @@ const paths = {
     </>
   ),
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  edit: (
+    <>
+      <path d="M14.5 4.5l5 5M4 20l1-5L16 4a2.1 2.1 0 0 1 3 3L8 18z" />
+      <path d="M4 20l4-2" />
+    </>
+  ),
   coffee: (
     <>
       <path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z" />

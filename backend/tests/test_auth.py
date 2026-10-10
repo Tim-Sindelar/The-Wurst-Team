@@ -220,7 +220,7 @@ def test_profile_rejects_invalid_name(profile_client, name):
 
 @pytest.mark.parametrize(
     "data, status",
-    [(b"not an image", 400), (b"<svg></svg>", 400), (b"a" * (2 * 1024 * 1024 + 1), 413)],
+    [(b"not an image", 400), (b"<svg></svg>", 400), (b"a" * (12 * 1024 * 1024 + 1), 413)],
     ids=["invalid", "svg", "oversized"],
 )
 def test_profile_rejects_invalid_photo_atomically(profile_client, data, status):
@@ -240,6 +240,24 @@ def test_profile_rejects_invalid_photo_atomically(profile_client, data, status):
 def test_profile_update_requires_identity(profile_client):
     client, _settings = profile_client
     assert client.patch("/api/v1/me", data={"name": "Nobody"}).status_code == 401
+
+
+def test_profile_accepts_photo_above_old_upload_limit(profile_client):
+    client, _settings = profile_client
+    owner = {"X-User-Id": "student@ethz.ch"}
+    # A valid PNG with extra source data still fits the new 12 MiB upload budget.
+    uploaded = photo_bytes() + b"\0" * (5 * 1024 * 1024)
+    response = client.patch(
+        "/api/v1/me",
+        headers=owner,
+        data={"name": "Student"},
+        files={"photo": ("large.png", uploaded, "image/png")},
+    )
+    assert response.status_code == 200
+    stored = b64decode(response.json()["photo_url"].split(",")[1])
+    assert len(stored) < 100_000
+    with Image.open(BytesIO(stored)) as photo:
+        assert photo.size == (256, 128)
 
 
 def test_profile_rejects_large_dimensions(profile_client):

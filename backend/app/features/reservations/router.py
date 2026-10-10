@@ -14,6 +14,7 @@ from app.features.reservations.schemas import (
     CreateReservationRequest,
     FavouritesResponse,
     MyReservationResponse,
+    RecentsResponse,
     RequestValidationErrorResponse,
     ReservationResponse,
     RulesResponse,
@@ -92,6 +93,11 @@ def remove_favourite(space_id: UUID, service: Service, user_id: CurrentUser) -> 
     response = service.set_favourite(user_id, space_id, False)
     service.session.commit()
     return response
+
+
+@router.get("/me/recents", response_model=RecentsResponse, operation_id="list_recents")
+def list_recents(service: Service, user_id: CurrentUser) -> RecentsResponse:
+    return service.recents(user_id)
 
 
 @router.get("/spaces/{space_id}", response_model=SpaceResponse, operation_id="get_space")

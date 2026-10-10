@@ -37,7 +37,7 @@ export function StatusBanner({
         placement === 'admin'
           ? 'admin-banner-region'
           : urgent
-            ? 'pointer-events-none fixed top-16 left-1/2 z-30 grid w-full max-w-phone -translate-x-1/2 gap-2 p-2'
+            ? 'pointer-events-none fixed top-16 left-1/2 z-30 grid w-full tablet:max-w-phone -translate-x-1/2 gap-2 p-2'
             : opened
               ? 'grid gap-2'
               : 'hidden'

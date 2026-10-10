@@ -6,7 +6,7 @@ import { Link, NavLink, Outlet, useParams, useLocation } from 'react-router';
 import { Alert, Avatar, Button, Title, Text } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import * as queries from '../../api/generated/@tanstack/react-query.gen';
-import { ThemeToggle } from '../../components/ThemeToggle';
+import { AdminThemeToggle } from './AdminThemeToggle';
 import { Icon } from '../../components/Icon';
 import { AdminStateChip } from './AdminStateChip';
 import { adminHeaders, errorMessage } from './useAdminAction';
@@ -53,7 +53,7 @@ export function AdminShell() {
               <Text size="sm" className="flex-1">
                 Admin
               </Text>
-              <ThemeToggle />
+              <AdminThemeToggle />
             </div>
           </div>
         </aside>

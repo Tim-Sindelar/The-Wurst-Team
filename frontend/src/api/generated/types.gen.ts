@@ -1613,6 +1613,18 @@ export type ReadinessResponse = {
 };
 
 /**
+ * RecentsResponse
+ *
+ * Space ids, most recently used first.
+ */
+export type RecentsResponse = {
+    /**
+     * Space Ids
+     */
+    space_ids: Array<string>;
+};
+
+/**
  * ReplaceOpeningHoursRequest
  */
 export type ReplaceOpeningHoursRequest = {
@@ -3963,6 +3975,43 @@ export type AddFavouriteResponses = {
 };
 
 export type AddFavouriteResponse = AddFavouriteResponses[keyof AddFavouriteResponses];
+
+export type ListRecentsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/recents';
+};
+
+export type ListRecentsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListRecentsError = ListRecentsErrors[keyof ListRecentsErrors];
+
+export type ListRecentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecentsResponse;
+};
+
+export type ListRecentsResponse = ListRecentsResponses[keyof ListRecentsResponses];
 
 export type GetMyReservationData = {
     body?: never;
