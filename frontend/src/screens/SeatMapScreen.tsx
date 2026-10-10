@@ -19,6 +19,7 @@ import {
 import { SeatChip } from '../components/SeatChip';
 import { SeatMap } from '../components/seat-map/SeatMap';
 import { apiProblem } from '../domain/booking';
+import { savedLayout } from '../features/admin/layoutDocument';
 import { layoutSeats } from '../domain/room';
 import { describeAvailability } from '../domain/space';
 import {
@@ -49,9 +50,14 @@ export function SeatMapScreen() {
   const space = spaceQuery.data?.space;
   const ownSeatId =
     reservation && (held || running) ? reservation.seat.id : null;
-  const { shown: seats, hidden } = useMemo(
-    () => layoutSeats(space?.seats ?? [], ownSeatId),
-    [space?.seats, ownSeatId],
+  const layout = useMemo(() => savedLayout(space?.layout), [space?.layout]);
+  const {
+    plan,
+    shown: seats,
+    hidden,
+  } = useMemo(
+    () => layoutSeats(space?.seats ?? [], ownSeatId, layout),
+    [space?.seats, ownSeatId, layout],
   );
 
   const header = (
@@ -199,7 +205,16 @@ export function SeatMapScreen() {
         {seat ? (
           <>
             <div className="min-h-0 flex-1 basis-0">
-              <SeatMap seats={seats} selected={seat.id} onSelect={setPicked} />
+              {/* The pan and zoom measure the room once, so a new size remounts. */}
+              <SeatMap
+                key={
+                  plan ? `${plan.room.width}x${plan.room.height}` : 'stand-in'
+                }
+                plan={plan}
+                seats={seats}
+                selected={seat.id}
+                onSelect={setPicked}
+              />
             </div>
 
             <Card

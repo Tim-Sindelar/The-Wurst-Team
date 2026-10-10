@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react';
 import { Icon, type IconName } from '../../components/Icon';
 import geometry from './geometry';
 import type { LayoutItem, RoomGeometry } from './models';
@@ -14,7 +15,7 @@ const seatFill: Record<string, string> = {
 };
 const path = (points: [number, number][]) =>
   points.map((p, i) => (i ? 'L' : 'M') + p.join(' ')).join('') + 'Z';
-function FeatureBadge({
+export function FeatureBadge({
   icon,
   title,
   x,
@@ -45,6 +46,7 @@ export function RoomScene({
   onResize,
   onRotate,
   resizeHandles = editor,
+  interactive = true,
 }: {
   room: RoomGeometry;
   objects: LayoutItem[];
@@ -55,6 +57,8 @@ export function RoomScene({
   resizeHandles?: boolean;
   onResize?: (id: string, handle: string, dx: number, dy: number) => void;
   onRotate?: (id: string, delta: number) => void;
+  /** False draws the room as a picture: no item is focusable or clickable. */
+  interactive?: boolean;
 }) {
   return (
     <>
@@ -83,26 +87,27 @@ export function RoomScene({
         return (
           <g
             key={o.id}
-            data-item={o.id}
-            className="admin-scene-item"
-            role="button"
-            tabIndex={0}
-            aria-label={
-              (o.type === 'seat'
-                ? 'Seat ' + String(o.number).padStart(2, '0')
-                : o.label || o.type) +
-              (o.type === 'seat'
-                ? ', ' + (o.state || 'unknown').replace('_', ' ')
-                : '')
-            }
-            aria-pressed={selected === o.id}
-            onClick={() => onSelect?.(o.id)}
-            onKeyDown={(e) => {
-              if (['Enter', ' '].includes(e.key)) {
-                e.preventDefault();
-                onSelect?.(o.id);
-              }
-            }}
+            {...(interactive && {
+              'data-item': o.id,
+              className: 'admin-scene-item',
+              role: 'button',
+              tabIndex: 0,
+              'aria-label':
+                (o.type === 'seat'
+                  ? 'Seat ' + String(o.number).padStart(2, '0')
+                  : o.label || o.type) +
+                (o.type === 'seat'
+                  ? ', ' + (o.state || 'unknown').replace('_', ' ')
+                  : ''),
+              'aria-pressed': selected === o.id,
+              onClick: () => onSelect?.(o.id),
+              onKeyDown: (e: KeyboardEvent) => {
+                if (['Enter', ' '].includes(e.key)) {
+                  e.preventDefault();
+                  onSelect?.(o.id);
+                }
+              },
+            })}
             transform={
               'translate(' + o.x + ' ' + o.y + ') rotate(' + angle + ')'
             }

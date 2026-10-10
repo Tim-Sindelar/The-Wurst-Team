@@ -91,3 +91,12 @@ export function documentFor(
     }),
   };
 }
+/** The saved layout for drawing the room, or null when there is none or it
+    can't be read (the seat map then falls back to its stand-in plan). */
+export function savedLayout(value: unknown): LayoutDocument | null {
+  try {
+    return readLayout(value);
+  } catch {
+    return null;
+  }
+}
