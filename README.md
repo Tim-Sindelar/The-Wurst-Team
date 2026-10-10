@@ -143,7 +143,8 @@ not replace the frontend's live individual-booking flow. See [the social backend
 for setup, endpoints, consent rules, and the frontend integration boundary.
 
 A separate frontend draft is at `http://127.0.0.1:5173/social-draft` and in CI-deployed PR previews.
-Open it through **Friends** in the Home / Map / Friends bottom navigation. Its hub
+Open it through **Friends** in the Home / Map / Friends / Profile bottom navigation. Profile replaces
+the avatar shortcut on Home; Home / Map / Profile remain available when the social preview is off. Its hub
 shows privacy first, a party entry and one friend list with shared rooms first. Requests have
 their own page; Add a friend stays pinned above bottom navigation. People search, friend requests,
 friendships and privacy use the real backend when enabled; signing in makes names and avatars

@@ -35,7 +35,7 @@ colours appear only on seats and seat summaries. Non-seat membership states use 
 Destructive decisions use the existing danger decision sheet, and confirmations use the existing
 notification banner. Both colour schemes are supported through existing theme tokens.
 
-The demo trials persistent **Home / Map / Friends** bottom navigation, outside the
+The demo uses persistent **Home / Map / Friends / Profile** bottom navigation, outside the
 scrolling viewport. Page actions sit above it, and the campus map fills the remaining viewport.
 Friends has privacy first, a study-party entry, then one combined friend list showing shared
 rooms. Friends with a permitted active location come first; names order each group. No shared
@@ -124,14 +124,15 @@ and markup; live visual review remains unavailable while computer use is not wor
   expiry for the whole roster. The current prototype only counts down the viewed reservation/session.
 - Remove the preview toolbar and draft scan affordance before shipping.
 
-Shared changes are `AppLayout` and `BottomNavigation` for the development navigation trial,
+Shared changes are `AppLayout` and `BottomNavigation` for persistent navigation,
 in-page routine `StatusBanner` confirmations, shared icons/theme styles, and the optional
 `SeatMap.highlightedSeats` prop. Individual seat screens omit highlights. The social draft code
 lives under `frontend/src/features/social-draft/`; `App.tsx` registers its lazy routes when the demo
 flag is enabled. Local development defaults on; CI enables the flag for PR builds and leaves it
 off in normal production. PR deploys separately enable the social backend; local live friendships
 require `SOCIAL_ENABLED=true`. Docker exposes `SOCIAL_DEMO_ENABLED` as a build argument.
-The deployed bundle check verifies navigation is included only in preview images. DOM checks also
+Home / Map / Profile stay available when the social preview is disabled; the Friends destination
+and its lazy routes follow the preview flag. DOM checks also
 cover production mode with the flag enabled, prefixed links/storage, and four-seat manual booking.
 
 Directory interactions were checked in an in-memory DOM in dark and light: ID-based requests,
