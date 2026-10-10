@@ -15,7 +15,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/components/` | Shared building blocks: `Screen` frame, `DecisionSheet`, `StatusBanner`, `TimerCard`, `SeatChip`, `Icon`, the seat map |
 | `src/screens/` | One file per screen, in flow order: Home, SeatMap, Reservation, Scan, Session, Profile |
 | `src/domain/` | Domain types and per-state lookups (seat states, labels, state classes) |
-| `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useQrScanner`, `useNow`, `useCountdown` |
+| `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useServerEvents` (the events WebSocket), `useQrScanner`, `useNow`, `useCountdown` |
 | `src/routes.ts` | Screen paths |
 | `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
@@ -41,13 +41,13 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | In-page notice | `Alert` with `variant="info"` (default), `"warning"` or `"danger"` |
 | Countdown | `TimerCard` (label, ticking time, progress bar) |
 | Decision before an action | `DecisionSheet`: safe option left (outlined), action right; `actionTone="danger"` for end or cancel |
-| Something happened | `StatusBanner` (auto-hides after 6s unless `urgent`) |
+| Something happened | `StatusBanner` (auto-hides after 6s unless `urgent`); for server events, `describeEvent` in `src/domain/serverEvents.ts` (see "Real-time events") |
 | Toggle | `Switch` with a `label` |
 | Text | `Title order={1}` is the 28px screen heading, `order={2/3}` the 20px title (add `text-heading` for a heading-sized `h2`). `Text size="sm"` for secondary text, `c="dimmed"` for muted. Section labels: `SectionLabel`. Timers: `text-timer tabular-nums` |
 | Icons | `Icon` from `src/components/Icon.tsx` only (24px outline, 1.75 stroke). Add new icons there |
 | Screen layout | `Screen` > `ScreenHeader` (back, title, theme switch) > `ScreenMain` > `ActionBar` |
 
-Only two kinds of popup exist: the decision sheet and the notification banner. Don't add a third. (The campus map's bottom sheets, `MapSheet`, use the decision sheet's frame for its settings and its room dashboard.) Errors on a screen are shown in place as a `danger` notice.
+Only two kinds of popup exist: the decision sheet and the notification banner. Don't add a third. Server events show the same banner through `@mantine/notifications` (themed in `theme.tsx`, `.ui-notifications`), so they are not a third kind. (The campus map's bottom sheets, `MapSheet`, use the decision sheet's frame for its settings and its room dashboard.) Errors on a screen are shown in place as a `danger` notice.
 
 ### Design rules that apply to code
 
@@ -94,6 +94,14 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - The room screen (`/seats/:spaceId`, `SeatMapScreen`) is a full-bleed `SeatMap` under the header with nothing selected at first. Tapping a seat opens `SeatSheet` (a non-modal card at the bottom, not a third popup); its action opens the decision sheet to confirm. The `map` button "Choose any free seat" top right picks a random other free seat and is hidden while the user holds a seat. If the server answers `seat_unavailable` to a reservation (someone else was first), the sheet closes and a danger `Alert` "Seat X was just taken" with "Choose another seat" shows over the map; other errors stay inside the decision sheet.
 - The notification switches on Profile save per-user preferences automatically in localStorage on this device; notification delivery is not implemented.
 - Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`. The camera feed fills the scan screen, dimmed outside the scan frame; there is no typed-code fallback. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
+
+### Real-time events
+
+- The app keeps one WebSocket open to `/api/v1/events` while signed in (`useServerEvents`, mounted once by `ServerEventNotifications` in `AppLayout`). It reconnects with backoff, and at once when the device is back online or the app is shown again. Each event refetches every query (`useRefreshBooking`) and shows a notification banner from `describeEvent` (`src/domain/serverEvents.ts`), which owns the wording, icon and the screen it links to. The banner's title is that link, stretched over the whole banner, so tapping anywhere opens it. The server sends a `ping` every 25 s; it shows nothing.
+- Backend: `backend/app/features/events/`. `hub.publish(user_id, event)` is thread safe, so sync routes can call it. The socket authenticates with `get_current_user` like any route (it takes an `HTTPConnection`), so it needs the proxy's `X-User-Id`, or the default demo user in demo mode (browsers can't set `X-Demo-User-Id` on a WebSocket). The hub lives in memory: correct for the single uvicorn process we run. More workers would need Postgres `LISTEN/NOTIFY` behind the same `publish()`.
+- Only committed changes notify: `SocialService` queues `(recipient, event)` in `self.events` and the router's `saved()` publishes after `commit()`. Never notify the user who acted, and never notify for retries that changed nothing.
+- Events are pydantic models in `events/schemas.py`, joined in the `ServerEvent` union. `main.py` adds that union to the OpenAPI document (WebSockets aren't in it otherwise), so `make generate` gives the frontend the `ServerEvent` type. To add an event: add its model to the union, append it where the change happens (published after commit), run `make generate`, then add its case to `describeEvent`.
+- The Vite dev proxy forwards WebSockets (`ws: true`); Caddy does on its own; the service worker never touches `/api`.
 
 ### Code conventions
 

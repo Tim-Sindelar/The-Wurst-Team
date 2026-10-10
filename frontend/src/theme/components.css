@@ -265,6 +265,43 @@
     }
   }
 
+  /* --- Notifications: stack of banners for server events, placed like an
+     urgent StatusBanner -------------------------------------------------- */
+  /* Mantine renders a container for every position; only the one we use
+     moves, so the empty others stay out of the way. */
+  .ui-notifications[data-position='top-center'] {
+    @apply top-[calc(--spacing(16)+env(safe-area-inset-top))] w-full max-w-none p-2 tablet:max-w-phone;
+  }
+  .ui-notifications-item + .ui-notifications-item {
+    @apply mt-2;
+  }
+  /* A banner with somewhere to go: its title is a link stretched over the
+     whole banner; the close button stays on top. */
+  .ui-notifications-item:has(.ui-banner-link) {
+    @apply relative;
+
+    /* Tint without losing the opaque background, as filled buttons do. */
+    &:hover {
+      @apply shadow-[inset_0_0_0_100px_var(--color-hover),var(--shadow-card)];
+    }
+    &:has(.ui-banner-link:focus-visible) {
+      @apply outline-2 outline-offset-2 outline-focus outline-solid;
+    }
+    & .ui-banner-close {
+      @apply relative z-1;
+    }
+  }
+  .ui-banner-link {
+    @apply text-inherit no-underline;
+
+    &::after {
+      @apply absolute inset-0 rounded-card content-[''];
+    }
+    &:focus-visible {
+      @apply outline-none;
+    }
+  }
+
   /* --- Popover (seat map colour key) -------------------------------------- */
   .ui-popover {
     @apply grid gap-3 rounded-card border border-border-strong bg-surface p-4 text-text shadow-card;

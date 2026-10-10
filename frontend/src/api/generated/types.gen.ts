@@ -980,6 +980,20 @@ export type EthSnapshot = {
 };
 
 /**
+ * EventPerson
+ */
+export type EventPerson = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * FavouritesResponse
  */
 export type FavouritesResponse = {
@@ -990,6 +1004,21 @@ export type FavouritesResponse = {
 };
 
 /**
+ * FriendRequestAcceptedEvent
+ */
+export type FriendRequestAcceptedEvent = {
+    /**
+     * Friendship Id
+     */
+    friendship_id: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'friend_request.accepted';
+};
+
+/**
  * FriendRequestCreate
  */
 export type FriendRequestCreate = {
@@ -997,6 +1026,21 @@ export type FriendRequestCreate = {
      * User Id
      */
     user_id: string;
+};
+
+/**
+ * FriendRequestReceivedEvent
+ */
+export type FriendRequestReceivedEvent = {
+    /**
+     * Friendship Id
+     */
+    friendship_id: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'friend_request.received';
 };
 
 /**
@@ -1355,6 +1399,24 @@ export type PartyBook = {
 };
 
 /**
+ * PartyBookedEvent
+ */
+export type PartyBookedEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    /**
+     * Type
+     */
+    type?: 'party.booked';
+};
+
+/**
  * PartyCancellation
  */
 export type PartyCancellation = {
@@ -1363,6 +1425,24 @@ export type PartyCancellation = {
      */
     cancelled_reservation_ids: Array<string>;
     party: PartyResponse;
+};
+
+/**
+ * PartyCancelledEvent
+ */
+export type PartyCancelledEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    /**
+     * Type
+     */
+    type?: 'party.cancelled';
 };
 
 /**
@@ -1386,6 +1466,44 @@ export type PartyInvite = {
 };
 
 /**
+ * PartyInvitedEvent
+ */
+export type PartyInvitedEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.invited';
+};
+
+/**
+ * PartyLeftEvent
+ */
+export type PartyLeftEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.left';
+};
+
+/**
  * PartyMemberResponse
  */
 export type PartyMemberResponse = {
@@ -1399,6 +1517,29 @@ export type PartyMemberResponse = {
      * Status
      */
     status: 'invited' | 'accepted' | 'declined' | 'left';
+};
+
+/**
+ * PartyRepliedEvent
+ */
+export type PartyRepliedEvent = {
+    /**
+     * Accepted
+     */
+    accepted: boolean;
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.replied';
 };
 
 /**
@@ -1464,6 +1605,18 @@ export type PeopleResponse = {
      * People
      */
     people: Array<DirectoryPerson>;
+};
+
+/**
+ * PingEvent
+ *
+ * Heartbeat so proxies keep an idle socket open. Clients ignore it.
+ */
+export type PingEvent = {
+    /**
+     * Type
+     */
+    type?: 'ping';
 };
 
 /**
@@ -1827,6 +1980,29 @@ export type SeatAvailability = {
      */
     state: 'free' | 'reserved' | 'occupied' | 'on_break' | 'claimable' | 'unavailable';
 };
+
+/**
+ * ServerEvent
+ *
+ * One message on the /api/v1/events WebSocket.
+ */
+export type ServerEvent = ({
+    type: 'friend_request.received';
+} & FriendRequestReceivedEvent) | ({
+    type: 'friend_request.accepted';
+} & FriendRequestAcceptedEvent) | ({
+    type: 'party.invited';
+} & PartyInvitedEvent) | ({
+    type: 'party.replied';
+} & PartyRepliedEvent) | ({
+    type: 'party.left';
+} & PartyLeftEvent) | ({
+    type: 'party.booked';
+} & PartyBookedEvent) | ({
+    type: 'party.cancelled';
+} & PartyCancelledEvent) | ({
+    type: 'ping';
+} & PingEvent);
 
 /**
  * SocialCapabilities

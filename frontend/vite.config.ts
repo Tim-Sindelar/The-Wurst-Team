@@ -33,8 +33,8 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       strictPort: true,
-      // FastAPI, including the campus map under /api/v1/map.
-      proxy: { '/api': 'http://127.0.0.1:8000' },
+      // FastAPI, including the campus map under /api/v1/map and the events socket.
+      proxy: { '/api': { target: 'http://127.0.0.1:8000', ws: true } },
     },
   };
 });

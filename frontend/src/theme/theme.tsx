@@ -18,6 +18,7 @@ import {
   Title,
   type CSSVariablesResolver,
 } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { Icon } from '../components/Icon';
 
 /* Mantine configured to look like design/base.css. Each component gets the
@@ -183,6 +184,20 @@ export const theme = createTheme({
         title: 'ui-banner-title',
         description: 'ui-banner-description',
         closeButton: 'ui-banner-close',
+      },
+    }),
+
+    /* Server events (useServerEvents): a stack of the banners above. */
+    Notifications: Notifications.extend({
+      defaultProps: {
+        position: 'top-center',
+        limit: 3,
+        autoClose: 6000,
+        withAutoCloseProgress: false,
+      },
+      classNames: {
+        root: 'ui-notifications',
+        notification: 'ui-notifications-item',
       },
     }),
 

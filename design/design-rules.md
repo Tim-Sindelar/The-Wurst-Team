@@ -128,6 +128,7 @@ Used to tell the user something happened. No decision needed (at most one action
 - Auto-dismisses after about 6 seconds, except urgent ones, which stay until tapped or swiped away: check-in reminder, seat lost, session end with the hand-over note.
 - Announced to screen readers (`role="status"`, or `role="alert"` for the urgent ones).
 - Same six messages as in the user flow: check-in reminder, seat lost, priority window opens (T-20), everybody can extend (T-10), session ended, your booked seat is free early.
+- Things that happen while the app is open (a friend request, a party invite, reply, booking or cancellation) arrive from the server as the same banner, with an icon for the kind of event. Tapping the banner opens the friend or party screen it is about. At most three stack in the order they arrive, 8px apart; each auto-dismisses after about 6 seconds and can be swiped away.
 
 ### Not popups
 - Errors on a screen (for example "You don't seem to be at this seat") are shown in place, inside the screen, not as a popup.
