@@ -25,6 +25,8 @@ One version of everything. Nothing is duplicated.
 | `screens/_template.html` | Copy this to start a screen |
 | `screens/NN-name.html` | The screens, in flow order |
 | `docs.css` | Layout of the guide pages only. Screens never load it |
+| `admin.css` | Layout and parts for the admin dashboard only (side menu, tables, dialogs). Student screens never load it |
+| `admin/NN-name.html` | The admin dashboard pages, desktop-first |
 | `user-flow.drawio.xml` | The user flow, source of truth |
 
 To start a screen: copy `screens/_template.html` to `screens/01-home.html`, build it from the parts on `components.html`, and link its primary button to the next screen.
@@ -162,6 +164,64 @@ Notifications are push banners, not screens. Mock at most as a banner component:
 ## Open items
 - Hold time X is a 10 min placeholder and break length a 15 min placeholder. Extension is 2 hours and a break does not pause the session clock (decided).
 - "Seat is taken when I arrive": the flow marks it unsolved (trust-based). Mock nothing for now.
+
+## Admin dashboard (desktop)
+For the people who run the study spaces. Lives in `admin/`, loads `tokens.css`, `base.css` and `admin.css`.
+**Same look as the student app:** the same tokens, colours, fonts, seat-state meanings and the same two kinds of popup. Only the layout changes, because it is for a laptop.
+
+### Layout
+- **Desktop first.** Designed for 1280px and wider. It must not break on a phone (the side menu becomes a top bar under 900px), but it is not optimised for one.
+- **Side menu** on the left, `--sidebar-w` wide: the app name with "Admin", the menu, and at the bottom the theme switch.
+- **Page:** content is centred, at most `--content-max` wide, with 32px padding.
+- **Page header:** title on the left (28px heading) with one muted line below it, the page's **one primary action on the right**. The "primary pinned at the bottom" rule is for the phone app. On desktop it is top right.
+- **Sub-menu (tabs as links)** under the header when a page has sections, for example a space: Seats, Opening hours, Closures, Layout, Settings. The current one is underlined.
+- Content is built from cards and tables. No shadows beyond the card shadow, no extra colours.
+- **Notification banners** ("Updated", "Closure created") slide in at the bottom **right**, so they never cover the page title or its buttons. Same rules as the student app: fade after 6 seconds, urgent ones stay.
+
+### Tables
+- Hairline border, `--radius-card`, header row in the label style (12px caps, muted). Rows are `--row-h` (64px) high so buttons keep a 44px target.
+- Text left, numbers right and tabular. Status is a chip **with a word**. Never colour alone.
+- Row actions on the right as quiet buttons. A risky action (end reservation, delete) is a quiet button in `--danger`.
+- The name in the first column is the link. The whole row is not clickable.
+- Empty table: one line saying why it is empty and one button that fixes it.
+- Live tables show "Updated 10:42:05" and a Refresh button. They never move rows by themselves.
+
+### Forms
+- Labels above the field, helper text under it, errors inline in `--danger` with a message that says what to do.
+- Two columns on desktop, one on a phone. Fields use the shared 48px inputs.
+- Buttons at the bottom right of the form: the safe one (Cancel) on the left, the action (Save) on the right, filled.
+
+### Dialogs
+- A centred box, `--dialog-w` wide, with the dimmed screen behind. Title, one or two lines, footer with the buttons on the right: safe option left (outlined), action right (filled, or `--danger` outline when risky). Labels are verbs.
+- Closes with the X, Esc or a click outside, and all of those mean "no".
+- The student app's decision sheet and this dialog are the same rule: **ask before anything that changes bookings.**
+
+### Changing bookings: the impact preview (two steps)
+Anything that can change existing bookings (closing a space or seat, deleting a closure, switching a seat off, changing opening hours) never applies silently.
+1. The admin fills in the form and chooses **Preview impact**. Nothing is changed yet.
+2. A dialog lists every affected booking: the person, the seat, the action and the time before and after. The action is a chip with a word: **Cancel** (red), **Shorten** (orange), **Shift** (blue).
+3. **Apply changes** confirms (red outline if anything is cancelled), **Back** returns to the form. If nothing is affected the dialog says "No bookings are affected" and offers Apply.
+4. A banner confirms afterwards.
+The backend works the same way: the first request is refused with the list of affected bookings, and repeating it with `force=true` applies it.
+
+### Seat and space states in admin
+The backend reports six seat states. Admin shows them with the same colours and markers as the student app, and always the word:
+
+| Backend | Admin chip | Notes |
+|---|---|---|
+| `free` | Free | Nobody has it reserved or is using it |
+| `reserved` | Reserved | Reserved and waiting for check-in, or booked for later |
+| `occupied` | Occupied | A checked-in session. Only these count in the "Occupied" number |
+| `on_break` | On break | Away from the seat, session still running |
+| `claimable` | Bookable | Occupied but in its last 10 minutes, others may reserve it |
+| `unavailable` | Switched off, or Closed | Can't be reserved now. **Switched off** means an admin turned the seat off (`is_active` is false). **Closed** means a closure or the opening hours. Same muted look, different word |
+
+- "Free" in the counts is only the `free` state. Reserved, switched-off and closed seats never count as free.
+- A space shows **Open** or **Closed** as a chip with the word.
+- Booking changes in the impact preview use three more chips: **Cancel** (red), **Shorten** (orange), **Shift** (blue).
+
+### Sample data for the mockups
+Use the backend's demo spaces so the mockups match what will be wired later: "Hauptbibliothek · Lesesaal" and "Baubibliothek · Hönggerberg", four seats each, time zone Europe/Zurich. People, reservations and opening hours are made up (the backend's demo is open 24/7, the hours mockup shows a realistic week). The mockups never connect to anything.
 
 ## Working together
 - Split by screens, not by shared files. `tokens.css` and base styles change only after a quick message.

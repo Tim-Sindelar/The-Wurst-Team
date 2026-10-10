@@ -90,6 +90,12 @@
   --map-world-h: 760px;
   --map-viewport-h: 420px; /* pan/zoom window in a phone screen */
 
+  /* --- Admin dashboard (desktop) --------------------------------------- */
+  --sidebar-w: 15rem; /* 240px side menu */
+  --content-max: 72rem; /* about 1150px, widest admin page content */
+  --row-h: 4rem; /* 64px table row */
+  --dialog-w: 32rem; /* 512px centred dialog */
+
   /* --- Motion ---------------------------------------------------------- */
   --dur-fast: 150ms;
   --dur-base: 250ms;
