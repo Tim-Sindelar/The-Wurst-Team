@@ -86,7 +86,8 @@
       accent-color: var(--accent);
       min-height: 32px;
     }
-    a {
+    /* Plain links only: Mantine buttons rendered as links keep their theme. */
+    a:not([data-variant]) {
       color: var(--accent);
     }
     .muted {

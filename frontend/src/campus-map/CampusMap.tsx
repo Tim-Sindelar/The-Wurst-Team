@@ -570,6 +570,13 @@ export function CampusMap() {
           ),
         )?.id ?? null)
       : null;
+  const selectedSpace = selectedSpaceId
+    ? (spacesQuery.data?.spaces.find((space) => space.id === selectedSpaceId) ??
+      null)
+    : null;
+  const favourite = selectedSpace
+    ? favourites.ids.has(selectedSpace.id)
+    : false;
 
   // ---- the card for the current selection ----
   let peek: { title: string; detail: string; dot?: string } | null = null;
@@ -677,6 +684,17 @@ export function CampusMap() {
                   {peek.detail}
                 </span>
               </button>
+              {selectedSpace && (
+                <ActionIcon
+                  aria-pressed={favourite}
+                  aria-label={`Favourite ${selectedSpace.name}`}
+                  onClick={() =>
+                    favourites.toggle(selectedSpace.id, !favourite)
+                  }
+                >
+                  <Icon name="star" filled={favourite} />
+                </ActionIcon>
+              )}
               <ActionIcon
                 aria-label="Show details"
                 onClick={() => setDashboardOpen(true)}
@@ -693,9 +711,22 @@ export function CampusMap() {
                 to={seatMapPath(selectedSpaceId)}
                 fullWidth
               >
-                Open room plan
+                Open study space
               </Button>
             )}
+          </div>
+        )}
+
+        {selectedSpace && favourites.failed && (
+          <div className="pointer-events-auto">
+            <Alert
+              variant="danger"
+              role="alert"
+              icon={<Icon name="alert" />}
+              title="Couldn't update your favourites"
+            >
+              <Text size="sm">Check your connection and try again.</Text>
+            </Alert>
           </div>
         )}
 
@@ -905,7 +936,7 @@ export function CampusMap() {
               to={seatMapPath(selectedSpaceId)}
               fullWidth
             >
-              Open room plan
+              Open study space
             </Button>
           </div>
         )}
