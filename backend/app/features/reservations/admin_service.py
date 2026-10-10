@@ -50,6 +50,7 @@ from app.features.reservations.service import (
     ReservationState,
     reservation_states,
 )
+from app.features.social.models import PartyMember
 from app.models.favourite import FavouriteSpace
 from app.models.profile import UserProfile
 
@@ -537,6 +538,12 @@ class AdminReservationService(ReservationService):
             update(Reservation)
             .where(Reservation.previous_reservation_id.in_(reservation_ids))
             .values(previous_reservation_id=None)
+        )
+        # Keep party membership and its history, but detach removed bookings.
+        self.session.execute(
+            update(PartyMember)
+            .where(PartyMember.reservation_id.in_(reservation_ids))
+            .values(reservation_id=None)
         )
         self.session.execute(delete(Reservation).where(Reservation.seat_id.in_(seat_ids)))
         self.session.execute(delete(SpaceClosure).where(SpaceClosure.space_id == space_id))

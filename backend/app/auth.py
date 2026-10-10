@@ -74,7 +74,17 @@ def get_me(
         name, email = "Demo user", None
     else:
         email = request.headers["X-User-Id"].strip()
-        name = unquote(request.headers.get("X-User-Name", "")).strip() or email
+        name = unquote(request.headers.get("X-User-Name", "")).strip() or "Study Spaces user"
+    # The app loads /me on sign-in. Register the public display profile once,
+    # preserving subsequent profile edits and never using email as a public name.
+    if profile is None:
+        session.execute(
+            insert(UserProfile)
+            .values(id=user_id, name=name[:80])
+            .on_conflict_do_nothing(index_elements=[UserProfile.id])
+        )
+        session.commit()
+        profile = session.get(UserProfile, user_id)
     photo_url = None
     if profile:
         name = profile.name

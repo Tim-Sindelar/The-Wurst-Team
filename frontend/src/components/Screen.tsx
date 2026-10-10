@@ -18,7 +18,7 @@ export function Screen({
   return (
     <div
       className={cx(
-        'relative mx-auto flex min-h-dvh w-full max-w-phone flex-col border-x border-border bg-bg',
+        'relative mx-auto flex min-h-full w-full max-w-phone flex-col border-x border-border bg-bg',
         className,
       )}
     >

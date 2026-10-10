@@ -508,6 +508,12 @@
       min-width: 80px;
       object-fit: cover;
     }
+    /* Until a photo is on screen: the size of a 4:3 photo, so only the ones in view load. */
+    .room-photo-placeholder {
+      display: block;
+      width: 160px;
+      height: 120px;
+    }
     .day-bar {
       position: relative;
       margin-bottom: 4px;
@@ -631,6 +637,43 @@
     .free-filters input[type='search'] {
       flex: 1;
       min-width: 120px;
+    }
+    .workspace-search {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    /* Live status of the ETH rooms of a workspace, in its popup. */
+    .live-rooms {
+      list-style: none;
+      margin: 0 0 10px;
+      padding: 0;
+      display: grid;
+      gap: 4px;
+    }
+    .live-rooms button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 44px;
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-control);
+      background: var(--panel);
+      text-align: left;
+      cursor: pointer;
+    }
+    .live-rooms .status-dot {
+      flex: none;
+    }
+    .live-rooms .live-room-text {
+      display: grid;
+      min-width: 0;
+    }
+    .live-rooms .live-room-text > * {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .free-filters input[type='number'] {
       width: 72px;
@@ -930,8 +973,7 @@
       justify-content: center;
       color: #fff;
     }
-    .lib-count,
-    .lib-floor {
+    .lib-count {
       position: absolute;
       top: -7px;
       min-width: 18px;
@@ -951,12 +993,6 @@
       background: #1c2430;
       color: #fff;
     }
-    .lib-floor {
-      left: -9px;
-      background: var(--panel);
-      color: var(--text);
-      border-color: var(--unknown);
-    }
     .lib-ok .lib-shape {
       background: var(--free);
     }
@@ -969,12 +1005,6 @@
     .lib-pin.is-selected .lib-shape {
       outline: 3px solid var(--text);
       outline-offset: 1px;
-    }
-    .lib-pin.is-other-floor {
-      opacity: 0.55;
-    }
-    .lib-pin.is-other-floor.is-selected {
-      opacity: 1;
     }
 
     .table-marker {
@@ -1157,40 +1187,6 @@
       font-size: 10px;
     }
 
-    /* room status legend and time slider, above the bottom bar */
-    .occ-legend {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 8px 12px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      font-size: var(--text-label);
-    }
-    .occ-legend-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px 12px;
-    }
-    .occ-legend-items span {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-    }
-    .occ-legend-time {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .occ-time {
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
     /* Leaflet controls: 44px touch targets, below the top bar */
     .leaflet-container {
       font: inherit;
@@ -1229,14 +1225,11 @@
       width: 44px;
       height: 44px;
     }
-    .leaflet-control-layers-expanded {
-      padding: 8px 12px;
-      font-size: var(--text-small);
-    }
-    .leaflet-control-layers-base label {
-      display: flex;
-      align-items: center;
-      min-height: 40px;
+    /* The layers button opens the map view sheet (ModeControl). */
+    .leaflet-bar a:focus-visible,
+    .leaflet-control-layers-toggle:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: -2px;
     }
     .leaflet-bar a:focus-visible,
     .leaflet-control-layers-toggle:focus-visible {
@@ -1286,9 +1279,6 @@
   [data-mantine-color-scheme='dark'] :is(.campus-map, .admin-room-map) {
     .leaflet-container {
       background: #14171c;
-    }
-    .leaflet-control-layers-separator {
-      border-top-color: var(--border);
     }
     /* OpenFreeMap has no dark style: invert the light one in dark theme. */
     .maplibregl-canvas {

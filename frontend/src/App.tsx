@@ -1,10 +1,6 @@
-import {
-  createBrowserRouter,
-  Navigate,
-  Outlet,
-  RouterProvider,
-  ScrollRestoration,
-} from 'react-router';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
+import { AppLayout } from './components/AppLayout';
+import { socialEnabled } from './features';
 import { paths } from './routes';
 import { AdminShell, AdminSpaceShell } from './features/admin/AdminShell';
 import { AdminSpacesPage } from './features/admin/AdminSpacesPage';
@@ -25,45 +21,40 @@ import { ScanScreen } from './screens/ScanScreen';
 import { SeatMapScreen } from './screens/SeatMapScreen';
 import { SessionScreen } from './screens/SessionScreen';
 
-function RootLayout() {
-  return (
-    <>
-      <ScrollRestoration />
-      <Outlet />
-    </>
-  );
-}
+const socialDraftRoutes = socialEnabled
+  ? (await import('./features/social-draft/routes')).socialDraftRoutes
+  : [];
 
 const router = createBrowserRouter(
   [
     {
-      element: <RootLayout />,
+      path: '/admin',
+      element: <AdminShell />,
       children: [
-        { path: '/check-in', element: <SeatCheckInPage /> },
+        { index: true, element: <AdminSpacesPage /> },
+        { path: 'new', element: <AdminNewSpacePage /> },
+        { path: 'users', element: <AdminUsersPage /> },
+        { path: 'users/:userId', element: <AdminUserPage /> },
+        { path: 'qr', element: <AdminQrPage /> },
         {
-          path: '/admin',
-          element: <AdminShell />,
+          path: 'spaces/:spaceId',
+          element: <AdminSpaceShell />,
           children: [
-            { index: true, element: <AdminSpacesPage /> },
-            { path: 'new', element: <AdminNewSpacePage /> },
-            { path: 'users', element: <AdminUsersPage /> },
-            { path: 'users/:userId', element: <AdminUserPage /> },
+            { index: true, element: <Navigate to="seats" replace /> },
+            { path: 'seats', element: <AdminSeatsPage /> },
+            { path: 'hours', element: <AdminHoursPage /> },
+            { path: 'closures', element: <AdminClosuresPage /> },
+            { path: 'layout', element: <AdminLayoutPage /> },
             { path: 'qr', element: <AdminQrPage /> },
-            {
-              path: 'spaces/:spaceId',
-              element: <AdminSpaceShell />,
-              children: [
-                { index: true, element: <Navigate to="seats" replace /> },
-                { path: 'seats', element: <AdminSeatsPage /> },
-                { path: 'hours', element: <AdminHoursPage /> },
-                { path: 'closures', element: <AdminClosuresPage /> },
-                { path: 'layout', element: <AdminLayoutPage /> },
-                { path: 'qr', element: <AdminQrPage /> },
-                { path: 'settings', element: <AdminSettingsPage /> },
-              ],
-            },
+            { path: 'settings', element: <AdminSettingsPage /> },
           ],
         },
+      ],
+    },
+    {
+      element: <AppLayout />,
+      children: [
+        { path: '/check-in', element: <SeatCheckInPage /> },
         { path: paths.home, element: <HomeScreen /> },
         { path: paths.map, element: <MapScreen /> },
         { path: '/seats', element: <Navigate to={paths.home} replace /> },
@@ -72,6 +63,7 @@ const router = createBrowserRouter(
         { path: paths.scan, element: <ScanScreen /> },
         { path: paths.session, element: <SessionScreen /> },
         { path: paths.profile, element: <ProfileScreen /> },
+        ...socialDraftRoutes,
       ],
     },
   ],

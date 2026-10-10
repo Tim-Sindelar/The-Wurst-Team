@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     dummy_auth_allow_header: bool = True
     dummy_is_admin: bool = False
     dummy_admin_allow_header: bool = True
+    social_enabled: bool = False
     # Campus map: fetched ETH bookings and campus datasets are cached here.
     map_cache_dir: Path = BACKEND_DIR / ".cache" / "campus-map"
     # Floor plans written by scraper/extract_floors.py (served under /api/v1/map/floors).

@@ -14,6 +14,7 @@ import {
   Modal,
   Popover,
   Progress,
+  Slider,
   Switch,
   TextInput,
   Title,
@@ -135,6 +136,16 @@ export const theme = createTheme({
         input: 'ui-switch-input',
         track: 'ui-switch-track',
         thumb: 'ui-switch-thumb',
+      },
+    }),
+
+    Slider: Slider.extend({
+      defaultProps: { size: 'lg', thumbSize: 28, label: null },
+      classNames: {
+        root: 'ui-slider',
+        thumb: 'ui-slider-thumb',
+        mark: 'ui-slider-mark',
+        markLabel: 'ui-slider-mark-label',
       },
     }),
 
