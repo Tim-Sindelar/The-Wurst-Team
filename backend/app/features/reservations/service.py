@@ -463,6 +463,15 @@ class ReservationService:
             if state.status == "pending":
                 row = self.session.get(Reservation, state.id, populate_existing=True)
                 row.checked_in_at = now
+                # The session clock starts at the scan, not at the booking, so the
+                # time spent holding the seat is not taken out of the session.
+                # A pending booking has no successor, so moving the end is safe.
+                row.ends_at = (
+                    self.reservable_end(
+                        seat.id, now, now + timedelta(minutes=self.settings.session_length_minutes)
+                    )
+                    or row.ends_at
+                )
                 self.session.flush()
             return state.id, now
         if self._live(now, seat_ids=[seat.id]):

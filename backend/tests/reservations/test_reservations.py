@@ -143,6 +143,20 @@ def test_extension_uses_config_without_replenishing_break_budget(client, seats, 
     assert extended["break_seconds_remaining"] == 1200
 
 
+def test_session_clock_starts_at_the_scan(client, seats, clock):
+    booked = book(client, seats[0]).json()["reservation"]
+    clock.advance(minutes=7)
+    checked = walk_up(client, seats[0]).json()["reservation"]
+    assert checked["status"] == "active"
+    scan = clock.value
+    assert checked["ends_at"] == (scan + timedelta(minutes=120)).isoformat().replace("+00:00", "Z")
+    assert checked["starts_at"] == booked["starts_at"]
+    # Scanning again changes nothing.
+    clock.advance(minutes=1)
+    again = walk_up(client, seats[0]).json()["reservation"]
+    assert again["ends_at"] == checked["ends_at"]
+
+
 def test_check_in_deadline_and_stale_user_cleanup(client, seats, clock, db):
     first = book(client, seats[0]).json()["reservation"]
     deadline = clock.value + timedelta(minutes=15)

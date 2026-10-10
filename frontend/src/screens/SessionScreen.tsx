@@ -236,12 +236,18 @@ export function SessionScreen() {
           label="Session time left"
           seconds={Math.max(
             1,
-            secondsBetween(running.starts_at, running.ends_at),
+            secondsBetween(
+              running.checked_in_at ?? running.starts_at,
+              running.ends_at,
+            ),
           )}
           expiresAt={sessionEnd}
           total={Math.max(
             1,
-            secondsBetween(running.starts_at, running.ends_at),
+            secondsBetween(
+              running.checked_in_at ?? running.starts_at,
+              running.ends_at,
+            ),
           )}
         >
           <Text size="sm" c="dimmed">
