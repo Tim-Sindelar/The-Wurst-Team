@@ -1202,7 +1202,7 @@
     }
     .leaflet-bar a,
     .leaflet-control-layers,
-    .leaflet-control-layers-toggle {
+    a.leaflet-control-layers-toggle {
       background-color: var(--panel);
       color: var(--text);
       border-color: var(--border);
