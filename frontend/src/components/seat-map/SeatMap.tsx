@@ -26,8 +26,8 @@ type SeatMapProps = {
   onChooseFree?: () => void;
   /** No free seat to choose: the button stays but is disabled. */
   chooseFreeDisabled?: boolean;
-  /** Height in px of what covers the bottom of the map (the seat sheet). */
-  bottomInset?: number;
+  /** Height in px of the seat card covering the bottom of the map right now. */
+  getCovered?: () => number;
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
@@ -39,21 +39,23 @@ export function SeatMap({
   onDeselect,
   onChooseFree,
   chooseFreeDisabled = false,
-  bottomInset = 0,
+  getCovered,
 }: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const panZoomRef = useRef<PanZoom | null>(null);
   const onSelectRef = useRef(onSelect);
   const onDeselectRef = useRef(onDeselect);
-  const insetRef = useRef(bottomInset);
+  const selectedRef = useRef(selected);
+  const coveredRef = useRef(getCovered);
   const [ready, setReady] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
     onDeselectRef.current = onDeselect;
-    insetRef.current = bottomInset;
+    selectedRef.current = selected;
+    coveredRef.current = getCovered;
   });
 
   useEffect(() => {
@@ -63,7 +65,8 @@ export function SeatMap({
     const panZoom = createPanZoom({
       viewport,
       world,
-      onDraw: () => {},
+      getCovered: () =>
+        selectedRef.current ? (coveredRef.current?.() ?? 0) : 0,
       onSeatTap: (seat) => onSelectRef.current(String(seat.dataset.seatId)),
       onMapPress: () => setKeyOpen(false),
       onMapTap: () => onDeselectRef.current(),
@@ -79,7 +82,7 @@ export function SeatMap({
     if (shownSelection.current === selected) return;
     shownSelection.current = selected;
     const seat = seats.find((item) => item.id === selected);
-    if (seat) panZoomRef.current?.centerOn(seat.x, seat.y, insetRef.current);
+    if (seat) panZoomRef.current?.centerOn(seat.x, seat.y);
   }, [selected, seats]);
 
   return (

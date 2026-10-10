@@ -13,7 +13,7 @@ import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
-import { Screen, ScreenMain } from '../components/Screen';
+import { SafeAreaTop, Screen, ScreenMain } from '../components/Screen';
 import { SectionLabel } from '../components/SectionLabel';
 import { SpaceCard } from '../components/SpaceCard';
 import { stripeClass, type SeatState } from '../domain/seat';
@@ -64,25 +64,24 @@ export function HomeScreen() {
 
   return (
     <Screen>
-      <ScreenMain safeTop>
+      <SafeAreaTop />
+      <ScreenMain>
         <div className="flex items-center justify-between gap-2">
           <Title order={1}>Study Spaces</Title>
-          <div className="flex items-center gap-2">
-            <ActionIcon
-              component={Link}
-              to={paths.profile}
-              aria-label={isError ? 'Profile unavailable' : 'Profile'}
-              aria-busy={isPending}
-              className="-mr-0.5"
-            >
-              <Avatar src={user?.photo_url} aria-hidden="true">
-                {initials}
-              </Avatar>
-            </ActionIcon>
-          </div>
+          <ActionIcon
+            component={Link}
+            to={paths.profile}
+            aria-label={isError ? 'Profile unavailable' : 'Profile'}
+            aria-busy={isPending}
+            className="-mr-0.5"
+          >
+            <Avatar src={user?.photo_url} aria-hidden="true">
+              {initials}
+            </Avatar>
+          </ActionIcon>
         </div>
 
-        <div className="sticky top-0 z-2 -mx-4 -mt-4 -mb-2 bg-bg px-4 pt-4 pb-2">
+        <div className="sticky top-[env(safe-area-inset-top)] z-2 -mx-4 -mt-4 -mb-2 bg-bg px-4 pt-4 pb-2">
           <TextInput
             type="search"
             placeholder="Search study spaces"
@@ -168,8 +167,8 @@ export function HomeScreen() {
           )
         ) : rows.every((row) => row.spaces.length === 0) ? (
           <Text c="dimmed" role="status">
-            Star a study space or book a seat to see it here. Search or open the
-            map to find any space.
+            Star a study space or book a seat to see it here. Search to find any
+            space.
           </Text>
         ) : (
           rows.map(

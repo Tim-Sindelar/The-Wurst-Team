@@ -45,7 +45,7 @@ export function SpaceCard({ space, onToggleFavourite }: SpaceCardProps) {
           </Anchor>
         </Title>
         <ActionIcon
-          className="relative z-1 -my-2 -mr-2 text-on-photo aria-pressed:text-accent"
+          className="relative z-1 -my-2 -mr-2 text-on-photo"
           aria-pressed={favourite}
           aria-label={`Favourite ${space.name}`}
           onClick={() => onToggleFavourite(!favourite)}

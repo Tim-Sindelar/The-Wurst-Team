@@ -8,7 +8,7 @@ export function tokenize(text: string): string[] {
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
-    .replace(/(\p{L})(\p{N})|(\p{N})(\p{L})/gu, '$1$3 $2$4')
+    .replace(/(?<=\p{L})(?=\p{N})|(?<=\p{N})(?=\p{L})/gu, ' ')
     .split(/[^\p{L}\p{N}]+/u)
     .filter(Boolean);
 }

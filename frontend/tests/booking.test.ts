@@ -13,6 +13,7 @@ import {
   filterSpaces,
   type StudySpace,
 } from '../src/domain/space.ts';
+import { tokenize } from '../src/domain/similarity.ts';
 import { secondsUntil } from '../src/hooks/useCountdown.ts';
 
 test('countdowns round partial seconds up and stop at zero', () => {
@@ -136,6 +137,15 @@ test('search is forgiving: typos, word order, partial words, accents', () => {
   assert.deepEqual(find('cabe11'), ['Demo: CAB E 11.1']);
   assert.deepEqual(find('zurich cafe'), ['Café Zürich']);
   assert.deepEqual(find('xyzq'), []);
+  assert.deepEqual(tokenize('A1b2 HG-E51'), [
+    'a',
+    '1',
+    'b',
+    '2',
+    'hg',
+    'e',
+    '51',
+  ]);
 });
 
 test('search ranks the closest match first', () => {

@@ -1,5 +1,11 @@
 import { ActionIcon, Button, Text, Title } from '@mantine/core';
-import { useRef, type PointerEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import type { SeatState } from '../../domain/seat';
 import { Icon } from '../Icon';
 import { SeatChip } from '../SeatChip';
@@ -14,6 +20,8 @@ type SeatSheetProps = {
   actionLabel: string;
   actionDisabled?: boolean;
   onAction: () => void;
+  /** The card's height in px, on mount and whenever it changes (for centring seats above it). */
+  onHeight?: (height: number) => void;
   /** Close button, swipe down or Esc: the seat is deselected. */
   onClose: () => void;
 };
@@ -29,10 +37,27 @@ export function SeatSheet({
   actionLabel,
   actionDisabled = false,
   onAction,
+  onHeight,
   onClose,
 }: SeatSheetProps) {
   const ref = useRef<HTMLElement>(null);
   const startY = useRef<number | null>(null);
+  const heightRef = useRef(onHeight);
+
+  useEffect(() => {
+    heightRef.current = onHeight;
+  });
+
+  /* Layout effect: the height is known before the map centres on the seat. */
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const report = () => heightRef.current?.(node.offsetHeight);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const setOffset = (dy: number) => {
     if (ref.current) ref.current.style.translate = dy ? `0 ${dy}px` : '';

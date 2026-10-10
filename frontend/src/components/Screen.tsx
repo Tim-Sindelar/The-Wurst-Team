@@ -64,22 +64,26 @@ export function ScreenHeader({
   );
 }
 
+/** For screens without a header: a strip as tall as the phone's notch or status
+    bar. It sticks to the top, so scrolling content never slides under the notch. */
+export function SafeAreaTop() {
+  return (
+    <div className="sticky top-0 z-3 h-[env(safe-area-inset-top)] bg-bg" />
+  );
+}
+
 /** Scrolling content of a screen, 16px gutter, 16px between blocks. */
 export function ScreenMain({
   children,
   fit = false,
-  safeTop = false,
 }: {
   children: ReactNode;
   fit?: boolean;
-  /** No header above: keep clear of the phone's notch or status bar. */
-  safeTop?: boolean;
 }) {
   return (
     <main
       className={cx(
-        'flex flex-1 flex-col px-4 pb-4',
-        safeTop ? 'pt-[calc(--spacing(4)+env(safe-area-inset-top))]' : 'pt-4',
+        'flex flex-1 flex-col px-4 py-4',
         fit ? 'min-h-0 gap-3 [&>*]:shrink-0' : 'gap-4',
       )}
     >

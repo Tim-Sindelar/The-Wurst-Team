@@ -1,14 +1,14 @@
-"""add recent spaces, merging the favourites and map-room heads
+"""add recent spaces
 
 Revision ID: e4b8a1c63f27
-Revises: 5d1c7e2a9b34, b7a41f2c9d60
+Revises: f4c9d812a6e7
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "e4b8a1c63f27"
-down_revision = ("5d1c7e2a9b34", "b7a41f2c9d60")
+down_revision = "f4c9d812a6e7"
 branch_labels = None
 depends_on = None
 

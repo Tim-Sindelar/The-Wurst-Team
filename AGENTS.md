@@ -33,7 +33,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 
 | Need | Use |
 | --- | --- |
-| Button | `Button` with `variant="primary"` (default), `"secondary"`, `"danger"` or `"quiet"`. Links: `component={Link} to=...` |
+| Button | `Button` with `variant="primary"` (default), `"secondary"`, `"danger"`, `"quiet"` or `"map"` (32px text button floating on the room map). Links: `component={Link} to=...` |
 | Icon-only button | `ActionIcon` with `variant="icon"` (default, 44px), `"map"` (32px map control) or `"camera"`. Always give it an `aria-label` |
 | Card | `Card`; add `stripeClass[state]` for the 6px status stripe |
 | Seat state chip | `SeatChip state=... [plain]` (Mantine `Badge` underneath) |
@@ -56,7 +56,7 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Visible focus ring on everything focusable (Mantine's focus ring is mapped to `--color-focus`).
 - Motion only on `transform` and `opacity`, 150 to 250ms, and respect reduced motion.
 - Text never below 12px; long names (40+ characters) must wrap or truncate cleanly.
-- Phone first: a 390px column, centred on desktop. Don't stretch layouts wider.
+- Phone first: below 480px (the `tablet` breakpoint) screens fill the full width with no side margins; from 480px up they are a centred 390px column. Don't stretch layouts wider. Headers and `SafeAreaTop` (Home) keep clear of the notch with `env(safe-area-inset-top)`.
 
 ### Campus map
 
@@ -80,6 +80,9 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Profile and the home avatar use `/api/v1/me` through `useCurrentUser`. Profile saves a display name and optional photo through the generated `updateMeMutation`; the backend persists these in `user_profiles` without changing auth identity.
 - Favourites live in `favourite_spaces` and come through `useFavourites()` (`/api/v1/me/favourites`). The star updates at once and rolls back if the call fails. Home shows them as their own row and filters by the search box (`filterSpaces`, `favouriteSpaces` in `domain/space.ts`).
 - Recents live in `recent_spaces` and come through `useRecents()` (`/api/v1/me/recents`, newest first, at most 10). The backend records a space when the user books a seat there or checks in by scan; the migration seeds it from past reservations. Home shows two swipeable rows under `SectionLabel`s: Favourites (`favouriteSpaces`) and Recent (`recentSpaces`, newest first); an empty row is hidden. There is no all-spaces row: typing in the search box replaces the rows with a plain vertical list of matches. Home has no link to the map. Booking changes refresh it through `useRefreshBooking`.
+- Home search uses `filterSpaces`, a dependency-free similarity search (`domain/similarity.ts`): it forgives typos, word order, accents and partial words, and lists the best match first.
+- Space cards show a demo room photo (`public/demo-rooms`, picked by `roomPhotoUrl`) behind the text, always blurred 2px and dimmed with `bg-photo-scrim`; text on it uses `text-on-photo`. Swap in real room photos by changing `roomPhotoUrl`.
+- The room screen (`/seats/:spaceId`, `SeatMapScreen`) is a full-bleed `SeatMap` under the header with nothing selected at first. Tapping a seat opens `SeatSheet` (a non-modal card at the bottom, not a third popup); its action opens the decision sheet to confirm. The `map` button "Choose any free seat" top right picks a random other free seat and is hidden while the user holds a seat. If the server answers `seat_unavailable` to a reservation (someone else was first), the sheet closes and a danger `Alert` "Seat X was just taken" with "Choose another seat" shows over the map; other errors stay inside the decision sheet.
 - Still mock: the notification switches on Profile.
 - Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`; the scan screen also takes a typed code for devices without a camera. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
 
