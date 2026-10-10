@@ -7,8 +7,8 @@ export function OccupancyBar({
   total: number;
   large?: boolean;
 }) {
-  if (total === 0)
-    return <span className="occ-empty">No seats registered</span>;
+  // The workspace data has no seats yet: show nothing rather than a placeholder.
+  if (total === 0) return null;
   const pct = Math.round((free / total) * 100);
   return (
     <span className={`occ${large ? ' occ-large' : ''}`}>

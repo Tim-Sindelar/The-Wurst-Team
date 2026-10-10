@@ -43,6 +43,8 @@ def get_current_admin(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> UUID:
     if settings.auth_mode != "demo":
+        if user_id in settings.admin_user_ids:
+            return user_id
         raise HTTPException(status_code=403, detail="Administrator access required")
     is_admin = settings.dummy_is_admin
     override = request.headers.get("X-Demo-Admin")

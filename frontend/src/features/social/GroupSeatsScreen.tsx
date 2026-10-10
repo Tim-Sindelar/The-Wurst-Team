@@ -28,6 +28,7 @@ import { ActionBar, Screen, ScreenHeader } from '../../components/Screen';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { SpaceLists } from '../../components/SpaceLists';
 import { layoutSeats, roomTables } from '../../domain/room';
+import { savedLayout } from '../admin/layoutDocument';
 import { seatStateName } from '../../domain/seat';
 import {
   describeAvailability,
@@ -132,9 +133,10 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
   const [search, setSearch] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { shown } = useMemo(
-    () => layoutSeats(space?.seats ?? [], null),
-    [space?.seats],
+  const layout = useMemo(() => savedLayout(space?.layout), [space?.layout]);
+  const { plan, shown } = useMemo(
+    () => layoutSeats(space?.seats ?? [], null, layout),
+    [space?.seats, layout],
   );
   const freeIds = new Set(
     shown.filter((seat) => seat.state === 'free').map((seat) => seat.id),
@@ -364,7 +366,10 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
             Loading seats…
           </Text>
         ) : (
+          // The pan and zoom measure the room once, so a new size remounts.
           <SeatMap
+            key={plan ? `${plan.room.width}x${plan.room.height}` : 'stand-in'}
+            plan={plan}
             seats={seats}
             selected={
               complete && !moving ? null : (assigned[active.id] ?? null)

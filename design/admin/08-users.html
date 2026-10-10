@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Users · Study Spaces Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="stylesheet" href="../admin.css" />
+    <script src="../base.js"></script>
+    <script src="users-data.js" defer></script>
+    <script src="users.js" defer></script>
+  </head>
+  <body class="admin-body">
+    <div class="admin">
+      <aside class="sidebar">
+        <a
+          class="sidebar__brand"
+          href="01-spaces.html"
+          aria-label="Study Spaces admin, back to the spaces list"
+        >
+          <strong>Study Spaces</strong>
+          <span class="t-label">Admin</span>
+        </a>
+        <nav class="nav" aria-label="Admin">
+          <a class="nav__link" href="01-spaces.html"
+            ><i class="icon i-map"></i> Spaces</a
+          >
+          <a class="nav__link" href="08-users.html" aria-current="page"
+            ><i class="icon i-user" aria-hidden="true"></i> Users</a
+          >
+<a class="nav__link" href="10-space-qr.html"><i class="icon i-qr" aria-hidden="true"></i> QR codes</a>
+        </nav>
+        <div class="sidebar__foot">
+          <a class="nav__link" href="../index.html"
+            ><i class="icon i-home"></i> Student app</a
+          >
+          <div class="sidebar__user">
+            <span class="avatar" aria-hidden="true">AD</span>
+            <span class="t-small">Admin</span>
+            <button
+              class="icon-button theme-toggle"
+              type="button"
+              data-theme-toggle
+              aria-pressed="false"
+              aria-label="Switch to light theme"
+              style="margin-left: auto"
+            >
+              <i class="icon i-sun"></i><i class="icon i-moon"></i>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="admin__main">
+        <div class="page">
+          <header class="page-header">
+            <div class="page-header__text">
+              <h1 class="t-heading">Users</h1>
+              <p class="t-muted">
+                People, reservations and time spent studying.
+              </p>
+            </div>
+            <span class="user-period">Last 30 days · 11 Sep–10 Oct 2026</span>
+          </header>
+          <section class="stats" aria-label="User summary">
+            <div class="stat">
+              <span class="t-label">Users</span
+              ><span class="stat__value">6</span
+              ><span class="t-small t-muted">Student accounts</span>
+            </div>
+            <div class="stat">
+              <span class="t-label">Current bookings</span
+              ><span class="stat__value">5</span
+              ><span class="t-small t-muted"
+                >3 checked in · 1 on break · 1 reserved</span
+              >
+            </div>
+            <div class="stat">
+              <span class="t-label">Reservations</span
+              ><span class="stat__value">127</span
+              ><span class="t-small t-muted"
+                >113 completed · 9 missed · 5 cancelled</span
+              >
+            </div>
+            <div class="stat">
+              <span class="t-label">Study time</span
+              ><span class="stat__value">194h</span
+              ><span class="t-small t-muted"
+                >Checked-in time, excluding breaks</span
+              >
+            </div>
+          </section>
+          <div class="toolbar">
+            <h2 class="t-title">
+              All users <span class="t-small t-muted">6 accounts</span>
+            </h2>
+            <span class="t-small t-muted"
+              >Open a profile to manage reservations</span
+            >
+          </div>
+          <div class="table-wrap">
+            <table class="table users-table">
+              <caption class="sr-only">
+                Users and activity in the last 30 days
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">User</th>
+                  <th scope="col">Current booking</th>
+                  <th scope="col" class="num">Reservations</th>
+                  <th scope="col" class="num">Study time</th>
+                  <th scope="col" class="num">Missed check-ins</th>
+                  <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="user-identity">
+                      <span class="avatar" aria-hidden="true">LF</span>
+                      <div class="table__name">
+                        <a class="table__link" href="09-user-lena.html"
+                          >Lena Fischer</a
+                        ><span class="t-small t-muted">D-ITET · ST-0001</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-stack">
+                      <span class="chip is-occupied">Checked in</span
+                      ><span class="t-small t-muted">HG E 1.1 · Seat 1</span>
+                    </div>
+                  </td>
+                  <td class="num">24</td>
+                  <td class="num">36h 40m</td>
+                  <td class="num">2</td>
+                  <td class="actions">
+                    <a
+                      class="btn btn--quiet"
+                      href="09-user-lena.html"
+                      aria-label="Manage Lena Fischer"
+                      >Manage
+                      <i class="icon i-chevron-right" aria-hidden="true"></i
+                    ></a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="user-identity">
+                      <span class="avatar" aria-hidden="true">TV</span>
+                      <div class="table__name">
+                        <a class="table__link" href="09-user-tim.html"
+                          >Tim Vogt</a
+                        ><span class="t-small t-muted">D-INFK · ST-0002</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-stack">
+                      <span class="chip is-reserved">Awaiting check-in</span
+                      ><span class="t-small t-muted">HG E 1.1 · Seat 3</span>
+                    </div>
+                  </td>
+                  <td class="num">18</td>
+                  <td class="num">24h 15m</td>
+                  <td class="num">1</td>
+                  <td class="actions">
+                    <a
+                      class="btn btn--quiet"
+                      href="09-user-tim.html"
+                      aria-label="Manage Tim Vogt"
+                      >Manage
+                      <i class="icon i-chevron-right" aria-hidden="true"></i
+                    ></a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="user-identity">
+                      <span class="avatar" aria-hidden="true">MK</span>
+                      <div class="table__name">
+                        <a class="table__link" href="09-user-maya.html"
+                          >Maya Keller</a
+                        ><span class="t-small t-muted">D-ARCH · ST-0003</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-stack">
+                      <span class="chip is-break">On break</span
+                      ><span class="t-small t-muted">HCI G 3 · Seat 2</span>
+                    </div>
+                  </td>
+                  <td class="num">31</td>
+                  <td class="num">48h 10m</td>
+                  <td class="num">2</td>
+                  <td class="actions">
+                    <a
+                      class="btn btn--quiet"
+                      href="09-user-maya.html"
+                      aria-label="Manage Maya Keller"
+                      >Manage
+                      <i class="icon i-chevron-right" aria-hidden="true"></i
+                    ></a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="user-identity">
+                      <span class="avatar" aria-hidden="true">JM</span>
+                      <div class="table__name">
+                        <a class="table__link" href="09-user-jonas.html"
+                          >Jonas Meier</a
+                        ><span class="t-small t-muted">D-MATH · ST-0004</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-stack">
+                      <span class="chip chip--plain user-status"
+                        >No current booking</span
+                      ><span class="t-small t-muted">—</span>
+                    </div>
+                  </td>
+                  <td class="num">12</td>
+                  <td class="num">16h 30m</td>
+                  <td class="num">1</td>
+                  <td class="actions">
+                    <a
+                      class="btn btn--quiet"
+                      href="09-user-jonas.html"
+                      aria-label="Manage Jonas Meier"
+                      >Manage
+                      <i class="icon i-chevron-right" aria-hidden="true"></i
+                    ></a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="user-identity">
+                      <span class="avatar" aria-hidden="true">NB</span>
+                      <div class="table__name">
+                        <a class="table__link" href="09-user-nora.html"
+                          >Nora Baumann</a
+                        ><span class="t-small t-muted">D-PHYS · ST-0005</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-stack">
+                      <span class="chip is-occupied">Checked in</span
+                      ><span class="t-small t-muted">HG E 1.1 · Seat 2</span>
+                    </div>
+                  </td>
+                  <td class="num">27</td>
+                  <td class="num">42h 05m</td>
+                  <td class="num">2</td>
+                  <td class="actions">
+                    <a
+                      class="btn btn--quiet"
+                      href="09-user-nora.html"
+                      aria-label="Manage Nora Baumann"
+                      >Manage
+                      <i class="icon i-chevron-right" aria-hidden="true"></i
+                    ></a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="user-identity">
+                      <span class="avatar" aria-hidden="true">AW</span>
+                      <div class="table__name">
+                        <a class="table__link" href="09-user-alex.html"
+                          >Alex Weber</a
+                        ><span class="t-small t-muted">D-MAVT · ST-0006</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="cell-stack">
+                      <span class="chip is-occupied">Checked in</span
+                      ><span class="t-small t-muted">HCI G 3 · Seat 1</span>
+                    </div>
+                  </td>
+                  <td class="num">15</td>
+                  <td class="num">26h 20m</td>
+                  <td class="num">1</td>
+                  <td class="actions">
+                    <a
+                      class="btn btn--quiet"
+                      href="09-user-alex.html"
+                      aria-label="Manage Alex Weber"
+                      >Manage
+                      <i class="icon i-chevron-right" aria-hidden="true"></i
+                    ></a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="t-small t-muted mock-note">
+            <i class="icon i-info" aria-hidden="true"></i> Design preview ·
+            fictional users and activity. Backend data is not connected.
+          </p>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

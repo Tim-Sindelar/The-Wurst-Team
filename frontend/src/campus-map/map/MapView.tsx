@@ -7,7 +7,12 @@ import {
   useMap,
   useMapEvents,
 } from 'react-leaflet';
-import type { LatLng, MultiPolygon, OccupancyData } from '../domain/types';
+import type {
+  LatLng,
+  MultiPolygon,
+  OccupancyData,
+  RoomRef,
+} from '../domain/types';
 import { occupancyOf } from '../domain/operations';
 import type { Selection } from '../state';
 import {
@@ -95,13 +100,19 @@ interface Props {
   /** Mensa rooms (see FloorLayer). */
   mensaRooms: ReadonlyMap<string, MensaRoom>;
   /** Workspaces that are also a mensa, drawn in the mensa's color: library id → mensa. */
-  mensaWorkspaces: ReadonlyMap<string, MensaRoom>;
+  mensaWorkspaces?: ReadonlyMap<string, MensaRoom>;
   selectedMensaId: string | null;
   onSelectMensa: (mensaId: string) => void;
   /** 3D view: the other floors stacked around the selected one; null when off. */
   view3d: View3DStyle | null;
   /** More map layers (the campus datasets), rendered inside the map. */
   children?: ReactNode;
+  /** Admin selects one canonical room using the same campus map layers. */
+  roomPicker?: {
+    selectedId: string | null;
+    levelId: string;
+    onPick: (room: RoomRef) => void;
+  };
 }
 
 const NO_ROOMS: ReadonlySet<string> = new Set();
@@ -262,7 +273,7 @@ export function MapView(props: Props) {
   // Computed once: the initial view frames all workspaces, enabled or not (both campuses).
   // (An empty list has no bounds: fall back to the default center.)
   const [initialBounds] = useState(() =>
-    props.homePositions.length
+    !props.roomPicker && props.homePositions.length
       ? L.latLngBounds(
           props.homePositions.map((p) => [p.lat, p.lng] as [number, number]),
         ).pad(0.1)
@@ -274,8 +285,14 @@ export function MapView(props: Props) {
       // react-leaflet uses center/zoom over bounds, so only fall back to them.
       bounds={initialBounds}
       boundsOptions={{ padding: [16, 16] }}
-      center={initialBounds ? undefined : [47.3925, 8.528]}
-      zoom={initialBounds ? undefined : INITIAL_ZOOM}
+      center={
+        initialBounds
+          ? undefined
+          : props.roomPicker && props.flyTarget
+            ? [props.flyTarget.position.lat, props.flyTarget.position.lng]
+            : [47.3925, 8.528]
+      }
+      zoom={initialBounds ? undefined : props.roomPicker ? 18 : INITIAL_ZOOM}
       zoomSnap={0.25}
       maxZoom={MAX_ZOOM}
       tapTolerance={15}
@@ -296,7 +313,9 @@ export function MapView(props: Props) {
       <StartView
         bounds={initialBounds}
         start={
-          props.navigation ? (campusViews(props.navigation)[0] ?? null) : null
+          !props.roomPicker && props.navigation
+            ? (campusViews(props.navigation)[0] ?? null)
+            : null
         }
       />
 
@@ -306,14 +325,19 @@ export function MapView(props: Props) {
             theme={props.theme}
             index={props.floorIndex}
             floor={floor}
+            pickingLevelId={props.roomPicker?.levelId}
             libraryRooms={libraryRooms}
             selectedLibraryId={selection.libraryId}
             onSelectLibrary={(libraryId) =>
               props.onSelect({ libraryId, tableId: null, seatId: null })
             }
-            picking={false}
-            pickedRooms={NO_ROOMS}
-            onPickRoom={() => {}}
+            picking={!!props.roomPicker}
+            pickedRooms={
+              props.roomPicker?.selectedId
+                ? new Set([props.roomPicker.selectedId])
+                : NO_ROOMS
+            }
+            onPickRoom={props.roomPicker?.onPick ?? (() => {})}
             minimal={minimal}
             ethRooms={props.ethRooms}
             occupancyStyle={props.occupancyStyle}
@@ -361,114 +385,119 @@ export function MapView(props: Props) {
         />
       )}
 
-      {outlinedLibraries.map((lib) => {
-        // Outlines are hidden when the minimal style switches workspaces off.
-        if (minimal && !minimal.parts.workspaces.show) return null;
-        const occ = occupancyOf(data, lib.id);
-        const selected = selection.libraryId === lib.id;
-        // A workspace that is also a mensa has the mensa's color.
-        const mensaColor = props.mensaWorkspaces.get(lib.id)?.color;
-        const occColor =
-          mensaColor ?? OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
-        const ws = minimal?.parts.workspaces;
-        const latlngs = liftRings(
-          outlineToLatLngs(outlineOf(lib)!),
-          liftOf(lib.facilityId, lib.floor),
-        );
-        return (
-          <Polygon
-            key={lib.id}
-            positions={
-              minimal ? roundPolygons(latlngs, minimal.cornerRadius) : latlngs
-            }
-            pathOptions={
-              minimal && ws
-                ? {
-                    ...partPathOptions(minimal, 'workspaces'),
-                    color:
-                      selected && minimal.highlightCustomColor
-                        ? minimal.highlightColor
-                        : (mensaColor ??
-                          (minimal.occupancyColors ? occColor : ws.color)),
-                    fillColor:
-                      selected && minimal.highlightCustomColor
-                        ? minimal.highlightColor
-                        : (mensaColor ??
-                          (minimal.occupancyColors ? occColor : ws.fillColor)),
-                    fill: true,
-                    weight: selected
-                      ? ws.weight + minimal.highlightWidth
-                      : ws.weight,
-                    // Same look on every floor.
-                    opacity: ws.opacity,
-                    dashArray: undefined,
-                    fillOpacity: selected
-                      ? Math.min(1, ws.fill + minimal.highlightFill)
-                      : ws.fill,
-                    interactive: true,
-                    bubblingMouseEvents: false,
-                  }
-                : {
-                    // setStyle merges, so reset what the minimal style may have set.
-                    fill: true,
-                    lineJoin: 'round',
-                    lineCap: 'round',
-                    color: occColor,
-                    fillColor: occColor,
-                    weight: selected ? 3.5 : 2.5,
-                    opacity: 0.7,
-                    dashArray: undefined,
-                    fillOpacity: selected ? 0.22 : 0.1,
-                    interactive: true,
-                    bubblingMouseEvents: false,
-                  }
-            }
-            eventHandlers={{
-              click: () => {
-                props.onSelect({
-                  libraryId: lib.id,
-                  tableId: null,
-                  seatId: null,
-                });
-                if (lib.floor !== null) props.onFloorChange(lib.floor);
-              },
-            }}
-          />
-        );
-      })}
+      {!props.roomPicker &&
+        outlinedLibraries.map((lib) => {
+          // Outlines are hidden when the minimal style switches workspaces off.
+          if (minimal && !minimal.parts.workspaces.show) return null;
+          const occ = occupancyOf(data, lib.id);
+          const selected = selection.libraryId === lib.id;
+          // A workspace that is also a mensa has the mensa's color.
+          const mensaColor = props.mensaWorkspaces?.get(lib.id)?.color;
+          const occColor =
+            mensaColor ?? OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
+          const ws = minimal?.parts.workspaces;
+          const latlngs = liftRings(
+            outlineToLatLngs(outlineOf(lib)!),
+            liftOf(lib.facilityId, lib.floor),
+          );
+          return (
+            <Polygon
+              key={lib.id}
+              positions={
+                minimal ? roundPolygons(latlngs, minimal.cornerRadius) : latlngs
+              }
+              pathOptions={
+                minimal && ws
+                  ? {
+                      ...partPathOptions(minimal, 'workspaces'),
+                      color:
+                        selected && minimal.highlightCustomColor
+                          ? minimal.highlightColor
+                          : (mensaColor ??
+                            (minimal.occupancyColors ? occColor : ws.color)),
+                      fillColor:
+                        selected && minimal.highlightCustomColor
+                          ? minimal.highlightColor
+                          : (mensaColor ??
+                            (minimal.occupancyColors
+                              ? occColor
+                              : ws.fillColor)),
+                      fill: true,
+                      weight: selected
+                        ? ws.weight + minimal.highlightWidth
+                        : ws.weight,
+                      // Same look on every floor.
+                      opacity: ws.opacity,
+                      dashArray: undefined,
+                      fillOpacity: selected
+                        ? Math.min(1, ws.fill + minimal.highlightFill)
+                        : ws.fill,
+                      interactive: true,
+                      bubblingMouseEvents: false,
+                    }
+                  : {
+                      // setStyle merges, so reset what the minimal style may have set.
+                      fill: true,
+                      lineJoin: 'round',
+                      lineCap: 'round',
+                      color: occColor,
+                      fillColor: occColor,
+                      weight: selected ? 3.5 : 2.5,
+                      opacity: 0.7,
+                      dashArray: undefined,
+                      fillOpacity: selected ? 0.22 : 0.1,
+                      interactive: true,
+                      bubblingMouseEvents: false,
+                    }
+              }
+              eventHandlers={{
+                click: () => {
+                  props.onSelect({
+                    libraryId: lib.id,
+                    tableId: null,
+                    seatId: null,
+                  });
+                  if (lib.floor !== null) props.onFloorChange(lib.floor);
+                },
+              }}
+            />
+          );
+        })}
 
       {/* Pins only for libraries without an outline; the outline itself marks the others. */}
-      {data.libraries.map((lib) => {
-        if (!shown(lib) || outlineOf(lib)) return null;
-        const occ = occupancyOf(data, lib.id);
-        return (
-          <Marker
-            key={lib.id}
-            position={[
-              lib.position.lat + liftOf(lib.facilityId, lib.floor),
-              lib.position.lng,
-            ]}
-            icon={libraryIcon({
-              kind: lib.kind,
-              free: occ.free,
-              total: occ.total,
-              selected: selection.libraryId === lib.id && !selection.tableId,
-              approximate: false,
-            })}
-            zIndexOffset={selection.libraryId === lib.id ? 1000 : 100}
-            eventHandlers={{
-              click: () =>
-                props.onSelect({
-                  libraryId: lib.id,
-                  tableId: null,
-                  seatId: null,
-                }),
-            }}
-          />
-        );
-      })}
+      {!props.roomPicker &&
+        data.libraries.map((lib) => {
+          if (!shown(lib) || outlineOf(lib)) return null;
+          const occ = occupancyOf(data, lib.id);
+          return (
+            <Marker
+              key={lib.id}
+              position={[
+                lib.position.lat + liftOf(lib.facilityId, lib.floor),
+                lib.position.lng,
+              ]}
+              icon={libraryIcon({
+                kind: lib.kind,
+                free: occ.free,
+                total: occ.total,
+                selected: selection.libraryId === lib.id && !selection.tableId,
+                approximate: false,
+              })}
+              zIndexOffset={selection.libraryId === lib.id ? 1000 : 100}
+              eventHandlers={{
+                click: () =>
+                  props.onSelect({
+                    libraryId: lib.id,
+                    tableId: null,
+                    seatId: null,
+                  }),
+              }}
+            />
+          );
+        })}
 
-      {showDetail &&
+      {!props.roomPicker &&
+        showDetail &&
         tablesOnFloor.map((t) => (
           <Marker
             key={t.id}
@@ -492,7 +521,8 @@ export function MapView(props: Props) {
           />
         ))}
 
-      {showDetail &&
+      {!props.roomPicker &&
+        showDetail &&
         data.seats
           .filter((s) => tableIdsOnFloor.has(s.tableId))
           .map((s) => {

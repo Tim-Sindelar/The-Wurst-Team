@@ -80,7 +80,7 @@ def eth_meals(rotas, facility_id, today):
                                     for c in meal.get("meal-class-array") or []
                                 ],
                                 "allergens": [
-                                    a.get("desc-short") or a.get("desc")
+                                    a.get("desc") or a.get("desc-short")
                                     for a in meal.get("allergen-array") or []
                                 ],
                             }

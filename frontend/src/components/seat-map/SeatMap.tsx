@@ -1,8 +1,15 @@
 import { ActionIcon, Button, Popover } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
-import { roomGeometry, roomTables, type MapSeat } from '../../domain/room';
-import { Icon } from '../Icon';
+import {
+  roomGeometry,
+  roomTables,
+  type MapSeat,
+  type RoomPlan,
+} from '../../domain/room';
+import geometry from '../../features/admin/geometry';
+import { FeatureBadge, RoomScene } from '../../features/admin/RoomScene';
+import { Icon, type IconName } from '../Icon';
 import { SectionLabel } from '../SectionLabel';
 import { createPanZoom, type PanZoom } from './panZoom';
 import { SeatMarker } from './SeatMarker';
@@ -15,7 +22,15 @@ const keyStates: SeatState[] = [
   'bookable',
 ];
 
+const featureIcon = {
+  outlet: 'outlet',
+  monitor: 'monitor',
+  quiet: 'moon',
+} as const satisfies Record<keyof typeof geometry.BADGES, IconName>;
+
 type SeatMapProps = {
+  /** The room as the admin laid it out; null draws the stand-in plan. */
+  plan: RoomPlan | null;
   seats: MapSeat[];
   /** The selected seat, or null when nothing is selected. */
   selected: string | null;
@@ -35,6 +50,7 @@ type SeatMapProps = {
 /* Interactive room map: top-down floor plan with colour-coded seats.
    Pan, pinch and scroll to zoom; the colour key opens from the (i) button. */
 export function SeatMap({
+  plan,
   seats,
   selected,
   onSelect,
@@ -53,6 +69,9 @@ export function SeatMap({
   const coveredRef = useRef(getCovered);
   const [ready, setReady] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+  const features = (
+    Object.keys(featureIcon) as (keyof typeof featureIcon)[]
+  ).filter((feature) => seats.some((seat) => seat.badges.includes(feature)));
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -100,54 +119,74 @@ export function SeatMap({
     >
       <div
         ref={worldRef}
-        className={`absolute top-0 left-0 h-190 w-160 origin-top-left ${ready ? 'visible' : 'invisible'}`}
+        className={`absolute top-0 left-0 origin-top-left ${plan ? '' : 'h-190 w-160'} ${ready ? 'visible' : 'invisible'}`}
+        style={
+          plan
+            ? { width: plan.room.width, height: plan.room.height }
+            : undefined
+        }
       >
-        <svg
-          className="pointer-events-none absolute inset-0 size-full"
-          viewBox={`0 0 ${roomGeometry.width} ${roomGeometry.height}`}
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path className="fill-surface" d={roomGeometry.fill} />
-          <path
-            className="fill-none stroke-border-strong stroke-2"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-            d={roomGeometry.walls}
-          />
-          <path
-            className="fill-none stroke-accent stroke-6"
-            vectorEffect="non-scaling-stroke"
-            d={roomGeometry.windows}
-          />
-          <path
-            className="fill-none stroke-border-strong stroke-1"
-            vectorEffect="non-scaling-stroke"
-            d={roomGeometry.door}
-          />
-          {roomTables.map((table) => (
-            <g key={`${table.x}-${table.y}`}>
-              <rect
-                className="fill-surface-2 stroke-border-strong stroke-1"
-                x={table.x}
-                y={table.y}
-                width={table.width}
-                height={table.height}
-                rx={5}
-              />
-              {table.label && (
-                <text
-                  className="fill-text-muted text-label font-semibold"
-                  x={table.x + table.width / 2}
-                  y={table.y + 22}
-                  textAnchor="middle"
-                >
-                  {table.label}
-                </text>
-              )}
-            </g>
-          ))}
-        </svg>
+        {plan ? (
+          <svg
+            className="pointer-events-none absolute inset-0 size-full"
+            viewBox={`0 0 ${plan.room.width} ${plan.room.height}`}
+            aria-hidden="true"
+            focusable="false"
+          >
+            <RoomScene
+              room={plan.room}
+              objects={plan.furniture}
+              interactive={false}
+            />
+          </svg>
+        ) : (
+          <svg
+            className="pointer-events-none absolute inset-0 size-full"
+            viewBox={`0 0 ${roomGeometry.width} ${roomGeometry.height}`}
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path className="fill-surface" d={roomGeometry.fill} />
+            <path
+              className="fill-none stroke-border-strong stroke-2"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              d={roomGeometry.walls}
+            />
+            <path
+              className="fill-none stroke-accent stroke-6"
+              vectorEffect="non-scaling-stroke"
+              d={roomGeometry.windows}
+            />
+            <path
+              className="fill-none stroke-border-strong stroke-1"
+              vectorEffect="non-scaling-stroke"
+              d={roomGeometry.door}
+            />
+            {roomTables.map((table) => (
+              <g key={`${table.x}-${table.y}`}>
+                <rect
+                  className="fill-surface-2 stroke-border-strong stroke-1"
+                  x={table.x}
+                  y={table.y}
+                  width={table.width}
+                  height={table.height}
+                  rx={5}
+                />
+                {table.label && (
+                  <text
+                    className="fill-text-muted text-label font-semibold"
+                    x={table.x + table.width / 2}
+                    y={table.y + 22}
+                    textAnchor="middle"
+                  >
+                    {table.label}
+                  </text>
+                )}
+              </g>
+            ))}
+          </svg>
+        )}
         {seats.map((seat) => (
           <SeatMarker
             key={seat.id}
@@ -156,11 +195,34 @@ export function SeatMap({
             state={seat.state}
             x={seat.x}
             y={seat.y}
+            angle={seat.angle}
+            features={seat.badges.map((badge) => geometry.BADGES[badge])}
             selected={seat.id === selected}
             onSelect={() => onSelect(seat.id)}
             person={people?.[seat.id]}
           />
         ))}
+        {/* Feature badges sit on top of the seats, as in the layout editor. */}
+        {plan && (
+          <svg
+            className="pointer-events-none absolute inset-0 size-full"
+            viewBox={`0 0 ${plan.room.width} ${plan.room.height}`}
+            aria-hidden="true"
+            focusable="false"
+          >
+            {seats.flatMap((seat) =>
+              seat.badges.map((badge, index) => (
+                <FeatureBadge
+                  key={`${seat.id}-${badge}`}
+                  icon={featureIcon[badge]}
+                  title={geometry.BADGES[badge]}
+                  x={seat.x + (index - (seat.badges.length - 1) / 2) * 19}
+                  y={seat.y + 23}
+                />
+              )),
+            )}
+          </svg>
+        )}
       </div>
 
       <div className="absolute top-3 left-3 z-1" data-map-info>
@@ -182,7 +244,7 @@ export function SeatMap({
               <Icon name="info" size="sm" />
             </ActionIcon>
           </Popover.Target>
-          <Popover.Dropdown className="w-55">
+          <Popover.Dropdown className="grid w-55 gap-2">
             <SectionLabel as="h3">Seat colours</SectionLabel>
             <ul className="grid gap-2">
               {keyStates.map((state) => (
@@ -195,6 +257,27 @@ export function SeatMap({
                 </li>
               ))}
             </ul>
+            {features.length > 0 && (
+              <div className="mt-2 grid gap-2">
+                <SectionLabel as="h3">Seat features</SectionLabel>
+                <ul className="grid gap-2">
+                  {features.map((feature) => (
+                    <li
+                      key={feature}
+                      className="flex items-center gap-3 text-small"
+                    >
+                      <span
+                        className="grid size-4.5 flex-none place-items-center rounded-full border border-border-strong bg-surface text-text"
+                        aria-hidden="true"
+                      >
+                        <Icon name={featureIcon[feature]} size="xs" />
+                      </span>
+                      {geometry.BADGES[feature]}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </Popover.Dropdown>
         </Popover>
       </div>

@@ -31,7 +31,12 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: true,
       // FastAPI, including the campus map under /api/v1/map and the events socket.
-      proxy: { '/api': { target: 'http://127.0.0.1:8000', ws: true } },
+      proxy: {
+        '/api': {
+          target: env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8000',
+          ws: true,
+        },
+      },
     },
   };
 });

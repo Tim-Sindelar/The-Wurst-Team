@@ -1,6 +1,6 @@
 /* ==========================================================================
    Campus map. Ported from occupancy-map-preview/src/styles.css (view mode
-   only) and scoped to the map screen (.campus-map) and the sheets it opens
+   only) and scoped to the map screen, admin room picker, and their sheets
    (.campus-map-ui, rendered in portals). The map's own colour names point at
    the design tokens, so both themes follow the rest of the app. The colours
    drawn on the map itself come from the backend's map style (/api/v1/map/style).
@@ -11,7 +11,7 @@
    ========================================================================== */
 
 @layer components {
-  :is(.campus-map, .campus-map-ui) {
+  :is(.campus-map, .campus-map-ui, .admin-room-map) {
     --bg: var(--color-bg);
     --panel: var(--color-surface);
     --text: var(--color-text);
@@ -198,8 +198,7 @@
       font-size: var(--text-label);
       color: var(--muted);
     }
-    .list-item .occ,
-    .list-item .occ-empty {
+    .list-item .occ {
       grid-column: 1 / -1;
     }
 
@@ -286,11 +285,6 @@
     }
     .occ-large {
       font-size: var(--text-small);
-    }
-    .occ-empty {
-      font-size: var(--text-label);
-      color: var(--muted);
-      font-style: italic;
     }
 
     /* forms */
@@ -736,81 +730,197 @@
       padding: 2px 0;
     }
     .ds-details {
-      background: var(--accent-soft);
-    }
-    .ds-details h2 {
       display: flex;
-      gap: 6px;
-      align-items: center;
+      flex-direction: column;
+      gap: 12px;
     }
-    .ds-menu {
-      margin-top: 10px;
-    }
-    .ds-menu h3 {
-      margin-bottom: 6px;
-    }
-    .ds-meal {
-      padding: 8px 0;
-      border-top: 1px solid var(--border);
+    .ds-head {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
-    .ds-meal-head {
+    .ds-details h2,
+    .ds-kind {
       display: flex;
-      justify-content: space-between;
       gap: 8px;
+      align-items: center;
+      margin: 0;
     }
-    .ds-price {
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
+    .ds-kind {
+      color: var(--muted);
     }
-    .ds-allergens {
+    .ds-more {
+      margin-top: -4px;
+    }
+    .ds-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: var(--text-body);
+    }
+    .ds-line,
+    .ds-tag {
+      display: inline-block;
+      padding: 0 6px;
+      border-radius: 4px;
       font-size: var(--text-label);
+      line-height: 20px;
+      white-space: nowrap;
     }
     .ds-line {
-      display: inline-block;
       min-width: 22px;
-      padding: 0 5px;
-      border-radius: 4px;
       background: var(--panel);
-      border: 1px solid var(--border);
-      font-size: var(--text-label);
+      border: 1px solid var(--color-border-strong);
       font-weight: 600;
       text-align: center;
+      letter-spacing: var(--tracking-label);
     }
+    .ds-tag {
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* tables: menus, lessons, departures */
     .ds-table {
       width: 100%;
       border-collapse: collapse;
     }
+    .ds-table caption {
+      text-align: left;
+      font-weight: 600;
+      padding-bottom: 6px;
+    }
+    .ds-table th,
     .ds-table td {
-      padding: 4px;
-      border-top: 1px solid var(--border);
+      padding: 8px 6px;
+      text-align: left;
       vertical-align: top;
+      border-top: 1px solid var(--border);
+    }
+    .ds-table th:first-child,
+    .ds-table td:first-child {
+      padding-left: 0;
+    }
+    .ds-table th:last-child,
+    .ds-table td:last-child {
+      padding-right: 0;
+    }
+    .ds-table thead th {
+      border-top: 0;
+      padding-top: 0;
+      padding-bottom: 6px;
+      font-size: var(--text-label);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-label);
+      color: var(--muted);
     }
     .ds-table .num {
       text-align: right;
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
     }
-    .ds-lessons {
-      list-style: none;
-      padding: 0;
-      margin: 0;
+    .ds-table td.num:first-child {
+      text-align: left;
+    }
+    .ds-table tfoot td {
+      padding-bottom: 0;
+    }
+    .ds-table td > .note {
+      margin-top: 2px;
+    }
+
+    .ds-menu-table + .ds-menu-table {
+      margin-top: 8px;
+    }
+    .ds-dish-tags {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
       gap: 4px;
+      margin-bottom: 4px;
     }
-    .ds-lessons .num {
-      font-variant-numeric: tabular-nums;
+    .ds-dish {
+      display: block;
+      overflow-wrap: anywhere;
     }
-    .ds-lessons .ds-day {
-      margin-top: 6px;
+    .ds-menu-table td.num {
+      padding-top: 10px;
+    }
+
+    .ds-lesson-table .ds-day-row th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 10px 0 6px;
+      background: var(--panel);
+      border-top: 0;
+      border-bottom: 1px solid var(--color-border-strong);
       font-weight: 600;
     }
-    .ds-lessons .is-cancelled {
-      text-decoration: line-through;
+    .ds-lesson-table td:first-child {
+      width: 1%;
+    }
+    .ds-until {
+      display: block;
+      font-size: var(--text-label);
+    }
+    .ds-lesson-title {
+      display: block;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+    .ds-now {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 0 6px;
+      border-radius: 4px;
+      background: var(--accent);
+      color: var(--on-accent);
+      font-weight: 600;
+    }
+    .ds-places {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-end;
+      font-weight: 600;
+    }
+    .ds-places-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ds-places i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .ds-places.is-free i {
+      background: var(--free);
+    }
+    .ds-places.is-few i {
+      background: var(--low);
+    }
+    .ds-places.is-full i {
+      background: var(--occupied);
+    }
+    .ds-places.is-full {
       color: var(--muted);
+    }
+    .ds-of {
+      font-size: var(--text-label);
+      font-weight: 400;
+    }
+    .ds-lesson-table .is-cancelled td {
+      color: var(--muted);
+    }
+    .ds-lesson-table .is-cancelled .ds-lesson-title,
+    .ds-lesson-table .is-cancelled td:first-child {
+      text-decoration: line-through;
+    }
+    .ds-allergens {
+      font-size: var(--text-label);
     }
     .ds-dl {
       display: grid;
@@ -918,7 +1028,7 @@
   }
 
   /* ---- the map itself ---------------------------------------------------- */
-  .campus-map {
+  :is(.campus-map, .admin-room-map) {
     .map {
       height: 100%;
       width: 100%;
@@ -1227,6 +1337,11 @@
       outline: 2px solid var(--color-focus);
       outline-offset: -2px;
     }
+    .leaflet-bar a:focus-visible,
+    .leaflet-control-layers-toggle:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: -2px;
+    }
     .leaflet-control-zoom {
       display: none;
     }
@@ -1259,7 +1374,7 @@
     }
   }
 
-  [data-mantine-color-scheme='dark'] .campus-map {
+  [data-mantine-color-scheme='dark'] :is(.campus-map, .admin-room-map) {
     .leaflet-container {
       background: #14171c;
     }
@@ -1267,6 +1382,13 @@
     .maplibregl-canvas {
       filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95);
     }
+  }
+
+  .admin-room-map .leaflet-top {
+    top: 0;
+  }
+  .admin-room-map .leaflet-control-zoom {
+    display: block;
   }
 
   /* Room photo viewer (RoomDetails renders it into <body>). */

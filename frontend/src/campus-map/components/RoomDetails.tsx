@@ -27,14 +27,12 @@ export function RoomDetails({
   buildingName,
   minute,
   colors,
-  onClose,
   onShowOnMap,
 }: {
   info: RoomInfo;
   buildingName: string | null;
   minute: number;
   colors: OccupancyStyle;
-  onClose: () => void;
   /** Null when the room isn't on the floor plans. */
   onShowOnMap: (() => void) | null;
 }) {
@@ -79,7 +77,9 @@ export function RoomDetails({
     state.status === 'busy'
       ? `In use until ${hhmm(state.until)}`
       : state.status === 'closed'
-        ? `Building closed until ${hhmm(state.until)}`
+        ? state.until >= 1440
+          ? 'Building closed for the rest of the day'
+          : `Building closed until ${hhmm(state.until)}`
         : state.status === 'unknown'
           ? 'No booking data'
           : state.until >= 1440
@@ -89,16 +89,6 @@ export function RoomDetails({
 
   return (
     <section className="panel-section details room-details">
-      <div className="section-head">
-        <h2>{room.id}</h2>
-        <button
-          className="btn-icon"
-          aria-label="Close room details"
-          onClick={onClose}
-        >
-          ×
-        </button>
-      </div>
       <p className="note">
         {room.type} · {seats}
         {buildingName && ` · ${buildingName}`}

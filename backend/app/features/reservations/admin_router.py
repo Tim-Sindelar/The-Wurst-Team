@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from pydantic import AwareDatetime
 from sqlalchemy.orm import Session
 
@@ -17,13 +17,18 @@ from app.features.reservations.admin_schemas import (
     AdminConflictResponse,
     AdminReservationResponse,
     AdminSeatResponse,
+    AdminSpaceDeletedResponse,
     AdminSpaceOverviewResponse,
     AdminSpaceResponse,
     AdminSpacesResponse,
+    AdminUserHistoryResponse,
+    AdminUsersResponse,
     CreateClosureRequest,
     CreateSeatRequest,
     CreateSpaceRequest,
     ReplaceOpeningHoursRequest,
+    SaveLayoutRequest,
+    UpdateAdminUserRequest,
     UpdateSeatRequest,
     UpdateSpaceRequest,
 )
@@ -31,10 +36,15 @@ from app.features.reservations.admin_service import AdminReservationService
 from app.features.reservations.schemas import BookingErrorResponse, RequestValidationErrorResponse
 from app.schemas import ErrorResponse
 
+
+def private_response(response: Response) -> None:
+    response.headers["Cache-Control"] = "no-store"
+
+
 router = APIRouter(
     prefix="/api/v1/admin",
     tags=["admin"],
-    dependencies=[Depends(get_current_admin)],
+    dependencies=[Depends(get_current_admin), Depends(private_response)],
     responses={
         400: {"model": ErrorResponse | BookingErrorResponse},
         403: {"model": ErrorResponse},
@@ -216,5 +226,73 @@ def delete_closure(
 )
 def end_reservation(reservation_id: UUID, service: Service) -> AdminReservationResponse:
     response = service.end_reservation(reservation_id)
+    service.session.commit()
+    return response
+
+
+@router.delete(
+    "/spaces/{space_id}", response_model=AdminSpaceResponse, operation_id="admin_archive_space"
+)
+def archive_space(space_id: UUID, service: Service) -> AdminSpaceResponse:
+    response = service.archive_space(space_id, True)
+    service.session.commit()
+    return response
+
+
+@router.delete(
+    "/spaces/{space_id}/permanent",
+    response_model=AdminSpaceDeletedResponse,
+    operation_id="admin_permanently_delete_space",
+)
+def permanently_delete_space(space_id: UUID, service: Service) -> AdminSpaceDeletedResponse:
+    response = service.permanently_delete_space(space_id)
+    service.session.commit()
+    return response
+
+
+@router.post(
+    "/spaces/{space_id}/restore",
+    response_model=AdminSpaceResponse,
+    operation_id="admin_restore_space",
+)
+def restore_space(space_id: UUID, service: Service) -> AdminSpaceResponse:
+    response = service.archive_space(space_id, False)
+    service.session.commit()
+    return response
+
+
+@router.put(
+    "/spaces/{space_id}/layout",
+    response_model=AdminSpaceOverviewResponse,
+    operation_id="admin_save_layout",
+    responses=CONFLICT_RESPONSES,
+)
+def save_layout(
+    space_id: UUID, request: SaveLayoutRequest, service: Service, force: bool = False
+) -> AdminSpaceOverviewResponse:
+    response = service.save_layout(space_id, request.layout, force)
+    service.session.commit()
+    return response
+
+
+@router.get("/users", response_model=AdminUsersResponse, operation_id="admin_list_users")
+def list_users(service: Service) -> AdminUsersResponse:
+    return service.users()
+
+
+@router.get(
+    "/users/{user_id}", response_model=AdminUserHistoryResponse, operation_id="admin_get_user"
+)
+def get_user(user_id: UUID, service: Service) -> AdminUserHistoryResponse:
+    return service.user_history(user_id)
+
+
+@router.patch(
+    "/users/{user_id}", response_model=AdminUserHistoryResponse, operation_id="admin_update_user"
+)
+def update_user(
+    user_id: UUID, request: UpdateAdminUserRequest, service: Service
+) -> AdminUserHistoryResponse:
+    response = service.update_user(user_id, request.name)
     service.session.commit()
     return response
