@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   activeDraftParties,
+  activeDraftParty,
+  isDraftPartyActive,
+  holdSeconds,
+  sessionSeconds,
   draftReducer,
   initialDraftState,
   partyPath,
@@ -9,6 +13,12 @@ import {
   loadDraftState,
   saveDraftState,
 } from '../src/features/social-draft/draft.ts';
+
+const releasedDemo = () =>
+  draftReducer(initialDraftState(), {
+    type: 'cancel-party',
+    partyId: 'afternoon-study',
+  });
 
 test('separate PR previews and local development keep separate saved demos', () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
@@ -23,7 +33,7 @@ test('separate PR previews and local development keep separate saved demos', () 
     writable: true,
   });
   try {
-    const custom = draftReducer(initialDraftState(), {
+    const custom = draftReducer(releasedDemo(), {
       type: 'create-party',
       id: 'pr-only',
       name: 'Only in PR 23',
@@ -67,7 +77,15 @@ test('invited member can join but cannot book or cancel Anna’s party', () => {
     }),
     state,
   );
-  const joined = draftReducer(state, { type: 'reply', partyId, accept: true });
+  assert.equal(
+    draftReducer(state, { type: 'reply', partyId, accept: true }),
+    state,
+  );
+  const joined = draftReducer(releasedDemo(), {
+    type: 'reply',
+    partyId,
+    accept: true,
+  });
   assert.equal(
     joined.parties[1].members.find((m) => m.person.id === 'you').status,
     'accepted',
@@ -76,20 +94,20 @@ test('invited member can join but cannot book or cancel Anna’s party', () => {
   assert.equal(draftReducer(joined, { type: 'cancel-party', partyId }), joined);
 });
 
-test('older saved demo gets both samples once without losing custom parties or sessions', () => {
+test('older saved demo preserves custom parties and checked-in sessions without adding a second active party', () => {
   let old = draftReducer(initialDraftState(), {
-    type: 'create-party',
-    id: 'custom',
-    name: 'My custom party',
-  });
-  old = draftReducer(old, {
     type: 'book',
     partyId: 'afternoon-study',
-    assignments: { you: 1, anna: 4, luca: 2, mia: 3 },
+    assignments: { you: 1, theo: 4, luca: 2, mia: 3 },
     now: 1000,
   });
   old = draftReducer(old, { type: 'check-in', partyId: 'afternoon-study' });
   old = draftReducer(old, { type: 'cancel-party', partyId: 'afternoon-study' });
+  old = draftReducer(old, {
+    type: 'create-party',
+    id: 'custom',
+    name: 'My custom party',
+  });
   const legacy = {
     ...old,
     demoSeedVersion: undefined,
@@ -100,19 +118,14 @@ test('older saved demo gets both samples once without losing custom parties or s
   const upgraded = restoreDraftState(JSON.stringify(legacy));
   assert(upgraded.parties.some((p) => p.name === 'My custom party'));
   assert(upgraded.parties.some((p) => p.id === 'anna-study'));
-  assert(
-    upgraded.parties.some(
-      (p) =>
-        p.id === 'afternoon-study-demo' &&
-        p.members.every((m) => m.status === 'accepted'),
-    ),
-  );
+  assert.equal(activeDraftParty(upgraded.parties).id, 'custom');
   assert.equal(
     upgraded.parties
       .find((p) => p.id === 'afternoon-study')
       .members.find((m) => m.person.id === 'you').checkedIn,
     true,
   );
+  assert(!upgraded.parties.some((p) => p.id === 'afternoon-study-demo'));
   const declined = draftReducer(upgraded, {
     type: 'reply',
     partyId: 'anna-study',
@@ -128,7 +141,7 @@ test('cancelled parties leave the active list without deleting checked-in sessio
   let state = initialDraftState();
   state = draftReducer(state, {
     type: 'book',
-    assignments: { you: 1, anna: 4, luca: 2, mia: 3 },
+    assignments: { you: 1, theo: 4, luca: 2, mia: 3 },
     now: 1000,
   });
   state = draftReducer(state, { type: 'check-in' });
@@ -148,13 +161,22 @@ test('cancelled parties leave the active list without deleting checked-in sessio
 });
 
 test('creating parties keeps earlier parties and gives each one a separate link', () => {
-  let state = initialDraftState();
+  let state = releasedDemo();
   const sample = state.parties[0];
   state = draftReducer(state, {
     type: 'create-party',
     id: 'first',
     name: ' Thursday crew ',
   });
+  assert.equal(
+    draftReducer(state, {
+      type: 'create-party',
+      id: 'blocked',
+      name: 'Blocked',
+    }),
+    state,
+  );
+  state = draftReducer(state, { type: 'cancel-party', partyId: 'first' });
   state = draftReducer(state, {
     type: 'create-party',
     id: 'second',
@@ -174,44 +196,46 @@ test('creating parties keeps earlier parties and gives each one a separate link'
   );
 });
 
-test('an invite targets the party in its URL and still requires acceptance', () => {
-  let state = draftReducer(initialDraftState(), {
+test('invitations target their party and require acceptance without changing other parties', () => {
+  let state = draftReducer(releasedDemo(), {
     type: 'create-party',
     id: 'new',
     name: 'New party',
   });
-  state = draftReducer(state, { type: 'accept-request', id: 'nora' });
+  const other = state.parties[2];
+  state = {
+    ...state,
+    friends: [...state.friends, { id: 'sam', name: 'Sam Keller', room: null }],
+  };
   state = draftReducer(state, {
     type: 'invite-members',
-    partyId: 'afternoon-study',
-    invited: ['nora'],
+    partyId: 'new',
+    invited: ['sam'],
   });
   state = draftReducer(state, {
     type: 'invite-members',
-    partyId: 'afternoon-study',
-    invited: ['nora'],
+    partyId: 'new',
+    invited: ['sam'],
   });
-  const sample = state.parties.find((p) => p.id === 'afternoon-study');
-  assert.equal(sample.members.filter((m) => m.person.id === 'nora').length, 1);
   assert.equal(
-    sample.members.find((m) => m.person.id === 'nora').status,
+    state.parties[0].members.filter((m) => m.person.id === 'sam').length,
+    1,
+  );
+  assert.equal(
+    state.parties[0].members.find((m) => m.person.id === 'sam').status,
     'invited',
   );
-  assert.equal(state.parties[0].members.length, 1);
-  state = draftReducer(state, { type: 'viewer', id: 'nora' });
-  state = draftReducer(state, {
-    type: 'reply',
-    partyId: 'afternoon-study',
-    accept: true,
-  });
+  assert.equal(state.parties[2], other);
+  state = draftReducer(state, { type: 'viewer', id: 'sam' });
+  state = draftReducer(state, { type: 'reply', partyId: 'new', accept: true });
   assert.equal(
-    state.parties[1].members.find((m) => m.person.id === 'nora').status,
+    state.parties[0].members.find((m) => m.person.id === 'sam').status,
     'accepted',
   );
 });
 
 test('reload retains parties, requests and privacy, and leaves preview perspective at organizer', () => {
-  let state = draftReducer(initialDraftState(), {
+  let state = draftReducer(releasedDemo(), {
     type: 'create-party',
     id: 'new',
     name: 'New party',
@@ -239,17 +263,13 @@ test('corrupt and old saved previews reset safely', () => {
   }
 });
 
-test('booking, individual check-in and cancellation do not affect another party', () => {
-  let state = draftReducer(initialDraftState(), {
-    type: 'create-party',
-    id: 'other',
-    name: 'Other party',
-  });
-  const other = state.parties[0];
+test('booking, individual check-in and cancellation preserve the waiting invitation', () => {
+  let state = initialDraftState();
+  const other = state.parties[1];
   state = draftReducer(state, {
     type: 'book',
     partyId: 'afternoon-study',
-    assignments: { you: 1, anna: 4, luca: 2, mia: 3 },
+    assignments: { you: 1, theo: 4, luca: 2, mia: 3 },
     now: 1000,
   });
   state = draftReducer(state, { type: 'viewer', id: 'luca' });
@@ -259,11 +279,11 @@ test('booking, individual check-in and cancellation do not affect another party'
     type: 'cancel-party',
     partyId: 'afternoon-study',
   });
-  const members = state.parties[1].members;
+  const members = state.parties[0].members;
   assert.equal(members.find((m) => m.person.id === 'luca').checkedIn, true);
   assert.equal(members.find((m) => m.person.id === 'luca').cancelled, false);
   assert.equal(members.find((m) => m.person.id === 'you').cancelled, true);
-  assert.equal(state.parties[0], other);
+  assert.equal(state.parties[1], other);
 });
 
 test('a stale party link cannot mutate an existing party', () => {
@@ -292,4 +312,114 @@ test('people search includes non-friends and distinguishes pending requests', as
   assert.equal(samplePeople(state, 'Sam')[0].relationship, 'outgoing');
   state = draftReducer(state, { type: 'remove-friend', id: 'anna' });
   assert.equal(samplePeople(state, 'Anna')[0].relationship, 'none');
+});
+
+test('active-party limits ignore invitations and release a slot when its reservation ends or expires', () => {
+  let state = initialDraftState();
+  const now = 1000;
+  assert.equal(
+    activeDraftParty(state.parties, 'you', now).id,
+    'afternoon-study',
+  );
+  assert.equal(
+    draftReducer(state, {
+      type: 'create-party',
+      id: 'new',
+      name: 'Extra',
+      now,
+    }),
+    state,
+  );
+  assert.equal(
+    draftReducer(state, {
+      type: 'reply',
+      partyId: 'anna-study',
+      accept: true,
+      now,
+    }),
+    state,
+  );
+  state = draftReducer(state, {
+    type: 'book',
+    assignments: { you: 1, theo: 4, luca: 2, mia: 3 },
+    now,
+  });
+  assert(
+    isDraftPartyActive(state.parties[0], 'you', now + holdSeconds * 1000 - 1),
+  );
+  assert(
+    !isDraftPartyActive(state.parties[0], 'you', now + holdSeconds * 1000),
+  );
+  assert.equal(
+    draftReducer(state, {
+      type: 'create-party',
+      id: 'expired',
+      name: 'Next',
+      now: now + holdSeconds * 1000,
+    }).parties[0].id,
+    'expired',
+  );
+  state = draftReducer(state, { type: 'check-in' });
+  assert(isDraftPartyActive(state.parties[0], 'you', now + holdSeconds * 1000));
+  assert(
+    !isDraftPartyActive(state.parties[0], 'you', now + sessionSeconds * 1000),
+  );
+  state = draftReducer(state, { type: 'cancel-seat' });
+  assert(!activeDraftParty(state.parties, 'you', now));
+  assert.equal(
+    draftReducer(state, {
+      type: 'reply',
+      partyId: 'anna-study',
+      accept: true,
+      now,
+    }).parties[1].members.find((m) => m.person.id === 'you').status,
+    'accepted',
+  );
+});
+
+test('friend list puts shared rooms first, filters names and leaves its source order intact', async () => {
+  const { friendsWithLocationsFirst } =
+    await import('../src/features/social-draft/friends.ts');
+  const friends = [
+    { id: 'a', name: 'Alice', room: null },
+    { id: 'z', name: 'Zoe', room: 'HG E 41' },
+    { id: 'b', name: 'Bob', room: 'CAB E 11' },
+  ];
+  assert.deepEqual(
+    friendsWithLocationsFirst(friends).map((p) => p.id),
+    ['b', 'z', 'a'],
+  );
+  assert.deepEqual(
+    friendsWithLocationsFirst(friends, '  AL ').map((p) => p.id),
+    ['a'],
+  );
+  assert.deepEqual(
+    friends.map((p) => p.id),
+    ['a', 'z', 'b'],
+  );
+});
+
+test('previous open demo rosters upgrade once to separate the joined party and invitation', () => {
+  const old = initialDraftState();
+  old.demoSeedVersion = 1;
+  old.friends = old.friends.filter((p) => p.id !== 'theo');
+  old.parties[0].members.find((m) => m.person.id === 'theo').person =
+    old.friends[0];
+  old.parties[1].members.find((m) => m.person.id === 'nora').person =
+    old.friends.find((p) => p.id === 'luca');
+  old.parties[1].members.find((m) => m.person.id === 'felix').person =
+    old.friends.find((p) => p.id === 'mia');
+  const upgraded = restoreDraftState(JSON.stringify(old));
+  assert.equal(upgraded.demoSeedVersion, 2);
+  assert(upgraded.friends.some((p) => p.id === 'theo'));
+  for (const id of ['you', 'anna', 'luca', 'mia', 'theo']) {
+    assert.equal(
+      upgraded.parties.filter((p) => isDraftPartyActive(p, id, 1000)).length,
+      1,
+    );
+  }
+  assert.deepEqual(
+    restoreDraftState(JSON.stringify(upgraded)).parties,
+    upgraded.parties,
+  );
 });

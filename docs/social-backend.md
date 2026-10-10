@@ -48,6 +48,12 @@ Local demo mode supports `X-Demo-User-Id` to exercise multiple users through the
   `active` or `on_break` reservation. Pending, upcoming, expired, hidden, and absent sessions
   expose no room. Sharing returns a room, never GPS or an exact seat. Responses use `no-store`;
   the frontend must refresh friend data when focused and after relevant mutations.
+- Each person may join only one active party. An accepted open party counts; a booked party counts
+  while that person’s linked reservation is live (including breaks). Invitations do not count.
+  Creating or accepting another party returns `409 active_party_exists`. Leaving, cancellation,
+  or ending/expiry of the person’s booked reservation frees the slot; history is preserved.
+  Create/join use the same user advisory lock as booking, preventing cross-party races. Booking
+  also rejects legacy overlapping accepted memberships, rolling back all reservations.
 - Parties have an organizer and at most 12 invited/accepted members, including the organizer.
   Party invitations are direct friend invites, without shared join links. The organizer posts a
   friend ID to `/parties/{id}/invitations`; the recipient sees the invitation in `GET /parties`
@@ -119,6 +125,8 @@ Its shared preparation helper acquires all user advisory locks in numeric key or
 and seat locks in UUID order, normalizes stale bookings, and evaluates one clock instant.
 Individual bookings use the same helper. Social locks the party first to serialize consent,
 invitations, booking, and cancellation; reservation operations never acquire party locks.
+Create/join acquire the user lock before checking active membership. The check reads other parties
+without acquiring their party locks, keeping the party-before-user locking order.
 
 Do not implement group booking by making several HTTP calls to the individual reservation endpoint.
 The social route commits once after both reservation rows and party references are ready.
@@ -145,4 +153,5 @@ uv run --locked ruff format --check .
 Social tests use the existing isolated PostgreSQL schema harness and real migrations. They cover
 friend permissions, duplicate/crossing requests, privacy and derived expiry, party consent,
 four-person booking, rollback, idempotency, individual check-in/no-shows, cancellation, disabling,
-migration roundtrip, and competing party/individual booking and consent/check-in transactions.
+migration roundtrip, competing create/join and two-invitation races, and party/individual booking
+and consent/check-in transactions.

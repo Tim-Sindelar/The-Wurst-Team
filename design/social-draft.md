@@ -15,8 +15,7 @@ There are no new design tokens, component variants, stylesheets, or dependencies
 | Draft view | Existing visual reference | Main action |
 | --- | --- | --- |
 | Friends | `screens/06-profile.html`: avatars, cards, notification/privacy toggles | Add a friend |
-| Manage friends | `screens/06-profile.html`: requests and friend list | Add a friend |
-| Stalk my friends | `screens/01-home.html`: cards for shared rooms | Open campus map |
+| Friend requests | `screens/06-profile.html`: request cards | Accept / decline / cancel |
 | Add a friend | `components.html`: name search, avatar cards, selection, notices | Send friend request |
 | Study parties | `screens/01-home.html`: linked summary cards | Create a party |
 | Create party | `screens/06-profile.html`: labelled form | Create party |
@@ -27,6 +26,8 @@ There are no new design tokens, component variants, stylesheets, or dependencies
 | Own QR scan | `screens/04-qr-scan.html`: labelled mock scan target | Scan the assigned seat |
 
 Screens use the existing 390px `Screen` frame, `ScreenHeader`, `ScreenMain`, and pinned `ActionBar`.
+At the user’s request, Friends places its single Add a friend primary action after the friend list
+inside scrolling `ScreenMain`, rather than in a pinned action bar.
 Cards, buttons, switches, text, inputs, and notices use the Mantine theme. Native selects inherit
 the shared Input theme; their arrows come from `Icon`. Long names wrap in content. Seat-state
 colours appear only on seats and seat summaries. Non-seat membership states use text and icons.
@@ -35,12 +36,19 @@ notification banner. Both colour schemes are supported through existing theme to
 
 The demo trials persistent **Home / Map / Friends** bottom navigation, outside the
 scrolling viewport. Page actions sit above it, and the campus map fills the remaining viewport.
-Friends is a short hub: privacy first, then Study parties and Stalk my friends under Study together,
-and Manage friends under Friendships. Requests and removal live only in Manage friends; shared
-rooms live only in Stalk my friends. There is no Friends/Parties toggle.
+Friends has privacy first, a study-party entry, then one combined friend list showing shared
+rooms. Friends with a permitted active location come first; names order each group. No shared
+room is deliberately ambiguous about privacy versus no active session. Search filters this list;
+removal uses its inline button and a decision sheet. A Requests link opens pending requests.
+Add a friend sits at the bottom of the scrolling list. The old location route redirects to Friends.
+There is no separate Stalk my friends screen or duplicated friend list.
 Create asks only for a name, then opens invitations. Each friend has an **Invite** button that
 changes to **Invited**; there are no invitation switches. **Done** opens the party roster.
-The parties list separates invitations from joined parties. Cancelled parties are hidden, including
+Only one joined active party per person is permitted. Open membership consumes the slot; a booked
+party consumes it while that person’s reservation/session is live. Invitations never consume a slot.
+Leave/cancel or finish/expire your reservation before creating/joining another. The reducer enforces
+the rule too; direct create URLs show a disabled action and a link to the current party.
+The parties list separates invitations from the current joined party. Cancelled parties are hidden, including
 in the hub count. A checked-in seat surviving cancellation stays accessible as Your ongoing session.
 Cancellation retains the saved party and independent reservations; hiding it does not delete data.
 Party invitations use direct friend selection, without shared party links. The recipient opens an
@@ -56,20 +64,22 @@ and (on party detail/reservation) a perspective selector. These controls are not
 ## Preview walkthrough
 
 1. Open Friends through the bottom navigation or `/social-draft`. Room sharing is off by default
-   and its setting is at the top. Open Manage friends to accept Nora's request, cancel Felix's request, filter the friend list,
-   or remove a friend through a decision sheet.
+   and its setting is at the top. Friends and shared room names are in one list, with locations
+   first. Filter or remove friends here; open Requests to accept Nora or cancel Felix.
 2. Open Add a friend and search by display name (at least two characters). Select a result
    with Add friend, then Send friend request in the action bar. Results distinguish friends,
-   outgoing requests and incoming requests. Incoming requests link to Manage friends.
+   outgoing requests and incoming requests. Incoming requests link to Friend requests.
    When the backend is disabled, search Sam to exercise the sample flow. There are no friend links.
-3. Open Study parties, create a party, give it a name, invite friends with their Invite buttons, then press Done.
-   Open Parties to see the new party alongside the sample Afternoon study party. Both have their
-   own `/social-draft/party/:partyId` links, and remain saved after visiting Home or reloading.
+3. Open Study parties. With a current party, View your party replaces Create a party. Cancel
+   the sample Afternoon study first, then create a party, name it, invite friends and press Done.
+   Each saved party retains its own `/social-draft/party/:partyId` URL; archived parties are preserved.
 4. The local demo starts with one invitation to Anna’s study group and one fully joined four-person
-   Afternoon study party. Open Anna’s invitation and join through the consent sheet as yourself.
+   Afternoon study party (you, Luca, Mia and Theo). Anna’s invitation stays pending while Afternoon
+   study is active. Cancel Afternoon study first to join Anna through the consent sheet.
    Open Afternoon study to book for four members immediately. Existing saved demos are upgraded
-   once to add these samples while preserving custom parties and booked/cancelled reservations;
-   a preserved closed Afternoon study uses a separate ready-party sample.
+   once while preserving custom parties and booked/cancelled reservations. The old open sample
+   roster is refreshed to avoid overlapping joined members. Upgrades never seed another active
+   party alongside an existing custom party.
 5. Choose seats. Tap distinct free seats on the existing floor plan. The picker advances to the
    next unassigned member. All selected seats have the existing double-ring highlight, and every
    assignment is listed with a Change control. Occupied, claimable, reserved, and duplicate seats
@@ -78,7 +88,7 @@ and (on party detail/reservation) a perspective selector. These controls are not
    Switch perspectives on the reservation screen to inspect each member's own seat/check-in.
 7. From the organizer's party detail, cancel the party. It disappears from the list; unchecked-in
    seats are released while checked-in members keep their sessions. An individual can also
-   cancel/end only their own seat. Open Stalk my friends to see only friends' shared study rooms.
+   cancel/end only their own seat. Return to Friends to see shared study rooms in the friend list.
 8. **Reset preview** restores the sample data, clears screen-local form state, and returns to Friends.
    Sample parties and disabled-backend demo friendships persist in isolated localStorage entries.
    Live friendships, requests and privacy persist in PostgreSQL, refresh after changes and on focus,

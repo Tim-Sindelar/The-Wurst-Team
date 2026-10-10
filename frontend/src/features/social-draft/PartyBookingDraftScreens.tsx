@@ -8,14 +8,21 @@ import { SeatChip } from '../../components/SeatChip';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { TimerCard } from '../../components/TimerCard';
 import { stripeClass } from '../../domain/seat';
+import { useNow } from '../../hooks/useNow';
 import { useCountdown } from '../../hooks/useCountdown';
 import { mockSpace, roomSeats } from './sampleRoom';
-import { partyPath, holdSeconds, sessionSeconds } from './draft';
+import {
+  partyPath,
+  holdSeconds,
+  sessionSeconds,
+  isDraftPartyActive,
+} from './draft';
 import { DraftFrame } from './SocialDraftLayout';
 import { useSocialDraft } from './useSocialDraft';
 
 export function PartySeatsDraftScreen() {
   const { state, dispatch } = useSocialDraft();
+  const now = useNow();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const members = state.party.members.filter((m) => m.status === 'accepted');
@@ -26,6 +33,11 @@ export function PartySeatsDraftScreen() {
   const person = members.find((m) => m.person.id === active)?.person;
   const picked = Object.values(assignments);
   const complete = members.every((m) => !!assignments[m.person.id]);
+  const overlapping = members.some((m) =>
+    state.parties.some(
+      (p) => p.id !== state.party.id && isDraftPartyActive(p, m.person.id, now),
+    ),
+  );
   const allowed =
     state.viewer === state.party.organizerId && state.party.status === 'open';
 
@@ -57,7 +69,10 @@ export function PartySeatsDraftScreen() {
       backTo={partyPath(state.party.id)}
       actions={
         allowed ? (
-          <Button disabled={!complete} onClick={() => setSheetOpen(true)}>
+          <Button
+            disabled={!complete || overlapping}
+            onClick={() => setSheetOpen(true)}
+          >
             {complete
               ? `Reserve ${members.length} seats together`
               : `Choose ${members.length - picked.length} more ${members.length - picked.length === 1 ? 'seat' : 'seats'}`}
@@ -69,6 +84,12 @@ export function PartySeatsDraftScreen() {
         )
       }
     >
+      {overlapping && (
+        <Alert variant="danger" title="A member has another active party">
+          They must leave or cancel their other party before these seats can be
+          booked.
+        </Alert>
+      )}
       {!allowed ? (
         <Alert title="Seat selection unavailable">
           Only the organizer can book seats for an open party.
@@ -161,7 +182,7 @@ export function PartySeatsDraftScreen() {
         actionLabel="Reserve seats"
         onConfirm={() => {
           setSheetOpen(false);
-          if (!allowed || !complete) return;
+          if (!allowed || !complete || overlapping) return;
           if (params.get('error') === '1') {
             setError(
               'One of the seats was just taken. Your party has no new reservations. Choose seats again.',

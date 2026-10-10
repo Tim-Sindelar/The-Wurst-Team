@@ -1,9 +1,16 @@
 import { useCallback, useContext } from 'react';
+import { useNow } from '../../hooks/useNow';
 import { useLocation, useMatch } from 'react-router';
-import { SocialDraftContext, draftPaths, type DraftAction } from './draft';
+import {
+  SocialDraftContext,
+  draftPaths,
+  activeDraftParty,
+  type DraftAction,
+} from './draft';
 
 export function useSocialDraft() {
   const value = useContext(SocialDraftContext);
+  const now = useNow();
   const match = useMatch('/social-draft/party/:partyId/*');
   const { pathname } = useLocation();
   const legacy = [
@@ -28,6 +35,11 @@ export function useSocialDraft() {
   return {
     state: { ...value.state, party, viewer },
     dispatch,
+    activeParty: activeDraftParty(value.state.parties, 'you', now),
+    canCreateParty: !activeDraftParty(value.state.parties, 'you', now),
+    conflictingParty: value.state.parties.find(
+      (p) => p.id !== party.id && activeDraftParty([p], viewer, now),
+    ),
     partyExists: value.state.parties.some((p) => p.id === partyId),
   };
 }

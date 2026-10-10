@@ -2,7 +2,7 @@ from base64 import b64encode
 from secrets import token_urlsafe
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -224,12 +224,49 @@ class SocialService:
 
     def create_party(self, name: str) -> PartyResponse:
         self.enroll()
+        self._lock_party_slot()
+        self._require_party_slot(self.user_id)
         party = Party(organizer_id=self.user_id, name=name)
         self.session.add(party)
         self.session.flush()
         self.session.add(PartyMember(party_id=party.id, user_id=self.user_id, status="accepted"))
         self.session.flush()
         return self._detail(party)
+
+    def _lock_party_slot(self) -> None:
+        # Same user lock as booking: create/join and booking serialize, even across
+        # different parties. Party mutations acquire their party lock first.
+        self.session.execute(
+            text("SELECT pg_advisory_xact_lock(:key)"),
+            {"key": self.user_id.int & ((1 << 63) - 1)},
+        )
+
+    def _require_party_slot(self, user_id: UUID, exclude: UUID | None = None) -> None:
+        memberships = self.session.execute(
+            select(Party, PartyMember)
+            .join(PartyMember)
+            .where(
+                PartyMember.user_id == user_id,
+                PartyMember.status == "accepted",
+                Party.status != "cancelled",
+                Party.id != exclude if exclude is not None else True,
+            )
+        ).all()
+        live_ids = {
+            state.id
+            for state in reservation_states(
+                self.session, self.bookings.now(), user_id=user_id, live_only=True
+            )
+        }
+        if any(
+            party.status == "open" or member.reservation_id in live_ids
+            for party, member in memberships
+        ):
+            raise BookingError(
+                409,
+                "active_party_exists",
+                "Only one active party per person. Leave or cancel your current party first.",
+            )
 
     def _party(self, party_id: UUID, *, lock: bool = False, organizer: bool = False) -> Party:
         query = select(Party).where(Party.id == party_id)
@@ -343,6 +380,9 @@ class SocialService:
             return self._detail(party)
         if member.status != "invited":
             raise BookingError(409, "not_invited", "There is no pending invitation")
+        if accept:
+            self._lock_party_slot()
+            self._require_party_slot(self.user_id, exclude=party.id)
         member.status = "accepted" if accept else "declined"
         self.session.flush()
         return self._detail(party)
@@ -375,6 +415,10 @@ class SocialService:
             raise BookingError(409, "already_booked", "This party already has a booking")
         self._open(party)
         rows, _now = self.bookings.reserve_party(assignments)
+        # reserve_party holds every member's user lock in order. Recheck legacy
+        # overlapping memberships before committing any group reservations.
+        for user_id in accepted:
+            self._require_party_slot(user_id, exclude=party.id)
         by_user = {row.user_id: row.id for row in rows}
         for member in members:
             if member.user_id in by_user:

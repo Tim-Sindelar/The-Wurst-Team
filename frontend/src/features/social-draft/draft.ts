@@ -45,7 +45,7 @@ export type DraftAction = (
   | { type: 'reply'; accept: boolean }
   | { type: 'leave' | 'cancel-party' | 'cancel-seat' | 'check-in' }
   | { type: 'book'; assignments: Record<string, number>; now: number }
-) & { partyId?: string };
+) & { partyId?: string; now?: number };
 
 export const draftPaths = {
   friends: '/social-draft',
@@ -61,8 +61,46 @@ export const draftPaths = {
   scan: '/social-draft/party/scan',
 } as const;
 
-export function activeDraftParties(parties: DraftParty[]) {
-  return parties.filter((p) => p.status !== 'cancelled');
+export function isDraftPartyActive(
+  party: DraftParty,
+  userId: string,
+  now: number,
+) {
+  const member = party.members.find(
+    (m) => m.person.id === userId && m.status === 'accepted',
+  );
+  if (!member || party.status === 'cancelled') return false;
+  if (party.status === 'open') return true;
+  return (
+    !member.cancelled &&
+    member.seat !== null &&
+    party.bookedAt !== null &&
+    now <
+      party.bookedAt + (member.checkedIn ? sessionSeconds : holdSeconds) * 1000
+  );
+}
+
+export function activeDraftParty(
+  parties: DraftParty[],
+  userId = 'you',
+  now = Date.now(),
+) {
+  return parties.find((party) => isDraftPartyActive(party, userId, now));
+}
+
+export function activeDraftParties(
+  parties: DraftParty[],
+  userId = 'you',
+  now = Date.now(),
+) {
+  return parties.filter(
+    (p) =>
+      isDraftPartyActive(p, userId, now) ||
+      (p.status === 'open' &&
+        p.members.some(
+          (m) => m.person.id === userId && m.status === 'invited',
+        )),
+  );
 }
 
 export function partyPath(
@@ -102,9 +140,10 @@ export function initialDraftState(): DraftState {
       name: 'Mia Alexandra von Niederhäusern-Winterthur',
       room: 'CAB E 11',
     },
+    { id: 'theo', name: 'Theo Weber', room: null },
   ];
   return {
-    demoSeedVersion: 1,
+    demoSeedVersion: 2,
     revision: 0,
     friends,
     requests: [
@@ -128,7 +167,9 @@ export function initialDraftState(): DraftState {
         status: 'open',
         members: [
           asMember(organizer, true),
-          ...friends.map((p) => asMember(p, true)),
+          ...friends
+            .filter((p) => p.id !== 'anna')
+            .map((p) => asMember(p, true)),
         ],
         bookedAt: null,
       },
@@ -140,7 +181,8 @@ export function initialDraftState(): DraftState {
         members: [
           asMember(friends[0], true),
           asMember(organizer),
-          ...friends.slice(1).map((p) => asMember(p, true)),
+          asMember({ id: 'nora', name: 'Nora Baumann', room: null }, true),
+          asMember({ id: 'felix', name: 'Felix Weber', room: null }, true),
         ],
         bookedAt: null,
       },
@@ -211,7 +253,11 @@ export function draftReducer(
             ],
           };
     case 'create-party':
-      if (!action.name.trim() || state.parties.some((p) => p.id === action.id))
+      if (
+        !action.name.trim() ||
+        state.parties.some((p) => p.id === action.id) ||
+        activeDraftParty(state.parties, 'you', action.now ?? Date.now())
+      )
         return state;
       return {
         ...state,
@@ -255,16 +301,42 @@ export function draftReducer(
     case 'reply':
       if (!party || party.status !== 'open' || party.organizerId === viewer)
         return state;
-      return updateMember((m) => ({
-        ...m,
-        status: action.accept ? 'accepted' : 'declined',
-      }));
+      if (
+        action.accept &&
+        state.parties.some(
+          (p) =>
+            p.id !== party.id &&
+            isDraftPartyActive(p, viewer, action.now ?? Date.now()),
+        )
+      )
+        return state;
+      return updateMember((m) =>
+        m.status === 'invited'
+          ? {
+              ...m,
+              status: action.accept ? 'accepted' : 'declined',
+            }
+          : m,
+      );
     case 'leave':
       if (!party || party.status !== 'open' || party.organizerId === viewer)
         return state;
       return updateMember((m) => ({ ...m, status: 'left' }));
     case 'book':
-      if (!party || party.status !== 'open' || viewer !== party.organizerId)
+      if (
+        !party ||
+        party.members.some(
+          (m) =>
+            m.status === 'accepted' &&
+            state.parties.some(
+              (other) =>
+                other.id !== party.id &&
+                isDraftPartyActive(other, m.person.id, action.now),
+            ),
+        ) ||
+        party.status !== 'open' ||
+        viewer !== party.organizerId
+      )
         return state;
       return updateParty((p) => ({
         ...p,
@@ -301,14 +373,61 @@ export function socialDraftStorageKey(basePath: string) {
 
 /** Upgrade the previous one-party demo once, preserving custom parties and reservations. */
 function seedDemoParties(state: DraftState): DraftState {
-  if (state.demoSeedVersion === 1) return state;
+  if (state.demoSeedVersion === 2) return state;
+  if (state.demoSeedVersion === 1) {
+    // Refresh only the old open sample roster. Preserve custom parties and every
+    // booked/cancelled reservation; invitations don't consume a party slot.
+    const full = state.parties.find(
+      (p) => p.id === 'afternoon-study' && p.status === 'open',
+    );
+    const invitation = state.parties.find(
+      (p) => p.id === 'anna-study' && p.status === 'open',
+    );
+    if (!full || !invitation) return { ...state, demoSeedVersion: 2 };
+    const theo = { id: 'theo', name: 'Theo Weber', room: null };
+    return {
+      ...state,
+      demoSeedVersion: 2,
+      friends: state.friends.some((p) => p.id === theo.id)
+        ? state.friends
+        : [...state.friends, theo],
+      parties: state.parties.map((p) =>
+        p.id === full.id
+          ? {
+              ...p,
+              members: p.members.map((m) =>
+                m.person.id === 'anna' &&
+                m.status === 'accepted' &&
+                m.seat === null
+                  ? asMember(theo, true)
+                  : m,
+              ),
+            }
+          : p.id === invitation.id
+            ? {
+                ...p,
+                members: p.members.map((m) =>
+                  ['luca', 'mia'].includes(m.person.id) &&
+                  m.status === 'accepted' &&
+                  m.seat === null
+                    ? { ...m, status: 'invited' as const }
+                    : m,
+                ),
+              }
+            : p,
+      ),
+    };
+  }
   const [full, invitation] = initialDraftState().parties;
   let parties = state.parties.map((p) =>
     p.id === full.id && p.status === 'open' ? { ...full } : p,
   );
   if (!parties.some((p) => p.id === invitation.id))
     parties = [...parties, invitation];
-  if (!parties.some((p) => p.id === full.id && p.status === 'open'))
+  if (
+    !parties.some((p) => p.id === full.id && p.status === 'open') &&
+    !activeDraftParty(parties)
+  )
     parties = [
       ...parties,
       {
@@ -318,7 +437,7 @@ function seedDemoParties(state: DraftState): DraftState {
           : full.id,
       },
     ];
-  return { ...state, parties, demoSeedVersion: 1 };
+  return { ...state, parties, demoSeedVersion: 2 };
 }
 
 /** Isolated from the real profile and booking stores; old/corrupt drafts reset safely. */

@@ -401,27 +401,152 @@ def test_duplicate_assignments_rejected(social_client, seats):
     )
 
 
-def test_competing_parties_with_same_users_cannot_double_book(social_client, seats, db):
+def test_competing_party_invitations_cannot_create_two_active_memberships(social_client, db):
     client = social_client
-    first = party(client)
-    # Same accepted friendship, with the opposite organizer and assignment order.
-    second = call(client, "POST", BASE + "/parties", B, {"name": "Other party"}).json()["id"]
-    call(client, "POST", BASE + f"/parties/{second}/invitations", B, {"user_id": str(A)})
-    call(client, "POST", BASE + f"/parties/{second}/reply", A, {"accept": True})
+    friendship(client, A, C)
+    friendship(client, B, C)
+    parties = []
+    for organizer in (A, B):
+        created = call(client, "POST", BASE + "/parties", organizer, {"name": "Study"})
+        party_id = created.json()["id"]
+        call(
+            client,
+            "POST",
+            BASE + f"/parties/{party_id}/invitations",
+            organizer,
+            {"user_id": str(C)},
+        )
+        parties.append(party_id)
     barrier = Barrier(2)
 
-    def attempt(party_id, organizer, users):
+    def attempt(party_id):
         barrier.wait(timeout=5)
         return call(
-            client, "POST", BASE + f"/parties/{party_id}/book", organizer, assignments(seats, users)
+            client, "POST", BASE + f"/parties/{party_id}/reply", C, {"accept": True}
         ).status_code
 
     with ThreadPoolExecutor(max_workers=2) as pool:
-        left = pool.submit(attempt, first, A, (A, B))
-        right = pool.submit(attempt, second, B, (B, A))
-        assert sorted([left.result(timeout=10), right.result(timeout=10)]) == [200, 409]
+        results = [pool.submit(attempt, party_id) for party_id in parties]
+        assert sorted(result.result(timeout=10) for result in results) == [200, 409]
     with Session(db) as session:
-        assert session.scalar(select(func.count()).select_from(Reservation)) == 2
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(PartyMember)
+                .where(
+                    PartyMember.user_id == C,
+                    PartyMember.status == "accepted",
+                )
+            )
+            == 1
+        )
+
+
+def test_one_active_party_requires_leaving_or_cancellation(social_client):
+    client = social_client
+    first = party(client)
+    for user in (A, B):
+        response = call(client, "POST", BASE + "/parties", user, {"name": "Extra"})
+        assert response.status_code == 409 and response.json()["code"] == "active_party_exists"
+    second = call(client, "POST", BASE + "/parties", C, {"name": "Other"}).json()["id"]
+    friendship(client, C, B)
+    assert (
+        call(
+            client, "POST", BASE + f"/parties/{second}/invitations", C, {"user_id": str(B)}
+        ).status_code
+        == 200
+    )
+    assert (
+        call(client, "POST", BASE + f"/parties/{second}/reply", B, {"accept": True}).status_code
+        == 409
+    )
+    assert call(client, "POST", BASE + f"/parties/{first}/leave", B).status_code == 204
+    assert (
+        call(client, "POST", BASE + f"/parties/{second}/reply", B, {"accept": True}).status_code
+        == 200
+    )
+    assert (
+        call(client, "POST", BASE + f"/parties/{second}/reply", B, {"accept": True}).status_code
+        == 200
+    )
+    call(client, "POST", BASE + f"/parties/{first}/cancel", A)
+    assert call(client, "POST", BASE + "/parties", A, {"name": "Fresh"}).status_code == 201
+
+
+def test_pending_invitation_does_not_consume_active_party_slot(social_client):
+    client = social_client
+    first = party(client, accept=False)
+    own = call(client, "POST", BASE + "/parties", B, {"name": "My party"})
+    assert own.status_code == 201
+    assert (
+        call(client, "POST", BASE + f"/parties/{first}/reply", B, {"accept": False}).status_code
+        == 200
+    )
+
+
+def test_expired_or_ended_party_reservation_frees_own_slot(social_client, seats, clock):
+    client = social_client
+    first = party(client)
+    call(client, "POST", BASE + f"/parties/{first}/book", A, assignments(seats))
+    call(client, "POST", "/api/v1/check-ins", A, {"qr_token": seats[0].qr_token})
+    clock.advance(minutes=16)
+    assert call(client, "POST", BASE + "/parties", A, {"name": "Blocked"}).status_code == 409
+    assert (
+        call(client, "POST", BASE + "/parties", B, {"name": "No-show finished"}).status_code == 201
+    )
+    reservation = current(client, A)
+    call(client, "POST", f"/api/v1/reservations/{reservation['id']}/end", A)
+    assert (
+        call(client, "POST", BASE + "/parties", A, {"name": "Session finished"}).status_code == 201
+    )
+
+
+def test_concurrent_create_and_join_share_one_slot(social_client, db):
+    client = social_client
+    invitation = party(client, accept=False)
+    barrier = Barrier(2)
+
+    def create():
+        barrier.wait(timeout=5)
+        return call(client, "POST", BASE + "/parties", B, {"name": "My party"}).status_code
+
+    def join():
+        barrier.wait(timeout=5)
+        return call(
+            client, "POST", BASE + f"/parties/{invitation}/reply", B, {"accept": True}
+        ).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        created = pool.submit(create)
+        joined = pool.submit(join)
+        results = (created.result(timeout=10), joined.result(timeout=10))
+        assert results in {(201, 409), (409, 200)}
+    with Session(db) as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(PartyMember)
+                .where(
+                    PartyMember.user_id == B,
+                    PartyMember.status == "accepted",
+                )
+            )
+            == 1
+        )
+
+
+def test_booking_legacy_overlapping_membership_rolls_back(social_client, seats, db):
+    first = party(social_client)
+    with Session(db) as session:
+        legacy = Party(organizer_id=B, name="Legacy overlap")
+        session.add(legacy)
+        session.flush()
+        session.add(PartyMember(party_id=legacy.id, user_id=B, status="accepted"))
+        session.commit()
+    response = call(social_client, "POST", BASE + f"/parties/{first}/book", A, assignments(seats))
+    assert response.status_code == 409 and response.json()["code"] == "active_party_exists"
+    with Session(db) as session:
+        assert session.scalar(select(func.count()).select_from(Reservation)) == 0
 
 
 @pytest.mark.parametrize("conflict", ["seat", "member"])

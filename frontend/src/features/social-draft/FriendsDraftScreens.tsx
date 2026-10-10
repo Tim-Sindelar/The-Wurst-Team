@@ -10,14 +10,14 @@ import {
   Title,
 } from '@mantine/core';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
 import { SectionLabel } from '../../components/SectionLabel';
 import { StatusBanner } from '../../components/StatusBanner';
 import { paths } from '../../routes';
 import {
-  activeDraftParties,
+  activeDraftParty,
   draftPaths,
   initials,
   type DraftPerson,
@@ -25,42 +25,41 @@ import {
 import { DraftFrame } from './SocialDraftLayout';
 import { useSocialDraft } from './useSocialDraft';
 import { useFriends } from './useFriends';
+import { friendsWithLocationsFirst } from './friends';
+import { useNow } from '../../hooks/useNow';
 
 export function FriendsDraftScreen() {
   const { state } = useSocialDraft();
   const social = useFriends();
-  const parties = activeDraftParties(state.parties);
-  const requests = social.requests.filter((r) => r.incoming).length;
+  const now = useNow();
+  const party = activeDraftParty(state.parties, 'you', now);
+  const incoming = social.requests.filter((r) => r.incoming).length;
+  const [search, setSearch] = useState('');
+  const [remove, setRemove] = useState<DraftPerson | null>(null);
+  const [notice, setNotice] = useState('');
+  const friends = friendsWithLocationsFirst(social.friends, search);
   return (
-    <DraftFrame
-      title="Friends"
-      backTo={paths.home}
-      actions={
-        <Button
-          component={Link}
-          to={draftPaths.add}
-          leftSection={<Icon name="plus" />}
-        >
-          Add a friend
-        </Button>
-      }
-    >
-      <FriendsDataNotice social={social} />
+    <DraftFrame title="Friends" backTo={paths.home}>
       <SectionLabel>Privacy</SectionLabel>
       <Card component="section" aria-label="Location sharing">
         <Switch
           label="Share my study room with friends"
           checked={social.shareRoom}
           disabled={social.busy || social.loading || !!social.error}
-          onChange={(e) => {
-            void social.privacy(e.currentTarget.checked);
-          }}
+          onChange={(e) => void social.privacy(e.currentTarget.checked)}
         />
         <Text size="sm" c="dimmed">
           Friends can see your room only while you’re checked in. Your seat and
           phone location stay private.
         </Text>
       </Card>
+      <FriendsDataNotice social={social} />
+      <StatusBanner
+        opened={!!notice}
+        onClose={() => setNotice('')}
+        icon="check"
+        title={notice}
+      />
       <SectionLabel>Study together</SectionLabel>
       <Card
         component={Link}
@@ -70,80 +69,102 @@ export function FriendsDraftScreen() {
       >
         <div className="flex items-center justify-between gap-3">
           <div className="grid min-w-0 gap-1">
-            <Title order={2}>Study parties · preview</Title>
+            <Title order={2}>Study party · preview</Title>
             <Text size="sm" c="dimmed">
-              {parties.length
-                ? `${parties.length} active ${parties.length === 1 ? 'party' : 'parties'} · invitations and group bookings`
-                : 'Create a party and book seats together'}
+              {party ? party.name : 'Create a party or review invitations'}
             </Text>
           </div>
           <Icon name="chevronRight" />
         </div>
       </Card>
-      <Card component={Link} to={draftPaths.locations} className="no-underline">
-        <div className="flex items-center gap-3">
-          <Icon name="pin" />
-          <div className="grid min-w-0 flex-1 gap-1">
-            <Title order={2}>Stalk my friends</Title>
-            <Text size="sm" c="dimmed">
-              Find the rooms your friends choose to share
-            </Text>
+      <div className="flex items-center justify-between gap-2">
+        <SectionLabel>Your friends · {social.friends.length}</SectionLabel>
+        <Button variant="quiet" component={Link} to={draftPaths.manage}>
+          Requests
+          {incoming
+            ? ` · ${incoming} new`
+            : social.requests.length
+              ? ` · ${social.requests.length}`
+              : ''}
+        </Button>
+      </div>
+      <TextInput
+        type="search"
+        label="Search your friends"
+        placeholder="Search by name"
+        leftSection={<Icon name="search" />}
+        value={search}
+        onChange={(e) => setSearch(e.currentTarget.value)}
+      />
+      {friends.map((person) => (
+        <Card key={person.id} component="article" aria-label={person.name}>
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <PersonRow
+                person={person}
+                detail={person.room ?? 'No shared room'}
+                location={!!person.room}
+              />
+            </div>
+            <ActionIcon
+              aria-label={`Remove ${person.name} from friends`}
+              disabled={social.busy || social.loading}
+              onClick={() => setRemove(person)}
+            >
+              <Icon name="close" />
+            </ActionIcon>
           </div>
-          <Icon name="chevronRight" />
-        </div>
-      </Card>
-      <SectionLabel>Friendships</SectionLabel>
-      <Card component={Link} to={draftPaths.manage} className="no-underline">
-        <div className="flex items-center gap-3">
-          <Icon name="friends" />
-          <div className="grid min-w-0 flex-1 gap-1">
-            <Title order={2}>Manage friends</Title>
-            <Text size="sm" c="dimmed">
-              {social.friends.length} friends
-              {requests
-                ? ` · ${requests} ${requests === 1 ? 'request' : 'requests'} to review`
-                : ''}
-            </Text>
-          </div>
-          <Icon name="chevronRight" />
-        </div>
-      </Card>
+        </Card>
+      ))}
+      {!social.loading && !social.error && !friends.length && (
+        <Text c="dimmed">
+          {search
+            ? 'No friends match that name.'
+            : 'Add a friend to start studying together.'}
+        </Text>
+      )}
+      <Button
+        component={Link}
+        to={draftPaths.add}
+        fullWidth
+        leftSection={<Icon name="plus" />}
+      >
+        Add a friend
+      </Button>
+      <DecisionSheet
+        opened={!!remove}
+        onClose={() => setRemove(null)}
+        title={`Remove ${remove?.name ?? 'friend'}?`}
+        safeLabel="Keep friend"
+        actionLabel="Remove friend"
+        actionTone="danger"
+        onConfirm={async () => {
+          if (!social.busy && remove && (await social.remove(remove))) {
+            setRemove(null);
+            setNotice('Friend removed');
+          }
+        }}
+      >
+        {social.error ||
+          'You’ll stop sharing your study room with each other. You can send another request later.'}
+      </DecisionSheet>
     </DraftFrame>
   );
 }
 
 export function ManageFriendsDraftScreen() {
-  const [search, setSearch] = useState('');
   const social = useFriends();
-  const [remove, setRemove] = useState<DraftPerson | null>(null);
   const [notice, setNotice] = useState('');
-  const friends = social.friends.filter((p) =>
-    p.name.toLowerCase().includes(search.trim().toLowerCase()),
-  );
   return (
-    <DraftFrame
-      title="Manage friends"
-      backTo={draftPaths.friends}
-      actions={
-        <Button
-          component={Link}
-          to={draftPaths.add}
-          leftSection={<Icon name="plus" />}
-        >
-          Add a friend
-        </Button>
-      }
-    >
+    <DraftFrame title="Friend requests" backTo={draftPaths.friends}>
+      <FriendsDataNotice social={social} />
       <StatusBanner
         opened={!!notice}
         onClose={() => setNotice('')}
         icon="check"
         title={notice}
       />
-      <FriendsDataNotice social={social} />
-      {social.requests.length > 0 && (
-        <SectionLabel>Friend requests · {social.requests.length}</SectionLabel>
-      )}
+      <SectionLabel>Friend requests · {social.requests.length}</SectionLabel>
       {social.requests.map(({ person, incoming }) => (
         <Card
           key={person.id}
@@ -186,106 +207,16 @@ export function ManageFriendsDraftScreen() {
           </div>
         </Card>
       ))}
-
-      <SectionLabel>Your friends · {social.friends.length}</SectionLabel>
-      <TextInput
-        type="search"
-        label="Filter your friends"
-        placeholder="Search by name"
-        leftSection={<Icon name="search" />}
-        value={search}
-        onChange={(e) => setSearch(e.currentTarget.value)}
-      />
-      {friends.map((person) => (
-        <Card key={person.id} component="article" aria-label={person.name}>
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <PersonRow person={person} detail="Friend" />
-            </div>
-            <ActionIcon
-              aria-label={`Remove ${person.name} from friends`}
-              disabled={social.busy || social.loading}
-              onClick={() => setRemove(person)}
-            >
-              <Icon name="close" />
-            </ActionIcon>
-          </div>
-        </Card>
-      ))}
-      {friends.length === 0 && (
-        <Card>
-          <Text c="dimmed">
-            {search
-              ? 'No friends match that name.'
-              : 'Add a friend to start studying together.'}
-          </Text>
-        </Card>
+      {!social.loading && !social.error && !social.requests.length && (
+        <Text c="dimmed">No pending friend requests.</Text>
       )}
-
-      <DecisionSheet
-        opened={!!remove}
-        onClose={() => setRemove(null)}
-        title={`Remove ${remove?.name ?? 'friend'}?`}
-        safeLabel="Keep friend"
-        actionLabel="Remove friend"
-        actionTone="danger"
-        onConfirm={async () => {
-          if (!social.busy && remove && (await social.remove(remove))) {
-            setRemove(null);
-            setNotice('Friend removed');
-          }
-        }}
-      >
-        {social.error ||
-          'You’ll stop sharing your study room with each other. You can send another request later.'}
-      </DecisionSheet>
     </DraftFrame>
   );
 }
 
+/** Preserve bookmarks for the previous separate location page. */
 export function FriendLocationsDraftScreen() {
-  const social = useFriends();
-  const shared = social.friends.filter((p) => p.room !== null);
-  return (
-    <DraftFrame
-      title="Stalk my friends"
-      backTo={draftPaths.friends}
-      actions={
-        <Button
-          component={Link}
-          to={paths.map}
-          leftSection={<Icon name="map" />}
-        >
-          Open campus map
-        </Button>
-      }
-    >
-      <FriendsDataNotice social={social} />
-      <Text c="dimmed">
-        Only rooms your friends share while checked in. No seat numbers or live
-        tracking.
-      </Text>
-      <SectionLabel>Shared study rooms · {shared.length}</SectionLabel>
-      {shared.map((person) => (
-        <Card
-          key={person.id}
-          component="article"
-          aria-label={`${person.name} in ${person.room}`}
-        >
-          <PersonRow person={person} detail={person.room!} location />
-        </Card>
-      ))}
-      {shared.length === 0 && (
-        <Card>
-          <Text c="dimmed">No friends are sharing a study room right now.</Text>
-        </Card>
-      )}
-      <Text size="sm" c="dimmed">
-        Friends without a shared room stay private. Manage your own sharing at
-        the top of Friends.
-      </Text>
-    </DraftFrame>
-  );
+  return <Navigate replace to={draftPaths.friends} />;
 }
 
 export function PersonRow({

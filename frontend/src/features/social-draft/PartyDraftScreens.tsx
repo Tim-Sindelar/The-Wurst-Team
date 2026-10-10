@@ -16,8 +16,8 @@ import { DraftFrame } from './SocialDraftLayout';
 import { useSocialDraft } from './useSocialDraft';
 
 export function PartiesDraftScreen() {
-  const { state } = useSocialDraft();
-  const parties = activeDraftParties(state.parties);
+  const { state, canCreateParty, activeParty } = useSocialDraft();
+  const parties = activeDraftParties(state.parties, state.viewer);
   const invitations = parties.filter((p) =>
     p.members.some(
       (m) => m.person.id === state.viewer && m.status === 'invited',
@@ -33,26 +33,38 @@ export function PartiesDraftScreen() {
       title="Study parties"
       backTo={draftPaths.friends}
       actions={
-        <Button
-          component={Link}
-          to={draftPaths.newParty}
-          leftSection={<Icon name="plus" />}
-        >
-          Create a party
-        </Button>
+        canCreateParty ? (
+          <Button
+            component={Link}
+            to={draftPaths.newParty}
+            leftSection={<Icon name="plus" />}
+          >
+            Create a party
+          </Button>
+        ) : (
+          <Button component={Link} to={partyPath(activeParty!.id)}>
+            View your party
+          </Button>
+        )
       }
     >
       <Text c="dimmed">
         Find a room, choose seats, and book together. Everyone checks in at
         their own seat.
       </Text>
+      {activeParty && (
+        <Alert title="One active party at a time">
+          Leave or cancel your current party before creating or joining another.
+          Pending invitations can wait.
+        </Alert>
+      )}
       {invitations.length > 0 && (
         <SectionLabel>Invitations · {invitations.length}</SectionLabel>
       )}
       {invitations.map((party) => (
         <PartySummary key={party.id} party={party} viewer={state.viewer} />
       ))}
-      <SectionLabel>Your parties</SectionLabel>
+      <SectionLabel>Your active party</SectionLabel>
       {joined.map((party) => (
         <PartySummary key={party.id} party={party} viewer={state.viewer} />
       ))}
@@ -130,11 +142,11 @@ export function PartySummary({
 }
 
 export function PartyEditorDraftScreen() {
-  const { dispatch } = useSocialDraft();
+  const { dispatch, canCreateParty, activeParty } = useSocialDraft();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const create = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !canCreateParty) return;
     const id = crypto.randomUUID();
     dispatch({ type: 'create-party', id, name: name.trim() });
     navigate(partyPath(id, 'invite'));
@@ -144,11 +156,27 @@ export function PartyEditorDraftScreen() {
       title="Create a party"
       backTo={draftPaths.parties}
       actions={
-        <Button type="submit" form="create-party-form" disabled={!name.trim()}>
+        <Button
+          type="submit"
+          form="create-party-form"
+          disabled={!name.trim() || !canCreateParty}
+        >
           Create party
         </Button>
       }
     >
+      {!canCreateParty && activeParty && (
+        <Alert title="You already have an active party">
+          Leave or cancel it first.{' '}
+          <Button
+            variant="secondary"
+            component={Link}
+            to={partyPath(activeParty.id)}
+          >
+            View your party
+          </Button>
+        </Alert>
+      )}
       <Text c="dimmed">
         Name your party, then invite friends. You’ll choose seats together after
         they join.
@@ -271,7 +299,7 @@ export function InviteFriendsDraftScreen() {
 }
 
 export function PartyDraftScreen() {
-  const { state, dispatch } = useSocialDraft();
+  const { state, dispatch, conflictingParty } = useSocialDraft();
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<
     'join' | 'decline' | 'leave' | 'cancel' | null
@@ -317,7 +345,12 @@ export function PartyDraftScreen() {
           {party.status === 'open' ? (
             member.status === 'invited' ? (
               <>
-                <Button onClick={() => setSheet('join')}>Join party</Button>
+                <Button
+                  disabled={!!conflictingParty}
+                  onClick={() => setSheet('join')}
+                >
+                  Join party
+                </Button>
                 <Button variant="secondary" onClick={() => setSheet('decline')}>
                   Decline invitation
                 </Button>
@@ -360,6 +393,18 @@ export function PartyDraftScreen() {
         </>
       }
     >
+      {member.status === 'invited' && conflictingParty && (
+        <Alert title="You already have an active party">
+          Leave or cancel {conflictingParty.name} before joining this one.{' '}
+          <Button
+            variant="secondary"
+            component={Link}
+            to={partyPath(conflictingParty.id)}
+          >
+            View your party
+          </Button>
+        </Alert>
+      )}
       <Card component="section" aria-label="Party summary">
         <Title order={2} className="text-heading break-words">
           {party.name}
@@ -489,7 +534,7 @@ export function PartyDraftScreen() {
         }
         actionTone={sheet === 'join' ? 'primary' : 'danger'}
         onConfirm={() => {
-          if (sheet === 'join') {
+          if (sheet === 'join' && !conflictingParty) {
             dispatch({ type: 'reply', accept: true });
             setNotice('You joined the party');
           }
