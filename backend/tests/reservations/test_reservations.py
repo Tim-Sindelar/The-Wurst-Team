@@ -444,3 +444,21 @@ def test_rules_report_the_configured_timing(client, policy):
         "public_reservation_window_minutes": 10,
         "break_budget_minutes": 30,
     }
+
+
+def test_favourites_belong_to_the_user_and_are_idempotent(client, seats):
+    space = str(seats[0].space_id)
+    other = identity()
+    assert client.get("/api/v1/me/favourites").json() == {"space_ids": []}
+    for _ in range(2):
+        response = client.put(f"/api/v1/me/favourites/{space}")
+        assert response.status_code == 200
+        assert response.json() == {"space_ids": [space]}
+    assert client.get("/api/v1/me/favourites", headers=other).json() == {"space_ids": []}
+    missing = client.put(f"/api/v1/me/favourites/{uuid4()}")
+    assert missing.status_code == 404 and missing.json()["code"] == "not_found"
+    for _ in range(2):
+        response = client.delete(f"/api/v1/me/favourites/{space}")
+        assert response.status_code == 200
+        assert response.json() == {"space_ids": []}
+    assert client.delete(f"/api/v1/me/favourites/{uuid4()}").status_code == 200

@@ -6,7 +6,12 @@ import {
   toClientMs,
 } from '../src/domain/booking.ts';
 import { layoutSeats } from '../src/domain/room.ts';
-import { describeAvailability } from '../src/domain/space.ts';
+import {
+  describeAvailability,
+  favouritesFirst,
+  filterSpaces,
+  type StudySpace,
+} from '../src/domain/space.ts';
 import { secondsUntil } from '../src/hooks/useCountdown.ts';
 
 test('countdowns round partial seconds up and stop at zero', () => {
@@ -94,4 +99,36 @@ test('seats beyond the room plan are counted, not stacked', () => {
   assert.equal(shown.length, 35);
   assert.equal(hidden, 5);
   assert.equal(new Set(shown.map((item) => `${item.x},${item.y}`)).size, 35);
+});
+
+const space = (name: string, favourite: boolean): StudySpace => ({
+  id: name,
+  name,
+  freeSeats: 1,
+  availability: 'high',
+  availabilityText: '1 free',
+  favourite,
+});
+
+test('search matches the name anywhere, ignoring case and padding', () => {
+  const spaces = [space('Main Library', false), space('Annex', false)];
+  assert.deepEqual(
+    filterSpaces(spaces, '  LIB ').map((item) => item.name),
+    ['Main Library'],
+  );
+  assert.equal(filterSpaces(spaces, '   ').length, 2);
+  assert.equal(filterSpaces(spaces, 'zzz').length, 0);
+});
+
+test('favourites come first and keep their order otherwise', () => {
+  const spaces = [
+    space('A', false),
+    space('B', true),
+    space('C', false),
+    space('D', true),
+  ];
+  assert.deepEqual(
+    favouritesFirst(spaces).map((item) => item.name),
+    ['B', 'D', 'A', 'C'],
+  );
 });

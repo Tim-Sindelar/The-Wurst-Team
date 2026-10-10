@@ -32,12 +32,33 @@ export function describeAvailability(
 }
 
 /** Turns an API space into what the cards show. */
-export function toStudySpace(space: SpaceSummary): StudySpace {
+export function toStudySpace(
+  space: SpaceSummary,
+  favourite = false,
+): StudySpace {
   return {
     id: space.id,
     name: space.name,
     freeSeats: space.free_seats,
-    favourite: false,
+    favourite,
     ...describeAvailability(space.free_seats, space.total_seats, space.is_open),
   };
+}
+
+/** The spaces whose name contains the search text, ignoring case. */
+export function filterSpaces(
+  spaces: StudySpace[],
+  search: string,
+): StudySpace[] {
+  const needle = search.trim().toLowerCase();
+  if (!needle) return spaces;
+  return spaces.filter((space) => space.name.toLowerCase().includes(needle));
+}
+
+/** Favourites first; otherwise the order is kept. */
+export function favouritesFirst(spaces: StudySpace[]): StudySpace[] {
+  return [
+    ...spaces.filter((space) => space.favourite),
+    ...spaces.filter((space) => !space.favourite),
+  ];
 }

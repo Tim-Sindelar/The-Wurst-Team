@@ -8,6 +8,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
@@ -17,7 +18,8 @@ import { Screen, ScreenMain } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
-import { toStudySpace } from '../domain/space';
+import { favouritesFirst, filterSpaces, toStudySpace } from '../domain/space';
+import { useFavourites } from '../hooks/useFavourites';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useMyReservation } from '../hooks/useMyReservation';
 import { paths } from '../routes';
@@ -34,7 +36,12 @@ export function HomeScreen() {
     held,
     running,
   } = useMyReservation();
-  const spaces = spacesQuery.data?.spaces.map(toStudySpace);
+  const favourites = useFavourites();
+  const [search, setSearch] = useState('');
+  const allSpaces = spacesQuery.data?.spaces.map((space) =>
+    toStudySpace(space, favourites.ids.has(space.id)),
+  );
+  const spaces = allSpaces && favouritesFirst(filterSpaces(allSpaces, search));
 
   return (
     <Screen>
@@ -63,6 +70,8 @@ export function HomeScreen() {
             placeholder="Search study spaces"
             aria-label="Search study spaces"
             leftSection={<Icon name="search" />}
+            value={search}
+            onChange={(event) => setSearch(event.currentTarget.value)}
           />
         </div>
 
@@ -87,6 +96,17 @@ export function HomeScreen() {
           </Alert>
         )}
 
+        {favourites.failed && (
+          <Alert
+            variant="danger"
+            role="alert"
+            icon={<Icon name="alert" />}
+            title="Couldn't update your favourites"
+          >
+            <Text size="sm">Check your connection and try again.</Text>
+          </Alert>
+        )}
+
         {spacesQuery.isError ? (
           <Alert
             variant="danger"
@@ -100,6 +120,10 @@ export function HomeScreen() {
           <Text c="dimmed" role="status">
             Loading study spaces…
           </Text>
+        ) : spaces.length === 0 ? (
+          <Text c="dimmed" role="status">
+            No study spaces match “{search.trim()}”.
+          </Text>
         ) : (
           <ul
             className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -107,7 +131,10 @@ export function HomeScreen() {
           >
             {spaces.map((space) => (
               <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
-                <SpaceCard space={space} />
+                <SpaceCard
+                  space={space}
+                  onToggleFavourite={(on) => favourites.toggle(space.id, on)}
+                />
               </li>
             ))}
           </ul>

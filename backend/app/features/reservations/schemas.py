@@ -100,6 +100,10 @@ class SpacesResponse(BaseModel):
     spaces: list[SpaceSummary]
 
 
+class FavouritesResponse(BaseModel):
+    space_ids: list[UUID]
+
+
 class SpaceResponse(BaseModel):
     server_time: datetime
     space: SpaceDetail

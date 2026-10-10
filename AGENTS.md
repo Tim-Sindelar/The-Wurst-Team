@@ -65,7 +65,8 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Timing rules (check-in window, session length, extension windows, break allowance) are set in `backend/app/config.py` and read through `useRules()` (`GET /api/v1/rules`). Never hardcode them in the frontend.
 - The API has no seat positions yet, so `src/domain/room.ts` places seats on a stand-in floor plan. Replace it with `SpaceDetail.layout` once the backend provides one.
 - Profile and the home avatar use `/api/v1/me` through `useCurrentUser`. Profile saves a display name and optional photo through the generated `updateMeMutation`; the backend persists these in `user_profiles` without changing auth identity.
-- Still mock: the favourite stars, the notification switches on Profile, and the campus map placeholder on Home.
+- Favourites live in `favourite_spaces` and come through `useFavourites()` (`/api/v1/me/favourites`). The star updates at once and rolls back if the call fails. Home puts favourites first and filters by the search box (`filterSpaces`, `favouritesFirst` in `domain/space.ts`).
+- Still mock: the notification switches on Profile and the campus map placeholder on Home.
 - Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`; the scan screen also takes a typed code for devices without a camera. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
 
 ### Code conventions

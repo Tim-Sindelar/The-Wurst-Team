@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, checkIn, createReservation, endReservation, extendReservation, getHealth, getMe, getMyReservation, getReadiness, getRules, getSpace, listSpaces, type Options, returnFromBreak, startBreak, updateMe } from '../sdk.gen';
-import type { AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetHealthData, GetHealthResponse, GetMeData, GetMeError, GetMeResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetRulesData, GetRulesError, GetRulesResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, StartBreakData, StartBreakError, StartBreakResponse, UpdateMeData, UpdateMeError, UpdateMeResponse } from '../types.gen';
+import { addFavourite, adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, checkIn, createReservation, endReservation, extendReservation, getHealth, getMe, getMyReservation, getReadiness, getRules, getSpace, listFavourites, listSpaces, type Options, removeFavourite, returnFromBreak, startBreak, updateMe } from '../sdk.gen';
+import type { AddFavouriteData, AddFavouriteError, AddFavouriteResponse, AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetHealthData, GetHealthResponse, GetMeData, GetMeError, GetMeResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetRulesData, GetRulesError, GetRulesResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, ListFavouritesData, ListFavouritesError, ListFavouritesResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, RemoveFavouriteData, RemoveFavouriteError, RemoveFavouriteResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, StartBreakData, StartBreakError, StartBreakResponse, UpdateMeData, UpdateMeError, UpdateMeResponse } from '../types.gen';
 
 /**
  * End Reservation
@@ -307,6 +307,58 @@ export const updateMeMutation = (options?: Partial<Options<UpdateMeData>>): UseM
     const mutationOptions: UseMutationOptions<UpdateMeResponse, UpdateMeError, Options<UpdateMeData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await updateMe({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listFavouritesQueryKey = (options?: Options<ListFavouritesData>) => createQueryKey('listFavourites', options);
+
+/**
+ * List Favourites
+ */
+export const listFavouritesOptions = (options?: Options<ListFavouritesData>) => queryOptions<ListFavouritesResponse, ListFavouritesError, ListFavouritesResponse, ReturnType<typeof listFavouritesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listFavourites({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listFavouritesQueryKey(options)
+});
+
+/**
+ * Remove Favourite
+ */
+export const removeFavouriteMutation = (options?: Partial<Options<RemoveFavouriteData>>): UseMutationOptions<RemoveFavouriteResponse, RemoveFavouriteError, Options<RemoveFavouriteData>> => {
+    const mutationOptions: UseMutationOptions<RemoveFavouriteResponse, RemoveFavouriteError, Options<RemoveFavouriteData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await removeFavourite({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Add Favourite
+ */
+export const addFavouriteMutation = (options?: Partial<Options<AddFavouriteData>>): UseMutationOptions<AddFavouriteResponse, AddFavouriteError, Options<AddFavouriteData>> => {
+    const mutationOptions: UseMutationOptions<AddFavouriteResponse, AddFavouriteError, Options<AddFavouriteData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addFavourite({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

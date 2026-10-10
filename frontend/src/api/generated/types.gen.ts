@@ -592,6 +592,16 @@ export type ErrorResponse = {
 };
 
 /**
+ * FavouritesResponse
+ */
+export type FavouritesResponse = {
+    /**
+     * Space Ids
+     */
+    space_ids: Array<string>;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -1848,6 +1858,127 @@ export type UpdateMeResponses = {
 };
 
 export type UpdateMeResponse = UpdateMeResponses[keyof UpdateMeResponses];
+
+export type ListFavouritesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/favourites';
+};
+
+export type ListFavouritesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListFavouritesError = ListFavouritesErrors[keyof ListFavouritesErrors];
+
+export type ListFavouritesResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type ListFavouritesResponse = ListFavouritesResponses[keyof ListFavouritesResponses];
+
+export type RemoveFavouriteData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/favourites/{space_id}';
+};
+
+export type RemoveFavouriteErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type RemoveFavouriteError = RemoveFavouriteErrors[keyof RemoveFavouriteErrors];
+
+export type RemoveFavouriteResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type RemoveFavouriteResponse = RemoveFavouriteResponses[keyof RemoveFavouriteResponses];
+
+export type AddFavouriteData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/favourites/{space_id}';
+};
+
+export type AddFavouriteErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AddFavouriteError = AddFavouriteErrors[keyof AddFavouriteErrors];
+
+export type AddFavouriteResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type AddFavouriteResponse = AddFavouriteResponses[keyof AddFavouriteResponses];
 
 export type GetMyReservationData = {
     body?: never;

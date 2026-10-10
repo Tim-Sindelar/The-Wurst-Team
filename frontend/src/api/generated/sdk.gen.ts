@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, CheckInData, CheckInErrors, CheckInResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetHealthData, GetHealthResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetRulesData, GetRulesErrors, GetRulesResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, StartBreakData, StartBreakErrors, StartBreakResponses, UpdateMeData, UpdateMeErrors, UpdateMeResponses } from './types.gen';
+import type { AddFavouriteData, AddFavouriteErrors, AddFavouriteResponses, AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, CheckInData, CheckInErrors, CheckInResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetHealthData, GetHealthResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetRulesData, GetRulesErrors, GetRulesResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, ListFavouritesData, ListFavouritesErrors, ListFavouritesResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, RemoveFavouriteData, RemoveFavouriteErrors, RemoveFavouriteResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, StartBreakData, StartBreakErrors, StartBreakResponses, UpdateMeData, UpdateMeErrors, UpdateMeResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -154,6 +154,21 @@ export const updateMe = <ThrowOnError extends boolean = false>(options: Options<
         ...options.headers
     }
 });
+
+/**
+ * List Favourites
+ */
+export const listFavourites = <ThrowOnError extends boolean = false>(options?: Options<ListFavouritesData, ThrowOnError>): RequestResult<ListFavouritesResponses, ListFavouritesErrors, ThrowOnError> => (options?.client ?? client).get<ListFavouritesResponses, ListFavouritesErrors, ThrowOnError>({ url: '/api/v1/me/favourites', ...options });
+
+/**
+ * Remove Favourite
+ */
+export const removeFavourite = <ThrowOnError extends boolean = false>(options: Options<RemoveFavouriteData, ThrowOnError>): RequestResult<RemoveFavouriteResponses, RemoveFavouriteErrors, ThrowOnError> => (options.client ?? client).delete<RemoveFavouriteResponses, RemoveFavouriteErrors, ThrowOnError>({ url: '/api/v1/me/favourites/{space_id}', ...options });
+
+/**
+ * Add Favourite
+ */
+export const addFavourite = <ThrowOnError extends boolean = false>(options: Options<AddFavouriteData, ThrowOnError>): RequestResult<AddFavouriteResponses, AddFavouriteErrors, ThrowOnError> => (options.client ?? client).put<AddFavouriteResponses, AddFavouriteErrors, ThrowOnError>({ url: '/api/v1/me/favourites/{space_id}', ...options });
 
 /**
  * Get My Reservation
