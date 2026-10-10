@@ -94,6 +94,12 @@ const paths = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  friends: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4v3" />
+    </>
+  ),
   qr: (
     <>
       <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z" />

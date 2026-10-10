@@ -1,0 +1,152 @@
+# Social frontend and optional sample preview
+
+Available locally at `http://127.0.0.1:5173/social-draft`, in production and in PRs under
+`/pr/<number>/social-draft`. Friends, requests, privacy, shared rooms, party invitations and
+bookings use the generated backend API. Production and CI previews enable social and disable
+sample mode. No sample people/parties are seeded, old browser previews are ignored, and network,
+authentication or disabled-backend failures show errors instead of sample mutations.
+
+`design-rules.md` continues to govern typography, spacing, themes, touch targets, and popups.
+There are no new design tokens, component variants, stylesheets, or dependencies.
+
+## Live party flow
+
+1. Create a named party, then send direct invitations to accepted friends. Invitations appear
+   under Study parties and in the Friends hub’s invitation count.
+2. Each invitee explicitly joins or declines. A conflicting active party shows a red notice
+   only at that decision; the backend enforces one active membership even across concurrent calls.
+3. The organizer chooses a real study space and manually assigns one distinct free seat to each
+   accepted member. The seat map and fallback seat picker use backend UUIDs and live availability.
+4. Confirming calls `bookPartyMutation` with the accepted roster and seat IDs. The server creates
+   all reservations atomically or returns an error; pending invitations are not included.
+5. Each member opens their own reservation and scans their seat QR code through the existing live
+   reservation/session screens. Deadlines come from backend rules, not sample timers.
+6. Cancelling a party releases unstarted reservations and hides it from the active list. Checked-in
+   members retain their individual sessions. Expired/ended own reservations free the party slot.
+
+Loading/errors appear in place, mutations refresh the shared booking/social queries, and party
+lists/details poll every 15 seconds. Production has no reset, role selector or mock scan controls.
+
+## Layout references
+
+| Draft view | Existing visual reference | Main action |
+| --- | --- | --- |
+| Friends | `screens/06-profile.html`: avatars, cards, notification/privacy toggles | Add a friend |
+| Friend requests | `screens/06-profile.html`: request cards | Accept / decline / cancel |
+| Add a friend | `components.html`: name search, avatar cards, selection, notices | Send friend request |
+| Study parties | `screens/01-home.html`: linked summary cards | Create a party |
+| Create party | `screens/06-profile.html`: labelled form | Create party |
+| Invite friends | `screens/06-profile.html`: friend cards with explicit Invite buttons | Done |
+| Party detail | `screens/05-session.html`: summary, member cards, in-page notice | Join party / Choose seats / View my seat |
+| Seat assignment | `screens/02-seat-arrangement.html`: same interactive room map and seat markers | Reserve seats together |
+| Own reservation / session | `screens/03-reservation.html` and `screens/05-session.html`: seat stripe, chip, countdown | Check in / View party |
+| Own QR scan | `screens/04-qr-scan.html`: labelled mock scan target | Scan the assigned seat |
+
+Screens use the existing 390px `Screen` frame, `ScreenHeader`, `ScreenMain`, and pinned `ActionBar`.
+Friends keeps Add a friend in the sticky `ActionBar` above bottom navigation, accessible
+while scrolling through the list.
+Cards, buttons, switches, text, inputs, and notices use the Mantine theme. Native selects inherit
+the shared Input theme; their arrows come from `Icon`. Long names wrap in content. Seat-state
+colours appear only on seats and seat summaries. Non-seat membership states use text and icons.
+Destructive decisions use the existing danger decision sheet, and confirmations use the existing
+notification banner. Both colour schemes are supported through existing theme tokens.
+
+The demo uses persistent **Home / Map / Friends / Profile** bottom navigation, outside the
+scrolling viewport. Page actions sit above it, and the campus map fills the remaining viewport.
+Friends has privacy first, a study-party entry, then one combined friend list showing shared
+rooms. Friends with a permitted active location come first; names order each group. No shared
+room is deliberately ambiguous about privacy versus no active session. Search filters this list;
+removal uses its inline button and a decision sheet. A Requests link opens pending requests.
+Add a friend stays pinned above bottom navigation. The old location route redirects to Friends.
+There is no separate Stalk my friends screen or duplicated friend list.
+Create asks only for a name, then opens invitations. Each friend has an **Invite** button that
+changes to **Invited**; there are no invitation switches. **Done** opens the party roster.
+Only one joined active party per person is permitted. Open membership consumes the slot; a booked
+party consumes it while that person’s reservation/session is live. Invitations never consume a slot.
+Leave/cancel or finish/expire your reservation before creating/joining another. The reducer enforces
+the rule too; direct create URLs show a disabled action and a link to the current party.
+The limit notice uses the red danger Alert variant and appears only on a blocked create screen or an open invitation conflicting with
+the current party. The parties list and current party have no blanket limit reminder.
+The parties list separates invitations from the current joined party. Cancelled parties are hidden, including
+in the hub count. A checked-in seat surviving cancellation stays accessible as Your ongoing session.
+Cancellation retains the saved party and independent reservations; hiding it does not delete data.
+Party invitations use direct friend selection, without shared party links. The recipient opens an
+invitation under Study parties and taps Join to open the existing consent sheet. In this mock,
+  open Anna’s study group to test the recipient experience as yourself.
+
+Routine confirmation banners appear in the page and never cover navigation. Privacy switches
+update immediately without a notification. Urgent notices remain floating below the header.
+
+Party preview tools are collapsed below the party screens. They contain reset, booking-conflict controls,
+and (on party detail/reservation) a perspective selector. These controls are not product UI.
+
+## Optional sample walkthrough
+
+The following walkthrough applies only with `VITE_SOCIAL_DEMO_ENABLED=true` (or local development
+when this flag is omitted). Set it to false and enable the backend to review the live flow above.
+
+1. Open Friends through the bottom navigation or `/social-draft`. Room sharing is off by default
+   and its setting is at the top. Friends and shared room names are in one list, with locations
+   first. Filter or remove friends here; open Requests to accept Nora or cancel Felix.
+2. Open Add a friend and search by display name (at least two characters). Select a result
+   with Add friend, then Send friend request in the action bar. Results distinguish friends,
+   outgoing requests and incoming requests. Incoming requests link to Friend requests.
+   When the backend is disabled, search Sam to exercise the sample flow. There are no friend links.
+3. Open Study parties. With a current party, View your party replaces Create a party. Cancel
+   the sample Afternoon study first, then create a party, name it, invite friends and press Done.
+   Each saved party retains its own `/social-draft/party/:partyId` URL; archived parties are preserved.
+4. The local demo starts with one invitation to Anna’s study group and one fully joined four-person
+   Afternoon study party (you, Luca, Mia and Theo). Anna’s invitation stays pending while Afternoon
+   study is active. Cancel Afternoon study first to join Anna through the consent sheet.
+   Open Afternoon study to book for four members immediately. Existing saved demos are upgraded
+   once while preserving custom parties and booked/cancelled reservations. The old open sample
+   roster is refreshed to avoid overlapping joined members. Upgrades never seed another active
+   party alongside an existing custom party.
+5. Choose seats. Tap distinct free seats on the existing floor plan. The picker advances to the
+   next unassigned member. All selected seats have the existing double-ring highlight, and every
+   assignment is listed with a Change control. Occupied, claimable, reserved, and duplicate seats
+   produce an in-place error rather than an assignment.
+6. Confirm booking. Inspect your seat and countdown, then tap the draft scan frame to check in.
+   Switch perspectives on the reservation screen to inspect each member's own seat/check-in.
+7. From the organizer's party detail, cancel the party. It disappears from the list; unchecked-in
+   seats are released while checked-in members keep their sessions. An individual can also
+   cancel/end only their own seat. Return to Friends to see shared study rooms in the friend list.
+8. **Reset preview** restores the sample data, clears screen-local form state, and returns to Friends.
+   Sample parties and disabled-backend demo friendships persist in isolated localStorage entries.
+   Live friendships, requests and privacy persist in PostgreSQL, refresh after changes and on focus,
+   and poll every 20 seconds for incoming requests and room changes. Reset affects only sample data.
+   Reloading starts the party preview with your own perspective. PR previews have separate storage keys.
+
+The seat picker's Preview tools link to `?error=1` to simulate availability changing at confirmation.
+No sample reservation is created in that state. Switch back to Normal booking to try the success
+path. Old `/social-draft/party` bookmarks redirect to the most recently created party. Unknown
+party IDs show an unavailable notice rather than opening a different party.
+
+Run `npm run test:social-draft` in `frontend/` for party storage, targeting, consent, and cancellation
+regressions. The hub sections, bottom navigation, inline confirmations, create/invite/list flow,
+Home roundtrip, reloads, directory search, cancelled-party visibility, preserved session access,
+recipient consent sheet, and legacy seat bookmarks were also exercised in an in-memory DOM.
+The live flow was checked with an isolated PostgreSQL schema and a headless browser: create,
+invite, join, four-seat booking, individual QR check-in, and cancellation preserving a running
+session. Friends was rendered in both themes. Prefixed PR navigation, ignored saved samples and
+disabled-backend errors were checked against the production build.
+
+## Remaining work
+
+- Refine room browsing and the member waiting state.
+- Replace the shared stand-in floor-plan geometry once the backend supplies seat positions. All seat
+  IDs, labels and availability already come from the backend.
+
+Shared changes are `AppLayout` and `BottomNavigation` for persistent navigation,
+in-page routine `StatusBanner` confirmations, shared icons/theme styles, and the optional
+`SeatMap.highlightedSeats` prop. Individual seat screens omit highlights. The social draft code
+lives under `frontend/src/features/social-draft/`; `App.tsx` registers its lazy routes when
+`VITE_SOCIAL_ENABLED` is enabled (the default). `VITE_SOCIAL_DEMO_ENABLED` independently chooses
+sample parties, and CI disables it for both PRs and production. Local live social requires
+`SOCIAL_ENABLED=true` in the backend. Docker exposes both feature and sample build arguments.
+Home / Map / Profile stay available when social is disabled. DOM checks also
+cover production mode with the flag enabled, prefixed links/storage, and four-seat manual booking.
+
+Directory interactions were checked in an in-memory DOM in dark and light: ID-based requests,
+refreshed pending states and persisted privacy. Explicit demo and failed-backend cases were also
+checked. These checks cover markup and interactions; headless live screenshots cover both themes.

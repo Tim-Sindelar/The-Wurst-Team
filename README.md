@@ -102,7 +102,22 @@ Use http://localhost:8000/docs to explore the API. `POST /api/v1/reservations` a
 
 `GET /api/v1/me/reservation` returns the current or upcoming booking, effective deadlines, remaining break allowance, and available actions. Its `reservation` is null when there is no live booking. Reservation actions are `POST /api/v1/reservations/{id}/extend`, `/break`, `/return`, and `/end`. Space endpoints expose availability without returning user identities or QR tokens.
 
-For local development set `AUTH_MODE=demo` in `backend/.env`. Demo authentication is a development stub. Requests use `DUMMY_USER_ID` by default; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. Proxy mode uses the existing trusted identity header from the authentication proxy.
+Authentication defaults to `AUTH_MODE=proxy`: the trusted `X-User-Id` email maps to a stable UUIDv5 using a fixed application namespace. Missing or empty identity returns 401 on user-specific endpoints; demo headers are ignored. Do not change the namespace, as that would change reservation ownership. Login still belongs to the proxy; the optional `user_profiles` table stores only display customizations, not credentials or email addresses.
+
+`GET /api/v1/me` returns `{id, name, email, photo_url}` using that same reservation identity. On first sign-in, it registers a display profile using percent-decoded `X-User-Name`, falling back to `Study Spaces user` if absent; demo mode uses `Demo user`. Existing profile edits are preserved. Demo email is null, shown as `Local demo account`. `photo_url` is a PNG data URL or null. Responses are not HTTP-cacheable. The frontend uses this endpoint in both modes, with loading/error states and a reload action; it never supplies identity headers or stores auth tokens. Logout is not implemented.
+
+On Profile, edit the display name, choose/preview or remove a photo, then press **Save changes**. `PATCH /api/v1/me` accepts multipart form fields: `name` (1–80 characters after trimming, input capped at 80), optional `photo`, and optional `remove_photo=true`. Omit `photo` to keep the current picture. Edits are saved together and can only affect the authenticated user's profile; email, UUID, and reservation ownership never change. Photos must be actual JPEG, PNG, or WebP images, at most 2 MiB and 16 megapixels. The backend corrects orientation, resizes to fit 256×256, and re-encodes to PNG without source metadata. Profile data persists in PostgreSQL; no upload directory or storage service is needed.
+
+To test locally, rebuild with `docker compose up -d --build --wait backend` (installs upload dependencies and applies the migration), open http://localhost:5173/profile, save a name/photo, and refresh. Check the home avatar too. Demo users share `DUMMY_USER_ID` by default; use a different `X-Demo-User-Id` through the API to check profile isolation. In demo mode, an API upload looks like:
+
+```sh
+curl -X PATCH http://localhost:8000/api/v1/me \
+  -F 'name=My display name' -F 'photo=@/path/to/photo.png'
+```
+
+Local Compose and `backend/.env.example` enable `AUTH_MODE=demo`. In this development-only mode, requests use `DUMMY_USER_ID`; send an `X-Demo-User-Id` UUID header to test additional users. `DUMMY_AUTH_ALLOW_HEADER=false` disables the override. To use proxy mode with Compose, run `AUTH_MODE=proxy docker compose up -d` (the service environment takes precedence over `backend/.env`).
+
+Proxy mode is safe only behind the authenticated hackathon managed address: keep access control enabled and direct public app/backend access blocked, otherwise clients can forge the identity header.
 
 Timing rules live in `backend/app/config.py` and can be overridden in `backend/.env`:
 
@@ -117,6 +132,31 @@ Timing rules live in `backend/app/config.py` and can be overridden in `backend/.
 `GET /api/v1/rules` returns these values in minutes, and the frontend reads them from there instead of keeping its own copy. All values must be positive; the public window must be shorter than the private window, which must be shorter than the session. The check-in window must also be shorter than the session. Existing deadlines and captured break budgets remain unchanged when settings change. New extensions and eligibility windows use current settings. Breaks share one allowance and do not pause the session or replenish on extension.
 
 The `reservation_states` database view derives availability from the clock, including no-shows and expired breaks. Its underlying `reservation_states_at(timestamp)` function lets each transaction use one instant after acquiring locks and lets tests exercise exact boundaries. Early release advances the next booking when the earlier start is available, even without a background worker. Its session and check-in deadline are capped at closing or the next closure; a blocked earlier start keeps the scheduled start. Notifications are deferred.
+
+## Optional friends and party booking
+
+The social backend supports signed-in user search and direct friend requests, accepted party membership,
+manual same-room seat assignments, atomic booking for all accepted members, and optional
+friend room sharing. Production and PR deployments enable it (`SOCIAL_ENABLED=true`); standalone
+backend settings default to disabled. Enabling it does
+not replace the frontend's live individual-booking flow. See [the social backend contract](docs/social-backend.md)
+for setup, endpoints, consent rules, and the frontend integration boundary.
+
+A social frontend is at `http://127.0.0.1:5173/social-draft`, in production and in CI-deployed PR previews.
+Open it through **Friends** in the Home / Map / Friends / Profile bottom navigation. Profile replaces
+the avatar shortcut on Home; Home / Map / Profile remain available when social is disabled. Its hub
+shows privacy first, a party entry and one friend list with shared rooms first. Requests have
+their own page; Add a friend stays pinned above bottom navigation. People search, friend requests,
+friendships and privacy use the real backend when enabled; signing in makes names and avatars
+discoverable, with room sharing off by default. PR deployments enable this in their isolated database.
+Parties use real invitations, accepted membership, manual room/seat selection and atomic group
+booking. Everyone checks in independently through the existing reservation/session screens.
+Only one joined active party per person is allowed; invitations can wait until that slot is free.
+Saved previews never appear in production. A disabled backend shows an unavailable notice.
+See [the walkthrough](design/social-draft.md). `VITE_SOCIAL_ENABLED=false` hides the social feature.
+`VITE_SOCIAL_DEMO_ENABLED=true` separately enables the old sample UI; local development defaults to
+samples when this flag is omitted. CI disables samples for both PRs and production. Docker accepts
+the corresponding `SOCIAL_ENABLED` and `SOCIAL_DEMO_ENABLED` build arguments.
 
 ## Admin API demo
 
@@ -185,6 +225,45 @@ python scraper/build_library_outlines.py
 
 Or use `make map-floors`. The extractor writes `occupancy-map-preview/public/floors/`; the backend serves it at `/api/v1/map/floors`. Set `MAP_FLOORS_DIR` for another location. This downloads a sizeable campus dataset. Rooms with holes or disconnected outlines are rejected by the editor. Legacy demo rooms can be linked to a border from their Layout tab.
 
+## Campus map
+
+The layers button at the top right of the map opens **Map view**, a slider with three positions and a switch for the 3D floor stack (on by default; its faint visible edges are always drawn):
+
+| Position | Shows |
+| --- | --- |
+| Study spaces (left) | Only the study spaces that can be booked in the app (the home screen's, from `GET /api/v1/spaces`); only their rooms are highlighted and clickable |
+| Workspaces (middle) | Every workspace, and live rooms (lecture rooms colored by today's ETH bookings) |
+| Campus (right) | Every workspace, live rooms, ASVZ sport and the mensas |
+
+The map always uses the clean base map. The other map features (other campus datasets such as transport, weather and shared mobility; picking another date and time; detailed floor plans; the streets and satellite base maps; the free rooms and UZH library lists) are always off in the app and have no switch. `occupancy-map-preview/` still has all of them.
+
+The map's backend is the feature `backend/app/features/campus_map/`:
+
+| Route | What |
+| --- | --- |
+| `GET /api/v1/map/workspaces` | Workspaces (libraries, study areas, ...), their tables and seats: the generated data with the admin edits applied. `PUT` (admin) stores edits as a diff against the generated data |
+| `GET /api/v1/map/style`, `/navigation` | Map colours per theme, click-to-zoom areas. `PUT` (admin) replaces them |
+| `GET /api/v1/map/datasets[/<id>]` | Campus datasets (mensas, transport, ASVZ, shared mobility, weather, amenities). `?at=YYYY-MM-DDTHH:MM` for another Zurich time, `?refresh=true` to fetch now |
+| `GET /api/v1/map/eth/rooms[?date=]` | Every ETH room with the day's bookings and where it is on the floor plans; fetched from ETH in the background, at most hourly |
+| `GET /api/v1/map/eth/room?id=`, `/eth/file?id=`, `/eth/uzh` | ETH room sheet, room photos, live UZH library occupancy |
+| `/api/v1/map/floors/...` | Floor plans (static files) |
+
+The workspaces, style and navigation are stored in Postgres (`map_entities`, `map_overrides`, `map_documents`). They are edited in `occupancy-map-preview/` (Admin mode and Style panel), which saves JSON files; `make map-sync` copies them to `backend/app/features/campus_map/map-data/` and imports them. A fresh database imports those files when the backend starts. The importer can also write the database back to the files:
+
+```bash
+docker compose exec backend python -m app.features.campus_map.importer --export
+docker compose exec backend python -m app.features.campus_map.importer --generated-only  # after a scraper re-run, keeps admin edits
+```
+
+ETH bookings and dataset results are cached in the `map_cache` volume (`backend/.cache/campus-map` outside Docker). The dataset fetchers live in `backend/app/features/campus_map/datasets/` (see its README). The backend Docker build downloads public ETH PolyMaps geometry and generates floor plans and workspace outlines in a separate build stage. Only the generated files are included in the image, at `/app/floors`; no local floor-plan folder is required. Docker caches the download layer between builds; use `docker compose build --no-cache backend` to refresh the source geometry. `eth_room_dashboard.py` in the repo root is a standalone dashboard over the same ETH code.
+
+For the standalone developer preview or a backend running outside Docker, run `make map-floors` to generate `occupancy-map-preview/public/floors` locally. This preserves workspace data and admin edits. With Python but without Make, run:
+
+```sh
+python scraper/scrape_polymaps.py scraper/polymaps_data
+python scraper/extract_floors.py --floors-only
+python scraper/build_library_outlines.py
+```
 ## Checks
 
 ```sh

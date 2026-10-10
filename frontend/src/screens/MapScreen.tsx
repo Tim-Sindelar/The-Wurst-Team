@@ -7,7 +7,7 @@ const CampusMap = lazy(() =>
 
 export function MapScreen() {
   return (
-    <Suspense fallback={<div className="h-dvh bg-bg" />}>
+    <Suspense fallback={<div className="h-full bg-bg" />}>
       <CampusMap />
     </Suspense>
   );

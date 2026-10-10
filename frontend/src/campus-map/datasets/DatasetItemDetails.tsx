@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment } from 'react';
 import type {
   AmenityDetails,
   AsvzDetails,
@@ -10,7 +10,6 @@ import type {
   TransportDetails,
   WeatherDetails,
 } from './types';
-import type { DatasetSelection } from './DatasetLayers';
 import {
   glyphOf,
   mensaOpenAt,
@@ -18,14 +17,6 @@ import {
   showsNowOnly,
   type Clock,
 } from './present';
-
-interface Layer {
-  meta: DatasetMeta;
-  items: DatasetItem[];
-}
-
-/** Lists with more items than this show a summary instead (e.g. hundreds of scooters). */
-const LIST_LIMIT = 60;
 
 const timeFmt = new Intl.DateTimeFormat('de-CH', {
   timeZone: 'Europe/Zurich',
@@ -43,172 +34,8 @@ const parseIso = (iso: string) =>
 const clockTime = (iso: string | null) =>
   iso ? timeFmt.format(parseIso(iso)) : '–';
 
-/** Side panel: the selected item's details and a list per enabled dataset. */
-export function DatasetSidebar({
-  layers,
-  selected,
-  clock,
-  onSelect,
-  onClose,
-}: {
-  layers: Layer[];
-  selected: DatasetSelection | null;
-  clock: Clock;
-  onSelect: (sel: DatasetSelection, item: DatasetItem) => void;
-  onClose: () => void;
-}) {
-  const layer = selected
-    ? layers.find((l) => l.meta.id === selected.datasetId)
-    : null;
-  const item = layer?.items.find((i) => i.id === selected!.itemId) ?? null;
-  return (
-    <>
-      {layer && item && (
-        <ItemDetails
-          meta={layer.meta}
-          item={item}
-          clock={clock}
-          onClose={onClose}
-        />
-      )}
-      {layers.map(({ meta, items }) => (
-        <details key={meta.id} className="panel-section collapsible">
-          <summary>
-            <h2>
-              <span className="ds-swatch" style={{ background: meta.color }}>
-                {meta.glyph}
-              </span>{' '}
-              {meta.title} <span className="muted">({items.length})</span>
-              <TimeFlag meta={meta} clock={clock} />
-            </h2>
-          </summary>
-          {items.length > LIST_LIMIT ? (
-            <Summary items={items} />
-          ) : (
-            <GroupedList
-              meta={meta}
-              items={items}
-              clock={clock}
-              selected={selected}
-              onSelect={onSelect}
-            />
-          )}
-        </details>
-      ))}
-    </>
-  );
-}
-
-/** On another time than now: "now only" for live-only datasets, "partly" for partial ones. */
-function TimeFlag({ meta, clock }: { meta: DatasetMeta; clock: Clock }) {
-  if (clock.live) return null;
-  if (showsNowOnly(meta, clock))
-    return (
-      <span className="time-flag" title={meta.time?.note ?? 'Live data only'}>
-        now only
-      </span>
-    );
-  if (meta.time?.support === 'partial')
-    return (
-      <span className="time-flag is-partial" title={meta.time.note}>
-        partly
-      </span>
-    );
-  return null;
-}
-
-function GroupedList({
-  meta,
-  items,
-  clock,
-  selected,
-  onSelect,
-}: {
-  meta: DatasetMeta;
-  items: DatasetItem[];
-  clock: Clock;
-  selected: DatasetSelection | null;
-  onSelect: (sel: DatasetSelection, item: DatasetItem) => void;
-}) {
-  const groups = new Map<string, DatasetItem[]>();
-  for (const it of items) {
-    const g = it.campus ?? 'Other';
-    (groups.get(g) ?? groups.set(g, []).get(g)!).push(it);
-  }
-  return (
-    <>
-      {[...groups].map(([campus, list]) => (
-        <Fragment key={campus}>
-          <h3 className="ds-group">{campus}</h3>
-          <ul className="list ds-list">
-            {list.map((it) => {
-              const open =
-                meta.id === 'mensa'
-                  ? mensaOpenAt(
-                      it.details as unknown as MensaDetails,
-                      clock.minute,
-                      clock.weekday,
-                    )
-                  : null;
-              const active =
-                selected?.datasetId === meta.id && selected.itemId === it.id;
-              return (
-                <li key={it.id}>
-                  <button
-                    className={`list-item${active ? ' is-active' : ''}`}
-                    onClick={() =>
-                      onSelect({ datasetId: meta.id, itemId: it.id }, it)
-                    }
-                  >
-                    <span className="list-title">
-                      {open !== null && (
-                        <i
-                          className={`status-dot ${open ? 'is-open' : 'is-closed'}`}
-                          title={`${open ? 'Serving' : 'Not serving'} ${clock.live ? 'now' : `at ${clock.label}`}`}
-                        />
-                      )}
-                      {glyphOf(meta, it)} {it.name}
-                    </span>
-                    {it.subtitle && (
-                      <span className="muted ds-sub">{it.subtitle}</span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </Fragment>
-      ))}
-    </>
-  );
-}
-
-/** Counts by category and provider, for big layers. */
-function Summary({ items }: { items: DatasetItem[] }) {
-  const counts = new Map<string, number>();
-  for (const it of items) {
-    const provider = (it.details as { provider?: string }).provider;
-    const key = provider ? `${it.category} · ${provider}` : it.category;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-  return (
-    <>
-      <ul className="ds-summary">
-        {[...counts]
-          .sort((a, b) => b[1] - a[1])
-          .map(([k, n]) => (
-            <li key={k}>
-              <span>{k}</span>
-              <span className="muted">{n}</span>
-            </li>
-          ))}
-      </ul>
-      <p className="note">Click a pin on the map for details.</p>
-    </>
-  );
-}
-
-function ItemDetails({
+/** The popup of a campus data pin: what the item is and its live details. */
+export function DatasetItemDetails({
   meta,
   item,
   clock,
@@ -217,16 +44,11 @@ function ItemDetails({
   meta: DatasetMeta;
   item: DatasetItem;
   clock: Clock;
-  onClose: () => void;
+  /** Shows a close button that clears the selection. */
+  onClose?: () => void;
 }) {
-  // The details sit above the lists: bring them into view when another item is picked.
-  const ref = useRef<HTMLElement>(null);
-  // Braces: newer browsers return a Promise from scrollIntoView, which must not become the effect's cleanup.
-  useEffect(() => {
-    ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [meta.id, item.id]);
   return (
-    <section ref={ref} className="panel-section ds-details">
+    <section className="panel-section ds-details">
       <div className="section-head">
         <div>
           <h2>
@@ -250,9 +72,11 @@ function ItemDetails({
             </p>
           )}
         </div>
-        <button className="btn-icon" aria-label="Close" onClick={onClose}>
-          ×
-        </button>
+        {onClose && (
+          <button className="btn-icon" aria-label="Close" onClick={onClose}>
+            ×
+          </button>
+        )}
       </div>
       {meta.id === 'mensa' && (
         <MensaView d={item.details as unknown as MensaDetails} clock={clock} />

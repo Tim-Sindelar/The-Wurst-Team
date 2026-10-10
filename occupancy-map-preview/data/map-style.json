@@ -130,12 +130,12 @@
         "fillColor": "#2a303b"
       },
       "rooms": {
-        "show": false,
-        "color": "#3d4553",
+        "show": true,
+        "color": "#4b5566",
         "weight": 0.6,
-        "opacity": 1,
-        "fill": 0,
-        "fillColor": "#3d4553"
+        "opacity": 0.9,
+        "fill": 0.45,
+        "fillColor": "#2b323d"
       },
       "walls": {
         "show": false,
@@ -154,19 +154,26 @@
         "fillColor": "#6d7788"
       },
       "stairs": {
-        "show": false,
-        "color": "#5b6474",
+        "show": true,
+        "color": "#6b7586",
         "weight": 0.6,
-        "opacity": 1,
+        "opacity": 0.4,
         "fill": 0,
-        "fillColor": "#5b6474"
+        "fillColor": "#6b7586"
       }
     },
     "roomKinds": [
       "teaching",
       "study",
       "circulation",
-      "stairs"
+      "stairs",
+      "office",
+      "sanitary",
+      "other",
+      "service",
+      "outdoor",
+      "food",
+      "lab"
     ],
     "occupancyColors": true,
     "cornerRadius": 0,
