@@ -7,6 +7,18 @@
    ========================================================================== */
 
 @layer components {
+  .ui-bottom-nav {
+    @apply border-t border-border bg-surface pb-[env(safe-area-inset-bottom)];
+  }
+  .ui-bottom-nav-link {
+    @apply flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 border-t-2 border-transparent px-2 py-2 text-label font-semibold text-text-muted no-underline;
+    &:hover {
+      @apply bg-hover;
+    }
+    &[aria-current='page'] {
+      @apply border-accent bg-surface-2 text-accent;
+    }
+  }
   /* --- Button: primary, secondary, danger, quiet -------------------------- */
   .ui-button {
     @apply h-12 rounded-control border border-transparent px-6 text-body font-semibold no-underline transition-shadow duration-150 ease-standard;

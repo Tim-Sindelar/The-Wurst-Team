@@ -17,6 +17,7 @@ if [[ -n "$pr" ]]; then
   project="${PREVIEW_PROJECT_PREFIX:-wurst-pr}-$pr"
   export WEB_ALIAS="$project-web"
   export POSTGRES_VOLUME_NAME="$project-postgres"
+  export SOCIAL_ENABLED=true
 fi
 app_port=${APP_PORT:-8081}
 preview_port=${PREVIEW_PORT:-18080}

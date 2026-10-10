@@ -107,8 +107,8 @@ def profile_client(db):
     "headers, name",
     [
         ({"X-User-Name": "Zo%C3%AB + M%C3%BCller"}, "Zoë + Müller"),
-        ({"X-User-Name": "  "}, "student@ethz.ch"),
-        ({}, "student@ethz.ch"),
+        ({"X-User-Name": "  "}, "Study Spaces user"),
+        ({}, "Study Spaces user"),
     ],
 )
 def test_proxy_profile(profile_client, headers, name):
