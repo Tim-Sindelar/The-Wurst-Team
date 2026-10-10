@@ -48,6 +48,7 @@ from app.features.reservations.service import (
     BookingError,
     ReservationService,
     ReservationState,
+    layout_with_seats,
     reservation_states,
 )
 from app.models.favourite import FavouriteSpace
@@ -135,7 +136,7 @@ class AdminReservationService(ReservationService):
             active_seats=sum(seat.is_active for seat in seats),
             occupied_seats=sum(s.status == "active" for s in states),
             on_break_seats=sum(s.status == "on_break" for s in states),
-            layout=room.layout,
+            layout=layout_with_seats(room.layout, seats),
             opening_hours=self.opening_hours(room.id),
         )
 
@@ -653,7 +654,6 @@ class AdminReservationService(ReservationService):
             seat.label = str(item["number"]).zfill(2)
             seat.is_active = item.get("active", True) is not False
             item["backendSeatId"] = str(seat.id)
-            item["backendLabel"] = seat.label
             assigned.add(str(seat.id))
         for seat in seats:
             if str(seat.id) not in assigned:
@@ -662,6 +662,8 @@ class AdminReservationService(ReservationService):
         for item in objects:
             for key in (
                 "state",
+                "active",
+                "backendLabel",
                 "qr_token",
                 "qrToken",
                 "currentReservation",

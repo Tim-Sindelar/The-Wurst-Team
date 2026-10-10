@@ -189,3 +189,19 @@ def test_layout_cannot_reassign_the_linked_map_room(client, seats):
     assert response.status_code == 400
     assert response.json()["code"] == "room_mismatch"
     assert client.get(room_path(seats) + "/overview", headers=ADMIN).json()["space"]["layout"] == {}
+
+
+def test_seat_label_and_activation_come_from_the_seat_row(client, seats):
+    path = room_path(seats)
+    proposed = layout(seats[0].id)
+    proposed["objects"][1]["active"] = False
+    saved = client.put(path + "/layout", headers=ADMIN, json={"layout": proposed})
+    assert saved.status_code == 200, saved.text
+    chair = saved.json()["space"]["layout"]["objects"][1]
+    assert chair["active"] is False
+    assert chair["backendLabel"] == "01"
+    # Switching the seat back on elsewhere is reflected, not overwritten by stale layout JSON.
+    patched = client.patch(seat_path(seats), headers=ADMIN, json={"is_active": True})
+    assert patched.status_code == 200, patched.text
+    chair = client.get(path + "/overview", headers=ADMIN).json()["space"]["layout"]["objects"][1]
+    assert chair["active"] is True

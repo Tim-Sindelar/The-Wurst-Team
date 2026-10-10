@@ -104,6 +104,24 @@ def reservation_states(
     return [ReservationState(**row) for row in session.execute(statement, parameters).mappings()]
 
 
+def layout_with_seats(layout: dict | None, seats: list) -> dict | None:
+    """Fill each bound seat object with its seat row's label and activation.
+
+    The seats table owns both; the stored layout keeps only geometry and the
+    `backendSeatId` link, so the two cannot drift apart.
+    """
+    if not layout or not isinstance(layout.get("objects"), list):
+        return layout
+    by_id = {str(seat.id): seat for seat in seats}
+    objects = []
+    for item in layout["objects"]:
+        seat = by_id.get(item.get("backendSeatId")) if item.get("type") == "seat" else None
+        if seat is not None:
+            item = {**item, "backendLabel": seat.label, "active": seat.is_active}
+        objects.append(item)
+    return {**layout, "objects": objects}
+
+
 class ReservationService:
     def __init__(self, session: Session, settings: Settings):
         self.session = session
@@ -455,7 +473,7 @@ class ReservationService:
                 map_room_id=space.map_room_id,
                 lat=space.lat,
                 lng=space.lng,
-                layout=space.layout,
+                layout=layout_with_seats(space.layout, seats),
                 timezone=space.timezone,
                 is_open=self.is_open(space.id, now),
                 opening_hours=self.opening_hours(space.id),
