@@ -6,7 +6,6 @@ import {
   Switch,
   Text,
   TextInput,
-  Title,
   useComputedColorScheme,
 } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +14,7 @@ import type { LatLngBoundsLiteral } from 'leaflet';
 import { Link, useNavigate } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { Icon } from '../components/Icon';
+import { ScreenHeader } from '../components/Screen';
 import { SpaceLists } from '../components/SpaceLists';
 import {
   filterSpaces,
@@ -594,75 +594,64 @@ export function CampusMap() {
   }
 
   return (
-    <div className="campus-map relative h-dvh w-full overflow-hidden bg-bg">
-      <MapView
-        theme={theme}
-        data={visible}
-        selection={selection}
-        flyTarget={flyTarget}
-        floorIndex={floorIndex}
-        floor={floor}
-        onFloorChange={setFloor}
-        onSelect={(sel) => {
-          if (sel.libraryId)
-            tap({
-              kind: 'library',
-              id: sel.libraryId,
-              tableId: sel.tableId ?? undefined,
-            });
-        }}
-        onZoomChange={setZoom}
-        minimal={style}
-        view3d={view3d ? style.view3d : null}
-        navigation={navigation}
-        homePositions={homePositions(data.libraries)}
-        ethRooms={roomsOnPlan}
-        occupancyStyle={rooms && roomFeatures.occupancy ? roomStyle : null}
-        roomLabels={rooms && roomFeatures.labels}
-        selectedEthRoom={selectedRoomInfo?.room.id ?? null}
-        onEthRoomClick={
-          rooms && roomFeatures.details
-            ? (id) => tap({ kind: 'room', id })
-            : null
-        }
-        mensaRooms={mode === 'study' ? NO_MENSAS : mensaRooms}
-        mensaWorkspaces={mode === 'study' ? NO_MENSAS : mensaWorkspaces}
-        selectedMensaId={
-          selectedDatasetItem?.datasetId === 'mensa'
-            ? selectedDatasetItem.itemId
-            : null
-        }
-        onSelectMensa={(itemId) =>
-          tap({ kind: 'dataset', datasetId: 'mensa', itemId })
-        }
-      >
-        <ModeControl onOpen={() => setSheet('mode')} />
-        <DatasetLayers
-          layers={datasetLayers}
-          clock={datasetClock}
-          selected={selectedDatasetItem}
-          onSelect={(sel) => tap({ kind: 'dataset', ...sel })}
-        />
-      </MapView>
+    <div className="campus-map relative flex h-dvh w-full flex-col overflow-hidden bg-bg">
+      <ScreenHeader
+        title="Campus map"
+        backTo={paths.home}
+        backLabel="Back to study spaces"
+      />
 
-      {/* Top bar: back, title, theme */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-1100 px-3 pt-[calc(--spacing(3)+env(safe-area-inset-top))]">
-        <div className="pointer-events-auto flex min-h-13 items-center gap-1 rounded-card border border-border bg-surface pr-1 pl-1 shadow-card">
-          <ActionIcon
-            component={Link}
-            to={paths.home}
-            aria-label="Back to study spaces"
-          >
-            <Icon name="back" />
-          </ActionIcon>
-          <Title
-            order={1}
-            className="min-w-0 flex-1 truncate text-title font-bold"
-          >
-            Campus map
-          </Title>
-        </div>
-      </header>
+      <div className="relative min-h-0 flex-1">
+        <MapView
+          theme={theme}
+          data={visible}
+          selection={selection}
+          flyTarget={flyTarget}
+          floorIndex={floorIndex}
+          floor={floor}
+          onFloorChange={setFloor}
+          onSelect={(sel) => {
+            if (sel.libraryId)
+              tap({
+                kind: 'library',
+                id: sel.libraryId,
+                tableId: sel.tableId ?? undefined,
+              });
+          }}
+          onZoomChange={setZoom}
+          minimal={style}
+          view3d={view3d ? style.view3d : null}
+          navigation={navigation}
+          homePositions={homePositions(data.libraries)}
+          ethRooms={roomsOnPlan}
+          occupancyStyle={rooms && roomFeatures.occupancy ? roomStyle : null}
+          roomLabels={rooms && roomFeatures.labels}
+          selectedEthRoom={selectedRoomInfo?.room.id ?? null}
+          onEthRoomClick={
+            rooms && roomFeatures.details
+              ? (id) => tap({ kind: 'room', id })
+              : null
+          }
+          mensaRooms={mode === 'study' ? NO_MENSAS : mensaRooms}
+          mensaWorkspaces={mode === 'study' ? NO_MENSAS : mensaWorkspaces}
+          selectedMensaId={
+            selectedDatasetItem?.datasetId === 'mensa'
+              ? selectedDatasetItem.itemId
+              : null
+          }
+          onSelectMensa={(itemId) =>
+            tap({ kind: 'dataset', datasetId: 'mensa', itemId })
+          }
+        >
+          <ModeControl onOpen={() => setSheet('mode')} />
+          <DatasetLayers
+            layers={datasetLayers}
+            clock={datasetClock}
+            selected={selectedDatasetItem}
+            onSelect={(sel) => tap({ kind: 'dataset', ...sel })}
+          />
+        </MapView>
+      </div>
 
       {/* Bottom: selection card, toolbar */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-1100 grid gap-2 px-3 pb-[calc(--spacing(3)+env(safe-area-inset-bottom))]">

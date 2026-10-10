@@ -1184,13 +1184,10 @@
       font-size: 10px;
     }
 
-    /* Leaflet controls: 44px touch targets, below the top bar */
+    /* Leaflet controls: 44px touch targets */
     .leaflet-container {
       font: inherit;
       background: #e9edf2;
-    }
-    .leaflet-top {
-      top: calc(64px + env(safe-area-inset-top));
     }
     .leaflet-bottom {
       bottom: env(safe-area-inset-bottom);
