@@ -22,14 +22,14 @@ Click once or press Space to play the opening film. No scene-by-scene advances a
 6. Use the real app to reserve a seat. Click the surrounding background or press L / Space with the presentation focused to cue the live handoff.
 7. Blackout while the video operator switches to the teammate livestream, or show the configured browser feed.
 8. After the teammate checks in and sits down, click the live image or press Right / Space to cut to the closing slides.
-9. Four quick slides: session rules, study together, ETH fit, then the library pilot and faculty expansion.
-10. End on an imagined happy ETH campus: friends studying and chatting outside HG. The final frame holds.
+9. Four quick slides: a four-step session explanation, the party planner on a phone, ETH fit, then One library → Entire ETH → Other universities.
+10. End on Q&A over an imagined happy ETH campus: friends study and chat, while students stroll along varied paths. It keeps moving gently until you leave the scene; reduced motion freezes the campus.
 
 The live camera starts tight on the teammate's phone showing the reservation, then physically pulls back and follows them into the pitch room. The teammate scans the QR on the demonstration desk and starts studying. There is no rendered lo-fi ending. Stream transport is still to be chosen and rehearsed.
 
 For an embeddable browser stream, pass its URL as an encoded `live` query parameter. It connects off-screen at startup and fills the stage after the handoff. Without a URL, the handoff stays black for a switch to an external video window/source. The prototype does not control OBS or start a camera stream. Verify the phone and embedded app use the same booking account and the desk QR matches the reserved seat.
 
-During the live feed and closing slides, click or use Right / Space to continue. Left returns to the previous closing slide. P jumps directly to the closing slides from the app or feed; E jumps to the happy campus after the live handoff. If using an external video source, return to the pitch browser before pressing P. The browser does not switch external video windows for you.
+During the live feed and closing slides, click or use Right / Space to continue. The first slide starts with QR check-in; the next three clicks reveal session limits with extension priority, handovers, then timed breaks. Each reveal swaps the static 3D render. A fourth click moves to Study together. Left returns to the previous closing slide. P jumps directly to the closing slides from the app or feed; E jumps to the happy campus after the live handoff. If using an external video source, return to the pitch browser before pressing P. The browser does not switch external video windows for you.
 
 Space pauses/resumes the opening film; clicking the background during the film does not skip anything. R restarts. F toggles full screen. S mutes or unmutes the original synthesized cue. Rehearsal keys 1–7 jump to HG, hall, search, defeated close-up, toilet, app, and livestream handoff. These controls stay invisible. Music starts with the initial gesture, drops into a descending defeat cue, then cuts to silence for the toilet joke and live demo.
 
@@ -38,3 +38,7 @@ HG's simplified outlines come from the local backend's ETH PolyMaps floor index.
 Keyboard events stay inside the live app while its iframe has focus. Click the surrounding scene to return control to the presentation. The phone's application is real: submitting a booking will make a real booking in the connected app. The room geometry and characters are illustrative.
 
 The prototype does not automatically detect reservation or check-in success. The presenter cues the livestream after reservation and narrates the physical check-in. The slide copy is in `closing.js`; the 60–75 second closing script is in `../docs/pitch-closing.md`, with the broader story in `../docs/pitch-story.md`.
+
+## Closing assets
+
+`assets/party-planner.jpg` is a native 390×844 capture of the actual PartySeatsDraftScreen from an isolated local preview with sample data, four assignments and no submitted booking. It is rendered as a static phone texture, so the closing slide does not depend on a second live app or a saved party. The expiry-warning phone is illustrative; notification delivery is not implemented. `assets/seat-qr.svg` encodes an illustration marker, not a valid seat token. Do not print it for the physical demo.

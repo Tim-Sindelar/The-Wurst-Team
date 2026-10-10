@@ -47,8 +47,8 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;sce
 
 const hall=buildHall(scene),bathroom=buildBathroom(scene),phone=buildPhone(scene);
 const exterior=buildHG(scene);
-const closing=buildClosing(scene,exterior.root),slides=buildSlides();
-const sets=[exterior.root,hall.root,bathroom.root,closing.friends,closing.campus];
+const closing=await buildClosing(scene,exterior.root),slides=buildSlides();
+const sets=[exterior.root,hall.root,bathroom.root,closing.features.root,closing.friends,closing.campus];
 batchStatic(hall.root,hall.student);batchStatic(bathroom.root,bathroom.student);
 const cssScene=new THREE.Scene();
 const cssRenderer=new CSS3DRenderer({element:document.getElementById('screens')});cssRenderer.setSize(innerWidth,innerHeight);
@@ -64,7 +64,8 @@ const phoneCover=document.createElement('button');phoneCover.className='phone-co
 const cssPhone=new THREE.Group();cssScene.add(cssPhone);
 const cssScreen=new CSS3DObject(screenElement);cssScreen.scale.setScalar(.001);cssScreen.position.set(0,0,.036);cssPhone.add(cssScreen);
 
-const names=['ETH main building','The student enters the hall','Looking for an available study seat','The student gives up','Book a seat from the toilet','Live booking on the phone','Live teammate check-in','Session rules','Study together','Built for ETH','One library, then the faculty','An imagined ETH where everyone has a seat'];
+const names=['ETH main building','The student enters the hall','Looking for an available study seat','The student gives up','Book a seat from the toilet','Live booking on the phone','Live teammate check-in','Your session','Study together','Built for ETH','One library, entire ETH, other universities','Q&A at a happy ETH campus'];
+const featureNames=['QR check-in starts your session','Session limits and priority to extend','Handovers','Timed breaks'];
 // The opening is one film. The toilet and real app are deliberate presenter holds.
 const durations=[6200,1200,11700,3600,5200,1050,0];
 const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
@@ -87,6 +88,7 @@ const curvePoint=new THREE.Vector3();
 const finalPhonePosition=new THREE.Vector3(0,2.5,0);
 const finalPhoneScale=4.65;
 let current=0,elapsed=0,last=performance.now(),transition=0,filmPlaying=false,paused=true,exteriorStarted=false,cut=null;
+let featureStep=0;
 let clickDown=null,impactTime=-1000,lastDraw=0,forceDraw=true,frameSamples=0,frameTotal=0,resumeAfterVisibility=false;
 const impacts=new Set();
 const taken=document.getElementById('taken'),blackout=document.getElementById('blackout'),liveLayer=document.getElementById('live');
@@ -115,7 +117,8 @@ function updateAccessibleState(){
   advanceButton.hidden=current<6||current===11;
   advanceButton.setAttribute('aria-label',current===6?'Continue to pitch slides':'Next pitch slide');
   stage.dataset.slide=current>=7?String(current-6):'0';
-  document.getElementById('status').textContent=names[current];
+  stage.dataset.feature=current===7?String(featureStep+1):'0';
+  document.getElementById('status').textContent=current===7?featureNames[featureStep]:names[current];
 }
 function slam(id){
   if(impacts.has(id))return;
@@ -123,6 +126,7 @@ function slam(id){
   void taken.offsetWidth;taken.classList.add('slam');score.impact();stage.dataset.peek=String(id);
 }
 function go(index,snap=false){
+  if(index===7)featureStep=current===8?3:0;
   if(index===5){zoomStartPosition.copy(phone.root.position);zoomStartRotation.set(phone.root.rotation.x,phone.root.rotation.y,phone.root.rotation.z);}
   captureCamera();current=Math.max(0,Math.min(11,index));elapsed=0;paused=false;impacts.clear();impactTime=-1000;
   taken.classList.remove('slam');delete stage.dataset.peek;forceDraw=true;renderer.shadowMap.needsUpdate=true;
@@ -130,6 +134,8 @@ function go(index,snap=false){
   sets.forEach(root=>{root.visible=false;root.position.set(0,0,0);root.scale.setScalar(1);});
   exterior.root.visible=current===0||current===9;hall.root.visible=current>=1&&current<=3;
   closing.friends.visible=current===8;closing.campus.visible=current===11;
+  closing.features.root.visible=current===7;
+  if(current===7){closing.features.show(featureStep);slides.revealFeature(featureStep);}
   slides.show(current>=7?current-7:-1);
   bathroom.root.visible=current===4||current===5;phone.root.visible=current===4||current===5;
   screenElement.classList.toggle('visible',current===5);screenElement.inert=current!==5;
@@ -161,7 +167,8 @@ function go(index,snap=false){
     bathroom.student.userData.arms[1].shoulder.rotation.set(-1.1,0,-.2);
     bathroom.student.userData.arms[1].elbow.rotation.x=-1.5;
   }else if(current===5){filmPlaying=false;positionCamera([0,2.5,8.1],[0,2.5,0]);}
-  else if(current===8){closing.friends.position.x=1.2;positionCamera([4,3.8,8.8],[0,1.1,0]);}
+  else if(current===7){closing.features.root.position.x=1.8;positionCamera([0,3.1,9],[0,1.5,0]);}
+  else if(current===8){closing.friends.position.x=2.4;positionCamera([0,2.65,9.1],[0,2.1,0]);}
   else if(current===9){exterior.root.position.set(6.5,0,0);exterior.root.scale.setScalar(.64);positionCamera([12,10,24],[0,1,0]);}
   else if(current===11){positionCamera([24,17,28],[0,1,-4]);}
   if(snap&&current!==5)snapCamera();updateAccessibleState();
@@ -181,8 +188,18 @@ function startFilm(){
 }
 function openPhone(){if(current!==4||elapsed<durations[4]||cut)return;go(5);}
 function handoff(){if(current===5&&elapsed>=durations[5])cutTo(6);}
-function nextSlide(){if(current>=6&&current<11)cutTo(current+1);}
-function previousSlide(){if(current>7)cutTo(current-1);}
+function showFeature(step){
+  if(cut)return;
+  featureStep=step;closing.features.show(step);slides.revealFeature(step);forceDraw=true;renderer.shadowMap.needsUpdate=true;updateAccessibleState();
+}
+function nextSlide(){
+  if(current===7&&featureStep<3){showFeature(featureStep+1);return;}
+  if(current>=6&&current<11)cutTo(current+1);
+}
+function previousSlide(){
+  if(current===7&&featureStep>0){showFeature(featureStep-1);return;}
+  if(current>7)cutTo(current-1);
+}
 function exteriorMotion(){
   if(!exteriorStarted)return;
   flyCurve.getPoint(reducedMotion?1:ease(Math.min(elapsed/durations[0],1)),curvePoint);cameraTo.copy(curvePoint);
@@ -247,7 +264,7 @@ function render(now){
   else if(current===2)searchMotion();
   else if(current===3)defeated(hall.student,elapsed*.001);
   else if(current===4){droneMotion();idle(bathroom.student,elapsed*.001);bathroom.student.userData.head.rotation.x=.15;}
-  else if(current===11){const p=reducedMotion?1:ease(Math.min(elapsed/9000,1));positionCamera([lerp(24,19,p),lerp(17,13,p),lerp(28,23,p)],[0,1,-4]);}
+  else if(current===11){const p=reducedMotion?1:ease(Math.min(elapsed/9000,1));positionCamera([lerp(24,19,p),lerp(17,13,p),lerp(28,23,p)],[0,1,-4]);closing.animate(elapsed*.001,reducedMotion);}
   if(filmPlaying&&!paused&&current<4&&elapsed>=durations[current]){
     // Keep the hallway walk continuous; location changes pass through black.
     if(current===1)go(2);else cutTo(current+1);
@@ -261,9 +278,9 @@ function render(now){
   if(current===2&&impactAge>=0&&impactAge<.24&&!reducedMotion)camera.rotateZ(Math.sin(impactAge*65)*.022*Math.exp(-impactAge*14));
   updatePhone();
   const settledPhone=current===5&&elapsed>=durations[5];
-  const animated=!paused&&current!==6&&!settledPhone&&(current<7||(current===11&&elapsed<10000));
-  if(forceDraw||(animated&&now-lastDraw>=1000/45)){
-    renderer.shadowMap.needsUpdate=forceDraw||current===1||current===2||current===3||(current===5&&!settledPhone);
+  const animated=!paused&&current!==6&&!settledPhone&&(current<7||(current===11&&(!reducedMotion||elapsed<1000)));
+  if(forceDraw||(animated&&now-lastDraw>=1000/(current===11?30:45))){
+    renderer.shadowMap.needsUpdate=forceDraw||current===1||current===2||current===3||current===11||(current===5&&!settledPhone);
     renderer.render(scene,camera);cssRenderer.render(cssScene,camera);lastDraw=now;forceDraw=false;stage.dataset.drawCalls=String(renderer.info.render.calls);
   }
   requestAnimationFrame(render);

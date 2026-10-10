@@ -6,12 +6,17 @@ Target 60–75 seconds. Speaker notes below are spoken, never printed as caption
 
 | Slide | Screen | Time | Spoken draft |
 | --- | --- | --- | --- |
-| Sessions | Limited sessions · Extension priority · Handovers · Timed breaks | 20s | “He's checked in. Sessions have a clear end. He gets the first chance to extend; after that, someone else can book the next session. Leaving early lets them start earlier. A timed break keeps a quick coffee from costing him his seat.” |
-| Study together | Three friends at one table | 10s | “You can also reserve seats for your study party in the same room. Everyone scans their own seat when they arrive.” |
+| Your session · QR | Student scanning a desk QR | 4s | “The seat QR starts your session when you arrive.” |
+| Your session · Limits | Expiry warning and extension priority on a phone | 8s | “Sessions have a clear end. Before it runs out, you get the first chance to extend.” |
+| Your session · Handover | One student leaves; another takes the seat | 5s | “If you leave early, the next person can start earlier.” |
+| Your session · Break | A coffee mug | 5s | “A timed break lets you get a coffee without immediately losing your seat.” |
+| Study together | The app's party seat planner on a phone | 10s | “Reserve seats for your study party in the same room. Everyone scans their own seat when they arrive.” |
 | Built for ETH | Campus map · ETH sign-in · Free for students | 10–15s | “It uses ETH's buildings, floors and room names, with ETH sign-in. We want this to be free for students.” |
-| One library → Then the faculty | Two large phrases and an arrow | 15–20s | “Next, a pilot in one library. We'd map the rooms and seats, put the QR codes in place, and agree access rules with the library team. Then expand to the faculty.” |
-| Happy ETH | Bright HG campus, friends studying and chatting | 5–10s | “That's the ETH we want: you finish a lecture, find your friends, and know where you're going to study.” |
+| One library → Entire ETH → Other universities | Three rollout stages | 15–20s | “Start with one library, expand across ETH, then other universities. The booking system is universal. Each university maps its spaces and makes it official and authoritative, with rules backed by its administration.” |
+| Q&A | Happy ETH campus with students strolling and chatting | 5s | “That's the ETH we want: you finish a lecture, find your friends, and know where you're going to study.” |
 
-The final scene holds, with no text or automatic restart. Finish speaking and leave it on screen for questions. Left returns to the previous slide; R restarts the presentation. E jumps to the final scene after the live handoff.
+The first slide begins with QR check-in only. Each click / Right / Space reveals the next line and swaps the static render. After the coffee mug, the next click goes to Study together. Left reverses the reveals.
 
-The friends slide is an illustration of the implemented group-booking feature, not another live transaction. The final campus is an imagined outcome. Free access is the intended policy. Department permissions, library enforcement and room setup are proposed pilot work; do not describe them as already implemented or agreed. Campus room bookings are not occupancy sensors.
+The final Q&A scene keeps gentle, varied movement and never restarts automatically. Reduced motion freezes the campus. Finish speaking and leave it on screen for questions. Left returns to the previous slide; R restarts the presentation. E jumps to the final scene after the live handoff.
+
+The friends phone uses a bundled screenshot of the actual planner UI captured from the isolated sample-data preview, with four assignments prepared and no reservation submitted. It is not another live transaction. The expiry notification is an illustrative warning, not a claim that notification delivery has shipped. The QR illustration is not a working seat token. The final campus is an imagined outcome. Free access is the intended policy. The university rollout is a proposal; other universities have not been integrated. Department permissions, library enforcement and room setup are proposed pilot work; do not describe them as already implemented or agreed. Campus room bookings are not occupancy sensors.

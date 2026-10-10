@@ -15,10 +15,10 @@ The two messages to remember are campus-wide discovery and reserving a seat befo
 | 0:00–0:35 | Lecture ends. The student tries one study area, then another. Both are full. | HG fly-in, two occupied rooms, repeated TAKEN stamps, defeated close-up and tears. Blackout into the toilet. |
 | 0:35–1:00 | Introduce checking availability across campus and reserving remotely. Reveal the student on the toilet, looking at their phone. | Campus view, then the phone. App name can appear here. |
 | 1:00–2:40 | Live demo: explore the campus map, open a bookable room, choose a free seat, reserve it, walk to the demonstration seat and scan its QR code. | Real app, large enough to read. Printed QR attached to the demonstration seat. After booking, match the reservation screen on the teammate’s phone in the livestream. Camera pulls back, follows them into the pitch room, then shows the desk QR scan and studying. |
-| 2:40–3:00 | Explain session limits, extension priority, handovers and breaks. | One clean keyword slide. |
+| 2:40–3:00 | Explain session limits, extension priority, handovers and breaks. | Four incremental lines with matching renders: QR check-in, session limits with extension priority, handovers, coffee breaks. |
 | 3:00–3:25 | Mention group booking and ETH fit. | Friends studying together, then campus map, ETH sign-in and intended free access. |
-| 3:25–3:45 | Propose one library pilot, then expansion to the faculty. | One library → Then the faculty. |
-| 3:45–5:00 | Close on the happy ETH vision; remaining time covers the live passage, laughter and questions if invited. | An imagined bright HG campus with friends studying and chatting. Final frame holds. |
+| 3:25–3:45 | Propose one library pilot, expansion across ETH, then adoption by other universities. | One library → Entire ETH → Other universities. |
+| 3:45–5:00 | Close on the happy ETH vision; remaining time covers the live passage, laughter and questions if invited. | An imagined bright HG campus with friends studying and chatting. Q&A title over a gently moving campus. |
 
 The timestamps are a rehearsal budget. One initial click plays the opening through the toilet reveal, then holds while the presenter speaks. Click the held phone to enter the real app. The physical livestream handoff is cued after reservation. The closing slides take 60–75 seconds; keep the full rehearsal below five minutes. The current short closing script is in `pitch-closing.md`.
 
@@ -64,7 +64,7 @@ For the prototype demonstration, describe bookable seats as participating spaces
 
 “Sessions have a clear end time. If I need longer, I get the first chance to extend. After that window, someone else can reserve the next session. If I leave early, their booking can start earlier. And I can take a timed break without losing my seat immediately.”
 
-Use the session keyword slide. Do not wait for a two-hour session to reach its extension window or run another complete scan loop on stage.
+Use the incremental session slide and its matching renders. Do not wait for a two-hour session to reach its extension window or run another complete scan loop on stage.
 
 ### Friends and impact
 
@@ -74,7 +74,7 @@ The friends slide shows an illustration rather than another booking demo. The fi
 
 ### Pilot and close
 
-“The next step is a pilot in one library. We'd work with the library team to map its seats, attach the QR codes and agree how bookings work on site. We'd measure how long students spend finding seats and how often reservations go unused. Then we'd expand to the faculty.”
+“The next step is a pilot in one library. We'd work with the library team to map its seats, attach the QR codes and agree how bookings work on site. We'd measure how long students spend finding seats and how often reservations go unused. Then we'd expand across ETH and take the system to other universities. Each university needs to make it official and authoritative.”
 
 “We're looking for one library to try it with.”
 
