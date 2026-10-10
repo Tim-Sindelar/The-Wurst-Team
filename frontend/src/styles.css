@@ -24,6 +24,8 @@
   --color-canvas: #0a0a0a; /* page behind the phone column */
   --color-hover: rgb(255 255 255 / 0.08);
   --color-overlay: rgb(0 0 0 / 0.6); /* dim layer behind popups */
+  --color-photo-scrim: rgb(0 0 0 / 0.55); /* darkens a photo behind card text */
+  --color-on-photo: #ffffff; /* text and icons drawn over a photo, both themes */
   --color-text: #ffffff;
   --color-text-muted: #bdbdbd;
 
