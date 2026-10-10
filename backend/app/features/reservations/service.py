@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.features.campus_map.room_photos import RoomPhotos
 from app.features.reservations.models import (
     Break,
     Reservation,
@@ -426,7 +427,9 @@ class ReservationService:
             server_time=now, reservation=self._details(states[0], now) if states else None
         )
 
-    def spaces(self, map_room_id: str | None = None) -> SpacesResponse:
+    def spaces(
+        self, map_room_id: str | None = None, room_photos: RoomPhotos | None = None
+    ) -> SpacesResponse:
         now = self.now()
         query = select(StudySpace).where(StudySpace.is_archived.is_(False))
         if map_room_id is not None:
@@ -441,6 +444,7 @@ class ReservationService:
             seats_by_space[seat.space_id].append(
                 self._availability(seat, states_by_seat[seat.id], now)
             )
+        photos = room_photos.lookup(space.map_room_id for space in spaces) if room_photos else {}
         return SpacesResponse(
             server_time=now,
             spaces=[
@@ -454,6 +458,7 @@ class ReservationService:
                     is_open=self.is_open(space.id, now),
                     total_seats=len(seats_by_space[space.id]),
                     free_seats=sum(seat.state == "free" for seat in seats_by_space[space.id]),
+                    photo_url=photos.get(space.map_room_id),
                 )
                 for space in spaces
             ],
@@ -513,7 +518,7 @@ class ReservationService:
             )
         )
 
-    def space(self, space_id: UUID) -> SpaceResponse:
+    def space(self, space_id: UUID, room_photos: RoomPhotos | None = None) -> SpaceResponse:
         space = self.session.get(StudySpace, space_id)
         if space is None or space.is_archived:
             raise BookingError(404, "not_found", "Study space not found")
@@ -525,6 +530,7 @@ class ReservationService:
         for state in self._live(now, seat_ids=[seat.id for seat in seats]):
             states_by_seat[state.seat_id].append(state)
         availability = [self._availability(seat, states_by_seat[seat.id], now) for seat in seats]
+        photos = room_photos.lookup([space.map_room_id]) if room_photos else {}
         return SpaceResponse(
             server_time=now,
             space=SpaceDetail(
@@ -539,6 +545,7 @@ class ReservationService:
                 opening_hours=self.opening_hours(space.id),
                 total_seats=len(seats),
                 free_seats=sum(seat.state == "free" for seat in availability),
+                photo_url=photos.get(space.map_room_id),
                 seats=availability,
             ),
         )

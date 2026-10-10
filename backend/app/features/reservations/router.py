@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.config import Settings, get_settings
 from app.database import get_session
+from app.features.campus_map.room_photos import RoomPhotos
+from app.features.campus_map.services import get_room_photos
 from app.features.reservations.schemas import (
     BookingErrorResponse,
     CheckInRequest,
@@ -46,6 +48,7 @@ def get_service(
 
 Service = Annotated[ReservationService, Depends(get_service)]
 CurrentUser = Annotated[UUID, Depends(get_current_user)]
+Photos = Annotated[RoomPhotos, Depends(get_room_photos)]
 
 
 def commit_response(
@@ -69,8 +72,8 @@ def get_rules(settings: Annotated[Settings, Depends(get_settings)]) -> RulesResp
 
 
 @router.get("/spaces", response_model=SpacesResponse, operation_id="list_spaces")
-def list_spaces(service: Service, map_room_id: str | None = None) -> SpacesResponse:
-    return service.spaces(map_room_id)
+def list_spaces(service: Service, photos: Photos, map_room_id: str | None = None) -> SpacesResponse:
+    return service.spaces(map_room_id, photos)
 
 
 @router.get(
@@ -109,8 +112,8 @@ def list_recents(service: Service, user_id: CurrentUser) -> RecentsResponse:
 
 
 @router.get("/spaces/{space_id}", response_model=SpaceResponse, operation_id="get_space")
-def get_space(space_id: UUID, service: Service) -> SpaceResponse:
-    return service.space(space_id)
+def get_space(space_id: UUID, service: Service, photos: Photos) -> SpaceResponse:
+    return service.space(space_id, photos)
 
 
 @router.get(

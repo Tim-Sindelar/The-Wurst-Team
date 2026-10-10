@@ -106,6 +106,15 @@ def test_reserve_any_and_empty_space(client, seats):
     assert client.get(f"/api/v1/spaces/{empty['id']}").json()["space"]["seats"] == []
 
 
+def test_spaces_show_their_eth_room_photo(client, seats, room_photos):
+    room_photos.photos["ETH.HG.E.E_007"] = "/api/v1/map/eth/file?id=42"
+    spaces = {space["name"]: space for space in client.get("/api/v1/spaces").json()["spaces"]}
+    assert spaces["Test reading room"]["photo_url"] == "/api/v1/map/eth/file?id=42"
+    assert spaces["Empty test room"]["photo_url"] is None
+    detail = client.get(f"/api/v1/spaces/{seats[0].space_id}").json()["space"]
+    assert detail["photo_url"] == "/api/v1/map/eth/file?id=42"
+
+
 def test_priority_public_boundary_and_next_reservation(client, seats, clock):
     owner = identity()
     occupant = walk_up(client, seats[0], owner).json()["reservation"]

@@ -89,6 +89,8 @@ class SpaceSummary(BaseModel):
     free_seats: int
     timezone: str
     is_open: bool
+    # The first photo of the space's ETH room, if ETH has one.
+    photo_url: str | None = None
 
 
 class SeatAvailability(UTCResponse):

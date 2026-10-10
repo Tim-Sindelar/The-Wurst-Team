@@ -447,6 +447,17 @@
             "title": "Opening Hours",
             "type": "array"
           },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
           "timezone": {
             "title": "Timezone",
             "type": "string"
@@ -552,6 +563,17 @@
             },
             "title": "Opening Hours",
             "type": "array"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "seats": {
             "items": {
@@ -692,6 +714,17 @@
           "on_break_seats": {
             "title": "On Break Seats",
             "type": "integer"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "timezone": {
             "title": "Timezone",
@@ -3766,6 +3799,17 @@
             "title": "Opening Hours",
             "type": "array"
           },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
           "seats": {
             "items": {
               "$ref": "#/components/schemas/SeatAvailability"
@@ -3847,6 +3891,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "timezone": {
             "title": "Timezone",
