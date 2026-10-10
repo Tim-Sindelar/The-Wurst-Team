@@ -31,6 +31,12 @@ android {
         noCompress += "onnx"
     }
 
+    // Compressed native libraries: onnxruntime is 34 MB raw, the APK is downloaded through the
+    // hackathon's login proxy (unpacked to disk once on install).
+    packaging {
+        jniLibs { useLegacyPackaging = true }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
