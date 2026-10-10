@@ -95,13 +95,13 @@ export function person(parent,at,{color='#859678',skin='#d0a486',seated=false,ba
   if(bag)backpack(torso,[0,-.2,-.33]);
   p.userData={hips,torso,head,arms,legs,seated,brows,mouth,sadMouth,tears};return p;
 }
-function chair(parent,x,z,rotation=0){
+export function chair(parent,x,z,rotation=0){
   const c=group(parent,[x,0,z]);c.rotation.y=rotation;
   roundedBox(c,[.65,.12,.66],[0,.58,0],'#859489',.06);
   roundedBox(c,[.62,.58,.095],[0,.93,-.28],'#859489',.045);
   for(const a of [-.22,.22])for(const b of [-.23,.23])box(c,[.045,.55,.045],[a,.27,b],'#717a76');
 }
-function laptop(parent,x,y,z,rotation=0){
+export function laptop(parent,x,y,z,rotation=0){
   const l=group(parent,[x,y,z]);l.rotation.y=rotation;
   roundedBox(l,[.68,.025,.43],[0,.02,0],'#a9b0ad',.02);
   const lid=roundedBox(l,[.68,.43,.025],[0,.24,-.2],'#a9b0ad',.02);lid.rotation.x=-.15;

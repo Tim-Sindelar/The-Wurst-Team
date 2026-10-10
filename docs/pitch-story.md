@@ -15,12 +15,12 @@ The two messages to remember are campus-wide discovery and reserving a seat befo
 | 0:00–0:35 | Lecture ends. The student tries one study area, then another. Both are full. | HG fly-in, two occupied rooms, repeated TAKEN stamps, defeated close-up and tears. Blackout into the toilet. |
 | 0:35–1:00 | Introduce checking availability across campus and reserving remotely. Reveal the student on the toilet, looking at their phone. | Campus view, then the phone. App name can appear here. |
 | 1:00–2:40 | Live demo: explore the campus map, open a bookable room, choose a free seat, reserve it, walk to the demonstration seat and scan its QR code. | Real app, large enough to read. Printed QR attached to the demonstration seat. After booking, match the reservation screen on the teammate’s phone in the livestream. Camera pulls back, follows them into the pitch room, then shows the desk QR scan and studying. |
-| 2:40–3:15 | Explain why a reservation remains useful when everyone starts using the app. | Actual session screen and prepared views of extension/handover states. Small labels only if needed. |
-| 3:15–4:00 | Friends want to study together. Show a prepared party with accepted members, choose seats in one room, and show the group booking. | Real group-booking flow on a separate prepared account, or an explicitly introduced recording. End on the group studying. |
-| 4:00–4:40 | Propose one library pilot, explain setup and success criteria, then expansion to the faculty. | One library highlighted on the campus map. Optional labels: Pilot library, then Faculty. |
-| 4:40–5:00 | Margin for laughs, camera acquisition and transitions. | Final image remains on screen. |
+| 2:40–3:00 | Explain session limits, extension priority, handovers and breaks. | One clean keyword slide. |
+| 3:00–3:25 | Mention group booking and ETH fit. | Friends studying together, then campus map, ETH sign-in and intended free access. |
+| 3:25–3:45 | Propose one library pilot, then expansion to the faculty. | One library → Then the faculty. |
+| 3:45–5:00 | Close on the happy ETH vision; remaining time covers the live passage, laughter and questions if invited. | An imagined bright HG campus with friends studying and chatting. Final frame holds. |
 
-The timestamps are a rehearsal budget. One initial click plays the opening through the toilet reveal, then holds while the presenter speaks. Click the held phone to enter the real app. The physical livestream handoff is cued after reservation. Target a 4:40 run.
+The timestamps are a rehearsal budget. One initial click plays the opening through the toilet reveal, then holds while the presenter speaks. Click the held phone to enter the real app. The physical livestream handoff is cued after reservation. The closing slides take 60–75 seconds; keep the full rehearsal below five minutes. The current short closing script is in `pitch-closing.md`.
 
 ## Spoken draft
 
@@ -64,17 +64,13 @@ For the prototype demonstration, describe bookable seats as participating spaces
 
 “Sessions have a clear end time. If I need longer, I get the first chance to extend. After that window, someone else can reserve the next session. If I leave early, their booking can start earlier. And I can take a timed break without losing my seat immediately.”
 
-Use prepared state views for this explanation. Do not wait for a two-hour session to reach its extension window or run another complete scan loop on stage.
+Use the session keyword slide. Do not wait for a two-hour session to reach its extension window or run another complete scan loop on stage.
 
 ### Friends and impact
 
-“Now my friends want to join. We've already formed a study party. I choose a seat for each of us in the same room and reserve them together. Everyone checks in at their own seat.”
+“You can also reserve seats for your study party in the same room. Everyone scans their own seat when they arrive.”
 
-Show the assignments and group result.
-
-“We know where we're going, and we know we'll have somewhere to sit.”
-
-The group studying is the impact image. Avoid a separate list repeating reduced stress and less walking.
+The friends slide shows an illustration rather than another booking demo. The final happy-campus scene carries the impact: the student and their friends have a place to study.
 
 ### Pilot and close
 
@@ -88,7 +84,7 @@ This is a proposed closing ask. Adjust it to the audience and any existing pilot
 
 - Campus exploration and the floor stack appear during the first demo action. Use real ETH building and room names to establish the local fit.
 - Limited sessions, no-show expiry, extension priority, breaks and handovers belong together, immediately after successful check-in.
-- Friend sessions provide the second payoff. Prepare invitations and acceptances before presenting. The implementation assigns seats manually in the same room; it does not automatically find adjacent seats.
+- Friend sessions appear in the quick closing slides. The implementation assigns seats manually in the same room; it does not automatically find adjacent seats.
 - Favourites, profile editing, menus and sports data can remain visible or support questions. They do not each need narration in five minutes.
 - ETH sign-in and department permissions belong in the pilot discussion to the extent they are implemented and verified. Administrative support should be described as a pilot requirement until agreed.
 - If free access is the intended policy, say “free for students.” Do not imply that operating the system has no cost.
@@ -132,7 +128,7 @@ Inspection on 10 October 2026. This was code inspection and a read-only look at 
 
 For the friends segment, use a separate prepared organizer account with no active reservation. The solo demo account will already be checked in and cannot simultaneously take another seat in a party booking. An explicitly introduced recording is another option.
 
-The group account needs accepted members without conflicting reservations. Verify the deployed social feature is enabled and uses the real backend rather than local sample screens.
+For a follow-up group-booking demonstration, prepare accepted members without conflicting reservations and verify the deployed social feature uses the real backend. The five-minute pitch uses the closing illustration instead of this second live flow.
 
 ## Presentation references
 
