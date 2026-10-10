@@ -15,7 +15,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/components/` | Shared building blocks: `Screen` frame, `DecisionSheet`, `StatusBanner`, `TimerCard`, `SeatChip`, `Icon`, the seat map |
 | `src/screens/` | One file per screen, in flow order: Home, SeatMap, Reservation, Scan, Session, Profile |
 | `src/domain/` | Domain types and per-state lookups (seat states, labels, state classes) |
-| `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useServerEvents` (the events stream), `useQrScanner`, `useNow`, `useCountdown` |
+| `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useServerEvents` (the events stream), `useQrScanner`, `useDeadlineClock` (one clock per screen, so its countdowns tick together) |
 | `src/routes.ts` | Screen paths |
 | `src/features/social/` | Friends, Requests, study groups and group booking (`/friends`, `/requests`, `/groups/...`). See "Friends and study groups" below |
 | `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |

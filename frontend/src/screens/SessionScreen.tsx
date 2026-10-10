@@ -21,7 +21,7 @@ import {
   useRefetchAt,
   useRefreshBooking,
 } from '../hooks/useMyReservation';
-import { useNow } from '../hooks/useNow';
+import { useDeadlineClock } from '../hooks/useDeadlineClock';
 import { useRules } from '../hooks/useRules';
 import { paths } from '../routes';
 
@@ -39,7 +39,6 @@ export function SessionScreen() {
   const navigate = useNavigate();
   const refresh = useRefreshBooking();
   const { query, running, toClient } = useMyReservation();
-  const now = useNow();
   const { query: rulesQuery, rules } = useRules();
   const end = useMutation(endReservationMutation());
   const [params, setParams] = useSearchParams();
@@ -62,6 +61,8 @@ export function SessionScreen() {
   const { refetch } = query;
   useRefetchAt(sessionEnd, refetch);
   useRefetchAt(breakEnd, refetch);
+  /* One clock for the break and session timers, so their seconds change together. */
+  const now = useDeadlineClock(sessionEnd);
 
   if (query.isError || rulesQuery.isError) {
     return (
@@ -201,14 +202,8 @@ export function SessionScreen() {
         {onBreak && breakEnd !== null && running.current_break && (
           <TimerCard
             label="Break ends in"
-            seconds={Math.max(
-              1,
-              secondsBetween(
-                running.current_break.started_at,
-                running.current_break.ends_at,
-              ),
-            )}
             expiresAt={breakEnd}
+            now={now}
             total={Math.max(
               1,
               secondsBetween(
@@ -234,14 +229,8 @@ export function SessionScreen() {
 
         <TimerCard
           label="Session time left"
-          seconds={Math.max(
-            1,
-            secondsBetween(
-              running.checked_in_at ?? running.starts_at,
-              running.ends_at,
-            ),
-          )}
           expiresAt={sessionEnd}
+          now={now}
           total={Math.max(
             1,
             secondsBetween(

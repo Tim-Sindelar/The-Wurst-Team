@@ -15,7 +15,7 @@ import { useFavourites } from '../hooks/useFavourites';
 import { usePopular } from '../hooks/usePopular';
 import { useRecents } from '../hooks/useRecents';
 import { formatCountdown, secondsUntil } from '../hooks/useCountdown';
-import { useNow } from '../hooks/useNow';
+import { useDeadlineClock } from '../hooks/useDeadlineClock';
 import { useMyReservation } from '../hooks/useMyReservation';
 import { paths } from '../routes';
 
@@ -172,7 +172,7 @@ function SessionDetail({
   onBreak: boolean;
   endsAt: number;
 }) {
-  const now = useNow();
+  const now = useDeadlineClock(endsAt);
   return (
     <>
       {onBreak ? 'On break' : 'In session'} ·{' '}

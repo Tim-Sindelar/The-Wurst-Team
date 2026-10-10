@@ -13,6 +13,7 @@ import {
 } from '../components/Screen';
 import { SeatChip } from '../components/SeatChip';
 import { TimerCard } from '../components/TimerCard';
+import { useDeadlineClock } from '../hooks/useDeadlineClock';
 import { apiProblem, secondsBetween } from '../domain/booking';
 import { stripeClass } from '../domain/seat';
 import {
@@ -53,6 +54,7 @@ export function ReservationScreen() {
     : 1;
   const { refetch } = query;
   useRefetchAt(target, refetch);
+  const now = useDeadlineClock(target);
 
   if (query.isError || rulesQuery.isError) {
     return (
@@ -165,8 +167,8 @@ export function ReservationScreen() {
 
         <TimerCard
           label={upcoming ? 'Your time starts in' : 'Check in within'}
-          seconds={total}
           expiresAt={target}
+          now={now}
           total={total}
         >
           <Text size="sm" c="dimmed">
