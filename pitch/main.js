@@ -69,9 +69,9 @@ const cameraFrom=new THREE.Vector3(),lookFrom=new THREE.Vector3(),cameraTo=new T
 const look=new THREE.Vector3(0,1,-1);
 const initialPhonePosition=new THREE.Vector3(.25,1.18,-.18);
 const flyCurve=new THREE.CatmullRomCurve3([
-  new THREE.Vector3(22,14,24),new THREE.Vector3(16,9,19),new THREE.Vector3(7,5,14),
-  new THREE.Vector3(exterior.entry.x+2,2.1,exterior.entry.z+4.8),
-  new THREE.Vector3(exterior.entry.x+.12,1.24,exterior.entry.z+.48),
+  new THREE.Vector3(22,14,24),new THREE.Vector3(17,9,16),new THREE.Vector3(12,5,6),
+  new THREE.Vector3(exterior.entry.x+4.8,2.1,exterior.entry.z+1),
+  new THREE.Vector3(exterior.entry.x+.48,1.24,exterior.entry.z),
 ]);
 const droneCurve=new THREE.CatmullRomCurve3([
   new THREE.Vector3(0,.13,1.55),new THREE.Vector3(0,1.2,1.6),new THREE.Vector3(0,2.7,1.4),

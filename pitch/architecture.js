@@ -41,22 +41,31 @@ export function buildHG(scene){
   const top=hg.levels[hg.levels.length-1];
   for(const polygon of top.polygons)slab(root,polygon,2.28,.09,'#8e9789');
   const [dx,dz]=hg.dome;
-  cylinder(root,1.12,1.2,.34,[dx,2.58,dz],'#c7b99d',16);
-  const dome=mesh(root,new THREE.SphereGeometry(1.14,16,8,0,Math.PI*2,0,Math.PI/2),material('#7f8c84',{roughness:.5,metalness:.12}),[dx,2.75,dz]);
+  // The KO outline isolates the rotunda; K also contains the adjoining hall.
+  cylinder(root,1.5,1.56,.34,[dx,2.58,dz],'#c7b99d',24);
+  const dome=mesh(root,new THREE.SphereGeometry(1.53,24,10,0,Math.PI*2,0,Math.PI/2),material('#7f8c84',{roughness:.5,metalness:.12}),[dx,2.75,dz]);
   dome.scale.y=.73;
-  cylinder(root,.07,.1,.22,[dx,3.69,dz],'#768479',8);
-  for(let i=0;i<12;i++){
-    const angle=i*Math.PI*2/12;
-    box(root,[.12,.22,.055],[dx+Math.sin(angle)*1.13,2.59,dz+Math.cos(angle)*1.13],glass,[0,angle,0]);
+  cylinder(root,.1,.14,.24,[dx,3.95,dz],'#768479',8);
+  for(let i=0;i<16;i++){
+    const angle=i*Math.PI*2/16;
+    box(root,[.16,.22,.055],[dx+Math.sin(angle)*1.51,2.59,dz+Math.cos(angle)*1.51],glass,[0,angle,0]);
+  }
+  // Tall columns follow the curved east facade, with a gap for the entrance.
+  for(const side of [-1,1])for(let i=0;i<6;i++){
+    const angle=side*(.15+i*.255),x=dx+Math.cos(angle)*1.76,z=dz+Math.sin(angle)*1.76;
+    cylinder(root,.075,.085,1.55,[x,1.405,z],trim,8);
+    cylinder(root,.12,.12,.09,[x,.61,z],trim,8);
+    cylinder(root,.12,.1,.11,[x,2.225,z],trim,8);
   }
   const [ex,ez]=hg.entry;
-  for(let i=0;i<5;i++)box(root,[3.2,.055,1.3-i*.18],[ex,.015+i*.055,ez+.55-i*.07],'#d2c8b3');
-  box(root,[.65,1.02,.09],[ex,.78,ez+.06],'#71817b');
-  label(root,'ETH',[ex,1.78,ez+.08],1.08,.31);
+  const entrance=group(root,[ex,0,ez]);entrance.rotation.y=Math.PI/2;
+  for(let i=0;i<5;i++)box(entrance,[1.6,.055,1.3-i*.18],[0,.015+i*.055,.55-i*.07],'#d2c8b3');
+  box(entrance,[.46,1.02,.09],[0,.78,-.11],'#71817b');
+  label(entrance,'ETH',[0,1.78,-.08],.8,.24);
   for(const [x,z] of [[-10,8.7],[9.8,8.7],[-10,-8.8],[10,-8.8]]){
     cylinder(root,.07,.09,.7,[x,.35,z],'#8d8973',6);
     mesh(root,new THREE.IcosahedronGeometry(.58,0),'#8fa18a',[x,1.0,z]);
   }
   batchStatic(root,null);
-  return {root,entry:new THREE.Vector3(ex,1.16,ez+.12)};
+  return {root,entry:new THREE.Vector3(ex+.12,1.16,ez)};
 }
