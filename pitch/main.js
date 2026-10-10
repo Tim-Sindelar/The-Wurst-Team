@@ -137,8 +137,7 @@ function go(index,snap=false){
     resetExpression(hall.student);exteriorStarted=false;filmPlaying=false;paused=true;score.stop();
     positionCamera([22,14,24],[0,1,0]);snapCamera();
   }else if(current===1){
-    hall.student.position.set(-10.9,0,3.1);hall.student.rotation.y=Math.PI/2;
-    positionCamera([-8.2,2.25,7],[-10.9,1.05,2.4]);score.start();
+    hallMotion();score.start();
   }else if(current===2){
     resetExpression(hall.student);positionCamera([-8.2,2.25,7],[-10.9,1.05,2.4]);score.start();
   }else if(current===3){
@@ -177,10 +176,16 @@ function droneMotion(){
   const p=reducedMotion?1:ease(Math.max(0,Math.min((elapsed-1000)/3900,1)));
   droneCurve.getPoint(p,curvePoint);cameraTo.copy(curvePoint);lookTo.set(0,lerp(.10,.6,p),lerp(-.32,-.6,p));
 }
+function hallMotion(){
+  const t=Math.min(elapsed/durations[1],1),x=lerp(-12.5,-10.9,t);
+  hall.student.position.set(x,0,3.1);hall.student.rotation.y=Math.PI/2;
+  if(reducedMotion)idle(hall.student,elapsed*.001);else run(hall.student,elapsed*.001+.18,.85);
+  positionCamera([x+2.7,2.25,7],[x,1.05,2.4]);
+}
 function searchMotion(){
   const t=elapsed/1000;
   let x=-10.9,z=3.1,strength=0,peek=0,room=-6.25;
-  if(t<2.6){const p=Math.min(t/2.6,1);x=lerp(-10.9,-6.25,ease(p));strength=Math.sin(Math.PI*p)*.8+.15;}
+  if(t<2.6){const p=Math.min(t/2.6,1);x=lerp(-10.9,-6.25,1-Math.pow(1-p,1.2));strength=.85*(1-ease(Math.max(0,(p-.7)/.3)));}
   else if(t<5.3){
     x=-6.25;peek=ease(Math.min((t-2.6)/1.15,1));z=lerp(3.1,1.85,peek);
     if(t>=4)slam(1);
@@ -188,7 +193,7 @@ function searchMotion(){
   }else if(t<8.5){const p=(t-5.3)/3.2;x=lerp(-6.25,6.25,ease(p));strength=Math.sin(Math.PI*p)*.8+.15;}
   else{x=6.25;room=6.25;peek=ease(Math.min((t-8.5)/1.15,1));z=lerp(3.1,1.85,peek);if(t>=9.9)slam(2);}
   hall.student.position.set(x,0,z);hall.student.rotation.y=peek>0?Math.PI:Math.PI/2;
-  if(reducedMotion)idle(hall.student,t);else run(hall.student,t,strength);
+  if(reducedMotion)idle(hall.student,t);else run(hall.student,t+durations[1]/1000+.18,strength);
   if(peek>0){hall.student.userData.torso.rotation.x=.22*peek;hall.student.userData.head.rotation.y=Math.sin(t*1.6)*.08;hall.student.userData.head.rotation.x=.04;}
   const followPos=[x+2.65,2.3,7.1],followLook=[x,.95,2.25];
   const peekPos=[room+.82,2.48,4],peekLook=[room,1.1,-2.8];
@@ -222,7 +227,7 @@ function render(now){
   if(current===2&&rawDelta>0&&rawDelta<180){frameTotal+=rawDelta;frameSamples++;if(frameSamples===90&&frameTotal/frameSamples>28&&!lowQuality){renderer.setPixelRatio(1);forceDraw=true;}}
   if(!paused){elapsed+=delta;transition+=delta;updateCut(delta);}
   if(current===0)exteriorMotion();
-  else if(current===1)idle(hall.student,elapsed*.001);
+  else if(current===1)hallMotion();
   else if(current===2)searchMotion();
   else if(current===3)defeated(hall.student,elapsed*.001);
   else if(current===4){droneMotion();idle(bathroom.student,elapsed*.001);bathroom.student.userData.head.rotation.x=.15;}
@@ -241,7 +246,7 @@ function render(now){
   const settledPhone=current===5&&elapsed>=durations[5];
   const animated=!paused&&current!==6&&!settledPhone;
   if(forceDraw||(animated&&now-lastDraw>=1000/45)){
-    renderer.shadowMap.needsUpdate=forceDraw||current===2||current===3||(current===5&&!settledPhone);
+    renderer.shadowMap.needsUpdate=forceDraw||current===1||current===2||current===3||(current===5&&!settledPhone);
     renderer.render(scene,camera);cssRenderer.render(cssScene,camera);lastDraw=now;forceDraw=false;stage.dataset.drawCalls=String(renderer.info.render.calls);
   }
   requestAnimationFrame(render);
