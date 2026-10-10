@@ -58,3 +58,42 @@ describe('device orientation', () => {
     expect(up.y).toBeCloseTo(1);
   });
 });
+
+describe('heading fusion', () => {
+  it('turns the gyro orientation to north by the offset to the compass, also with the phone upright', async () => {
+    const { HeadingFusion } = await import('../src/ar/orientation');
+    const f = new HeadingFusion();
+    // Relative stream started 70 degrees off; phone upright (beta 90) where alpha and gamma are degenerate.
+    f.updateRelative(10, 89, 5, 0);
+    f.updateAbsolute(80, 89, 5, 5);
+    expect(f.offset).toBeCloseTo(70, 3);
+    expect(f.updateRelative(20, 30, -10, 16).alpha).toBeCloseTo(90, 3);
+  });
+
+  it('follows the compass slowly and ignores it while turning or locked', async () => {
+    const { HeadingFusion } = await import('../src/ar/orientation');
+    const f = new HeadingFusion(20, 1, 3, 40);
+    let t = 0;
+    const step = (offset: number, ms = 16) => {
+      t += ms;
+      f.updateRelative(0, 60, 0, t);
+      f.updateAbsolute(offset, 60, 0, t);
+    };
+    for (let i = 0; i < 300; i++) step(0); // ~5 s settled at 0
+    // A magnetic disturbance of 30 degrees for 2 s barely moves the heading.
+    for (let i = 0; i < 120; i++) step(30);
+    expect(f.offset!).toBeGreaterThan(0);
+    expect(f.offset!).toBeLessThan(4);
+    // Fast turn: the readings are skipped.
+    const before = f.offset!;
+    for (let i = 1; i <= 30; i++) {
+      t += 16;
+      f.updateRelative(i * 3, 60, 0, t); // ~190 deg/s
+      f.updateAbsolute(i * 3 + 90, 60, 0, t);
+    }
+    expect(f.offset!).toBeCloseTo(before, 1);
+    f.locked = true;
+    for (let i = 0; i < 300; i++) step(45);
+    expect(f.offset!).toBeCloseTo(before, 1);
+  });
+});

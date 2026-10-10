@@ -13,7 +13,7 @@ import { buildLevelScene, disposeGroup } from './scene';
 import { XrAlignment } from './xrAlignment';
 import { buildRouteMesh } from '../pathfinding/routeMesh';
 import type { Route } from '../pathfinding/route';
-import { orientationQuaternion, requestOrientationPermission, screenAngle, watchOrientation, type OrientationReading } from './orientation';
+import { HeadingFusion, orientationQuaternion, requestOrientationPermission, screenAngle, watchOrientation, type OrientationReading } from './orientation';
 
 export interface ArPose extends LngLat {
   levelId: string | null;
@@ -53,6 +53,10 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
   fovRef.current = fov;
   const [status, setStatus] = useState('');
   const orientationRef = useRef<OrientationReading | null>(null);
+  const fusionRef = useRef(new HeadingFusion());
+  // Lining up walls by hand beats the indoor compass: stop it from pulling the heading away.
+  const [compassLocked, setCompassLocked] = useState(false);
+  fusionRef.current.locked = compassLocked;
   const lookRef = useRef({ yaw: 0, pitch: -10 });
   const rendererRef = useRef<WebGLRenderer | null>(null);
   const hudRef = useRef<HTMLDivElement>(null);
@@ -117,7 +121,7 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
       seen = true;
       orientationRef.current = r;
       setSensors((s) => (s === (r.absolute ? 'absolute' : 'relative') ? s : r.absolute ? 'absolute' : 'relative'));
-    });
+    }, fusionRef.current);
     const t = setTimeout(() => !seen && setSensors('none'), 1500);
     return () => {
       stop();
@@ -287,6 +291,7 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
     const degPerPx = fovRef.current / (hostRef.current?.clientHeight || 600);
     if (orientationRef.current) {
       setHeadingOffset((h) => h + dx * degPerPx);
+      setCompassLocked(true);
     } else {
       lookRef.current.yaw += dx * degPerPx;
       lookRef.current.pitch = Math.max(-89, Math.min(89, lookRef.current.pitch + dy * degPerPx));
@@ -312,12 +317,20 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
               Enable motion sensors
             </button>
           ) : (
-            <span>{sensors === 'absolute' ? 'Compass' : 'Gyro (no north reference)'}</span>
+            <span>{sensors === 'absolute' ? 'Gyro + compass' : 'Gyro (no north reference)'}</span>
+          )}
+          {sensors === 'absolute' && (
+            <button onClick={() => setCompassLocked((l) => !l)} title="Locked: heading follows the gyro only, as you aligned it">
+              {compassLocked ? 'Heading locked' : 'Heading follows compass'}
+            </button>
           )}
           <label>
             Heading {headingOffset >= 0 ? '+' : ''}
             {headingOffset.toFixed(0)}°
-            <input type="range" min={-180} max={180} value={headingOffset} onChange={(e) => setHeadingOffset(Number(e.target.value))} />
+            <input type="range" min={-180} max={180} value={headingOffset} onChange={(e) => {
+                setHeadingOffset(Number(e.target.value));
+                setCompassLocked(true);
+              }} />
           </label>
           {xrSupported && !inXr && <button onClick={() => startXr().catch((e: Error) => setStatus(`WebXR: ${e.message}`))}>Start WebXR AR</button>}
           {inXr && <button onClick={() => rendererRef.current?.xr.getSession()?.end()}>Exit WebXR</button>}
