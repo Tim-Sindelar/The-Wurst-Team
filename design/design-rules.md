@@ -4,7 +4,7 @@ Mock screens for the ETH study-space seat reservation app. Plain HTML + CSS, no 
 Values live in `tokens.css`. **This file says how to use them.** If a rule and a screen disagree, fix the screen.
 
 ## Direction
-- Copy the visual language of the ETH EduApp: warm dark brown, uppercase labels, outline icons. Soft shapes (7px cards, 5px controls) with a light shadow, thin outline kept on every card.
+- Copy the visual language of the ETH EduApp: neutral greys (near-black dark theme), uppercase labels, outline icons. Soft shapes (7px cards, 5px controls) with a light shadow, thin outline kept on every card.
 - App name on screens is a placeholder: **Study Spaces**. One word to change later.
 - Components come from the shared set (button, chip, tab, input, search, dropdown, toggle, checkbox, notice, table card, seat marker, break timer, QR check-in, modal, app header, bottom navigation). Reuse them; do not restyle per screen.
 - Phone first, 390px wide. On desktop, centre a 390px column. Do not stretch.
