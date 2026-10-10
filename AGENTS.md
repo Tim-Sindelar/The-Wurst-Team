@@ -19,6 +19,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/routes.ts` | Screen paths |
 | `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
+| `src/pwa.ts`, `pwa/service-worker.js`, `public/manifest.webmanifest`, `public/icons/` | The installable app: worker registration, the service worker (the `service-worker` plugin in `vite.config.ts` emits it as `sw.js`), the manifest and the app icons. See "Installable app" below |
 
 ### Styling
 
@@ -69,6 +70,14 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - The 3D view (`map/Floors3D.tsx`) stacks only the building group in focus. Groups are the buildings inside each building zoom zone, hardcoded in `map/buildingGroups.ts`; update that list when the zones change. Floor letters come from the room names and the scraper counts floor numbers per building, so once loaded the map shifts each zoned building's floor numbers to line up by letter with the zone's main building (`letterOffsets` in `buildingGroups.ts`, applied in `CampusMap` to the floor index, the workspaces and the room and mensa places): a floor shows every level with the same name, even at different heights (I counts as J). Every floor is drawn with its own outline (the group's levels on that floor merged), so the stack follows the real shape, and the floor with the `E` letters stays in place, so floors above it (the selected one too, with its workspaces and pins) are drawn further north. With 3D on, at every zoom, every group not stacked is drawn as its footprint only: the group's merged outline (all its floors together), flat in its real place, with no floor plan, workspaces or pins. The floor wheel then lists only the stacked group's floors (and hides without one); a group without the selected floor switches to its nearest one. In 2D too, only the selected floor's workspaces and pins are drawn. Room layouts show from the lowest zoom a building zone flies to (`roomZoom` in `MapView`).
 - `occupancy-map-preview/` stays the developer tool for the map: its Admin mode edits workspaces and navigation, its Style panel edits the map style. After saving there, run `make map-sync` to import the files into the backend. There is no admin or style editor in this app.
 - The backend Docker build generates floor plans and workspace outlines into `/app/floors` and sets `MAP_FLOORS_DIR` to that directory. Outside Docker, floor plans are read from `occupancy-map-preview/public/floors` (built by `make map-floors`, not in git), or from the backend's `MAP_FLOORS_DIR`.
+
+### Installable app (PWA)
+
+- The app installs from https://02.hackathon.ethz.ch (and from each PR preview, as a separate app). The manifest uses relative URLs (`./`) and the worker registers at `BASE_URL`, so both work under `/pr/N/`. The manifest link has `crossorigin="use-credentials"` because the organisers' login proxy needs the session cookie.
+- The service worker only exists in production builds. It caches the app shell on install, serves hashed `assets/` from the cache, goes to the network first for pages (offline: the cached `index.html`), and never touches `/api`. Production's worker leaves `/pr/` and `/ar/` alone. Every build gets a new worker that replaces the old one and its cache.
+- Caddy serves `index.html`, `sw.js` and `manifest.webmanifest` with `no-cache`, so a deploy reaches installed apps on their next launch.
+- The icon (`public/icons/icon.svg`, `public/favicon.svg`) is a seat map with your seat checked. After changing it, re-render `icon-192.png`, `icon-512.png` (also the maskable icon, so keep the artwork within the middle 80%) and `apple-touch-icon.png` (180px).
+- `meta[name=theme-color]` follows the colour scheme (`--color-bg`), so the installed app's status bar matches the theme.
 
 ### Data and state
 

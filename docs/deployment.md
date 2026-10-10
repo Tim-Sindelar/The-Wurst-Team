@@ -24,6 +24,8 @@ Keep these settings under **Access Details → Edit Network Configuration**:
 
 The shared router binds port 8080 on all interfaces as the organizers require. Our port 8081 is loopback-only because the shared router runs with host networking and can reach it locally. No new firewall rule or VM TLS configuration is needed. Changing access control to Disabled removes the identity headers this backend requires; Custom ingress would require a different deployment setup.
 
+The app is a PWA: on a phone, open the public URL and use **Add to Home Screen** (iOS Safari) or **Install app** (Chrome/Android). Installed apps still go through the managed login. Each PR preview installs as its own app. Caddy serves `index.html`, `sw.js` and `manifest.webmanifest` uncached, so installed apps pick up a deploy on their next launch; the smoke checks verify that both PWA files are served.
+
 ## Configure GitHub once
 
 In **Settings → Environments**, create `production` and `preview`. Add the following secret and variables to **both environments**, or add them once as repository Actions secrets/variables shared by both:
