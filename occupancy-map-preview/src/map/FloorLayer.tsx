@@ -11,9 +11,9 @@ import type { RoomInfo } from '../roomFeatures';
 
 /** Rooms are drawn from this zoom level on, walls and doors from LINE_ZOOM. */
 export const ROOM_ZOOM = 18;
-const LINE_ZOOM = 19;
+export const LINE_ZOOM = 19;
 const LABEL_ZOOM = 19;
-const OUTLINE_ZOOM = 15;
+export const OUTLINE_ZOOM = 15;
 
 export type Theme = 'light' | 'dark';
 
@@ -48,7 +48,7 @@ const ROOM_FILL: Record<Theme, Record<RoomKind, string>> = {
   },
 };
 
-const LINE_STYLE: Record<Theme, Record<LineLayer, L.PolylineOptions>> = {
+export const LINE_STYLE: Record<Theme, Record<LineLayer, L.PolylineOptions>> = {
   light: {
     wall: { color: '#3c4450', weight: 1.2, opacity: 0.9 },
     door: { color: '#8a94a3', weight: 0.8, opacity: 0.9 },
@@ -61,12 +61,12 @@ const LINE_STYLE: Record<Theme, Record<LineLayer, L.PolylineOptions>> = {
   },
 };
 
-const BUILDING_STYLE: Record<Theme, { color: string; fillColor: string; fillOpacity: number; levelColor: string; levelFill: string }> = {
+export const BUILDING_STYLE: Record<Theme, { color: string; fillColor: string; fillOpacity: number; levelColor: string; levelFill: string }> = {
   light: { color: '#b9c0cb', fillColor: '#dfe3ea', fillOpacity: 0.5, levelColor: '#5a6372', levelFill: '#fbfbfc' },
   dark: { color: '#3d4553', fillColor: '#2a303b', fillOpacity: 0.6, levelColor: '#8792a5', levelFill: '#1e232c' },
 };
 
-const LINE_PART: Record<LineLayer, PartKey> = { wall: 'walls', door: 'doors', stair: 'stairs' };
+export const LINE_PART: Record<LineLayer, PartKey> = { wall: 'walls', door: 'doors', stair: 'stairs' };
 
 const PANES = { buildings: ['floor-buildings', 340], rooms: ['floor-rooms', 350], lines: ['floor-lines', 360], labels: ['floor-labels', 370] } as const;
 
@@ -413,7 +413,7 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
 const SELECTED_ROOM: Record<Theme, string> = { light: '#1c2430', dark: '#ffffff' };
 
 /** A room colored by its booking status. */
-function occupancyPath(style: OccupancyStyle, info: RoomInfo, selected: boolean): L.PolylineOptions {
+export function occupancyPath(style: OccupancyStyle, info: RoomInfo, selected: boolean): L.PolylineOptions {
   const color = style[info.state.status];
   return {
     ...DETAILED_PATH,
@@ -443,13 +443,13 @@ function ethTooltip({ room, state }: RoomInfo, workspace?: string) {
  * Whether a room is drawn as a mensa room. Rooms that also belong to a workspace (study space outside
  * meal times) or show a live booking status keep that look unless their mensa is selected.
  */
-function asMensaRoom(mensa: MensaRoom | null, libraryId: string | null, selectedMensaId: string | null, picked: boolean, picking: boolean, occupancy: boolean) {
+export function asMensaRoom(mensa: MensaRoom | null, libraryId: string | null, selectedMensaId: string | null, picked: boolean, picking: boolean, occupancy: boolean) {
   if (!mensa || picked || picking) return false;
   return mensa.mensaId === selectedMensaId || (!libraryId && !occupancy);
 }
 
 /** A mensa room, in the mensa dataset's color: tinted, outlined when its mensa is selected. */
-function mensaStyle(mensa: MensaRoom, selectedMensaId: string | null): L.PolylineOptions {
+export function mensaStyle(mensa: MensaRoom, selectedMensaId: string | null): L.PolylineOptions {
   const selected = mensa.mensaId === selectedMensaId;
   return {
     ...DETAILED_PATH,
@@ -479,7 +479,7 @@ function roomLayerStyle(
 /** Resets what a minimal style may have changed when restyling back to the detailed plan. */
 const DETAILED_PATH: L.PolylineOptions = { stroke: true, fill: true, opacity: 1, lineJoin: 'round', lineCap: 'round', smoothFactor: 1 };
 
-function roomStyle(
+export function roomStyle(
   theme: Theme,
   kind: RoomKind,
   libraryId: string | null,

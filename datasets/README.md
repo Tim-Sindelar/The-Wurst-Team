@@ -8,7 +8,7 @@ Everything a student at ETH needs besides rooms and libraries, one folder per da
 
 | Folder | What | Live source | Refresh |
 |---|---|---|---|
-| `mensa/` | 13 ETH and 12 UZH mensas/cafeterias: today's menu with lines, prices per customer group, vegan/vegetarian tags, allergens; meal times | ETH Gastro API (`idapps.ethz.ch/cookpit-pub-services/v1/weeklyrotas`), ZFV food2050 GraphQL API (`api.app.food2050.ch`) | 1 h |
+| `mensa/` | 13 ETH and 12 UZH mensas/cafeterias: today's menu with lines, prices per customer group, vegan/vegetarian tags, allergens; meal times | ETH Gastro API (`idapps.ethz.ch/cookpit-pub-services/v1/weeklyrotas`), ZFV food2050 GraphQL API (`app.food2050.ch/api/v2/graphql`) | 1 h |
 | `transport/` | Tram, bus and train stops near Zentrum, Hönggerberg, Irchel and Oerlikon with the next departures and delays; ETH eLink shuttle stops | transport.opendata.ch stationboard | 1 min |
 | `asvz/` | ASVZ sport centers (Polyterrasse, Hönggerberg, Fluntern, Irchel) with the next lessons and free places | ASVZ Sportfahrplan JSON (`asvz.ch/asvz_api/event_search`) | 15 min |
 | `shared-mobility/` | Shared bikes, e-bikes and e-scooters available near the campuses, all providers | sharedmobility.ch (Swiss Federal Office of Energy) identify API | 2 min |
@@ -31,7 +31,7 @@ The map (`occupancy-map-preview`) runs the fetchers on demand through `server/da
 | Dataset | Other times | What works |
 |---|---|---|
 | `asvz/` | ✓ any time | `event_search?date=YYYY-MM-DD HH:MM` lists lessons from then on, past and future |
-| `mensa/` | ◐ partly | ETH Gastro: past weeks and as far ahead as published (usually next week). **UZH food2050 has `todayOffer` only**: no menus for other days |
+| `mensa/` | ◐ partly | ETH Gastro: past weeks and as far ahead as published (usually next week). **UZH: today only** (food2050 has other days via `calendar.day(date)`, not wired up yet) |
 | `transport/` | ◐ partly | `stationboard?datetime=` gives the timetable from about a week back to the end of the timetable year (mid-December); **no delays** except around now |
 | `weather/` | ◐ partly | Open-Meteo forecast API (`start_hour`/`end_hour`) from 92 days back to 16 days ahead, the archive API before that; **nothing beyond 16 days ahead** |
 | `shared-mobility/` | ✕ now only | sharedmobility.ch has **no history and no forecast**: always shows now |
@@ -42,7 +42,7 @@ Outside the map's datasets: ETH room bookings (`eth_room_dashboard.py`) work for
 ## Notes on the data
 
 - **Positions.** The ETH mensas are assigned to their PolyMaps rooms in `mensa/rooms.json` (room as listed by the ETH Gastro facilities API, e.g. Mensa Polyterrasse MM B 79, food market HPR D 70.1). The fetcher takes position, floor and rooms from there, and the map tints those rooms on the floor plan. This is kept apart from the workspaces in `occupancy-map-preview/data/overrides.json`. Some mensa rooms are also workspaces (study space outside meal times), and these are drawn as the workspace unless the mensa is selected. Mensas without a room (all UZH ones, and Mendokoro since HPI has no plans) are flagged `approximate` and drawn with a dashed border. Transport stops get their exact coordinates from the live API.
-- **IDs.** ETH facility ids and UZH food2050 location ids/kitchen slugs come from the open-source ETH/UZH mensa app ([famoser/Mensa](https://github.com/famoser/Mensa)). The ASVZ Polyterrasse/Fluntern facility ids come from [fbuetler/asvz-bot](https://github.com/fbuetler/asvz-bot).
+- **IDs.** ETH facility ids come from the open-source ETH/UZH mensa app ([famoser/Mensa](https://github.com/famoser/Mensa)). The ASVZ Polyterrasse/Fluntern facility ids come from [fbuetler/asvz-bot](https://github.com/fbuetler/asvz-bot). The UZH food2050 organisation paths, outlet slugs and menu categories are the ones in app.food2050.ch URLs (`/en/zfv/universitat-zurich`).
 - **Not verified against the live APIs yet.** The parsers are written against the documented/observed response shapes and covered by fixture tests, but the cloud environment they were built in could not reach the APIs. Run each `fetch.py` once on a normal connection and check `errors`. The ASVZ field names are the least certain.
 - **ASVZ.** Only reads the public schedule. Enrolling stays on schalter.asvz.ch; ASVZ's fair play rules forbid enrollment bots.
 

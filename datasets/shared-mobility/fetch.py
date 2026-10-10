@@ -4,8 +4,12 @@
 Source: Swiss Federal Office of Energy, sharedmobility.ch (open data, all
 providers in one API; see github.com/SFOE/sharedmobility):
     https://api.sharedmobility.ch/v1/sharedmobility/identify?Geometry=<lng>,<lat>&Tolerance=<m>&offset=<n>&geometryFormat=esrijson
+        &filters=ch.bfe.sharedmobility.vehicle_type=<type>
     -> results[] {id, geometry {x: lng, y: lat}, attributes {provider_id,
        vehicle_type, pickup_type, station_name, available, ...}}
+One query per vehicle type: as of 2026-10 the API answers 500 to any query that
+matches a vehicle of type "Other" (so also to unfiltered ones), and the filter
+takes a single value only.
 
 There is no history or forecast: --at is ignored, the vehicles are always the current ones.
 
@@ -19,7 +23,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import datasetlib as lib  # noqa: E402
 
 API = "https://api.sharedmobility.ch/v1/sharedmobility/identify"
-MAX_PER_AREA = 400
+MAX_PER_AREA = 400  # per vehicle type
+VEHICLE_TYPES = ["Bike", "E-Bike", "E-Scooter", "E-Moped", "CargoBike", "E-CargoBike", "Car", "E-Car"]  # not "Other": see above
 
 
 def as_list(v):
@@ -67,24 +72,26 @@ def build(at=None):
     areas = lib.load_local(__file__, "areas.json")["areas"]
     items, errors, seen = [], [], set()
     for area in areas:
-        offset = 0
-        try:
-            while offset < MAX_PER_AREA:
-                data = lib.http_json(API, {"Geometry": f"{area['lng']},{area['lat']}", "Tolerance": area["radius"],
-                                           "offset": offset, "geometryFormat": "esrijson"})
-                results = data.get("results") if isinstance(data, dict) else data
-                if not results:
-                    break
-                for r in results:
-                    it = item_of(r, area)
-                    if it and it["id"] not in seen and it["details"]["disabled"] is not True:
-                        seen.add(it["id"])
-                        items.append(it)
-                offset += len(results)
-                if len(results) < 50:
-                    break
-        except Exception as err:
-            errors.append(lib.error_text(f"sharedmobility.ch ({area['name']})", err))
+        for vtype in VEHICLE_TYPES:
+            offset = 0
+            try:
+                while offset < MAX_PER_AREA:
+                    data = lib.http_json(API, {"Geometry": f"{area['lng']},{area['lat']}", "Tolerance": area["radius"],
+                                               "offset": offset, "geometryFormat": "esrijson",
+                                               "filters": f"ch.bfe.sharedmobility.vehicle_type={vtype}"})
+                    results = data.get("results") if isinstance(data, dict) else data
+                    if not results:
+                        break
+                    for r in results:
+                        it = item_of(r, area)
+                        if it and it["id"] not in seen and it["details"]["disabled"] is not True:
+                            seen.add(it["id"])
+                            items.append(it)
+                    offset += len(results)
+                    if len(results) < 50:
+                        break
+            except Exception as err:
+                errors.append(lib.error_text(f"sharedmobility.ch ({area['name']}, {vtype})", err))
     return items, [API], errors
 
 

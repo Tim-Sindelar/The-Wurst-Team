@@ -110,6 +110,19 @@ export default function App() {
     } catch {}
   }, [renderMode]);
 
+  const [view3d, setView3d] = useState(() => {
+    try {
+      return localStorage.getItem('view-3d') === '1';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('view-3d', view3d ? '1' : '0');
+    } catch {}
+  }, [view3d]);
+
   const [floorIndex, setFloorIndex] = useState<FloorIndex | null>(null);
   const [floor, setFloor] = useState(0);
 
@@ -561,6 +574,7 @@ export default function App() {
           pickedRooms={pickedIds}
           onPickRoom={togglePickedRoom}
           minimal={renderMode === 'minimal' ? minimalStyles[theme] : null}
+          view3d={view3d ? minimalStyles[theme].view3d : null}
           navigation={navigation}
           navEnabled={!(mode === 'admin' && (placing || pickingRooms || editingOutlineId || editingNavZoneId))}
           selectedNavZoneId={mode === 'admin' ? selectedNavZoneId : null}
@@ -626,6 +640,8 @@ export default function App() {
             setMinimalStyles({ ...minimalStyles, [theme]: standardStyles[theme] });
           }}
           occupancyActive={rooms && roomFeatures.occupancy}
+          view3d={view3d}
+          onView3dChange={setView3d}
           extraBar={
             <>
             <TimeButton view={pickedTime} now={clock} open={openPanel === 'time'} onOpen={(open) => setOpenPanel(open ? 'time' : null)} />

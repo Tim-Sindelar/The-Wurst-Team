@@ -10,8 +10,9 @@ import { OutlineEditor } from './OutlineEditor';
 import { FloorLayer, type MensaRoom, type Theme } from './FloorLayer';
 import { VectorBasemap, OPENFREEMAP_ATTRIBUTION } from './VectorBasemap';
 import { FloorPicker } from './FloorPicker';
+import { Floors3D } from './Floors3D';
 import { libraryFloorLabel, levelName, loadLibraryOutlineRoomKeys, loadLibraryOutlines, outlineFromRooms, roomsKey, type FloorIndex } from '../floors/floorData';
-import { partPathOptions, roundPolygons, type MinimalStyle, type OccupancyStyle } from './minimalStyle';
+import { partPathOptions, roundPolygons, type MinimalStyle, type OccupancyStyle, type View3DStyle } from './minimalStyle';
 import type { RoomInfo } from '../roomFeatures';
 import type { NavigationConfig, NavZone } from '../domain/navigation';
 import { NavZones } from './NavZones';
@@ -84,6 +85,8 @@ interface Props {
   mensaRooms: ReadonlyMap<string, MensaRoom>;
   selectedMensaId: string | null;
   onSelectMensa: (mensaId: string) => void;
+  /** 3D view: the other floors stacked around the selected one; null when off. */
+  view3d: View3DStyle | null;
   /** More map layers (the campus datasets), rendered inside the map. */
   children?: ReactNode;
 }
@@ -91,7 +94,10 @@ interface Props {
 const toLatLng = (ll: { lat: number; lng: number }): LatLng => ({ lat: ll.lat, lng: ll.lng });
 
 export function MapView(props: Props) {
-  const { data, mode, selection, placing, editingOutlineId, pickingRooms, minimal } = props;
+  const { data, mode, selection, placing, editingOutlineId, pickingRooms } = props;
+  // The 3D settings live in the same style object; tweaking them must not rebuild the plan layers.
+  const minimalKey = props.minimal ? JSON.stringify({ ...props.minimal, view3d: null }) : '';
+  const minimal = useMemo(() => props.minimal, [minimalKey]);
   const labels = !minimal || minimal.basemapLabels;
   const editingLibrary = data.libraries.find((l) => l.id === editingOutlineId) ?? null;
   const admin = mode === 'admin';
@@ -214,6 +220,22 @@ export function MapView(props: Props) {
             selectedMensaId={props.selectedMensaId}
             onSelectMensa={props.onSelectMensa}
           />
+          {props.view3d && (
+            <Floors3D
+              theme={props.theme}
+              index={props.floorIndex}
+              floor={floor}
+              onFloorChange={props.onFloorChange}
+              style={props.view3d}
+              minimal={minimal}
+              libraryRooms={libraryRooms}
+              selectedLibraryId={selection.libraryId}
+              ethRooms={props.ethRooms}
+              occupancyStyle={props.occupancyStyle}
+              mensaRooms={props.mensaRooms}
+              selectedMensaId={props.selectedMensaId}
+            />
+          )}
           <FloorPicker index={props.floorIndex} floor={floor} libraries={data.libraries} onChange={props.onFloorChange} />
         </>
       )}

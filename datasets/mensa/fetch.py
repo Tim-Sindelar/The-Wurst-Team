@@ -5,8 +5,10 @@ ETH:  ETH Gastro API (Cookpit), the one ethz.ch's menu pages use:
       https://idapps.ethz.ch/cookpit-pub-services/v1/weeklyrotas?client-id=ethz-wcms&lang=en&rs-first=0&rs-size=50&valid-after=<monday>
       -> weekly-rota-array[] (facility-id, valid-from/-to, day-of-week-array[] ->
          opening-hour-array[] -> meal-time-array[] -> line-array[] -> meal)
-UZH:  ZFV food2050 GraphQL API, location(id) -> kitchens[slug] -> todayOffer.
-      Today only: other days have no UZH menus.
+UZH:  ZFV food2050 GraphQL API (the one app.food2050.ch uses), tenant "zfv":
+      organisation(path) -> outlet(slug) -> menuCategory(path) -> calendar.day(date)
+      -> menuItems[] (category, prices[] -> priceCategory, dish).
+      Today only, as the app shows it.
 
     python datasets/mensa/fetch.py [--out file.json] [--at 2026-10-20T12:00]
 """
@@ -20,11 +22,13 @@ import datasetlib as lib  # noqa: E402
 
 ETH_ROTAS = "https://idapps.ethz.ch/cookpit-pub-services/v1/weeklyrotas"
 ETH_FACILITIES = "https://idapps.ethz.ch/cookpit-pub-services/v1/facilities"
-UZH_API = "https://api.app.food2050.ch/"
+UZH_API = "https://app.food2050.ch/api/v2/graphql"
 UZH_QUERY = (
-    "query ExampleQuery($locationId: String!) { location(id: $locationId) { "
-    "kitchens { slug, todayOffer { digitalMenuItems { displayName recipeSelectorConfig recipe { "
-    "title(returnAll: true) prices { amount category { title } } allergensList } } } } } }"
+    "query UzhMenu($organisationPath: [String!]!, $outletSlug: String!, $menuCategoryPath: [String!]!, $date: DateTime) { "
+    "organisation(where: { tenantId: \"zfv\", path: $organisationPath }) { outlet(slug: $outletSlug) { "
+    "menuCategory(path: $menuCategoryPath) { calendar { day(date: $date) { menuItems { category { name } "
+    "... on OutletMenuItemDish { prices { amount priceCategory { name } } "
+    "dish { name description isVegan isVegetarian allergens { allergen { name } } } } } } } } } } }"
 )
 
 
@@ -67,37 +71,30 @@ def eth_meals(rotas, facility_id, today):
     return out, hours
 
 
-def uzh_meals(location_data, kitchen, lang="en"):
-    loc = (location_data or {}).get("data", {}).get("location") or {}
-    k = next((k for k in loc.get("kitchens") or [] if k.get("slug") == kitchen["slug"]), None)
-    if not k:
+def uzh_meals(menu_data):
+    """The day's meals of one food2050 menu category, or None when the outlet/category is unknown."""
+    outlet = (((menu_data or {}).get("data") or {}).get("organisation") or {}).get("outlet") or {}
+    category = outlet.get("menuCategory")
+    if not category:
         return None
+    day = (category.get("calendar") or {}).get("day") or {}
     meals = []
-    offers = k.get("todayOffer") or []
-    if isinstance(offers, dict):
-        offers = [offers]
-    selector = kitchen.get("recipeSelector")
-    for offer in offers:
-        for item in offer.get("digitalMenuItems") or []:
-            cfg = item.get("recipeSelectorConfig") or {}
-            cfg_name = cfg.get("name") if isinstance(cfg, dict) else str(cfg)
-            if selector and selector not in (cfg_name or ""):
-                continue
-            recipe = item.get("recipe") or {}
-            title = recipe.get("title") or {}
-            if isinstance(title, dict):
-                title = title.get(lang) or title.get("de") or ""
-            meals.append({
-                "line": item.get("displayName"),
-                "name": " ".join(str(title).split()),
-                "description": "",
-                "prices": [
-                    {"group": ((p.get("category") or {}).get("title")), "price": p.get("amount")}
-                    for p in sorted(recipe.get("prices") or [], key=lambda p: float(p.get("amount") or 0))
-                ],
-                "tags": [],
-                "allergens": [a for a in (recipe.get("allergensList") or []) if isinstance(a, str)],
-            })
+    for item in day.get("menuItems") or []:
+        dish = item.get("dish")
+        if not dish:
+            continue
+        tags = ["vegan"] if dish.get("isVegan") else ["vegetarian"] if dish.get("isVegetarian") else []
+        meals.append({
+            "line": (item.get("category") or {}).get("name"),
+            "name": " ".join((dish.get("name") or "").split()),
+            "description": " ".join((dish.get("description") or "").split()),
+            "prices": [
+                {"group": (p.get("priceCategory") or {}).get("name"), "price": p.get("amount")}
+                for p in sorted(item.get("prices") or [], key=lambda p: float(p.get("amount") or 0))
+            ],
+            "tags": tags,
+            "allergens": [a["allergen"]["name"] for a in dish.get("allergens") or [] if (a.get("allergen") or {}).get("name")],
+        })
     return meals
 
 
@@ -135,21 +132,27 @@ def build(at=None):
                 uzh_cache["uzh-day"] = None
                 errors.append(f"UZH menus: only today's menu is published, not {today.isoformat()}'s")
         elif loc["provider"] == "uzh":
-            lid = loc["locationId"]
-            if lid not in uzh_cache:
-                try:
-                    uzh_cache[lid] = lib.http_json(UZH_API, body={"query": UZH_QUERY, "variables": {"locationId": lid},
-                                                                  "operationName": "ExampleQuery"})
-                except Exception as err:
-                    uzh_cache[lid] = None
-                    errors.append(lib.error_text(f"UZH menus ({loc['name']})", err))
-            if uzh_cache[lid] is not None:
-                menus = []
-                for kitchen in loc["kitchens"]:
-                    meals = uzh_meals(uzh_cache[lid], kitchen)
-                    if meals is not None:
-                        menus.append({"name": kitchen.get("label"), "from": None, "to": None, "meals": meals})
-                details["menus"] = menus
+            menus = []
+            for kitchen in loc["kitchens"]:
+                key = (loc["organisation"], kitchen["outlet"], kitchen["category"])
+                if key not in uzh_cache:
+                    variables = {"organisationPath": loc["organisation"].split(","), "outletSlug": kitchen["outlet"],
+                                 "menuCategoryPath": kitchen["category"].split(","), "date": f"{today.isoformat()}T10:00:00Z"}
+                    try:
+                        uzh_cache[key] = lib.http_json(UZH_API, body={"query": UZH_QUERY, "variables": variables,
+                                                                      "operationName": "UzhMenu"},
+                                                       headers={"Accept-Language": "en"})
+                    except Exception as err:
+                        uzh_cache[key] = None
+                        errors.append(lib.error_text(f"UZH menus ({loc['name']}, {kitchen['label']})", err))
+                if uzh_cache[key] is None:
+                    continue
+                if uzh_cache[key].get("errors"):
+                    errors.append(f"UZH menus ({loc['name']}, {kitchen['label']}): {uzh_cache[key]['errors'][0].get('message')}")
+                meals = uzh_meals(uzh_cache[key])
+                if meals is not None:
+                    menus.append({"name": kitchen.get("label"), "from": None, "to": None, "meals": meals})
+            details["menus"] = menus or None
         items.append({
             "id": loc["id"],
             "name": loc["name"],

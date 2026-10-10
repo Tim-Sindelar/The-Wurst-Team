@@ -46,13 +46,21 @@ class Fetchers(unittest.TestCase):
                         "name": "GARDEN", "meal": {"name": "Curry", "description": "Rice\n and  peas",
                                                   "meal-price-array": [{"price": 7.5, "customer-group-desc-short": "Stud.", "customer-group-position": 10}],
                                                   "meal-class-array": [{"desc-short": "vegan"}], "allergen-array": []}}]}]}]}]}]}
-        uzh = {"data": {"location": {"kitchens": [{"slug": "untere-mensa", "todayOffer": [{"digitalMenuItems": [
-            {"displayName": "Farm", "recipeSelectorConfig": {"name": "mittag"}, "recipe": {"title": {"de": "Rösti", "en": "Rosti"},
-             "prices": [{"amount": "8.90", "category": {"title": "Externe"}}, {"amount": "5.40", "category": {"title": "Studierende"}}], "allergensList": ["Milk"]}},
-            {"displayName": "Evening", "recipeSelectorConfig": {"name": "abend"}, "recipe": {"title": {"en": "Soup"}, "prices": []}}]}]}]}}}
+        def uzh_day(*items):
+            return {"data": {"organisation": {"outlet": {"menuCategory": {"calendar": {"day": {"menuItems": list(items)}}}}}}}
+        lunch = uzh_day({"category": {"name": "farm"}, "prices": [{"amount": "8.90", "priceCategory": {"name": "Externe"}},
+                                                                  {"amount": "5.40", "priceCategory": {"name": "Studierende"}}],
+                         "dish": {"name": "Rosti", "description": "Egg,\n  salad","isVegan": False, "isVegetarian": True,
+                                  "allergens": [{"allergen": {"name": "Milk"}}]}},
+                        {"category": {"name": "info"}})  # not a dish: skipped
+        dinner = uzh_day({"category": {"name": "evening"}, "prices": [], "dish": {"name": "Soup", "isVegan": True, "allergens": []}})
+        uzh_vars = []
 
         def fake(url, params=None, body=None, **_k):
-            return rota if "cookpit" in url else uzh
+            if "cookpit" in url:
+                return rota
+            uzh_vars.append(body["variables"])
+            return dinner if body["variables"]["menuCategoryPath"] == ["abendverpflegung"] else lunch
 
         with mock.patch.object(mod.lib, "http_json", fake):
             items, _s, errors = mod.build()
@@ -62,8 +70,12 @@ class Fetchers(unittest.TestCase):
         self.assertEqual((meal["name"], meal["description"], meal["prices"][0]["price"], meal["tags"]), ("Curry", "Rice and peas", 7.5, ["vegan"]))
         unten = next(i for i in items if i["id"] == "uzh-untere-mensa")["details"]["menus"]
         self.assertEqual([m["name"] for m in unten[0]["meals"]], ["Rosti"])
-        self.assertEqual(unten[0]["meals"][0]["prices"][0]["price"], "5.40")
-        self.assertEqual([m["name"] for m in unten[1]["meals"]], ["Soup"])
+        rosti = unten[0]["meals"][0]
+        self.assertEqual((rosti["line"], rosti["description"], rosti["tags"], rosti["allergens"]), ("farm", "Egg, salad", ["vegetarian"], ["Milk"]))
+        self.assertEqual(rosti["prices"][0], {"group": "Studierende", "price": "5.40"})
+        self.assertEqual([(m["name"], m["tags"]) for m in unten[1]["meals"]], [("Soup", ["vegan"])])
+        self.assertIn({"organisationPath": ["universitat-zurich", "campus-zentrum"], "outletSlug": "untere-mensa",
+                       "menuCategoryPath": ["mittagsverpflegung"], "date": f"{today.isoformat()}T10:00:00Z"}, uzh_vars)
         clausius = next(i for i in items if i["id"] == "eth-clausiusbar")
         self.assertEqual(clausius["details"]["menus"], [])
         # Rooms from rooms.json: position, room and floor come from there; mensas without an entry keep theirs.
@@ -115,10 +127,19 @@ class Fetchers(unittest.TestCase):
             {"id": "a1", "geometry": {"x": 8.548, "y": 47.377}, "attributes": {"provider_id": "voi", "vehicle_type": ["E-Scooter"], "available": True}},
             {"id": "s1", "geometry": {"x": 8.549, "y": 47.378}, "attributes": {"provider_id": "publibike", "vehicle_type": ["E-Bike", "Bike"],
                                                                          "pickup_type": "station_based", "station_name": "ETH", "num_vehicle_available": 4}}]}
-        with mock.patch.object(mod.lib, "http_json", lambda *a, **k: page):
+        filters = []
+
+        def fake(url, params=None, **_k):
+            filters.append(params["filters"])
+            return page
+
+        with mock.patch.object(mod.lib, "http_json", fake):
             items, _s, errors = mod.build()
         self.assertEqual(errors, [])
-        self.assertEqual(len(items), 2)  # same ids in every area are deduplicated
+        self.assertEqual(len(items), 2)  # same ids in every area and vehicle type are deduplicated
+        # One query per vehicle type, never "Other" (the API answers 500 to those).
+        self.assertIn("ch.bfe.sharedmobility.vehicle_type=E-Scooter", filters)
+        self.assertNotIn("ch.bfe.sharedmobility.vehicle_type=Other", filters)
         station = next(i for i in items if i["details"]["stationBased"])
         self.assertEqual((station["name"], station["details"]["count"], station["category"]), ("ETH", 4, "E-Bike"))
 

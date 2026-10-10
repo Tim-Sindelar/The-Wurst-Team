@@ -38,6 +38,34 @@ export interface OccupancyStyle {
   selected: string;
 }
 
+/** The 3D view: every floor of the buildings stacked, the selected one solid, the others as faint ghosts. */
+export interface View3DStyle {
+  /** Vertical distance between two floors, in meters on the map (exaggerated storeys read better). */
+  spacing: number;
+  /** Floors drawn above and below the selected one. */
+  range: number;
+  /** Opacity of the floors next to the selected one. */
+  ghostOpacity: number;
+  /** Each further floor keeps this share of the previous one's opacity. */
+  falloff: number;
+  /** Draw the floors above the selected one (they lie over it). */
+  showAbove: boolean;
+  /** Walls, doors and stairs on the other floors (only when zoomed in far enough for them). */
+  ghostLines: boolean;
+  /** Floor letters next to each building's floors. */
+  floorLabels: boolean;
+  /** Outline around each whole building, from its lowest to its highest floor. */
+  shell: boolean;
+  shellColor: string;
+  /** Shell stroke width in px. */
+  shellWeight: number;
+  shellOpacity: number;
+  /** Shell fill opacity (0 = outline only). */
+  shellFill: number;
+  /** Outline of the top floor (the roof edge), drawn over the stack. */
+  roof: boolean;
+}
+
 export interface MinimalStyle {
   basemapLabels: boolean;
   /** 0 hides the basemap, leaving only the plain map background. */
@@ -67,6 +95,7 @@ export interface MinimalStyle {
   highlightCustomColor: boolean;
   highlightColor: string;
   occupancy: OccupancyStyle;
+  view3d: View3DStyle;
 }
 
 export const PART_LABELS: Record<PartKey, { label: string; polygon: boolean }> = {
@@ -86,6 +115,22 @@ export const ROOM_KINDS: RoomKind[] = [
 
 const part = (show: boolean, color: string, weight: number, fill = 0, fillColor = color, opacity = 1): PartStyle =>
   ({ show, color, weight, opacity, fill, fillColor });
+
+const view3d = (shellColor: string): View3DStyle => ({
+  spacing: 7,
+  range: 6,
+  ghostOpacity: 0.12,
+  falloff: 0.75,
+  showAbove: true,
+  ghostLines: true,
+  floorLabels: true,
+  shell: true,
+  shellColor,
+  shellWeight: 1.2,
+  shellOpacity: 0.7,
+  shellFill: 0.06,
+  roof: true,
+});
 
 export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
   light: {
@@ -114,6 +159,7 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
     highlightCustomColor: false,
     highlightColor: '#e8590c',
     occupancy: { free: '#2e9d5b', soon: '#e0a020', busy: '#d0453c', closed: '#8a94a3', unknown: '#c3cad4', fill: 0.45, weight: 0.8, selected: '#1c2430' },
+    view3d: view3d('#5a6372'),
   },
   dark: {
     basemapLabels: false,
@@ -141,6 +187,7 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
     highlightCustomColor: false,
     highlightColor: '#ffa94d',
     occupancy: { free: '#3fbf74', soon: '#f0b43a', busy: '#ef5f55', closed: '#6d7788', unknown: '#3d4553', fill: 0.5, weight: 0.8, selected: '#ffffff' },
+    view3d: view3d('#8792a5'),
   },
 };
 
@@ -159,7 +206,7 @@ function mergeStyles(base: MinimalStyles, over: PartialStyles | null): MinimalSt
   for (const theme of ['light', 'dark'] as const) {
     const s = over?.[theme];
     if (!s) continue;
-    out[theme] = { ...out[theme], ...s, parts: { ...out[theme].parts }, occupancy: { ...base[theme].occupancy, ...s.occupancy } };
+    out[theme] = { ...out[theme], ...s, parts: { ...out[theme].parts }, occupancy: { ...base[theme].occupancy, ...s.occupancy }, view3d: { ...base[theme].view3d, ...s.view3d } };
     for (const key of Object.keys(out[theme].parts) as PartKey[]) {
       out[theme].parts[key] = { ...base[theme].parts[key], ...s.parts?.[key] };
     }

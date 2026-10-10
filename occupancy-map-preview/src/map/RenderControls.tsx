@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { DEFAULT_MINIMAL, PART_LABELS, ROOM_KINDS, type MinimalStyle, type OccupancyStyle, type PartKey, type PartStyle, type RenderMode } from './minimalStyle';
+import { DEFAULT_MINIMAL, PART_LABELS, ROOM_KINDS, type MinimalStyle, type OccupancyStyle, type PartKey, type PartStyle, type RenderMode, type View3DStyle } from './minimalStyle';
 import { ROOM_STATUS_LABELS, ROOM_STATUSES } from '../domain/ethRooms';
 import type { Theme } from './FloorLayer';
 
@@ -18,13 +18,16 @@ interface Props {
   onReset: () => void;
   /** Live room mode is on: its colors can be styled, in either render mode. */
   occupancyActive: boolean;
+  /** 3D view (stacked floors) on; its look is styled here, in either render mode. */
+  view3d: boolean;
+  onView3dChange: (on: boolean) => void;
   /** More controls in the bar (the live room mode switch) and the panel they open, if any. */
   extraBar?: ReactNode;
   extraPanel?: ReactNode;
 }
 
 /** Map overlay: Detailed/Minimal switch and, in minimal mode, the style editor. */
-export function RenderControls({ theme, mode, onModeChange, style, onStyleChange, isStandard, onSaveStandard, onReset, occupancyActive, extraBar, extraPanel }: Props) {
+export function RenderControls({ theme, mode, onModeChange, style, onStyleChange, isStandard, onSaveStandard, onReset, occupancyActive, view3d, onView3dChange, extraBar, extraPanel }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -45,7 +48,8 @@ export function RenderControls({ theme, mode, onModeChange, style, onStyleChange
     set({ parts: { ...style.parts, [key]: { ...style.parts[key], ...patch } } });
   const setOcc = (patch: Partial<OccupancyStyle>) => set({ occupancy: { ...style.occupancy, ...patch } });
   const minimal = mode === 'minimal';
-  const styleable = minimal || occupancyActive;
+  const set3d = (patch: Partial<View3DStyle>) => set({ view3d: { ...style.view3d, ...patch } });
+  const styleable = minimal || occupancyActive || view3d;
   const toggleKind = (kind: (typeof ROOM_KINDS)[number]) =>
     set({ roomKinds: style.roomKinds.includes(kind) ? style.roomKinds.filter((k) => k !== kind) : [...style.roomKinds, kind] });
 
@@ -68,6 +72,14 @@ export function RenderControls({ theme, mode, onModeChange, style, onStyleChange
             Minimal
           </button>
         </div>
+        <button
+          className={`btn-ghost style-toggle${view3d ? ' is-active' : ''}`}
+          aria-pressed={view3d}
+          title="Stack all floors of the buildings in view (Page Up / Page Down switch floors)"
+          onClick={() => onView3dChange(!view3d)}
+        >
+          3D
+        </button>
         {extraBar}
         {styleable && (
           <button className={`btn-ghost style-toggle${open ? ' is-active' : ''}`} aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -80,6 +92,47 @@ export function RenderControls({ theme, mode, onModeChange, style, onStyleChange
 
       {styleable && open && (
         <div className="style-panel">
+          {view3d && (
+            <section>
+              <h3>3D view <span className="muted">({theme} theme)</span></h3>
+              <Slider label="Floor spacing" min={1} max={20} step={0.5} value={style.view3d.spacing} unit="m" onChange={(v) => set3d({ spacing: v })} />
+              <Slider label="Floors shown" min={1} max={12} step={1} value={style.view3d.range} onChange={(v) => set3d({ range: v })} />
+              <Slider label="Other floors" min={0} max={1} step={0.01} value={style.view3d.ghostOpacity} onChange={(v) => set3d({ ghostOpacity: v })} />
+              <Slider label="Fade per floor" min={0.3} max={1} step={0.05} value={style.view3d.falloff} onChange={(v) => set3d({ falloff: v })} />
+              <label className="check">
+                <input type="checkbox" checked={style.view3d.showAbove} onChange={(e) => set3d({ showAbove: e.target.checked })} />
+                Floors above the selected one
+              </label>
+              <label className="check">
+                <input type="checkbox" checked={style.view3d.ghostLines} onChange={(e) => set3d({ ghostLines: e.target.checked })} />
+                Walls &amp; doors on other floors
+              </label>
+              <label className="check">
+                <input type="checkbox" checked={style.view3d.floorLabels} onChange={(e) => set3d({ floorLabels: e.target.checked })} />
+                Floor letters
+              </label>
+              <div className={`part${style.view3d.shell ? '' : ' is-off'}`}>
+                <div className="part-head">
+                  <label className="check">
+                    <input type="checkbox" checked={style.view3d.shell} onChange={(e) => set3d({ shell: e.target.checked })} />
+                    Building outline
+                  </label>
+                  <input type="color" aria-label="Building outline color" value={style.view3d.shellColor} onChange={(e) => set3d({ shellColor: e.target.value })} />
+                </div>
+                {style.view3d.shell && (
+                  <div className="part-body">
+                    <Slider label="Width" min={0.2} max={6} step={0.1} value={style.view3d.shellWeight} unit="px" onChange={(v) => set3d({ shellWeight: v })} />
+                    <Slider label="Opacity" min={0} max={1} step={0.05} value={style.view3d.shellOpacity} onChange={(v) => set3d({ shellOpacity: v })} />
+                    <Slider label="Fill" min={0} max={0.5} step={0.01} value={style.view3d.shellFill} onChange={(v) => set3d({ shellFill: v })} />
+                    <label className="check">
+                      <input type="checkbox" checked={style.view3d.roof} onChange={(e) => set3d({ roof: e.target.checked })} />
+                      Roof edge
+                    </label>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
           {occupancyActive && (
             <section>
               <h3>Room occupancy <span className="muted">({theme} theme)</span></h3>
