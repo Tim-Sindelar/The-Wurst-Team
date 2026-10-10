@@ -7,7 +7,6 @@ import {
   Checkbox,
   NativeSelect,
   Text,
-  TextInput,
   Title,
 } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,32 +17,18 @@ interface Label {
   seatId: string;
   label: string;
   room: string;
-  url: string;
   svg: string;
 }
+/** The QR code holds only the seat's token: the app's scan screen sends it
+    as-is to the check-in call. */
 function makeLabel(
   seatId: string,
   label: string,
   room: string,
   token: string,
-  address: string,
 ): Label {
-  const base = new URL(address);
-  if (
-    !['http:', 'https:'].includes(base.protocol) ||
-    base.username ||
-    base.password ||
-    base.search ||
-    base.hash
-  )
-    throw Error('Use a clean HTTP(S) app address.');
-  const url = new URL(
-    base.pathname.replace(/\/$/, '') + '/check-in',
-    base.origin,
-  );
-  url.searchParams.set('qr_token', token);
   const qr = qrcode(0, 'M');
-  qr.addData(url.href);
+  qr.addData(token);
   qr.make();
   const count = qr.getModuleCount(),
     size = count + 8;
@@ -59,7 +44,7 @@ function makeLabel(
     '"><rect width="100%" height="100%" fill="white"/><path d="' +
     path +
     '" fill="black"/></svg>';
-  return { seatId, label, room, url: url.href, svg };
+  return { seatId, label, room, svg };
 }
 function download(label: Label) {
   const blob = new Blob([label.svg], { type: 'image/svg+xml' }),
@@ -77,9 +62,6 @@ export function AdminQrPage() {
   const cache = useQueryClient();
   const spaces = useQuery(q.adminListSpacesOptions({ headers: adminHeaders }));
   const [chosen, setChosen] = useState(''),
-    [address, setAddress] = useState(
-      location.origin + import.meta.env.BASE_URL.replace(/\/$/, ''),
-    ),
     [size, setSize] = useState(4),
     [labels, setLabels] = useState<Label[]>([]),
     [error, setError] = useState(''),
@@ -128,7 +110,6 @@ export function AdminQrPage() {
             r.seat.label,
             room.data.space.name,
             r.seat.qr_token,
-            address,
           ),
         ),
       );
@@ -183,15 +164,6 @@ export function AdminQrPage() {
               }}
             />
           )}
-          <TextInput
-            label="Student app address"
-            value={address}
-            disabled={busy}
-            onChange={(e) => {
-              setAddress(e.currentTarget.value);
-              setLabels([]);
-            }}
-          />
           <div className="grid gap-2">
             <span className="text-small font-semibold">QR image size</span>
             <div className="admin-qr-sizes flex flex-wrap gap-2">
