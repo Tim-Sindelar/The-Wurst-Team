@@ -102,7 +102,8 @@ export function chair(parent,x,z,rotation=0){
   for(const a of [-.22,.22])for(const b of [-.23,.23])box(c,[.045,.55,.045],[a,.27,b],'#717a76');
 }
 export function laptop(parent,x,y,z,rotation=0){
-  const l=group(parent,[x,y,z]);l.rotation.y=rotation;
+  // Match the student's heading; the screen faces back toward the seated user.
+  const l=group(parent,[x,y,z]);l.rotation.y=rotation+Math.PI;
   roundedBox(l,[.68,.025,.43],[0,.02,0],'#a9b0ad',.02);
   const lid=roundedBox(l,[.68,.43,.025],[0,.24,-.2],'#a9b0ad',.02);lid.rotation.x=-.15;
   const screen=box(l,[.61,.35,.009],[0,.24,-.176],material('#d2d9cf',{emissive:'#b9c7bb',emissiveIntensity:.12}));screen.rotation.x=-.15;
