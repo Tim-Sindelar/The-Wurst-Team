@@ -42,6 +42,7 @@ import {
   homePositions,
   type NavigationConfig,
 } from './domain/navigation';
+import { dayOf, isOpenDuring, minutesOf } from './domain/hours';
 import { occupancyOf } from './domain/operations';
 import { WORKSPACE_KIND_LABELS, type OccupancyData } from './domain/types';
 import { datasetAt, weekdayOf } from './domain/viewTime';
@@ -554,9 +555,21 @@ export function CampusMap() {
     };
   } else if (selectedLibrary) {
     const occ = occupancyOf(visible, selectedLibrary.id);
+    const hours = selectedLibrary.openingHours;
+    const now = new Date();
     peek = {
       title: selectedLibrary.name,
-      detail: `${WORKSPACE_KIND_LABELS[selectedLibrary.kind]} · ${occ.total === 0 ? 'no seats registered' : `${occ.free} of ${occ.total} seats free`}`,
+      detail: [
+        WORKSPACE_KIND_LABELS[selectedLibrary.kind],
+        selectedLibrary.campus,
+        hours &&
+          (isOpenDuring(hours, dayOf(now), minutesOf(now))
+            ? 'Open now'
+            : 'Closed now'),
+        occ.total > 0 && `${occ.free} of ${occ.total} seats free`,
+      ]
+        .filter(Boolean)
+        .join(' · '),
     };
   } else if (selectedItem && selectedMeta) {
     peek = {
@@ -776,7 +789,6 @@ export function CampusMap() {
             }
             minute={minute}
             colors={roomStyle}
-            onClose={clearTarget}
             onShowOnMap={
               placedRooms.has(selectedRoomInfo.room.id)
                 ? () => showEthRoom(selectedRoomInfo.room.id)
@@ -828,6 +840,7 @@ export function CampusMap() {
             meta={mensaMeta}
             item={selectedWorkspaceMensa}
             clock={datasetClock}
+            nested
           />
         )}
         {selectedItem && selectedMeta && (
@@ -836,7 +849,6 @@ export function CampusMap() {
               meta={selectedMeta}
               item={selectedItem}
               clock={datasetClock}
-              onClose={clearTarget}
             />
             {selectedMensaPlace && (
               <div className="panel-section">
