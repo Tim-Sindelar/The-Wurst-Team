@@ -2,11 +2,22 @@ from base64 import b64encode
 from secrets import token_urlsafe
 from uuid import UUID
 
-from sqlalchemy import func, or_, select, text
+from pydantic import BaseModel
+from sqlalchemy import func, literal_column, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.features.events.schemas import (
+    EventPerson,
+    FriendRequestAcceptedEvent,
+    FriendRequestReceivedEvent,
+    PartyBookedEvent,
+    PartyCancelledEvent,
+    PartyInvitedEvent,
+    PartyLeftEvent,
+    PartyRepliedEvent,
+)
 from app.features.reservations.models import Reservation, Seat, StudySpace
 from app.features.reservations.service import BookingError, ReservationService, reservation_states
 from app.features.social.models import Friendship, Party, PartyMember, SocialUser
@@ -36,6 +47,14 @@ class SocialService:
         self.bookings = ReservationService(session, settings)
         self.user_id = user_id
         self.name = name[:80]
+        # Sent by the router only after the transaction commits.
+        self.events: list[tuple[UUID, BaseModel]] = []
+
+    def _notify(self, user_id: UUID, event: BaseModel) -> None:
+        self.events.append((user_id, event))
+
+    def _me(self) -> EventPerson:
+        return EventPerson(id=self.user_id, name=self.person(self.user_id).name)
 
     def enroll(self) -> SocialUser:
         self.session.execute(
@@ -152,7 +171,7 @@ class SocialService:
             .on_conflict_do_nothing(index_elements=[SocialUser.user_id])
         )
         low, high = sorted((self.user_id, target.id))
-        self.session.execute(
+        inserted = self.session.scalar(
             insert(Friendship)
             .values(user_low=low, user_high=high, requested_by=self.user_id, status="pending")
             # A no-op update holds the pair's row lock through commit, even if another
@@ -161,6 +180,8 @@ class SocialService:
                 index_elements=[Friendship.user_low, Friendship.user_high],
                 set_={"status": Friendship.status},
             )
+            # xmax is 0 only for a freshly inserted row, so retries notify nobody.
+            .returning(literal_column("xmax = 0"))
         )
         row = self.session.scalar(
             select(Friendship)
@@ -170,6 +191,10 @@ class SocialService:
         if row.status == "accepted":
             raise BookingError(409, "already_friends", "You are already friends")
         # Crossing requests never silently create friendship; the recipient must accept.
+        if inserted:
+            self._notify(
+                target.id, FriendRequestReceivedEvent(friendship_id=row.id, person=self._me())
+            )
         return self._request(row)
 
     def _friendship(self, friendship_id: UUID) -> Friendship:
@@ -184,8 +209,11 @@ class SocialService:
         row = self._friendship(friendship_id)
         if row.requested_by == self.user_id:
             raise BookingError(403, "recipient_required", "Only the recipient can accept")
-        row.status = "accepted"
-        self.session.flush()
+        if row.status != "accepted":
+            row.status = "accepted"
+            self.session.flush()
+            event = FriendRequestAcceptedEvent(friendship_id=row.id, person=self._me())
+            self._notify(row.requested_by, event)
         return self._request(row)
 
     def delete_friendship(self, friendship_id: UUID) -> None:
@@ -370,6 +398,9 @@ class SocialService:
         else:
             self.session.add(PartyMember(party_id=party.id, user_id=user_id))
         self.session.flush()
+        self._notify(
+            user_id, PartyInvitedEvent(party_id=party.id, party_name=party.name, person=self._me())
+        )
         return self._detail(party)
 
     def reply(self, party_id: UUID, accept: bool) -> PartyResponse:
@@ -385,6 +416,12 @@ class SocialService:
             self._require_party_slot(self.user_id, exclude=party.id)
         member.status = "accepted" if accept else "declined"
         self.session.flush()
+        self._notify(
+            party.organizer_id,
+            PartyRepliedEvent(
+                party_id=party.id, party_name=party.name, person=self._me(), accepted=accept
+            ),
+        )
         return self._detail(party)
 
     def leave(self, party_id: UUID) -> None:
@@ -395,6 +432,10 @@ class SocialService:
         member = self.session.get(PartyMember, (party.id, self.user_id))
         member.status = "left"
         self.session.flush()
+        self._notify(
+            party.organizer_id,
+            PartyLeftEvent(party_id=party.id, party_name=party.name, person=self._me()),
+        )
 
     def book(self, party_id: UUID, request: PartyBook) -> PartyResponse:
         party = self._party(party_id, lock=True, organizer=True)
@@ -425,15 +466,24 @@ class SocialService:
                 member.reservation_id = by_user[member.user_id]
         party.status = "booked"
         self.session.flush()
+        for user_id in accepted - {self.user_id}:
+            self._notify(user_id, PartyBookedEvent(party_id=party.id, party_name=party.name))
         return self._detail(party)
 
     def cancel(self, party_id: UUID) -> PartyCancellation:
         party = self._party(party_id, lock=True, organizer=True)
         cancelled = []
         if party.status != "cancelled":
+            members = self._members(party)
             cancelled = self.bookings.cancel_unchecked(
-                [m.reservation_id for m in self._members(party) if m.reservation_id]
+                [m.reservation_id for m in members if m.reservation_id]
             )
             party.status = "cancelled"
             self.session.flush()
+            for member in members:
+                if member.user_id != self.user_id and member.status in {"invited", "accepted"}:
+                    self._notify(
+                        member.user_id,
+                        PartyCancelledEvent(party_id=party.id, party_name=party.name),
+                    )
         return PartyCancellation(party=self._detail(party), cancelled_reservation_ids=cancelled)

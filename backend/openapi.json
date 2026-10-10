@@ -1673,6 +1673,25 @@
         "title": "EthSnapshot",
         "type": "object"
       },
+      "EventPerson": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "EventPerson",
+        "type": "object"
+      },
       "FavouritesResponse": {
         "properties": {
           "space_ids": {
@@ -1690,6 +1709,30 @@
         "title": "FavouritesResponse",
         "type": "object"
       },
+      "FriendRequestAcceptedEvent": {
+        "properties": {
+          "friendship_id": {
+            "format": "uuid",
+            "title": "Friendship Id",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "friend_request.accepted",
+            "default": "friend_request.accepted",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "friendship_id",
+          "person"
+        ],
+        "title": "FriendRequestAcceptedEvent",
+        "type": "object"
+      },
       "FriendRequestCreate": {
         "additionalProperties": false,
         "properties": {
@@ -1703,6 +1746,30 @@
           "user_id"
         ],
         "title": "FriendRequestCreate",
+        "type": "object"
+      },
+      "FriendRequestReceivedEvent": {
+        "properties": {
+          "friendship_id": {
+            "format": "uuid",
+            "title": "Friendship Id",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "friend_request.received",
+            "default": "friend_request.received",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "friendship_id",
+          "person"
+        ],
+        "title": "FriendRequestReceivedEvent",
         "type": "object"
       },
       "FriendRequestResponse": {
@@ -2370,6 +2437,31 @@
         "title": "PartyBook",
         "type": "object"
       },
+      "PartyBookedEvent": {
+        "properties": {
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "type": {
+            "const": "party.booked",
+            "default": "party.booked",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name"
+        ],
+        "title": "PartyBookedEvent",
+        "type": "object"
+      },
       "PartyCancellation": {
         "properties": {
           "cancelled_reservation_ids": {
@@ -2389,6 +2481,31 @@
           "cancelled_reservation_ids"
         ],
         "title": "PartyCancellation",
+        "type": "object"
+      },
+      "PartyCancelledEvent": {
+        "properties": {
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "type": {
+            "const": "party.cancelled",
+            "default": "party.cancelled",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name"
+        ],
+        "title": "PartyCancelledEvent",
         "type": "object"
       },
       "PartyCreate": {
@@ -2420,6 +2537,64 @@
           "user_id"
         ],
         "title": "PartyInvite",
+        "type": "object"
+      },
+      "PartyInvitedEvent": {
+        "properties": {
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "party.invited",
+            "default": "party.invited",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name",
+          "person"
+        ],
+        "title": "PartyInvitedEvent",
+        "type": "object"
+      },
+      "PartyLeftEvent": {
+        "properties": {
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "party.left",
+            "default": "party.left",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name",
+          "person"
+        ],
+        "title": "PartyLeftEvent",
         "type": "object"
       },
       "PartyMemberResponse": {
@@ -2467,6 +2642,40 @@
           "seat"
         ],
         "title": "PartyMemberResponse",
+        "type": "object"
+      },
+      "PartyRepliedEvent": {
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "party.replied",
+            "default": "party.replied",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name",
+          "person",
+          "accepted"
+        ],
+        "title": "PartyRepliedEvent",
         "type": "object"
       },
       "PartyReply": {
@@ -2569,6 +2778,19 @@
           "people"
         ],
         "title": "PeopleResponse",
+        "type": "object"
+      },
+      "PingEvent": {
+        "description": "Heartbeat so proxies keep an idle socket open. Clients ignore it.",
+        "properties": {
+          "type": {
+            "const": "ping",
+            "default": "ping",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "PingEvent",
         "type": "object"
       },
       "PopularSpacesResponse": {
@@ -3160,6 +3382,49 @@
         ],
         "title": "SeatAvailability",
         "type": "object"
+      },
+      "ServerEvent": {
+        "description": "One message on the /api/v1/events WebSocket.",
+        "discriminator": {
+          "mapping": {
+            "friend_request.accepted": "#/components/schemas/FriendRequestAcceptedEvent",
+            "friend_request.received": "#/components/schemas/FriendRequestReceivedEvent",
+            "party.booked": "#/components/schemas/PartyBookedEvent",
+            "party.cancelled": "#/components/schemas/PartyCancelledEvent",
+            "party.invited": "#/components/schemas/PartyInvitedEvent",
+            "party.left": "#/components/schemas/PartyLeftEvent",
+            "party.replied": "#/components/schemas/PartyRepliedEvent",
+            "ping": "#/components/schemas/PingEvent"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FriendRequestReceivedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/FriendRequestAcceptedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyInvitedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyRepliedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyLeftEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyBookedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyCancelledEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PingEvent"
+          }
+        ],
+        "title": "ServerEvent"
       },
       "SocialCapabilities": {
         "properties": {

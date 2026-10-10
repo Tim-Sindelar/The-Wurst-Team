@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.config import Settings, get_settings
 from app.database import get_session
+from app.features.events.hub import hub
 from app.features.reservations.schemas import BookingErrorResponse, RequestValidationErrorResponse
 from app.features.reservations.service import BookingError
 from app.features.social.schemas import (
@@ -82,6 +83,9 @@ Service = Annotated[SocialService, Depends(get_service)]
 
 def saved[T](service: SocialService, result: T) -> T:
     service.session.commit()
+    # Only committed changes notify anyone; a failed request raised before this.
+    for user_id, event in service.events:
+        hub.publish(user_id, event)
     return result
 
 
