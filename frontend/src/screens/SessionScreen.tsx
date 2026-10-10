@@ -262,7 +262,7 @@ export function SessionScreen() {
             End session
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="ui-button-row flex gap-2">
             <Button
               variant="secondary"
               className="flex-1"

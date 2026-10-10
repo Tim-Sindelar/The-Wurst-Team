@@ -91,7 +91,7 @@ export function DecisionSheet({
         <Drawer.Body className="grid gap-3 px-4 pt-2 pb-[calc(--spacing(4)+env(safe-area-inset-bottom))]">
           <Drawer.Title>{title}</Drawer.Title>
           <Text c="dimmed">{children}</Text>
-          <div className="ui-sheet-actions mt-2 grid grid-cols-2 gap-3">
+          <div className="ui-button-row mt-2 grid grid-cols-2 gap-3">
             <Button variant="secondary" onClick={onClose}>
               {safeLabel}
             </Button>

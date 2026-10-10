@@ -55,9 +55,13 @@
       @apply cursor-default border-transparent bg-surface-2 text-text-muted;
     }
   }
-  /* Two buttons share a sheet row, so trim the side padding. */
-  .ui-sheet-actions .ui-button {
-    @apply px-2;
+  /* Two buttons share a row (decision sheet, action bar), so trim the side
+     padding and let a long label wrap instead of being cut off. */
+  .ui-button-row .ui-button {
+    @apply h-auto min-h-12 px-2 py-1;
+  }
+  .ui-button-row .ui-button-label {
+    @apply text-center whitespace-normal;
   }
   .ui-button-inner {
     @apply gap-2;

@@ -72,6 +72,7 @@ export const theme = createTheme({
       classNames: {
         root: 'ui-button',
         inner: 'ui-button-inner',
+        label: 'ui-button-label',
         section: 'ui-button-section',
       },
     }),
