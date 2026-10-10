@@ -21,15 +21,15 @@ def call(client, method, path, user=A, body=None):
     return client.request(method, path, headers={"X-Demo-User-Id": str(user)}, json=body)
 
 
-def link(client, user=A):
-    response = call(client, "POST", BASE + "/me/invite-link", user)
+def login(client, user=A):
+    response = call(client, "GET", "/api/v1/me", user)
     assert response.status_code == 200, response.text
-    return response.json()["invite_token"]
+    return response.json()["id"]
 
 
 def friendship(client, organizer=A, friend=B):
-    token = link(client, organizer)
-    response = call(client, "POST", BASE + "/friend-requests", friend, {"invite_token": token})
+    target_id = login(client, organizer)
+    response = call(client, "POST", BASE + "/friend-requests", friend, {"user_id": target_id})
     assert response.status_code == 200, response.text
     relation = response.json()["id"]
     accepted = call(client, "POST", BASE + f"/friend-requests/{relation}/accept", organizer)
@@ -73,20 +73,20 @@ def current(client, user):
     return response.json()["reservation"]
 
 
-def test_friend_links_requests_and_privacy_defaults(social_client):
+def test_directory_requests_and_privacy_defaults(social_client):
     client = social_client
     me = call(client, "GET", BASE + "/me").json()
-    assert me["invite_token"] is None and me["share_room"] is False
-    token = link(client)
-    assert token == link(client)
-    response = call(client, "POST", BASE + "/friend-requests", B, {"invite_token": token})
+    assert me["share_room"] is False
+    target_id = login(client)
+    assert target_id == login(client)
+    response = call(client, "POST", BASE + "/friend-requests", B, {"user_id": target_id})
     relation = response.json()["id"]
     assert response.json()["direction"] == "outgoing"
-    duplicate = call(client, "POST", BASE + "/friend-requests", B, {"invite_token": token})
+    duplicate = call(client, "POST", BASE + "/friend-requests", B, {"user_id": target_id})
     assert duplicate.json()["id"] == relation
     incoming = call(client, "GET", BASE + "/friend-requests").json()["requests"]
     assert incoming[0]["direction"] == "incoming"
-    reverse = call(client, "POST", BASE + "/friend-requests", A, {"invite_token": link(client, B)})
+    reverse = call(client, "POST", BASE + "/friend-requests", A, {"user_id": login(client, B)})
     assert reverse.json()["id"] == relation
     assert call(client, "GET", BASE + "/friends").json()["friends"] == []
     assert call(client, "POST", BASE + f"/friend-requests/{relation}/accept", B).status_code == 403
@@ -97,7 +97,7 @@ def test_friend_links_requests_and_privacy_defaults(social_client):
     assert call(client, "POST", BASE + f"/friend-requests/{relation}/accept").status_code == 200
     assert len(call(client, "GET", BASE + "/friends").json()["friends"]) == 1
     assert (
-        call(client, "POST", BASE + "/friend-requests", B, {"invite_token": token}).status_code
+        call(client, "POST", BASE + "/friend-requests", B, {"user_id": target_id}).status_code
         == 409
     )
     assert call(client, "DELETE", BASE + f"/friendships/{relation}", C).status_code == 404
@@ -107,8 +107,8 @@ def test_friend_links_requests_and_privacy_defaults(social_client):
 
 @pytest.mark.parametrize("recipient", [A, B])
 def test_decline_or_cancel_pending_request(social_client, recipient):
-    token = link(social_client)
-    response = call(social_client, "POST", BASE + "/friend-requests", B, {"invite_token": token})
+    target_id = login(social_client)
+    response = call(social_client, "POST", BASE + "/friend-requests", B, {"user_id": target_id})
     relation = response.json()["id"]
     assert (
         call(social_client, "DELETE", BASE + f"/friendships/{relation}", recipient).status_code
@@ -117,17 +117,17 @@ def test_decline_or_cancel_pending_request(social_client, recipient):
     assert call(social_client, "GET", BASE + "/friend-requests").json()["requests"] == []
 
 
-def test_invalid_and_self_invite(social_client):
-    token = link(social_client)
+def test_invalid_and_self_request(social_client):
+    target_id = login(social_client)
     assert (
         call(
-            social_client, "POST", BASE + "/friend-requests", A, {"invite_token": token}
+            social_client, "POST", BASE + "/friend-requests", A, {"user_id": target_id}
         ).status_code
         == 409
     )
     assert (
         call(
-            social_client, "POST", BASE + "/friend-requests", B, {"invite_token": "x" * 32}
+            social_client, "POST", BASE + "/friend-requests", B, {"user_id": str(UUID(int=999))}
         ).status_code
         == 404
     )
@@ -137,9 +137,9 @@ def test_names_follow_profiles_without_exposing_email(social_client, policy):
     policy.auth_mode = "proxy"
     alice = {"X-User-Id": "a@ethz.ch", "X-User-Name": "Zo%C3%AB"}
     bob = {"X-User-Id": "b@ethz.ch", "X-User-Name": "Bob"}
-    token = social_client.post(BASE + "/me/invite-link", headers=alice).json()["invite_token"]
+    target_id = social_client.get("/api/v1/me", headers=alice).json()["id"]
     response = social_client.post(
-        BASE + "/friend-requests", headers=bob, json={"invite_token": token}
+        BASE + "/friend-requests", headers=bob, json={"user_id": target_id}
     )
     relation = response.json()["id"]
     assert response.json()["person"]["name"] == "Zoë"
@@ -369,7 +369,7 @@ def test_disabled_social_preserves_ordinary_reservations(social_client, seats, p
         ("GET", "/me", None),
         ("GET", "/friends", None),
         ("GET", "/parties", None),
-        ("POST", "/me/invite-link", None),
+        ("GET", "/people?q=de", None),
         ("POST", f"/parties/{party_id}/cancel", None),
         ("PATCH", "/me/privacy", {"share_room": True}),
     ]:
@@ -384,7 +384,9 @@ def test_disabled_social_preserves_ordinary_reservations(social_client, seats, p
     assert call(client, "POST", f"/api/v1/reservations/{own['id']}/end").status_code == 200
 
 
-@pytest.mark.parametrize("path", ["/me", "/friends", "/parties", "/friend-requests"])
+@pytest.mark.parametrize(
+    "path", ["/me", "/friends", "/parties", "/friend-requests", "/people?q=de"]
+)
 def test_social_requires_proxy_auth(social_client, policy, path):
     policy.auth_mode = "proxy"
     assert social_client.get(BASE + path).status_code == 401
@@ -570,3 +572,69 @@ def test_merge_migration_upgrades_either_feature_branch_without_losing_data(db, 
             assert session.get(SocialUser, user_id).fallback_name == "Existing friend"
         else:
             assert session.get(MapDocument, "existing-map").data == {"keep": True}
+
+
+def test_directory_registers_signed_in_users_preserves_edits_and_hides_private_data(
+    social_client, policy
+):
+    policy.auth_mode = "proxy"
+    alice = {"X-User-Id": "alice@ethz.ch", "X-User-Name": "Alice"}
+    bob = {"X-User-Id": "bob@ethz.ch", "X-User-Name": "Bob Smith"}
+    bob_id = social_client.get("/api/v1/me", headers=bob).json()["id"]
+    social_client.get("/api/v1/me", headers=alice)
+    response = social_client.get(BASE + "/people?q=BOB", headers=alice)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.json()["people"] == [
+        {
+            "id": bob_id,
+            "name": "Bob Smith",
+            "photo_url": None,
+            "relationship": "none",
+            "friendship_id": None,
+        }
+    ]
+    assert "@ethz.ch" not in response.text and "room" not in response.text
+    assert social_client.get(BASE + "/people?q=alice", headers=alice).json()["people"] == []
+    request = social_client.post(BASE + "/friend-requests", headers=alice, json={"user_id": bob_id})
+    relation = request.json()["id"]
+    assert (
+        social_client.get(BASE + "/people?q=bob", headers=alice).json()["people"][0]["relationship"]
+        == "outgoing"
+    )
+    incoming = social_client.get(BASE + "/people?q=alice", headers=bob).json()["people"][0]
+    assert incoming["relationship"] == "incoming" and incoming["friendship_id"] == relation
+    social_client.post(BASE + f"/friend-requests/{relation}/accept", headers=bob)
+    assert (
+        social_client.get(BASE + "/people?q=bob", headers=alice).json()["people"][0]["relationship"]
+        == "friends"
+    )
+    social_client.patch("/api/v1/me", headers=bob, data={"name": "Robert"})
+    social_client.get("/api/v1/me", headers=bob)  # Login must not overwrite edited names.
+    assert social_client.get(BASE + "/people?q=bob", headers=alice).json()["people"] == []
+    assert (
+        social_client.get(BASE + "/people?q=robert", headers=alice).json()["people"][0]["name"]
+        == "Robert"
+    )
+
+
+def test_directory_limits_results_and_treats_wildcards_literally(social_client, db):
+    login(social_client)
+    with Session(db) as session:
+        session.add_all(
+            [UserProfile(id=UUID(int=100 + n), name=f"Student {n:02}") for n in range(25)]
+        )
+        session.add(UserProfile(id=UUID(int=200), name="A_%name"))
+        session.commit()
+    assert len(call(social_client, "GET", BASE + "/people?q=student").json()["people"]) == 20
+    matches = call(social_client, "GET", BASE + "/people?q=_%").json()["people"]
+    assert [p["name"] for p in matches] == ["A_%name"]
+    for query in ("a", "  ", "a" * 81):
+        assert call(social_client, "GET", BASE + "/people?q=" + query).status_code == 422
+    assert (
+        call(
+            social_client, "POST", BASE + "/friend-requests", body={"invite_token": "x" * 32}
+        ).status_code
+        == 422
+    )
+    assert call(social_client, "POST", BASE + "/me/invite-link").status_code == 404

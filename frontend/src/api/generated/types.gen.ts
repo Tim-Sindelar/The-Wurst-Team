@@ -802,6 +802,32 @@ export type DatasetTime = {
 };
 
 /**
+ * DirectoryPerson
+ */
+export type DirectoryPerson = {
+    /**
+     * Friendship Id
+     */
+    friendship_id: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
+    /**
+     * Relationship
+     */
+    relationship: 'none' | 'outgoing' | 'incoming' | 'friends';
+};
+
+/**
  * ErrorResponse
  */
 export type ErrorResponse = {
@@ -968,9 +994,9 @@ export type FavouritesResponse = {
  */
 export type FriendRequestCreate = {
     /**
-     * Invite Token
+     * User Id
      */
-    invite_token: string;
+    user_id: string;
 };
 
 /**
@@ -1431,6 +1457,16 @@ export type PartySeat = {
 };
 
 /**
+ * PeopleResponse
+ */
+export type PeopleResponse = {
+    /**
+     * People
+     */
+    people: Array<DirectoryPerson>;
+};
+
+/**
  * PrivacyUpdate
  */
 export type PrivacyUpdate = {
@@ -1787,13 +1823,13 @@ export type SocialMe = {
      */
     id: string;
     /**
-     * Invite Token
-     */
-    invite_token: string | null;
-    /**
      * Name
      */
     name: string;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Share Room
      */
@@ -1812,6 +1848,10 @@ export type SocialPerson = {
      * Name
      */
     name: string;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
 };
 
 /**
@@ -3955,47 +3995,6 @@ export type GetSocialMeResponses = {
 
 export type GetSocialMeResponse = GetSocialMeResponses[keyof GetSocialMeResponses];
 
-export type CreateFriendLinkData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/social/me/invite-link';
-};
-
-export type CreateFriendLinkErrors = {
-    /**
-     * Unauthorized
-     */
-    401: ErrorResponse;
-    /**
-     * Forbidden
-     */
-    403: BookingErrorResponse;
-    /**
-     * Not Found
-     */
-    404: BookingErrorResponse;
-    /**
-     * Conflict
-     */
-    409: BookingErrorResponse;
-    /**
-     * Unprocessable Entity
-     */
-    422: RequestValidationErrorResponse;
-};
-
-export type CreateFriendLinkError = CreateFriendLinkErrors[keyof CreateFriendLinkErrors];
-
-export type CreateFriendLinkResponses = {
-    /**
-     * Successful Response
-     */
-    200: SocialMe;
-};
-
-export type CreateFriendLinkResponse = CreateFriendLinkResponses[keyof CreateFriendLinkResponses];
-
 export type UpdateSocialPrivacyData = {
     body: PrivacyUpdate;
     path?: never;
@@ -4394,6 +4393,52 @@ export type ReplyToPartyInvitationResponses = {
 };
 
 export type ReplyToPartyInvitationResponse = ReplyToPartyInvitationResponses[keyof ReplyToPartyInvitationResponses];
+
+export type SearchSocialPeopleData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Q
+         */
+        q: string;
+    };
+    url: '/api/v1/social/people';
+};
+
+export type SearchSocialPeopleErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ErrorResponse;
+    /**
+     * Forbidden
+     */
+    403: BookingErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type SearchSocialPeopleError = SearchSocialPeopleErrors[keyof SearchSocialPeopleErrors];
+
+export type SearchSocialPeopleResponses = {
+    /**
+     * Successful Response
+     */
+    200: PeopleResponse;
+};
+
+export type SearchSocialPeopleResponse = SearchSocialPeopleResponses[keyof SearchSocialPeopleResponses];
 
 export type ListSpacesData = {
     body?: never;

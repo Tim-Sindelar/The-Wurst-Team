@@ -101,6 +101,9 @@ the demo disabled. This is a build-time flag: changing a running container's env
 change an already compiled frontend. The integration test checks that the preview bundle contains
 the social navigation and the production bundle excludes it.
 
+PR deployments also set `SOCIAL_ENABLED=true` for real directory search and friendships in the
+preview database. Regular deployments default to disabled; party screens remain a sample preview.
+
 Each preview deployment seeds two demo study spaces with four seats each, open all day every day. The seed is idempotent: updates preserve existing rooms, seats, QR tokens, and bookings. Production deployments do not run this seed.
 
 Closing or merging the PR removes its route, containers, private networks, PostgreSQL volume, releases, and backups, then marks the comment as removed. This intentionally deletes that preview’s data. Production, other previews, and the shared `/ar/` router remain running. The workflow checks that a PR is still open and at the expected commit before deploying, so a run delayed by checks cannot recreate an already closed preview.

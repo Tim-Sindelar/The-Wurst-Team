@@ -1,9 +1,11 @@
 # Social frontend draft
 
 This is a working design preview, available locally at `http://127.0.0.1:5173/social-draft`
-and in CI-deployed PR previews under `/pr/<number>/social-draft`. It uses isolated sample data
-and does not call the social backend or modify live individual bookings. Navigation and sample mutations work so the
-team can refine the experience before API integration.
+and in CI-deployed PR previews under `/pr/<number>/social-draft`. Friends, people search,
+requests, privacy and shared rooms use the real social backend when its capabilities say enabled.
+Disabled social shows an explicit sample-data notice; network/auth failures show errors. PR
+deployments enable the real directory in their isolated database. Party screens retain sample
+data and do not modify live bookings.
 
 `design-rules.md` continues to govern typography, spacing, themes, touch targets, and popups.
 There are no new design tokens, component variants, stylesheets, or dependencies.
@@ -15,7 +17,7 @@ There are no new design tokens, component variants, stylesheets, or dependencies
 | Friends | `screens/06-profile.html`: avatars, cards, notification/privacy toggles | Add a friend |
 | Manage friends | `screens/06-profile.html`: requests and friend list | Add a friend |
 | Stalk my friends | `screens/01-home.html`: cards for shared rooms | Open campus map |
-| Add a friend | `components.html`: text inputs, notices, secondary buttons | Send friend request |
+| Add a friend | `components.html`: name search, avatar cards, selection, notices | Send friend request |
 | Study parties | `screens/01-home.html`: linked summary cards | Create a party |
 | Create party | `screens/06-profile.html`: labelled form | Create party |
 | Invite friends | `screens/06-profile.html`: friend cards with explicit Invite buttons | Done |
@@ -48,7 +50,7 @@ invitation under Study parties and taps Join to open the existing consent sheet.
 Routine confirmation banners appear in the page and never cover navigation. Privacy switches
 update immediately without a notification. Urgent notices remain floating below the header.
 
-Preview tools are collapsed below the product screen. They contain reset, booking-conflict controls,
+Party preview tools are collapsed below the party screens. They contain reset, booking-conflict controls,
 and (on party detail/reservation) a perspective selector. These controls are not product UI.
 
 ## Preview walkthrough
@@ -56,8 +58,10 @@ and (on party detail/reservation) a perspective selector. These controls are not
 1. Open Friends through the bottom navigation or `/social-draft`. Room sharing is off by default
    and its setting is at the top. Open Manage friends to accept Nora's request, cancel Felix's request, filter the friend list,
    or remove a friend through a decision sheet.
-2. Open Add a friend. Use **Try Sam’s sample invite**, then send a request.
-   Copying your own invite link works; opening that link does not automatically send a request.
+2. Open Add a friend and search by display name (at least two characters). Select a result
+   with Add friend, then Send friend request in the action bar. Results distinguish friends,
+   outgoing requests and incoming requests. Incoming requests link to Manage friends.
+   When the backend is disabled, search Sam to exercise the sample flow. There are no friend links.
 3. Open Study parties, create a party, give it a name, invite friends with their Invite buttons, then press Done.
    Open Parties to see the new party alongside the sample Afternoon study party. Both have their
    own `/social-draft/party/:partyId` links, and remain saved after visiting Home or reloading.
@@ -76,10 +80,10 @@ and (on party detail/reservation) a perspective selector. These controls are not
    seats are released while checked-in members keep their sessions. An individual can also
    cancel/end only their own seat. Open Stalk my friends to see only friends' shared study rooms.
 8. **Reset preview** restores the sample data, clears screen-local form state, and returns to Friends.
-   Friends, requests, privacy, and parties persist in an isolated localStorage entry. Reloading
-   starts with your own perspective. PR previews have separate storage keys, and friend links
-   include the preview base path. If browser storage is blocked, data lasts for the current
-   social visit only. No real backend state is changed.
+   Sample parties and disabled-backend demo friendships persist in isolated localStorage entries.
+   Live friendships, requests and privacy persist in PostgreSQL, refresh after changes and on focus,
+   and poll every 20 seconds for incoming requests and room changes. Reset affects only sample data.
+   Reloading starts the party preview with your own perspective. PR previews have separate storage keys.
 
 The seat picker's Preview tools link to `?error=1` to simulate availability changing at confirmation.
 No sample reservation is created in that state. Switch back to Normal booking to try the success
@@ -88,7 +92,7 @@ party IDs show an unavailable notice rather than opening a different party.
 
 Run `npm run test:social-draft` in `frontend/` for party storage, targeting, consent, and cancellation
 regressions. The hub sections, bottom navigation, inline confirmations, create/invite/list flow,
-Home roundtrip, reloads, invalid links, cancelled-party visibility, preserved session access,
+Home roundtrip, reloads, directory search, cancelled-party visibility, preserved session access,
 recipient consent sheet, and legacy seat bookmark were also exercised in an in-memory DOM in dark and light modes. This checks interactions
 and markup; live visual review remains unavailable while computer use is not working.
 
@@ -97,8 +101,8 @@ and markup; live visual review remains unavailable while computer use is not wor
 - Review the draft in both themes against the references above. Live browser visual review was
   unavailable in this session because computer use was not working.
 - Refine room browsing and the member waiting state.
-- Replace preview view models and reducer actions with the generated social API helpers, preserving
-  explicit friendship acceptance and party-booking consent.
+- Connect the party view models and reducer actions to generated social API helpers, preserving
+  party-booking consent. Friendship screens already use the generated API.
 - Use backend capability gating for real routes. The preview's `VITE_SOCIAL_DEMO_ENABLED` gate is separate
   from `SOCIAL_ENABLED`; it must not become a production bypass.
 - Replace sample seat numbers and layout with backend IDs and the team's room-layout contract.
@@ -112,6 +116,11 @@ in-page routine `StatusBanner` confirmations, shared icons/theme styles, and the
 `SeatMap.highlightedSeats` prop. Individual seat screens omit highlights. The social draft code
 lives under `frontend/src/features/social-draft/`; `App.tsx` registers its lazy routes when the demo
 flag is enabled. Local development defaults on; CI enables the flag for PR builds and leaves it
-off in normal production. Docker exposes `SOCIAL_DEMO_ENABLED` as a build argument.
+off in normal production. PR deploys separately enable the social backend; local live friendships
+require `SOCIAL_ENABLED=true`. Docker exposes `SOCIAL_DEMO_ENABLED` as a build argument.
 The deployed bundle check verifies navigation is included only in preview images. DOM checks also
 cover production mode with the flag enabled, prefixed links/storage, and four-seat manual booking.
+
+Directory interactions were checked in an in-memory DOM in dark and light: ID-based requests,
+refreshed pending states and persisted privacy. Explicit demo and failed-backend cases were also
+checked. This verifies markup and interactions; live visual review is still unavailable.

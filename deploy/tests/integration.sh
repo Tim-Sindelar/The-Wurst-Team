@@ -146,6 +146,9 @@ check_spaces "$url/pr/$pr" 2
 check_spaces "$url" 0
 check_social_demo "$url/pr/$pr" true
 check_social_demo "$url" false
+# The real directory is enabled only in the isolated PR database.
+curl -fsS "$url/pr/$pr/api/v1/social/capabilities" | python3 -c 'import json,sys; assert json.load(sys.stdin)["enabled"] is True'
+curl -fsS "$url/api/v1/social/capabilities" | python3 -c 'import json,sys; assert json.load(sys.stdin)["enabled"] is False'
 save_name "$url/pr/$pr" 'Isolated preview profile'
 check_name "$url/pr/$pr" 'Isolated preview profile'
 check_name "$url" 'Persists across releases'

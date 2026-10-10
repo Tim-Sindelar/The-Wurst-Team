@@ -1333,6 +1333,60 @@
         "title": "DatasetTime",
         "type": "object"
       },
+      "DirectoryPerson": {
+        "properties": {
+          "friendship_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Friendship Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "relationship": {
+            "enum": [
+              "none",
+              "outgoing",
+              "incoming",
+              "friends"
+            ],
+            "title": "Relationship",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "relationship",
+          "friendship_id"
+        ],
+        "title": "DirectoryPerson",
+        "type": "object"
+      },
       "ErrorResponse": {
         "properties": {
           "detail": {
@@ -1639,15 +1693,14 @@
       "FriendRequestCreate": {
         "additionalProperties": false,
         "properties": {
-          "invite_token": {
-            "maxLength": 64,
-            "minLength": 20,
-            "title": "Invite Token",
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
             "type": "string"
           }
         },
         "required": [
-          "invite_token"
+          "user_id"
         ],
         "title": "FriendRequestCreate",
         "type": "object"
@@ -2502,6 +2555,22 @@
         "title": "PartySeat",
         "type": "object"
       },
+      "PeopleResponse": {
+        "properties": {
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/DirectoryPerson"
+            },
+            "title": "People",
+            "type": "array"
+          }
+        },
+        "required": [
+          "people"
+        ],
+        "title": "PeopleResponse",
+        "type": "object"
+      },
       "PrivacyUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -3076,7 +3145,11 @@
             "title": "Id",
             "type": "string"
           },
-          "invite_token": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "photo_url": {
             "anyOf": [
               {
                 "type": "string"
@@ -3085,11 +3158,7 @@
                 "type": "null"
               }
             ],
-            "title": "Invite Token"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
+            "title": "Photo Url"
           },
           "share_room": {
             "title": "Share Room",
@@ -3099,7 +3168,6 @@
         "required": [
           "id",
           "name",
-          "invite_token",
           "share_room"
         ],
         "title": "SocialMe",
@@ -3115,6 +3183,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           }
         },
         "required": [
@@ -6925,77 +7004,6 @@
         ]
       }
     },
-    "/api/v1/social/me/invite-link": {
-      "post": {
-        "operationId": "create_friend_link",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SocialMe"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BookingErrorResponse"
-                }
-              }
-            },
-            "description": "Forbidden"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BookingErrorResponse"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BookingErrorResponse"
-                }
-              }
-            },
-            "description": "Conflict"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Create Link",
-        "tags": [
-          "social"
-        ]
-      }
-    },
     "/api/v1/social/me/privacy": {
       "patch": {
         "operationId": "update_social_privacy",
@@ -7743,6 +7751,90 @@
           }
         },
         "summary": "Reply",
+        "tags": [
+          "social"
+        ]
+      }
+    },
+    "/api/v1/social/people": {
+      "get": {
+        "operationId": "search_social_people",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "People",
         "tags": [
           "social"
         ]

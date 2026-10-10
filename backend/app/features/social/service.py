@@ -1,7 +1,8 @@
+from base64 import b64encode
 from secrets import token_urlsafe
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,7 @@ from app.features.reservations.models import Reservation, Seat, StudySpace
 from app.features.reservations.service import BookingError, ReservationService, reservation_states
 from app.features.social.models import Friendship, Party, PartyMember, SocialUser
 from app.features.social.schemas import (
+    DirectoryPerson,
     FriendRequestResponse,
     FriendRequestsResponse,
     FriendResponse,
@@ -20,6 +22,7 @@ from app.features.social.schemas import (
     PartyMemberResponse,
     PartyResponse,
     PartySeat,
+    PeopleResponse,
     SocialMe,
     SocialPerson,
     SocialRoom,
@@ -50,19 +53,57 @@ class SocialService:
         return SocialPerson(
             id=user_id,
             name=profile.name if profile else user.fallback_name if user else self.name,
+            photo_url=(
+                "data:image/png;base64," + b64encode(profile.photo).decode("ascii")
+                if profile and profile.photo
+                else None
+            ),
         )
 
     def me(self) -> SocialMe:
         user = self.session.get(SocialUser, self.user_id)
         return SocialMe(
             **self.person(self.user_id).model_dump(),
-            invite_token=user.invite_token if user else None,
             share_room=user.share_room if user else False,
         )
 
-    def create_link(self) -> SocialMe:
-        self.enroll()
-        return self.me()
+    def people(self, query: str) -> PeopleResponse:
+        query = query.strip()
+        if len(query) < 2:
+            raise BookingError(422, "search_too_short", "Enter at least two characters")
+        profiles = self.session.scalars(
+            select(UserProfile)
+            .where(
+                UserProfile.id != self.user_id, UserProfile.name.icontains(query, autoescape=True)
+            )
+            .order_by(func.lower(UserProfile.name), UserProfile.id)
+            .limit(20)
+        )
+        relations = {
+            self._other(row): row
+            for status in ("pending", "accepted")
+            for row in self._relations(status)
+        }
+        people = []
+        for profile in profiles:
+            relation = relations.get(profile.id)
+            relationship = (
+                "none"
+                if relation is None
+                else "friends"
+                if relation.status == "accepted"
+                else "outgoing"
+                if relation.requested_by == self.user_id
+                else "incoming"
+            )
+            people.append(
+                DirectoryPerson(
+                    **self.person(profile.id).model_dump(),
+                    relationship=relationship,
+                    friendship_id=relation.id if relation else None,
+                )
+            )
+        return PeopleResponse(people=people)
 
     def privacy(self, share_room: bool) -> SocialMe:
         user = self.enroll()
@@ -98,16 +139,19 @@ class SocialService:
             requests=[self._request(row) for row in self._relations("pending")]
         )
 
-    def request_friend(self, invite_token: str) -> FriendRequestResponse:
-        target = self.session.scalar(
-            select(SocialUser).where(SocialUser.invite_token == invite_token)
-        )
+    def request_friend(self, user_id: UUID) -> FriendRequestResponse:
+        target = self.session.get(UserProfile, user_id)
         if target is None:
-            raise BookingError(404, "not_found", "Friend invite not found")
-        if target.user_id == self.user_id:
+            raise BookingError(404, "not_found", "User not found")
+        if target.id == self.user_id:
             raise BookingError(409, "self_request", "You cannot add yourself")
         self.enroll()
-        low, high = sorted((self.user_id, target.user_id))
+        self.session.execute(
+            insert(SocialUser)
+            .values(user_id=target.id, fallback_name=target.name, invite_token=token_urlsafe(24))
+            .on_conflict_do_nothing(index_elements=[SocialUser.user_id])
+        )
+        low, high = sorted((self.user_id, target.id))
         self.session.execute(
             insert(Friendship)
             .values(user_low=low, user_high=high, requested_by=self.user_id, status="pending")

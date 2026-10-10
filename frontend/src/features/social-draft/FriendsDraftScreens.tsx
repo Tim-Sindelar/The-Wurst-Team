@@ -10,7 +10,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useState } from 'react';
-import { Link, useHref, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
 import { SectionLabel } from '../../components/SectionLabel';
@@ -20,16 +20,17 @@ import {
   activeDraftParties,
   draftPaths,
   initials,
-  sampleInvite,
   type DraftPerson,
 } from './draft';
 import { DraftFrame } from './SocialDraftLayout';
 import { useSocialDraft } from './useSocialDraft';
+import { useFriends } from './useFriends';
 
 export function FriendsDraftScreen() {
-  const { state, dispatch } = useSocialDraft();
+  const { state } = useSocialDraft();
+  const social = useFriends();
   const parties = activeDraftParties(state.parties);
-  const requests = state.requests.filter((r) => r.incoming).length;
+  const requests = social.requests.filter((r) => r.incoming).length;
   return (
     <DraftFrame
       title="Friends"
@@ -44,13 +45,15 @@ export function FriendsDraftScreen() {
         </Button>
       }
     >
+      <FriendsDataNotice social={social} />
       <SectionLabel>Privacy</SectionLabel>
       <Card component="section" aria-label="Location sharing">
         <Switch
           label="Share my study room with friends"
-          checked={state.shareRoom}
+          checked={social.shareRoom}
+          disabled={social.busy || social.loading || !!social.error}
           onChange={(e) => {
-            dispatch({ type: 'privacy', enabled: e.currentTarget.checked });
+            void social.privacy(e.currentTarget.checked);
           }}
         />
         <Text size="sm" c="dimmed">
@@ -67,7 +70,7 @@ export function FriendsDraftScreen() {
       >
         <div className="flex items-center justify-between gap-3">
           <div className="grid min-w-0 gap-1">
-            <Title order={2}>Study parties</Title>
+            <Title order={2}>Study parties · preview</Title>
             <Text size="sm" c="dimmed">
               {parties.length
                 ? `${parties.length} active ${parties.length === 1 ? 'party' : 'parties'} · invitations and group bookings`
@@ -96,7 +99,7 @@ export function FriendsDraftScreen() {
           <div className="grid min-w-0 flex-1 gap-1">
             <Title order={2}>Manage friends</Title>
             <Text size="sm" c="dimmed">
-              {state.friends.length} friends
+              {social.friends.length} friends
               {requests
                 ? ` · ${requests} ${requests === 1 ? 'request' : 'requests'} to review`
                 : ''}
@@ -110,11 +113,11 @@ export function FriendsDraftScreen() {
 }
 
 export function ManageFriendsDraftScreen() {
-  const { state, dispatch } = useSocialDraft();
   const [search, setSearch] = useState('');
+  const social = useFriends();
   const [remove, setRemove] = useState<DraftPerson | null>(null);
   const [notice, setNotice] = useState('');
-  const friends = state.friends.filter((p) =>
+  const friends = social.friends.filter((p) =>
     p.name.toLowerCase().includes(search.trim().toLowerCase()),
   );
   return (
@@ -137,10 +140,11 @@ export function ManageFriendsDraftScreen() {
         icon="check"
         title={notice}
       />
-      {state.requests.length > 0 && (
-        <SectionLabel>Friend requests · {state.requests.length}</SectionLabel>
+      <FriendsDataNotice social={social} />
+      {social.requests.length > 0 && (
+        <SectionLabel>Friend requests · {social.requests.length}</SectionLabel>
       )}
-      {state.requests.map(({ person, incoming }) => (
+      {social.requests.map(({ person, incoming }) => (
         <Card
           key={person.id}
           component="article"
@@ -158,9 +162,10 @@ export function ManageFriendsDraftScreen() {
             {incoming && (
               <Button
                 variant="secondary"
-                onClick={() => {
-                  dispatch({ type: 'accept-request', id: person.id });
-                  setNotice(`You’re now friends with ${person.name}`);
+                disabled={social.busy || social.loading}
+                onClick={async () => {
+                  if (await social.accept(person))
+                    setNotice(`You’re now friends with ${person.name}`);
                 }}
               >
                 Accept request
@@ -168,9 +173,12 @@ export function ManageFriendsDraftScreen() {
             )}
             <Button
               variant="quiet"
-              onClick={() => {
-                dispatch({ type: 'remove-request', id: person.id });
-                setNotice(incoming ? 'Request declined' : 'Request cancelled');
+              disabled={social.busy || social.loading}
+              onClick={async () => {
+                if (await social.remove(person, true))
+                  setNotice(
+                    incoming ? 'Request declined' : 'Request cancelled',
+                  );
               }}
             >
               {incoming ? 'Decline' : 'Cancel request'}
@@ -179,10 +187,10 @@ export function ManageFriendsDraftScreen() {
         </Card>
       ))}
 
-      <SectionLabel>Your friends · {state.friends.length}</SectionLabel>
+      <SectionLabel>Your friends · {social.friends.length}</SectionLabel>
       <TextInput
         type="search"
-        label="Find a friend"
+        label="Filter your friends"
         placeholder="Search by name"
         leftSection={<Icon name="search" />}
         value={search}
@@ -196,6 +204,7 @@ export function ManageFriendsDraftScreen() {
             </div>
             <ActionIcon
               aria-label={`Remove ${person.name} from friends`}
+              disabled={social.busy || social.loading}
               onClick={() => setRemove(person)}
             >
               <Icon name="close" />
@@ -220,22 +229,23 @@ export function ManageFriendsDraftScreen() {
         safeLabel="Keep friend"
         actionLabel="Remove friend"
         actionTone="danger"
-        onConfirm={() => {
-          if (remove) dispatch({ type: 'remove-friend', id: remove.id });
-          setRemove(null);
-          setNotice('Friend removed');
+        onConfirm={async () => {
+          if (!social.busy && remove && (await social.remove(remove))) {
+            setRemove(null);
+            setNotice('Friend removed');
+          }
         }}
       >
-        You’ll stop sharing your study room with each other. You can send
-        another request later.
+        {social.error ||
+          'You’ll stop sharing your study room with each other. You can send another request later.'}
       </DecisionSheet>
     </DraftFrame>
   );
 }
 
 export function FriendLocationsDraftScreen() {
-  const { state } = useSocialDraft();
-  const shared = state.friends.filter((p) => p.room !== null);
+  const social = useFriends();
+  const shared = social.friends.filter((p) => p.room !== null);
   return (
     <DraftFrame
       title="Stalk my friends"
@@ -250,6 +260,7 @@ export function FriendLocationsDraftScreen() {
         </Button>
       }
     >
+      <FriendsDataNotice social={social} />
       <Text c="dimmed">
         Only rooms your friends share while checked in. No seat numbers or live
         tracking.
@@ -288,7 +299,7 @@ export function PersonRow({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <Avatar className="shrink-0" aria-hidden="true">
+      <Avatar src={person.photoUrl} className="shrink-0" aria-hidden="true">
         {initials(person.name)}
       </Avatar>
       <div className="grid min-w-0 flex-1 gap-1">
@@ -303,134 +314,113 @@ export function PersonRow({
 }
 
 export function AddFriendDraftScreen() {
-  const [params] = useSearchParams();
-  return (
-    <AddFriendPreview
-      key={params.get('invite') ?? ''}
-      inviteCode={params.get('invite')}
-    />
-  );
-}
-
-function AddFriendPreview({ inviteCode }: { inviteCode: string | null }) {
-  const { state, dispatch } = useSocialDraft();
-  const addPath = useHref(draftPaths.add);
-  const ownLink = `${window.location.origin}${addPath}?invite=you`;
-  const sampleLink = `${window.location.origin}${addPath}?invite=sam`;
-  const [invite, setInvite] = useState(() =>
-    inviteCode === 'sam' ? sampleLink : inviteCode === 'you' ? ownLink : '',
-  );
-  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
-  const sent = state.requests.some((r) => r.person.id === sampleInvite.id);
-
-  const send = () => {
-    try {
-      const url = new URL(invite.trim());
-      if (url.searchParams.get('invite') === 'you') {
-        setError(
-          'This is your own invite link. Ask your friend to share theirs.',
-        );
-        return;
-      }
-      if (
-        url.origin !== window.location.origin ||
-        url.pathname !== addPath ||
-        url.searchParams.get('invite') !== 'sam'
-      ) {
-        setError(
-          'That invite link isn’t available in this preview. Use Sam’s sample link below.',
-        );
-        return;
-      }
-      dispatch({ type: 'send-request', person: sampleInvite });
-      setError('');
-      setNotice('Friend request sent to Sam');
-    } catch {
-      setError('Paste the complete invite link your friend shared.');
-    }
-  };
-
+  const social = useFriends(search);
+  const chosen = social.people.find(
+    (p) => p.id === selected && p.relationship === 'none',
+  );
   return (
     <DraftFrame
       title="Add a friend"
       backTo={draftPaths.friends}
       actions={
         <Button
-          type="submit"
-          form="friend-invite-form"
-          disabled={!invite.trim() || sent}
-        >
-          {sent ? 'Request sent' : 'Send friend request'}
-        </Button>
-      }
-    >
-      <SectionLabel>Your invite link</SectionLabel>
-      <Card component="section" aria-label="Share your friend link">
-        <Title order={2}>Let friends find you</Title>
-        <Text size="sm" c="dimmed">
-          Share your link. You’ll get a request to accept before you become
-          friends.
-        </Text>
-        <TextInput
-          label="Your friend link"
-          value={ownLink}
-          readOnly
-          onFocus={(e) => e.currentTarget.select()}
-        />
-        <Button
-          variant="secondary"
+          disabled={
+            !chosen || social.busy || social.loading || social.searching
+          }
           onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(ownLink);
-              setNotice('Invite link copied');
-            } catch {
-              setError(
-                'Could not copy the link. Select the field and copy it manually.',
-              );
+            if (chosen && (await social.send(chosen))) {
+              setSelected(null);
+              setNotice(`Friend request sent to ${chosen.name}`);
             }
           }}
         >
-          Copy invite link
+          Send friend request
         </Button>
-      </Card>
-      <SectionLabel>Have a friend’s link?</SectionLabel>
-      <Button
-        variant="quiet"
-        component={Link}
-        to={`${draftPaths.add}?invite=sam`}
-      >
-        Try Sam’s sample invite
-      </Button>
-      <Card
-        component="form"
-        id="friend-invite-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!sent) send();
+      }
+    >
+      <FriendsDataNotice social={social} />
+      <Text c="dimmed">
+        Find people who have signed into the app. They’ll need to accept your
+        request.
+      </Text>
+      <TextInput
+        type="search"
+        label="Find people"
+        placeholder="Search by display name"
+        maxLength={80}
+        leftSection={<Icon name="search" />}
+        value={search}
+        onChange={(e) => {
+          setSearch(e.currentTarget.value);
+          setSelected(null);
         }}
-      >
-        <TextInput
-          label="Friend’s invite link"
-          type="url"
-          placeholder="Paste their invite link"
-          value={invite}
-          onChange={(e) => {
-            setInvite(e.currentTarget.value);
-            setError('');
-          }}
-        />
-        {invite === sampleLink && !error && (
-          <PersonRow person={sampleInvite} detail="Send a request to connect" />
-        )}
-        <Text size="sm" c="dimmed">
-          Opening a link doesn’t add anyone automatically.
+      />
+      <Text size="sm" c="dimmed">
+        Signing in makes your display name and avatar discoverable. Your room
+        stays private unless you share it.
+      </Text>
+      {search.trim().length < 2 ? (
+        <Text c="dimmed">Enter at least two characters.</Text>
+      ) : social.searching ? (
+        <Text role="status" c="dimmed">
+          Searching people…
         </Text>
-      </Card>
-      {error && (
-        <Alert variant="danger" role="alert" title="Unable to add friend">
-          {error}
-        </Alert>
+      ) : (
+        social.people.map((p) => (
+          <Card key={p.id} component="article" aria-label={p.name}>
+            <PersonRow
+              person={{
+                id: p.id,
+                name: p.name,
+                room: null,
+                photoUrl: p.photo_url,
+              }}
+              detail={
+                p.relationship === 'friends'
+                  ? 'Friends'
+                  : p.relationship === 'outgoing'
+                    ? 'Request sent'
+                    : p.relationship === 'incoming'
+                      ? 'Wants to be your friend'
+                      : 'App member'
+              }
+            />
+            {p.relationship === 'none' && (
+              <Button
+                variant="secondary"
+                disabled={social.busy}
+                aria-pressed={selected === p.id}
+                onClick={() => setSelected(p.id)}
+              >
+                {selected === p.id ? 'Selected' : 'Add friend'}
+              </Button>
+            )}
+            {p.relationship === 'incoming' && (
+              <Button
+                variant="secondary"
+                component={Link}
+                to={draftPaths.manage}
+              >
+                Review request
+              </Button>
+            )}
+          </Card>
+        ))
+      )}
+      {search.trim().length >= 2 &&
+        !social.searching &&
+        !social.loading &&
+        !social.error &&
+        social.people.length === 0 && (
+          <Text c="dimmed">No people match that name.</Text>
+        )}
+      {social.people.length === 20 && (
+        <Text size="sm" c="dimmed">
+          Showing the first 20 matches. Refine your search to find someone.
+        </Text>
       )}
       <StatusBanner
         opened={!!notice}
@@ -439,5 +429,43 @@ function AddFriendPreview({ inviteCode }: { inviteCode: string | null }) {
         title={notice}
       />
     </DraftFrame>
+  );
+}
+
+function FriendsDataNotice({
+  social,
+}: {
+  social: ReturnType<typeof useFriends>;
+}) {
+  return (
+    <>
+      {social.demo && (
+        <Alert title="Friends preview">
+          Sample people and requests only. Enable the social backend to connect
+          with signed-in users.
+        </Alert>
+      )}
+      {social.loading && !social.error && (
+        <Text role="status" c="dimmed">
+          Loading friends…
+        </Text>
+      )}
+      {social.error && (
+        <Alert
+          variant="danger"
+          role="alert"
+          title="Unable to load or update friends"
+        >
+          {social.error}
+          <Button
+            variant="secondary"
+            className="mt-3"
+            onClick={() => void social.retry()}
+          >
+            Try again
+          </Button>
+        </Alert>
+      )}
+    </>
   );
 }

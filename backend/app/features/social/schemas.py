@@ -12,11 +12,20 @@ class SocialCapabilities(BaseModel):
 class SocialPerson(BaseModel):
     id: UUID
     name: str
+    photo_url: str | None = None
 
 
 class SocialMe(SocialPerson):
-    invite_token: str | None
     share_room: bool
+
+
+class DirectoryPerson(SocialPerson):
+    relationship: Literal["none", "outgoing", "incoming", "friends"]
+    friendship_id: UUID | None
+
+
+class PeopleResponse(BaseModel):
+    people: list[DirectoryPerson]
 
 
 class PrivacyUpdate(BaseModel):
@@ -26,7 +35,7 @@ class PrivacyUpdate(BaseModel):
 
 class FriendRequestCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    invite_token: str = Field(min_length=20, max_length=64)
+    user_id: UUID
 
 
 class FriendRequestResponse(BaseModel):

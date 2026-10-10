@@ -2,7 +2,7 @@ from typing import Annotated
 from urllib.parse import unquote
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -22,6 +22,7 @@ from app.features.social.schemas import (
     PartyInvite,
     PartyReply,
     PartyResponse,
+    PeopleResponse,
     PrivacyUpdate,
     SocialCapabilities,
     SocialMe,
@@ -89,9 +90,11 @@ def me(service: Service) -> SocialMe:
     return service.me()
 
 
-@feature_router.post("/me/invite-link", response_model=SocialMe, operation_id="create_friend_link")
-def create_link(service: Service) -> SocialMe:
-    return saved(service, service.create_link())
+@feature_router.get("/people", response_model=PeopleResponse, operation_id="search_social_people")
+def people(
+    service: Service, q: Annotated[str, Query(min_length=2, max_length=80)]
+) -> PeopleResponse:
+    return service.people(q)
 
 
 @feature_router.patch("/me/privacy", response_model=SocialMe, operation_id="update_social_privacy")
@@ -115,7 +118,7 @@ def friend_requests(service: Service) -> FriendRequestsResponse:
     "/friend-requests", response_model=FriendRequestResponse, operation_id="send_friend_request"
 )
 def request_friend(request: FriendRequestCreate, service: Service) -> FriendRequestResponse:
-    return saved(service, service.request_friend(request.invite_token))
+    return saved(service, service.request_friend(request.user_id))
 
 
 @feature_router.post(

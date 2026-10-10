@@ -62,21 +62,25 @@ function DraftPreviewControls() {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const conflict = new URLSearchParams(search).get('error') === '1';
+  const showTools =
+    pathname.startsWith(draftPaths.parties) ||
+    pathname.startsWith(draftPaths.party + '/');
   const partyView =
     pathname === partyPath(state.party.id) ||
     pathname === partyPath(state.party.id, 'reservation');
+  if (!showTools) return null;
   return (
     <details
       className="mx-auto w-full max-w-phone border-x border-b border-border bg-surface-2"
       aria-label="Design preview controls"
     >
       <summary className="min-h-11 cursor-pointer px-4 py-3 text-small text-text-muted">
-        Preview tools · sample data
+        Party preview tools · sample data
       </summary>
       <div className="grid gap-3 px-4 pb-4">
         <div className="flex items-center justify-between gap-2">
           <Text size="sm" c="dimmed">
-            UI draft · sample data
+            Party UI draft · sample data
           </Text>
           <Button
             variant="quiet"

@@ -105,7 +105,7 @@ Use http://localhost:8000/docs to explore the API. `POST /api/v1/reservations` a
 
 Authentication defaults to `AUTH_MODE=proxy`: the trusted `X-User-Id` email maps to a stable UUIDv5 using a fixed application namespace. Missing or empty identity returns 401 on user-specific endpoints; demo headers are ignored. Do not change the namespace, as that would change reservation ownership. Login still belongs to the proxy; the optional `user_profiles` table stores only display customizations, not credentials or email addresses.
 
-`GET /api/v1/me` returns `{id, name, email, photo_url}` using that same reservation identity. Unless a display name has been saved, proxy mode percent-decodes `X-User-Name`, falling back to the email if the name is absent; demo mode returns `Demo user`. Demo email is null, shown as `Local demo account`. `photo_url` is a PNG data URL or null. Responses are not HTTP-cacheable. The frontend uses this endpoint in both modes, with loading/error states and a reload action; it never supplies identity headers or stores auth tokens. Logout is not implemented.
+`GET /api/v1/me` returns `{id, name, email, photo_url}` using that same reservation identity. On first sign-in, it registers a display profile using percent-decoded `X-User-Name`, falling back to `Study Spaces user` if absent; demo mode uses `Demo user`. Existing profile edits are preserved. Demo email is null, shown as `Local demo account`. `photo_url` is a PNG data URL or null. Responses are not HTTP-cacheable. The frontend uses this endpoint in both modes, with loading/error states and a reload action; it never supplies identity headers or stores auth tokens. Logout is not implemented.
 
 On Profile, edit the display name, choose/preview or remove a photo, then press **Save changes**. `PATCH /api/v1/me` accepts multipart form fields: `name` (1–80 characters after trimming, input capped at 80), optional `photo`, and optional `remove_photo=true`. Omit `photo` to keep the current picture. Edits are saved together and can only affect the authenticated user's profile; email, UUID, and reservation ownership never change. Photos must be actual JPEG, PNG, or WebP images, at most 2 MiB and 16 megapixels. The backend corrects orientation, resizes to fit 256×256, and re-encodes to PNG without source metadata. Profile data persists in PostgreSQL; no upload directory or storage service is needed.
 
@@ -136,7 +136,7 @@ The `reservation_states` database view derives availability from the clock, incl
 
 ## Optional friends and party booking
 
-The social backend supports friend invite links and requests, accepted party membership,
+The social backend supports signed-in user search and direct friend requests, accepted party membership,
 manual same-room seat assignments, atomic booking for all accepted members, and optional
 friend room sharing. It defaults to disabled (`SOCIAL_ENABLED=false`); enabling it does
 not replace the frontend's live individual-booking flow. See [the social backend contract](docs/social-backend.md)
@@ -144,8 +144,11 @@ for setup, endpoints, consent rules, and the frontend integration boundary.
 
 A separate frontend draft is at `http://127.0.0.1:5173/social-draft` and in CI-deployed PR previews.
 Open it through **Friends** in the Home / Map / Friends bottom navigation. Its hub
-separates parties, shared friend rooms and friend management. It uses sample data, saves multiple parties
-and privacy preferences locally, supports switching party perspectives, and leaves ordinary bookings alone.
+separates parties, shared friend rooms and friend management. People search, friend requests,
+friendships and privacy use the real backend when enabled; signing in makes names and avatars
+discoverable, with room sharing off by default. PR deployments enable this in their isolated database.
+Party screens still use sample data saved locally and support switching perspectives. A disabled
+backend shows a labelled friendship preview. Ordinary bookings are unchanged.
 See [the draft walkthrough](design/social-draft.md). `VITE_SOCIAL_DEMO_ENABLED=true` includes the draft
 in a build; CI enables it for PRs and disables it for regular production. Docker accepts the build
 argument `SOCIAL_DEMO_ENABLED=true`. Local development defaults on when the flag is omitted.

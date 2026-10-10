@@ -1,7 +1,13 @@
 import { createContext, type Dispatch } from 'react';
 
 /** View models for the isolated UI preview, not API request/response types. */
-export type DraftPerson = { id: string; name: string; room: string | null };
+export type DraftPerson = {
+  id: string;
+  name: string;
+  room: string | null;
+  photoUrl?: string | null;
+  friendshipId?: string;
+};
 export type DraftRequest = { person: DraftPerson; incoming: boolean };
 export type DraftMember = {
   person: DraftPerson;

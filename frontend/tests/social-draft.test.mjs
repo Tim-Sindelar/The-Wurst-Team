@@ -274,3 +274,22 @@ test('a stale party link cannot mutate an existing party', () => {
   });
   assert.deepEqual(updated.parties, state.parties);
 });
+
+test('people search includes non-friends and distinguishes pending requests', async () => {
+  const { samplePeople } =
+    await import('../src/features/social-draft/directory.ts');
+  let state = initialDraftState();
+  assert.deepEqual(samplePeople(state, 's'), []);
+  const sam = samplePeople(state, '  SAM ')[0];
+  assert.equal(sam.name, 'Sam Keller');
+  assert.equal(sam.relationship, 'none');
+  assert.equal(samplePeople(state, 'Anna')[0].relationship, 'friends');
+  assert.equal(samplePeople(state, 'Nora')[0].relationship, 'incoming');
+  state = draftReducer(state, {
+    type: 'send-request',
+    person: { id: sam.id, name: sam.name, room: null },
+  });
+  assert.equal(samplePeople(state, 'Sam')[0].relationship, 'outgoing');
+  state = draftReducer(state, { type: 'remove-friend', id: 'anna' });
+  assert.equal(samplePeople(state, 'Anna')[0].relationship, 'none');
+});

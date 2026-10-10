@@ -2,8 +2,10 @@
 
 Social features are optional and disabled by default. This implementation does not change the
 existing live individual-booking flow. The generated frontend API client includes
-the new endpoints; social UI integration is the next milestone. A separate locally enabled and PR-preview-enabled
-[frontend draft](../design/social-draft.md) now previews the flow with isolated sample data.
+the new endpoints. The [frontend](../design/social-draft.md) now connects people search,
+friend requests, friends, privacy, and shared rooms to this API when enabled. Party screens remain
+a separate sample-data preview. PR deployments enable social in their isolated database; production
+remains disabled by default.
 
 ## Enable locally
 
@@ -17,9 +19,10 @@ Startup applies the additive migration. Set the value back to `false` and recrea
 to disable social features. Existing reservations remain usable through the standard reservation,
 check-in, and session endpoints. Do not downgrade the database just to disable the feature.
 
-The frontend should use `getSocialCapabilitiesOptions()` as the source of truth: hide navigation
-when `enabled` is false and gate direct social routes too. Every social API except capabilities
-is gated in the backend. API schemas and operation IDs remain stable while disabled.
+The frontend uses `getSocialCapabilitiesOptions()` to choose real friendships when enabled and
+an explicitly labelled sample preview when disabled. Network or authentication failures never
+fall back to sample mutations. All social APIs except capabilities are gated in the backend.
+The build-time demo flag still controls whether these screens and navigation are included.
 
 Use the existing managed-proxy authentication in deployment. Keep direct access blocked, keep
 managed authentication enabled, and use `AUTH_MODE=proxy`. Social never creates credentials,
@@ -28,12 +31,17 @@ Local demo mode supports `X-Demo-User-Id` to exercise multiple users through the
 
 ## Product contract
 
-- Invite links identify a user; opening a link does not send a request or create friendship.
-  The frontend should put the opaque token in `/friends/add?invite=<token>` and require an explicit
-  Send request action. The backend returns a token, not a URL, so the frontend can use its own origin.
+- Loading `/api/v1/me` after signing in registers a display profile in `user_profiles`, preserving
+  existing profile edits. People search covers registered app users, not an ETH directory.
+  `GET /people?q=<name>` requires 2–80 characters, treats wildcards literally, excludes yourself,
+  and returns at most 20 matches in name/ID order, with names, avatars and relationship status.
+  It never includes email or room data. Missing proxy names use `Study Spaces user`, not email.
+- Friend requests target `{user_id}` from search. Select a person and explicitly send a request.
+  Friend invite links have been removed from the UI and API. The unused legacy invite-token column
+  remains for migration compatibility; no new schema migration or data deletion is required.
 - Sending a request and accepting it are separate actions. Crossing requests remain pending.
   Either participant may cancel/decline a pending request or remove an accepted friendship.
-- Social users are enrolled only by mutations, so simply visiting a page does not create rows.
+- Social users are enrolled only by mutations, so reading social pages does not create social rows. Signing in registers the display profile.
   Profile edits remain authoritative for display names; proxy names supply the fallback.
   Other users never receive email addresses or seat QR tokens.
 - Room sharing defaults to off. Only accepted friends see a shared room, and only for an
@@ -75,12 +83,12 @@ TanStack Query helpers rather than handwritten fetch calls or API types.
 | Method | Path | Generated operation | Purpose |
 | --- | --- | --- | --- |
 | GET | `/capabilities` | `get_social_capabilities` | Feature availability, no login required |
-| GET | `/me` | `get_social_me` | Own social identity, optional link token, and sharing preference |
-| POST | `/me/invite-link` | `create_friend_link` | Create/retrieve own stable invite token |
+| GET | `/me` | `get_social_me` | Own social identity and sharing preference |
+| GET | `/people?q=<name>` | `search_social_people` | Signed-in user directory, maximum 20 matches |
 | PATCH | `/me/privacy` | `update_social_privacy` | `{share_room: boolean}` |
 | GET | `/friends` | `list_friends` | Accepted friends and permitted current rooms |
 | GET | `/friend-requests` | `list_friend_requests` | Incoming and outgoing pending requests |
-| POST | `/friend-requests` | `send_friend_request` | `{invite_token}` |
+| POST | `/friend-requests` | `send_friend_request` | `{user_id}` |
 | POST | `/friend-requests/{id}/accept` | `accept_friend_request` | Recipient acceptance |
 | DELETE | `/friendships/{id}` | `delete_friendship` | Cancel, decline, or remove; participant only |
 | GET | `/parties` | `list_parties` | Own accepted parties and open invitations |
