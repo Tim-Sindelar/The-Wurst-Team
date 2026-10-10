@@ -143,6 +143,7 @@ function LayoutEditor({
     viewRef = useRef(view),
     svg = useRef<SVGSVGElement>(null),
     drag = useRef<Drag | null>(null),
+    spaceHeld = useRef(false),
     undo = useRef<LayoutItem[][]>([]),
     redo = useRef<LayoutItem[][]>([]),
     editing = useRef<LayoutItem[] | null>(null);
@@ -249,7 +250,8 @@ function LayoutEditor({
         ?.getAttribute('data-rotate');
     const current = objectsRef.current;
     const targetItem = current.find((item) => item.id === id);
-    if (e.button === 1) {
+    if (e.button === 1 || (e.button === 0 && spaceHeld.current)) {
+      e.preventDefault();
       drag.current = {
         kind: 'pan',
         before: current,
@@ -272,6 +274,13 @@ function LayoutEditor({
           setMessage(String(e));
         }
       return;
+    }
+    // Clicking a seat dot while a table tool is active switches to seat mode.
+    if (
+      targetItem?.type === 'seat' &&
+      ['table', 'round', 'l', 'curved'].includes(tool)
+    ) {
+      setTool('seat');
     }
     // Existing furniture takes priority over placement. The Seat tool still
     // places seats at a table or row, rather than moving its seating group.
@@ -479,6 +488,29 @@ function LayoutEditor({
     globalThis.document.addEventListener('keydown', key);
     return () => globalThis.document.removeEventListener('keydown', key);
   }, [room, selected]);
+  useEffect(() => {
+    const typing = (e: KeyboardEvent) =>
+      !!(e.target as Element).closest?.(
+        'input,select,textarea,button,[contenteditable="true"]',
+      );
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || typing(e)) return;
+      spaceHeld.current = true;
+      if (!drag.current) e.preventDefault();
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code === 'Space') spaceHeld.current = false;
+    };
+    const blur = () => (spaceHeld.current = false);
+    globalThis.document.addEventListener('keydown', down);
+    globalThis.document.addEventListener('keyup', up);
+    globalThis.addEventListener('blur', blur);
+    return () => {
+      globalThis.document.removeEventListener('keydown', down);
+      globalThis.document.removeEventListener('keyup', up);
+      globalThis.removeEventListener('blur', blur);
+    };
+  }, []);
   const item = objects.find((o) => o.id === selected);
   const live = objects.map((o) =>
     o.type === 'seat'
