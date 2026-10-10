@@ -2,21 +2,11 @@ import * as THREE from 'three';
 import { group, box, mesh, cylinder, roundedBox, roundedShape, person, chair, laptop, backpack, buildPhone, idle, run, batchStatic } from './world.js';
 import plannerUrl from './assets/party-planner.jpg';
 import qrUrl from './assets/seat-qr.svg';
-
-function screenTexture(){
-  const canvas=document.createElement('canvas');canvas.width=390;canvas.height=844;
-  const c=canvas.getContext('2d');c.fillStyle='#111';c.fillRect(0,0,390,844);
-  c.fillStyle='#eee';c.font='600 23px Arial';c.fillText('Study Spaces',24,74);
-  c.font='500 32px Arial';c.fillText('Your session',24,154);
-  c.font='500 70px Arial';c.fillText('15:00',24,255);
-  c.fillStyle='#aaa';c.font='21px Arial';c.fillText('HG E 51 · Seat A-1',24,302);
-  c.fillStyle='#292d2a';c.beginPath();c.roundRect(20,360,350,195,18);c.fill();
-  c.fillStyle='#eee';c.font='600 28px Arial';c.fillText('Your reservation',38,403);c.fillText('is running out',38,439);
-  c.fillStyle='#b7c7ac';c.font='23px Arial';c.fillText('Priority to extend',38,490);
-  c.fillStyle='#82a6df';c.beginPath();c.roundRect(20,650,350,56,10);c.fill();
-  c.fillStyle='#182229';c.font='600 21px Arial';c.textAlign='center';c.fillText('Extend session',195,686);
-  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
-}
+import campusMapUrl from './assets/campus-map-3d.jpg';
+import activeUrl from './assets/session-active.jpg';
+import priorityUrl from './assets/session-priority.jpg';
+import handoverUrl from './assets/session-handover.jpg';
+import breakUrl from './assets/session-break.jpg';
 
 function staticPhone(parent,texture){
   const phone=buildPhone(parent);
@@ -28,9 +18,9 @@ function staticPhone(parent,texture){
   return phone.root;
 }
 
-function featureRenders(scene,qr){
+function featureRenders(scene,qr,screens){
   const root=group(scene),variants=Array.from({length:4},()=>group(root));
-  const scan=variants[0];scan.scale.setScalar(1.45);
+  const scan=group(variants[0],[-.45,0,.2]);scan.scale.setScalar(.95);
   const student=happyStudent(scan,[-.6,0,-.35],{rotation:.65});
   const rig=student.userData;rig.torso.rotation.x=.12;rig.head.rotation.x=.35;
   rig.arms[1].shoulder.rotation.x=-1.1;rig.arms[1].elbow.rotation.x=-.9;
@@ -41,16 +31,14 @@ function featureRenders(scene,qr){
   const held=buildPhone(scan).root;held.scale.setScalar(.33);held.position.set(-.08,1.36,.12);held.rotation.set(-.85,.15,-.1);
   backpack(scan,[-1.0,0,-.3]);
 
-  const expiry=variants[1],device=staticPhone(expiry,screenTexture());device.scale.setScalar(3.8);device.position.y=2;device.rotation.set(0,-.12,-.035);
-
-  const handover=variants[2];handover.scale.setScalar(1.45);
+  const handover=group(variants[2],[-.5,0,0]);handover.scale.setScalar(.95);
   happyStudent(handover,[-.9,0,.25],{rotation:-.45,wave:true});
   chair(handover,.4,-.3);happyStudent(handover,[.4,0,-.3],{seated:true,color:'#8dabb0'});
   roundedBox(handover,[1.5,.1,1],[.5,1.04,.8],'#d4c5ad',.04);
   for(const x of [0,1])for(const z of [.5,1.1])box(handover,[.055,1,.055],[x,.5,z],'#88998c');
   laptop(handover,.5,1.12,.65);backpack(handover,[-1.1,0,.75]);
 
-  const coffee=variants[3];coffee.scale.setScalar(1.65);
+  const coffee=group(variants[3],[-.35,.15,0]);coffee.scale.setScalar(1.05);
   const mug=group(coffee,[-.35,0,0]);mug.scale.setScalar(.85);
   cylinder(mug,.57,.49,1.1,[0,.7,0],'#d5b49a',16);
   cylinder(mug,.50,.50,.015,[0,1.258,0],'#765744',16);
@@ -74,7 +62,11 @@ function featureRenders(scene,qr){
   const second=group(watch,[0,0,.15]);second.rotation.z=1.9;
   box(second,[.014,.41,.012],[0,.15,0],'#bd795b');
   const pin=cylinder(watch,.035,.035,.025,[0,0,.16],'#435346',8);pin.rotation.x=Math.PI/2;
-  variants.forEach(variant=>batchStatic(variant,null));
+  variants.forEach((variant,i)=>{
+    const device=staticPhone(variant,screens[i]);device.scale.setScalar(3.5);
+    device.position.set(i===1?.8:2.3,2,0);device.rotation.set(0,-.1,-.025);
+    batchStatic(variant,null);
+  });
   return {root,show(step){variants.forEach((variant,i)=>{variant.visible=i===step;});}};
 }
 
@@ -131,11 +123,49 @@ function tree(root,x,z,size=1){
   mesh(root,new THREE.IcosahedronGeometry(.58*size,0),'#b0c295',[x+.35*size,1.88*size,z]);
 }
 
+function mapRender(scene,texture){
+  const root=group(scene);
+  roundedBox(root,[5.8,3.38,.12],[0,0,0],'#303731',.12,12);
+  mesh(root,new THREE.PlaneGeometry(5.6,3.15),new THREE.MeshBasicMaterial({map:texture,toneMapped:false}),[0,0,.08]);
+  batchStatic(root,null);return root;
+}
+
+function adoptionRender(scene,hgRoot){
+  const root=group(scene),library=group(root),eth=group(root),universities=group(root);
+  roundedBox(library,[5.3,.18,4],[0,-.12,0],'#d5dfbd',.15);
+  // An open library room remains visible as the camera pulls back to ETH.
+  box(library,[5.3,2.5,.16],[0,1.15,-1.8],'#c9cec6');
+  for(const x of [-1.7,1.7]){
+    box(library,[1.15,1.8,.32],[x,.9,-1.55],'#a9987e');
+    for(const y of [.35,.9,1.45]){
+      box(library,[1.08,.05,.4],[x,y,-1.45],'#d4c5ad');
+      for(let i=0;i<6;i++)box(library,[.10,.37,.17],[x-.43+i*.17,y+.22,-1.39],['#859678','#b58f75','#8dabb0'][i%3]);
+    }
+  }
+  sharedTable(library,[0,0,.4],.85);
+  const hg=hgRoot.clone(true);hg.scale.setScalar(.5);hg.position.set(0,0,-9);eth.add(hg);
+  for(const [x,z] of [[-8,0],[8,0],[-9,-11],[9,-11]]){
+    box(eth,[3.5,1.6,3.2],[x,.8,z],'#d1c7b4');
+    for(const dx of [-1,0,1])box(eth,[.3,.55,.04],[x+dx,1,z+1.62],'#8dabb0');
+    tree(eth,x-2,z+2,.85);
+  }
+  for(const [x,color] of [[-25,'#b5c6cf'],[25,'#c9b99b']]){
+    const campus=group(universities,[x,0,-5]);
+    cylinder(campus,8,8,.14,[0,-.17,0],'#d5dfbd',32);
+    for(const dx of [-3.5,3.5])box(campus,[3.4,2,4],[dx,1,-.5],color);
+    box(campus,[8.5,2.6,2],[0,1.3,-3.2],color);
+    for(const dx of [-3,-1,1,3])cylinder(campus,.18,.18,2.3,[dx,1.15,-2.1],'#e9e4d7',8);
+    tree(campus,-5,4,1.3);tree(campus,5,4,1.1);
+  }
+  [library,eth,universities].forEach(part=>batchStatic(part,null));
+  return {root,show(step){eth.visible=step>=1;universities.visible=step>=2;}};
+}
+
 export async function buildClosing(scene,hgRoot){
   const loader=new THREE.TextureLoader();
-  const [planner,qr]=await Promise.all([loader.loadAsync(plannerUrl),loader.loadAsync(qrUrl)]);
-  planner.colorSpace=THREE.SRGBColorSpace;qr.colorSpace=THREE.SRGBColorSpace;
-  const features=featureRenders(scene,qr);
+  const [planner,qr,map,...screens]=await Promise.all([plannerUrl,qrUrl,campusMapUrl,activeUrl,priorityUrl,handoverUrl,breakUrl].map(url=>loader.loadAsync(url)));
+  [planner,qr,map,...screens].forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;});
+  const features=featureRenders(scene,qr,screens),campusMap=mapRender(scene,map),adoption=adoptionRender(scene,hgRoot);
   const friends=group(scene);
   const partyPhone=staticPhone(friends,planner);partyPhone.scale.setScalar(4.2);partyPhone.position.y=2.1;partyPhone.rotation.set(0,-.12,-.045);
   batchStatic(friends,null);
@@ -167,7 +197,7 @@ export async function buildClosing(scene,hgRoot){
   }
   batchStatic(campus,motion);
   const point=new THREE.Vector3(),tangent=new THREE.Vector3();
-  return {features,friends,friendTable,campus,animate(time,reducedMotion){
+  return {features,friends,friendTable,campus,campusMap,adoption,animate(time,reducedMotion){
     if(reducedMotion)return;
     chatters.forEach((student,i)=>{idle(student,time+i*2.1);});
     chatters[0].userData.arms[0].elbow.rotation.z=Math.sin(time*1.3)*.15;
@@ -197,12 +227,13 @@ export function buildSlides(){
       <h1>Built for ETH</h1><div class="eth-copy"><p>Campus map</p><p>ETH sign-in</p><p>Free for students</p></div>
     </section>
     <section class="pitch-slide pilot-slide" data-slide="3" hidden aria-label="One library, entire ETH, other universities">
-      <div class="pilot-copy"><h1>One library</h1><span aria-hidden="true">→</span><p>Entire ETH</p><span aria-hidden="true">→</span><p>Other universities</p></div>
+      <div class="pilot-copy"><h1 data-rollout="0">One library</h1><span aria-hidden="true">→</span><p data-rollout="1">Entire ETH</p><span aria-hidden="true">→</span><p data-rollout="2">Other universities</p></div>
     </section>
     <section class="pitch-slide future-slide" data-slide="4" hidden aria-label="Questions and answers over a happy ETH campus"><h1>Q&amp;A</h1></section>`;
   const pages=[...root.querySelectorAll('[data-slide]')];
   const features=[...root.querySelectorAll('[data-feature]')];
+  const rollout=[...root.querySelectorAll('[data-rollout]')];
   return {show(index){root.hidden=index<0;pages.forEach((page,i)=>{page.hidden=i!==index;});},revealFeature(step){
     features.forEach((line,i)=>{line.classList.toggle('revealed',i<=step);line.classList.toggle('active',i===step);line.setAttribute('aria-hidden',String(i>step));});
-  }};
+  },revealRollout(step){rollout.forEach((line,i)=>{line.classList.toggle('active',i===step);line.classList.toggle('revealed',i<=step);});}};
 }

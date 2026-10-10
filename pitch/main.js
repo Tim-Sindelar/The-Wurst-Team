@@ -48,7 +48,7 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;sce
 const hall=buildHall(scene),bathroom=buildBathroom(scene),phone=buildPhone(scene);
 const exterior=buildHG(scene);
 const closing=await buildClosing(scene,exterior.root),slides=buildSlides();
-const sets=[exterior.root,hall.root,bathroom.root,closing.features.root,closing.friends,closing.friendTable.root,closing.campus];
+const sets=[exterior.root,hall.root,bathroom.root,closing.features.root,closing.friends,closing.friendTable.root,closing.campus,closing.campusMap,closing.adoption.root];
 batchStatic(hall.root,hall.student);batchStatic(bathroom.root,bathroom.student);
 const cssScene=new THREE.Scene();
 const cssRenderer=new CSS3DRenderer({element:document.getElementById('screens')});cssRenderer.setSize(innerWidth,innerHeight);
@@ -91,6 +91,7 @@ const finalPhonePosition=new THREE.Vector3(0,2.5,0);
 const finalPhoneScale=4.65;
 let current=0,elapsed=0,last=performance.now(),transition=0,filmPlaying=false,paused=true,exteriorStarted=false,cut=null;
 let featureStep=0;
+let rolloutStep=0;
 let qaExpanded=false;
 const qaPhonePosition=new THREE.Vector3();
 let clickDown=null,impactTime=-1000,lastDraw=0,forceDraw=true,frameSamples=0,frameTotal=0,resumeAfterVisibility=false;
@@ -122,6 +123,7 @@ function updateAccessibleState(){
   advanceButton.setAttribute('aria-label',current===6?'Continue to pitch slides':'Next pitch slide');
   stage.dataset.slide=current>=7?String(current-6):'0';
   stage.dataset.feature=current===7?String(featureStep+1):'0';
+  stage.dataset.rollout=current===10?String(rolloutStep+1):'0';
   document.getElementById('status').textContent=current===7?featureNames[featureStep]:names[current];
 }
 function slam(id){
@@ -131,12 +133,15 @@ function slam(id){
 }
 function go(index,snap=false){
   if(index===7)featureStep=current===8?3:0;
+  if(index===10)rolloutStep=current===11?2:0;
   if(index===5){zoomStartPosition.copy(phone.root.position);zoomStartRotation.set(phone.root.rotation.x,phone.root.rotation.y,phone.root.rotation.z);}
   captureCamera();current=Math.max(0,Math.min(11,index));elapsed=0;paused=false;impacts.clear();impactTime=-1000;
   taken.classList.remove('slam');delete stage.dataset.peek;forceDraw=true;renderer.shadowMap.needsUpdate=true;
   delete stage.dataset.holding;
   sets.forEach(root=>{root.visible=false;root.position.set(0,0,0);root.scale.setScalar(1);});
-  exterior.root.visible=current===0||current===9;hall.root.visible=current>=1&&current<=3;
+  exterior.root.visible=current===0;hall.root.visible=current>=1&&current<=3;
+  closing.campusMap.visible=current===9;closing.adoption.root.visible=current===10;
+  if(current===10){closing.adoption.show(rolloutStep);slides.revealRollout(rolloutStep);}
   closing.friends.visible=current===8;closing.campus.visible=current===11;
   closing.friendTable.root.visible=current===8;
   closing.features.root.visible=current===7;
@@ -175,9 +180,10 @@ function go(index,snap=false){
     bathroom.student.userData.arms[1].shoulder.rotation.set(-1.1,0,-.2);
     bathroom.student.userData.arms[1].elbow.rotation.x=-1.5;
   }else if(current===5){filmPlaying=false;positionCamera([0,2.5,8.1],[0,2.5,0]);}
-  else if(current===7){closing.features.root.position.x=1.8;positionCamera([0,3.1,9],[0,1.5,0]);}
+  else if(current===7){closing.features.root.position.x=1.5;positionCamera([0,3.1,9],[0,1.5,0]);}
   else if(current===8){closing.friends.position.x=2.4;closing.friendTable.root.position.set(-2.2,.1,0);positionCamera([0,2.65,9.1],[0,2.1,0]);}
-  else if(current===9){exterior.root.position.set(6.5,0,0);exterior.root.scale.setScalar(.64);positionCamera([12,10,24],[0,1,0]);}
+  else if(current===9){closing.campusMap.position.set(2.65,2,0);positionCamera([0,3.1,10.8],[0,2,0]);}
+  else if(current===10)rolloutCamera();
   else if(current===11){qaExpanded=false;positionCamera([24,17,28],[0,1,-4]);}
   if(snap&&current!==5)snapCamera();updateAccessibleState();
 }
@@ -189,7 +195,7 @@ function updateCut(delta){
   if(cut.elapsed>=out&&!cut.switched){go(cut.index,true);cut.switched=true;}
   const opacity=cut.elapsed<out?cut.elapsed/out:cut.elapsed<out+hold?1:1-(cut.elapsed-out-hold)/inTime;
   blackout.style.opacity=String(Math.max(0,Math.min(1,opacity)));
-  if(cut.elapsed>=out+hold+inTime){cut=null;blackout.style.opacity=current===6&&!liveFrame?'1':'0';if(current>=6&&current<11&&current!==8)paused=true;}
+  if(cut.elapsed>=out+hold+inTime){cut=null;blackout.style.opacity=current===6&&!liveFrame?'1':'0';if(current>=6&&current<11&&current!==8&&current!==10)paused=true;}
 }
 function startFilm(){
   filmPlaying=true;exteriorStarted=true;paused=false;elapsed=0;transition=0;score.start();forceDraw=true;updateAccessibleState();
@@ -200,13 +206,25 @@ function showFeature(step){
   if(cut)return;
   featureStep=step;closing.features.show(step);slides.revealFeature(step);forceDraw=true;renderer.shadowMap.needsUpdate=true;updateAccessibleState();
 }
+function rolloutCamera(){
+  const views=[[[6,5,9],[0,1.7,0]],[[22,16,31],[0,6,0]],[[42,32,60],[0,9,-2]]];
+  positionCamera(...views[rolloutStep]);
+}
+function showRollout(step){
+  if(cut)return;
+  captureCamera();rolloutStep=step;paused=false;
+  closing.adoption.show(step);slides.revealRollout(step);rolloutCamera();
+  forceDraw=true;renderer.shadowMap.needsUpdate=true;updateAccessibleState();
+}
 function nextSlide(){
   if(current===7&&featureStep<3){showFeature(featureStep+1);return;}
+  if(current===10&&rolloutStep<2){showRollout(rolloutStep+1);return;}
   if(current>=6&&current<11)cutTo(current+1);
 }
 function previousSlide(){
   if(current===7&&featureStep>0){showFeature(featureStep-1);return;}
-  if(current>7)cutTo(current-1);
+  if(current===10&&rolloutStep>0){showRollout(rolloutStep-1);return;}
+  if(current>=7)cutTo(current-1);
 }
 function exteriorMotion(){
   if(!exteriorStarted)return;
@@ -290,8 +308,8 @@ function render(now){
     // Keep the hallway walk continuous; location changes pass through black.
     if(current===1)go(2);else cutTo(current+1);
   }
-  const t=reducedMotion?1:ease(Math.min(transition/(current===5?durations[5]:950),1));
-  if(current===0||current===3||current===4||current>=7){camera.position.copy(cameraTo);look.copy(lookTo);}
+  const t=reducedMotion?1:ease(Math.min(transition/(current===5?durations[5]:current===10?1100:950),1));
+  if(current===0||current===3||current===4||(current>=7&&current!==10)){camera.position.copy(cameraTo);look.copy(lookTo);}
   else if(current===2&&transition>=950&&!reducedMotion){const follow=1-Math.exp(-delta*.006);camera.position.lerp(cameraTo,follow);look.lerp(lookTo,follow);}
   else{camera.position.copy(cameraFrom).lerp(cameraTo,t);look.copy(lookFrom).lerp(lookTo,t);}
   camera.lookAt(look);
@@ -299,7 +317,7 @@ function render(now){
   if(current===2&&impactAge>=0&&impactAge<.24&&!reducedMotion)camera.rotateZ(Math.sin(impactAge*65)*.022*Math.exp(-impactAge*14));
   updatePhone();
   const settledPhone=current===5&&elapsed>=durations[5];
-  const animated=!paused&&current!==6&&!settledPhone&&(current<7||((current===8||current===11)&&(!reducedMotion||elapsed<1000)));
+  const animated=!paused&&current!==6&&!settledPhone&&(current<7||current===10&&transition<1150||((current===8||current===11)&&(!reducedMotion||elapsed<1000)));
   if(forceDraw||(animated&&now-lastDraw>=1000/(current===8||current===11?30:45))){
     renderer.shadowMap.needsUpdate=forceDraw||current===1||current===2||current===3||current===8||current===11||(current===5&&!settledPhone);
     renderer.render(scene,camera);cssRenderer.render(cssScene,camera);lastDraw=now;forceDraw=false;stage.dataset.drawCalls=String(renderer.info.render.calls);
@@ -321,6 +339,9 @@ canvas.addEventListener('pointerup',event=>{
 });
 phoneCover.addEventListener('click',()=>{score.unlock();openPhone();});
 advanceButton.addEventListener('click',nextSlide);
+for(const surface of [canvas,advanceButton])surface.addEventListener('contextmenu',event=>{
+  if(current>=7){event.preventDefault();previousSlide();}
+});
 async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{ /* A browser preview may restrict full screen. */ }}
 window.addEventListener('keydown',event=>{
   if(event.target.closest('input,textarea,[contenteditable=true]'))return;
