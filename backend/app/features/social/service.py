@@ -26,6 +26,7 @@ from app.features.social.schemas import (
     FriendRequestResponse,
     FriendRequestsResponse,
     FriendResponse,
+    FriendRoom,
     FriendsResponse,
     PartiesResponse,
     PartyBook,
@@ -238,7 +239,13 @@ class SocialService:
             if state.status in {"active", "on_break"}:
                 seat = self.session.get(Seat, state.seat_id)
                 space = self.session.get(StudySpace, seat.space_id)
-                rooms[state.user_id] = SocialRoom(id=space.id, name=space.name)
+                rooms[state.user_id] = FriendRoom(
+                    id=space.id,
+                    name=space.name,
+                    seat_id=seat.id,
+                    seat_label=seat.label,
+                    on_break=state.status == "on_break",
+                )
         return FriendsResponse(
             friends=[
                 FriendResponse(

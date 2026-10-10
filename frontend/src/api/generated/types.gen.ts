@@ -1215,7 +1215,35 @@ export type FriendResponse = {
      */
     friendship_id: string;
     person: SocialPerson;
-    room: SocialRoom | null;
+    room: FriendRoom | null;
+};
+
+/**
+ * FriendRoom
+ *
+ * Where a friend who shares their room is checked in right now.
+ */
+export type FriendRoom = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * On Break
+     */
+    on_break: boolean;
+    /**
+     * Seat Id
+     */
+    seat_id: string;
+    /**
+     * Seat Label
+     */
+    seat_label: string;
 };
 
 /**
