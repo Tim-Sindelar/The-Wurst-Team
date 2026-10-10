@@ -1,7 +1,7 @@
 import { ActionIcon, Popover, Text } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
-import { roomGeometry, roomTables, type Seat } from '../../mock/data';
+import { roomGeometry, roomTables, type MapSeat } from '../../domain/room';
 import { Icon } from '../Icon';
 import { SectionLabel } from '../SectionLabel';
 import { createPanZoom, type PanZoom } from './panZoom';
@@ -16,11 +16,11 @@ const keyStates: SeatState[] = [
 ];
 
 type SeatMapProps = {
-  seats: Seat[];
-  selected: number;
-  onSelect: (seat: number) => void;
+  seats: MapSeat[];
+  selected: string;
+  onSelect: (seatId: string) => void;
   /** Optional group selection; individual-seat screens keep their existing behavior. */
-  highlightedSeats?: number[];
+  highlightedSeats?: string[];
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
@@ -58,7 +58,7 @@ export function SeatMap({
         if (zoomInRef.current) zoomInRef.current.disabled = !canZoomIn;
         if (zoomOutRef.current) zoomOutRef.current.disabled = !canZoomOut;
       },
-      onSeatTap: (seat) => onSelectRef.current(Number(seat.dataset.seatNumber)),
+      onSeatTap: (seat) => onSelectRef.current(String(seat.dataset.seatId)),
       onMapPress: () => setKeyOpen(false),
     });
     panZoomRef.current = panZoom;
@@ -71,14 +71,14 @@ export function SeatMap({
   useEffect(() => {
     if (shownSelection.current === selected) return;
     shownSelection.current = selected;
-    const seat = seats.find((item) => item.number === selected);
+    const seat = seats.find((item) => item.id === selected);
     if (seat) panZoomRef.current?.centerOn(seat.x, seat.y);
   }, [selected, seats]);
 
   return (
     <div
       ref={viewportRef}
-      className="relative h-105 cursor-grab touch-none overflow-hidden rounded-card border border-border-strong bg-canvas select-none"
+      className="relative h-full cursor-grab touch-none overflow-hidden rounded-card border border-border-strong bg-canvas select-none"
       tabIndex={0}
       role="region"
       aria-label="Interactive room map. Arrow keys move, plus and minus zoom, Home fits the room."
@@ -135,15 +135,16 @@ export function SeatMap({
         </svg>
         {seats.map((seat) => (
           <SeatMarker
-            key={seat.number}
-            number={seat.number}
+            key={seat.id}
+            id={seat.id}
+            label={seat.label}
             state={seat.state}
             x={seat.x}
             y={seat.y}
             selected={
-              seat.number === selected || highlightedSeats.includes(seat.number)
+              seat.id === selected || highlightedSeats.includes(seat.id)
             }
-            onSelect={() => onSelect(seat.number)}
+            onSelect={() => onSelect(seat.id)}
           />
         ))}
       </div>
@@ -154,7 +155,7 @@ export function SeatMap({
           onChange={setKeyOpen}
           position="bottom-start"
           offset={8}
-          withinPortal={false}
+          withinPortal
           returnFocus
         >
           <Popover.Target>

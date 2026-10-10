@@ -9,7 +9,7 @@ import { SeatMap } from '../../components/seat-map/SeatMap';
 import { TimerCard } from '../../components/TimerCard';
 import { stripeClass } from '../../domain/seat';
 import { useCountdown } from '../../hooks/useCountdown';
-import { mockSpace, roomSeats } from '../../mock/data';
+import { mockSpace, roomSeats } from './sampleRoom';
 import { partyPath, holdSeconds, sessionSeconds } from './draft';
 import { DraftFrame } from './SocialDraftLayout';
 import { useSocialDraft } from './useSocialDraft';
@@ -30,7 +30,7 @@ export function PartySeatsDraftScreen() {
     state.viewer === state.party.organizerId && state.party.status === 'open';
 
   const choose = (number: number) => {
-    const seat = roomSeats.find((s) => s.number === number);
+    const seat = roomSeats.find((s) => s.id === String(number));
     if (seat?.state !== 'free') {
       setError('Choose a seat that is free right now.');
       return;
@@ -104,9 +104,9 @@ export function PartySeatsDraftScreen() {
           </Text>
           <SeatMap
             seats={roomSeats}
-            selected={assignments[active] ?? 0}
-            highlightedSeats={picked}
-            onSelect={choose}
+            selected={String(assignments[active] ?? '')}
+            highlightedSeats={picked.map(String)}
+            onSelect={(id) => choose(Number(id))}
           />
           {error && (
             <Alert

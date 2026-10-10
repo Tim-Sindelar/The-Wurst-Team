@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.features.reservations.schemas import ReserveSeatRequest
 from app.features.reservations.seed import seed_demo
 from app.features.reservations.service import BookingError, ReservationService, reservation_states
-from app.models import Break, Reservation, Seat
+from app.models import Break, Reservation, Seat, StudySpace
 from tests.conftest import migrate
 
 
@@ -141,6 +141,20 @@ def test_extension_uses_config_without_replenishing_break_budget(client, seats, 
         "+00:00", "Z"
     )
     assert extended["break_seconds_remaining"] == 1200
+
+
+def test_session_clock_starts_at_the_scan(client, seats, clock):
+    booked = book(client, seats[0]).json()["reservation"]
+    clock.advance(minutes=7)
+    checked = walk_up(client, seats[0]).json()["reservation"]
+    assert checked["status"] == "active"
+    scan = clock.value
+    assert checked["ends_at"] == (scan + timedelta(minutes=120)).isoformat().replace("+00:00", "Z")
+    assert checked["starts_at"] == booked["starts_at"]
+    # Scanning again changes nothing.
+    clock.advance(minutes=1)
+    again = walk_up(client, seats[0]).json()["reservation"]
+    assert again["ends_at"] == checked["ends_at"]
 
 
 def test_check_in_deadline_and_stale_user_cleanup(client, seats, clock, db):
@@ -291,18 +305,30 @@ def test_configuration_changes_only_affect_new_deadlines(client, seats, clock, p
 
 def test_seed_is_idempotent_and_preserves_bookings(db, clock, policy):
     with Session(db) as session:
-        seeded = seed_demo(session)
+        seeded = seed_demo(session, policy.map_floors_dir)
         assert len(seeded) == 8
         original_tokens = {seat.id: seat.qr_token for seat in seeded}
         session.commit()
         service = ReservationService(session, policy)
         reservation_id, _ = service.check_in(uuid4(), seeded[0].qr_token)
         session.commit()
-        seeded_again = seed_demo(session)
+        seeded_again = seed_demo(session, policy.map_floors_dir)
         session.commit()
         assert {seat.id: seat.qr_token for seat in seeded_again} == original_tokens
         assert session.scalar(select(func.count()).select_from(Seat)) == 8
         assert session.get(Reservation, reservation_id).checked_in_at == clock.value
+
+
+def test_seed_requires_valid_floor_plan_rooms(db, policy, tmp_path):
+    with Session(db) as session:
+        with pytest.raises(ValueError, match="Floor plans are unavailable"):
+            seed_demo(session, tmp_path / "missing")
+        (policy.map_floors_dir / "levels" / "ETH.HG.E.json").write_text(
+            '{"origin": [8.5, 47.3], "scale": 1000000, "rooms": []}', encoding="utf-8"
+        )
+        with pytest.raises(ValueError, match="Demo map room not found"):
+            seed_demo(session, policy.map_floors_dir)
+        assert session.scalar(select(func.count()).select_from(StudySpace)) == 0
 
 
 def race(db, policy, calls):
@@ -417,3 +443,34 @@ def test_migration_round_trip(db):
     with db.connect() as connection:
         assert connection.scalar(text("SELECT count(*) FROM reservation_states")) == 0
         assert connection.scalar(text("SELECT count(*) FROM user_profiles")) == 0
+
+
+def test_rules_report_the_configured_timing(client, policy):
+    policy.check_in_window_minutes = 5
+    response = client.get("/api/v1/rules")
+    assert response.status_code == 200
+    assert response.json() == {
+        "session_length_minutes": 120,
+        "check_in_window_minutes": 5,
+        "private_priority_window_minutes": 20,
+        "public_reservation_window_minutes": 10,
+        "break_budget_minutes": 30,
+    }
+
+
+def test_favourites_belong_to_the_user_and_are_idempotent(client, seats):
+    space = str(seats[0].space_id)
+    other = identity()
+    assert client.get("/api/v1/me/favourites").json() == {"space_ids": []}
+    for _ in range(2):
+        response = client.put(f"/api/v1/me/favourites/{space}")
+        assert response.status_code == 200
+        assert response.json() == {"space_ids": [space]}
+    assert client.get("/api/v1/me/favourites", headers=other).json() == {"space_ids": []}
+    missing = client.put(f"/api/v1/me/favourites/{uuid4()}")
+    assert missing.status_code == 404 and missing.json()["code"] == "not_found"
+    for _ in range(2):
+        response = client.delete(f"/api/v1/me/favourites/{space}")
+        assert response.status_code == 200
+        assert response.json() == {"space_ids": []}
+    assert client.delete(f"/api/v1/me/favourites/{uuid4()}").status_code == 200

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import (
     Break,
+    FavouriteSpace,
     Friendship,
     MapDocument,
     MapEntity,
@@ -69,6 +70,7 @@ def db(test_engine: Engine) -> Iterator[Engine]:
             Party,
             Friendship,
             SocialUser,
+            FavouriteSpace,
             Break,
             Reservation,
             SpaceClosure,

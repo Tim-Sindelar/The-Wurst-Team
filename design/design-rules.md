@@ -153,7 +153,7 @@ Source of truth for the flow: `user-flow.drawio.xml`.
    - **Reserve sheet** (not a screen): seat summary, note "held for X minutes", primary "Reserve", secondary "Cancel". Confirming turns the seat Reserved and goes to screen 3.
 3. **Reservation:** seat / room / building summary, X:00 check-in countdown, primary "Check in" (scan), secondary "Cancel reservation".
 4. **QR scan:** dark camera viewfinder mock, scan frame, hint text, flashlight toggle, back button. Reused when extending. Error state: "You don't seem to be at this seat" (location check failed), shown in place as a danger notice. In the mock, tapping the frame counts as a successful scan, and `?error=1` shows the error.
-5. **Session:** 2h countdown, seat info, buttons Extend (only in extension phases), Break, End session. Banner only in two phases: priority extension (20 min left, only you) and open extension (10 min left, everybody). No banner in the normal phase. Break: starting and ending a break each go through the QR scan (`04-qr-scan.html?from=break-start` and `?from=break-end`), and the QR screen words its title to match. The session clock keeps running. A break timer (15 min placeholder) appears above it, the seat shows the cup badge, and "Back at my seat" is the primary action.
+5. **Session:** 2h countdown, seat info, buttons Extend (only in extension phases), Break, End session. Banner only in two phases: priority extension (20 min left, only you) and open extension (10 min left, everybody). No banner in the normal phase. Break: starting and ending a break each go through the QR scan (`04-qr-scan.html?from=break-start` and `?from=break-end`), and the QR screen words its title to match. The session clock keeps running. A break timer (counting down the remaining break allowance) appears above it, the seat shows the cup badge, and "Back at my seat" is the primary action.
    - Extend adds 2 hours. It asks first, then goes through the QR scan again on purpose, then returns here with a "Session extended" banner.
 
 6. **Profile** (extra, not in the flow): opens from the picture on Home. Back arrow, avatar with name and read-only email, editable display name, secondary photo picker with preview/removal, and three notification toggles. Save changes is the single primary action in the bottom action bar; editing never changes login identity. Show validation/save errors in place and a notification banner after saving. Photos accept JPEG/PNG/WebP up to 2 MiB and 16 megapixels.
@@ -161,7 +161,7 @@ Source of truth for the flow: `user-flow.drawio.xml`.
 Notifications are push banners, not screens. Mock at most as a banner component: check-in reminder (X-3 min), seat lost, priority window (T-20), open window (T-10), session end (with "someone reserved this seat, please hand it over" note if booked), your booked seat is free early.
 
 ## Open items
-- Hold time X is a 10 min placeholder and break length a 15 min placeholder. Extension is 2 hours and a break does not pause the session clock (decided).
+- All timing comes from the backend config (`backend/app/config.py`, served by `GET /api/v1/rules`). Defaults: hold time (check-in window) 15 min, session and extension 2 hours, 30 min of breaks in total per reservation. A break lasts until you scan back in or the allowance runs out, and it does not pause the session clock (decided).
 - "Seat is taken when I arrive": the flow marks it unsolved (trust-based). Mock nothing for now.
 
 ## Working together

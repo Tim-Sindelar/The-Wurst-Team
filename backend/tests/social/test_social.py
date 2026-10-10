@@ -281,7 +281,7 @@ def test_party_booking_failure_rolls_back_all_members(social_client, seats, db, 
         from app.features.reservations.models import Seat, StudySpace
 
         with Session(db) as session:
-            room = StudySpace(name="Other room", lat=47, lng=8)
+            room = StudySpace(name="Other room", map_room_id="test-other-room", lat=47, lng=8)
             session.add(room)
             session.flush()
             seat = Seat(space_id=room.id, label="Other", qr_token="other-room-token")
@@ -517,8 +517,17 @@ def test_social_migration_roundtrip(db, social_client, seats):
         {"kind": "seat", "seat_id": str(seats[0].id)},
     )
     booking = current(social_client, A)
-    migrate(db, "92a543e210ab", downgrade=True)
-    migrate(db)
+    from alembic.config import Config
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    from alembic.script import ScriptDirectory
+
+    # Roundtrip this feature's DDL without undoing main's required room links.
+    revision = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("8fd4c12b6a90")
+    with db.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            revision.module.downgrade()
+            revision.module.upgrade()
     assert current(social_client, A) == booking
     with Session(db) as session:
         for model in (SocialUser, Friendship, Party, PartyMember):
@@ -534,14 +543,16 @@ def test_social_defaults_off_and_can_be_enabled_by_environment(monkeypatch):
     assert Settings(_env_file=None).social_enabled is True
 
 
-@pytest.mark.parametrize("revision", ["8fd4c12b6a90", "a1f3c7d92e54"])
+@pytest.mark.parametrize(
+    "revision", ["8fd4c12b6a90", "a1f3c7d92e54", "b7e2f91a4c60", "5d1c7e2a9b34", "b7a41f2c9d60"]
+)
 def test_merge_migration_upgrades_either_feature_branch_without_losing_data(db, revision):
     migrate(db, "92a543e210ab", downgrade=True)
     migrate(db, revision)
     user_id = UUID(int=100)
     with Session(db) as session:
         session.add(UserProfile(id=user_id, name="Existing profile"))
-        if revision == "8fd4c12b6a90":
+        if revision in {"8fd4c12b6a90", "b7e2f91a4c60"}:
             session.add(SocialUser(user_id=user_id, fallback_name="Existing friend"))
         else:
             session.add(MapDocument(name="existing-map", data={"keep": True}))
@@ -550,12 +561,12 @@ def test_merge_migration_upgrades_either_feature_branch_without_losing_data(db, 
     with Session(db) as session:
         assert session.get(UserProfile, user_id).name == "Existing profile"
         assert session.scalar(select(func.count()).select_from(SocialUser)) == (
-            1 if revision == "8fd4c12b6a90" else 0
+            1 if revision in {"8fd4c12b6a90", "b7e2f91a4c60"} else 0
         )
         assert session.scalar(select(func.count()).select_from(MapDocument)) == (
-            1 if revision == "a1f3c7d92e54" else 0
+            0 if revision in {"8fd4c12b6a90", "b7e2f91a4c60"} else 1
         )
-        if revision == "8fd4c12b6a90":
+        if revision in {"8fd4c12b6a90", "b7e2f91a4c60"}:
             assert session.get(SocialUser, user_id).fallback_name == "Existing friend"
         else:
             assert session.get(MapDocument, "existing-map").data == {"keep": True}

@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy import delete, select, text
 
+from app.features.campus_map.floor_plans import FloorPlans
 from app.features.reservations.admin_schemas import (
     AdminClosureDeletedResponse,
     AdminClosureResponse,
@@ -118,6 +119,7 @@ class AdminReservationService(ReservationService):
         return AdminSpaceDetails(
             id=room.id,
             name=room.name,
+            map_room_id=room.map_room_id,
             lat=room.lat,
             lng=room.lng,
             timezone=room.timezone,
@@ -287,7 +289,26 @@ class AdminReservationService(ReservationService):
 
     def create_space(self, request: CreateSpaceRequest) -> AdminSpaceResponse:
         self.validate_timezone(request.timezone)
-        room = StudySpace(**request.model_dump(exclude={"opening_hours"}))
+        plans = FloorPlans(self.settings.map_floors_dir).index()
+        if plans is None:
+            raise BookingError(503, "floor_plans_unavailable", "Floor plans are unavailable")
+        place = plans.by_id.get(request.map_room_id)
+        if place is None:
+            raise RequestValidationError(
+                [
+                    {
+                        "loc": ("body", "map_room_id"),
+                        "type": "value_error",
+                        "msg": "Unknown map room ID",
+                        "input": request.map_room_id,
+                    }
+                ]
+            )
+        room = StudySpace(
+            **request.model_dump(exclude={"opening_hours"}),
+            lat=place["lat"],
+            lng=place["lng"],
+        )
         self.session.add(room)
         self.session.flush()
         self.set_hours(room.id, request.opening_hours)

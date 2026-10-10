@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptFriendRequest, adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, bookParty, cancelParty, checkIn, createFriendLink, createParty, createReservation, deleteFriendship, endReservation, extendReservation, getEthRoom, getEthRooms, getHealth, getMapDataset, getMapNavigation, getMapStyle, getMapWorkspaces, getMe, getMyReservation, getParty, getReadiness, getSocialCapabilities, getSocialMe, getSpace, getUzhOccupancy, invitePartyMember, leaveParty, listFriendRequests, listFriends, listMapDatasets, listParties, listSpaces, type Options, replyToPartyInvitation, returnFromBreak, saveMapNavigation, saveMapStyle, saveMapWorkspaces, sendFriendRequest, startBreak, updateMe, updateSocialPrivacy } from '../sdk.gen';
-import type { AcceptFriendRequestData, AcceptFriendRequestError, AcceptFriendRequestResponse, AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, BookPartyData, BookPartyError, BookPartyResponse, CancelPartyData, CancelPartyError, CancelPartyResponse, CheckInData, CheckInError, CheckInResponse, CreateFriendLinkData, CreateFriendLinkError, CreateFriendLinkResponse, CreatePartyData, CreatePartyError, CreatePartyResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, DeleteFriendshipData, DeleteFriendshipError, DeleteFriendshipResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetEthRoomData, GetEthRoomError, GetEthRoomResponse, GetEthRoomsData, GetEthRoomsError, GetEthRoomsResponse, GetHealthData, GetHealthResponse, GetMapDatasetData, GetMapDatasetError, GetMapDatasetResponse, GetMapNavigationData, GetMapNavigationError, GetMapNavigationResponse, GetMapStyleData, GetMapStyleError, GetMapStyleResponse, GetMapWorkspacesData, GetMapWorkspacesResponse, GetMeData, GetMeError, GetMeResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetPartyData, GetPartyError, GetPartyResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetSocialCapabilitiesData, GetSocialCapabilitiesResponse, GetSocialMeData, GetSocialMeError, GetSocialMeResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, GetUzhOccupancyData, GetUzhOccupancyError, GetUzhOccupancyResponse, InvitePartyMemberData, InvitePartyMemberError, InvitePartyMemberResponse, LeavePartyData, LeavePartyError, LeavePartyResponse, ListFriendRequestsData, ListFriendRequestsError, ListFriendRequestsResponse, ListFriendsData, ListFriendsError, ListFriendsResponse, ListMapDatasetsData, ListMapDatasetsResponse, ListPartiesData, ListPartiesError, ListPartiesResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReplyToPartyInvitationData, ReplyToPartyInvitationError, ReplyToPartyInvitationResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, SaveMapNavigationData, SaveMapNavigationError, SaveMapNavigationResponse, SaveMapStyleData, SaveMapStyleError, SaveMapStyleResponse, SaveMapWorkspacesData, SaveMapWorkspacesError, SaveMapWorkspacesResponse, SendFriendRequestData, SendFriendRequestError, SendFriendRequestResponse, StartBreakData, StartBreakError, StartBreakResponse, UpdateMeData, UpdateMeError, UpdateMeResponse, UpdateSocialPrivacyData, UpdateSocialPrivacyError, UpdateSocialPrivacyResponse } from '../types.gen';
+import { acceptFriendRequest, addFavourite, adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, bookParty, cancelParty, checkIn, createFriendLink, createParty, createReservation, deleteFriendship, endReservation, extendReservation, getEthRoom, getEthRooms, getHealth, getMapDataset, getMapNavigation, getMapStyle, getMapWorkspaces, getMe, getMyReservation, getParty, getReadiness, getRules, getSocialCapabilities, getSocialMe, getSpace, getUzhOccupancy, invitePartyMember, leaveParty, listFavourites, listFriendRequests, listFriends, listMapDatasets, listParties, listSpaces, type Options, removeFavourite, replyToPartyInvitation, returnFromBreak, saveMapNavigation, saveMapStyle, saveMapWorkspaces, sendFriendRequest, startBreak, updateMe, updateSocialPrivacy } from '../sdk.gen';
+import type { AcceptFriendRequestData, AcceptFriendRequestError, AcceptFriendRequestResponse, AddFavouriteData, AddFavouriteError, AddFavouriteResponse, AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, BookPartyData, BookPartyError, BookPartyResponse, CancelPartyData, CancelPartyError, CancelPartyResponse, CheckInData, CheckInError, CheckInResponse, CreateFriendLinkData, CreateFriendLinkError, CreateFriendLinkResponse, CreatePartyData, CreatePartyError, CreatePartyResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, DeleteFriendshipData, DeleteFriendshipError, DeleteFriendshipResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetEthRoomData, GetEthRoomError, GetEthRoomResponse, GetEthRoomsData, GetEthRoomsError, GetEthRoomsResponse, GetHealthData, GetHealthResponse, GetMapDatasetData, GetMapDatasetError, GetMapDatasetResponse, GetMapNavigationData, GetMapNavigationError, GetMapNavigationResponse, GetMapStyleData, GetMapStyleError, GetMapStyleResponse, GetMapWorkspacesData, GetMapWorkspacesResponse, GetMeData, GetMeError, GetMeResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetPartyData, GetPartyError, GetPartyResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetRulesData, GetRulesError, GetRulesResponse, GetSocialCapabilitiesData, GetSocialCapabilitiesResponse, GetSocialMeData, GetSocialMeError, GetSocialMeResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, GetUzhOccupancyData, GetUzhOccupancyError, GetUzhOccupancyResponse, InvitePartyMemberData, InvitePartyMemberError, InvitePartyMemberResponse, LeavePartyData, LeavePartyError, LeavePartyResponse, ListFavouritesData, ListFavouritesError, ListFavouritesResponse, ListFriendRequestsData, ListFriendRequestsError, ListFriendRequestsResponse, ListFriendsData, ListFriendsError, ListFriendsResponse, ListMapDatasetsData, ListMapDatasetsResponse, ListPartiesData, ListPartiesError, ListPartiesResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, RemoveFavouriteData, RemoveFavouriteError, RemoveFavouriteResponse, ReplyToPartyInvitationData, ReplyToPartyInvitationError, ReplyToPartyInvitationResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, SaveMapNavigationData, SaveMapNavigationError, SaveMapNavigationResponse, SaveMapStyleData, SaveMapStyleError, SaveMapStyleResponse, SaveMapWorkspacesData, SaveMapWorkspacesError, SaveMapWorkspacesResponse, SendFriendRequestData, SendFriendRequestError, SendFriendRequestResponse, StartBreakData, StartBreakError, StartBreakResponse, UpdateMeData, UpdateMeError, UpdateMeResponse, UpdateSocialPrivacyData, UpdateSocialPrivacyError, UpdateSocialPrivacyResponse } from '../types.gen';
 
 /**
  * End Reservation
@@ -531,6 +531,58 @@ export const updateMeMutation = (options?: Partial<Options<UpdateMeData>>): UseM
     return mutationOptions;
 };
 
+export const listFavouritesQueryKey = (options?: Options<ListFavouritesData>) => createQueryKey('listFavourites', options);
+
+/**
+ * List Favourites
+ */
+export const listFavouritesOptions = (options?: Options<ListFavouritesData>) => queryOptions<ListFavouritesResponse, ListFavouritesError, ListFavouritesResponse, ReturnType<typeof listFavouritesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listFavourites({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listFavouritesQueryKey(options)
+});
+
+/**
+ * Remove Favourite
+ */
+export const removeFavouriteMutation = (options?: Partial<Options<RemoveFavouriteData>>): UseMutationOptions<RemoveFavouriteResponse, RemoveFavouriteError, Options<RemoveFavouriteData>> => {
+    const mutationOptions: UseMutationOptions<RemoveFavouriteResponse, RemoveFavouriteError, Options<RemoveFavouriteData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await removeFavourite({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Add Favourite
+ */
+export const addFavouriteMutation = (options?: Partial<Options<AddFavouriteData>>): UseMutationOptions<AddFavouriteResponse, AddFavouriteError, Options<AddFavouriteData>> => {
+    const mutationOptions: UseMutationOptions<AddFavouriteResponse, AddFavouriteError, Options<AddFavouriteData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addFavourite({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const getMyReservationQueryKey = (options?: Options<GetMyReservationData>) => createQueryKey('getMyReservation', options);
 
 /**
@@ -651,6 +703,24 @@ export const returnFromBreakMutation = (options?: Partial<Options<ReturnFromBrea
     };
     return mutationOptions;
 };
+
+export const getRulesQueryKey = (options?: Options<GetRulesData>) => createQueryKey('getRules', options);
+
+/**
+ * Get Rules
+ */
+export const getRulesOptions = (options?: Options<GetRulesData>) => queryOptions<GetRulesResponse, GetRulesError, GetRulesResponse, ReturnType<typeof getRulesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRules({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRulesQueryKey(options)
+});
 
 export const getSocialCapabilitiesQueryKey = (options?: Options<GetSocialCapabilitiesData>) => createQueryKey('getSocialCapabilities', options);
 

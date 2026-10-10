@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { AppLayout } from './components/AppLayout';
 import { paths } from './routes';
 import { HomeScreen } from './screens/HomeScreen';
@@ -20,6 +20,7 @@ const router = createBrowserRouter(
       children: [
         { path: paths.home, element: <HomeScreen /> },
         { path: paths.map, element: <MapScreen /> },
+        { path: '/seats', element: <Navigate to={paths.home} replace /> },
         { path: paths.seatMap, element: <SeatMapScreen /> },
         { path: paths.reservation, element: <ReservationScreen /> },
         { path: paths.scan, element: <ScanScreen /> },
