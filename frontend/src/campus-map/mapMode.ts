@@ -56,7 +56,10 @@ export function save3d(on: boolean) {
 
 /** A bookable study space, as the reservations API lists it. */
 export interface BookableSpace {
+  id: string;
   name: string;
+  /** The PolyMaps room (unit) the space is in, e.g. "ETH.HG.E.E_051". */
+  map_room_id: string;
   lat: number;
   lng: number;
 }
@@ -80,16 +83,24 @@ function meters(
 const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9äöü]/g, '');
 
 /**
- * The workspaces of the bookable study spaces. A space's place is the closest
- * workspace nearby whose name (or id) shares a part of the space's name, else the
- * closest workspace within NEAR_METERS.
+ * The workspaces of the bookable study spaces: workspace id → study space id.
+ * A space's place is the workspace that contains its map room, else the closest
+ * workspace nearby whose name (or id) shares a part of the space's name, else
+ * the closest workspace within NEAR_METERS.
  */
-export function bookableLibraryIds(
+export function bookableLibraries(
   spaces: BookableSpace[],
   libraries: Library[],
-): Set<string> {
-  const out = new Set<string>();
+): Map<string, string> {
+  const out = new Map<string, string>();
   for (const space of spaces) {
+    const containing = libraries.find((lib) =>
+      lib.rooms.includes(space.map_room_id),
+    );
+    if (containing) {
+      out.set(containing.id, space.id);
+      continue;
+    }
     const parts = space.name
       .replace(/^demo:/i, '')
       .split('/')
@@ -108,7 +119,7 @@ export function bookableLibraryIds(
     const nearest = byDistance[0];
     const match =
       named ?? (nearest && nearest.d <= NEAR_METERS ? nearest : undefined);
-    if (match) out.add(match.lib.id);
+    if (match && !out.has(match.lib.id)) out.set(match.lib.id, space.id);
   }
   return out;
 }

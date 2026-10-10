@@ -14,7 +14,7 @@ import type { LatLngBoundsLiteral } from 'leaflet';
 import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { Icon } from '../components/Icon';
-import { paths } from '../routes';
+import { paths, seatMapPath } from '../routes';
 import { LiveRooms } from './components/LiveRooms';
 import { RoomDetails } from './components/RoomDetails';
 import { RoomPhotos } from './components/RoomPhotos';
@@ -63,7 +63,7 @@ import {
 } from './map/minimalStyle';
 import { MapSheet } from './MapSheet';
 import {
-  bookableLibraryIds,
+  bookableLibraries,
   load3d,
   loadMapMode,
   MAP_MODE_LABELS,
@@ -134,8 +134,9 @@ function mensaPlace(item: DatasetItem) {
 /* The campus map, full screen. Ported from the view mode of
    occupancy-map-preview (that app keeps the admin tools; their output is
    imported into the backend). Tapping a room, workspace or pin selects it and
-   opens its popup (the details sheet); once closed, a short card above the
-   toolbar brings it back. */
+   shows a short card above the toolbar: its info button opens the popup (the
+   details sheet), and for a bookable study space a full-width button opens
+   the space's seat map. */
 export function CampusMap() {
   const theme = useComputedColorScheme('dark');
 
@@ -216,10 +217,11 @@ export function CampusMap() {
 
   // ---- the bookable study spaces (the home screen's), for the study mode ----
   const spacesQuery = useQuery(listSpacesOptions());
+  /** Workspace id → the study space id it is, for its seat map. */
   const bookable = useMemo(
     () =>
       data && spacesQuery.data
-        ? bookableLibraryIds(
+        ? bookableLibraries(
             spacesQuery.data.spaces,
             data.libraries.filter((l) => l.enabled),
           )
@@ -444,10 +446,13 @@ export function CampusMap() {
       .find((l) => l.meta.id === sel.datasetId)
       ?.items.find((i) => i.id === sel.itemId) ?? null;
 
-  /** A tap on the map selects it and opens its popup. */
+  /** A tap on the map selects it; a second tap on the same target opens its popup. */
   const tap = (next: MapTarget) => {
-    setDashboardOpen(true);
-    if (sameTarget(target, next)) return;
+    if (sameTarget(target, next)) {
+      setDashboardOpen(true);
+      return;
+    }
+    setDashboardOpen(false);
     setTarget(next);
     if (next.kind === 'library') {
       const lib = data.libraries.find((l) => l.id === next.id);
@@ -525,6 +530,18 @@ export function CampusMap() {
   const selectedWorkspaceMensa = workspaceMensaId
     ? (mensaItems?.find((i) => i.id === workspaceMensaId) ?? null)
     : null;
+
+  /* The study space (with a seat map) the selection is: a workspace matched
+     to one, or an ETH room that is a space's map room. */
+  const selectedSpaceId = selectedLibrary
+    ? (bookable?.get(selectedLibrary.id) ?? null)
+    : selectedEthRoom
+      ? (spacesQuery.data?.spaces.find((space) =>
+          ethResponse?.matches[selectedEthRoom]?.some(
+            (place) => place.unitId === space.map_room_id,
+          ),
+        )?.id ?? null)
+      : null;
 
   // ---- the card for the current selection ----
   let peek: { title: string; detail: string; dot?: string } | null = null;
@@ -622,35 +639,46 @@ export function CampusMap() {
       {/* Bottom: selection card, toolbar */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-1100 grid gap-2 px-3 pb-[calc(--spacing(3)+env(safe-area-inset-bottom))]">
         {peek && (
-          <div className="pointer-events-auto flex items-center gap-1 rounded-card border border-border bg-surface py-1 pr-1 pl-4 shadow-card">
-            <button
-              type="button"
-              className="grid min-h-13 min-w-0 flex-1 cursor-pointer gap-0.5 border-0 bg-transparent p-0 text-left text-text"
-              onClick={() => setDashboardOpen(true)}
-            >
-              <span className="flex min-w-0 items-center gap-2 font-semibold">
-                {peek.dot && (
-                  <span
-                    aria-hidden="true"
-                    className="size-2.5 flex-none rounded-full"
-                    style={{ background: peek.dot }}
-                  />
-                )}
-                <span className="truncate">{peek.title}</span>
-              </span>
-              <span className="truncate text-label text-text-muted">
-                {peek.detail}
-              </span>
-            </button>
-            <ActionIcon
-              aria-label="Open details"
-              onClick={() => setDashboardOpen(true)}
-            >
-              <Icon name="chevronRight" />
-            </ActionIcon>
-            <ActionIcon aria-label="Clear selection" onClick={clearTarget}>
-              <Icon name="close" />
-            </ActionIcon>
+          <div className="pointer-events-auto grid gap-1 rounded-card border border-border bg-surface p-1 shadow-card">
+            <div className="flex items-center gap-1 pl-3">
+              <button
+                type="button"
+                className="grid min-h-13 min-w-0 flex-1 cursor-pointer gap-0.5 border-0 bg-transparent p-0 text-left text-text"
+                onClick={() => setDashboardOpen(true)}
+              >
+                <span className="flex min-w-0 items-center gap-2 font-semibold">
+                  {peek.dot && (
+                    <span
+                      aria-hidden="true"
+                      className="size-2.5 flex-none rounded-full"
+                      style={{ background: peek.dot }}
+                    />
+                  )}
+                  <span className="truncate">{peek.title}</span>
+                </span>
+                <span className="truncate text-label text-text-muted">
+                  {peek.detail}
+                </span>
+              </button>
+              <ActionIcon
+                aria-label="Show details"
+                onClick={() => setDashboardOpen(true)}
+              >
+                <Icon name="info" />
+              </ActionIcon>
+              <ActionIcon aria-label="Clear selection" onClick={clearTarget}>
+                <Icon name="close" />
+              </ActionIcon>
+            </div>
+            {selectedSpaceId && (
+              <Button
+                component={Link}
+                to={seatMapPath(selectedSpaceId)}
+                fullWidth
+              >
+                Open room plan
+              </Button>
+            )}
           </div>
         )}
 
@@ -822,6 +850,17 @@ export function CampusMap() {
               </div>
             )}
           </>
+        )}
+        {selectedSpaceId && (
+          <div className="px-4 py-4">
+            <Button
+              component={Link}
+              to={seatMapPath(selectedSpaceId)}
+              fullWidth
+            >
+              Open room plan
+            </Button>
+          </div>
         )}
       </MapSheet>
     </div>
