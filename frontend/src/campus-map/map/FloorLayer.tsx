@@ -32,6 +32,7 @@ import {
   BOOKING_KIND_LABELS,
 } from '../domain/ethRooms';
 import type { RoomInfo } from '../roomFeatures';
+import { liftRings, type BuildingGroup } from './buildingGroups';
 
 /** Rooms are drawn from this zoom level on, walls and doors from LINE_ZOOM. */
 export const ROOM_ZOOM = 18;
@@ -156,6 +157,8 @@ interface Props {
   mensaRooms: ReadonlyMap<string, MensaRoom>;
   selectedMensaId: string | null;
   onSelectMensa: (mensaId: string) => void;
+  /** 3D view: this group's part of the floor is drawn `dLat` degrees further north, with the group's outline (see Floors3D). */
+  lift: { group: BuildingGroup; dLat: number } | null;
 }
 
 /** A PolyMaps room belonging to a mensa. */
@@ -199,6 +202,7 @@ export function FloorLayer({
   mensaRooms,
   selectedMensaId,
   onSelectMensa,
+  lift,
 }: Props) {
   const map = useMap();
   const [view, setView] = useState(() => ({
@@ -266,6 +270,9 @@ export function FloorLayer({
     return () => void group.remove();
   }, [map, index, renderers, theme, minimal, radius, minSize]);
 
+  const isLifted = (facilityId: string) =>
+    !!lift && lift.group.facilityIds.has(facilityId);
+
   const floorLevels = useMemo(
     () => index.levels.filter((l) => l.floor === floor),
     [index, floor],
@@ -283,9 +290,15 @@ export function FloorLayer({
           fillColor: BUILDING_STYLE[theme].levelFill,
           fillOpacity: 0.9,
         };
+    // A lifted group shows its one outline instead of its levels' own.
+    const lifted = lift && floorLevels.some((l) => isLifted(l.facilityId));
     const group = L.layerGroup(
-      floorLevels
-        .map((l) => outlineToLatLngs(l.outline))
+      [
+        ...floorLevels
+          .filter((l) => !isLifted(l.facilityId))
+          .map((l) => outlineToLatLngs(l.outline)),
+        ...(lifted ? [liftRings(lift.group.outline(), lift.dLat)] : []),
+      ]
         .filter((polys) => !polygonsSmallerThan(polys, minSize))
         .map((polys) =>
           L.polygon(roundPolygons(polys, radius), {
@@ -302,6 +315,7 @@ export function FloorLayer({
     renderers,
     theme,
     view.zoom >= OUTLINE_ZOOM,
+    lift,
     minimal,
     radius,
     minSize,
@@ -317,8 +331,16 @@ export function FloorLayer({
       east: b.getEast(),
       north: b.getNorth(),
     };
-    return floorLevels.filter((l) => intersects(l.bbox, box)).map((l) => l.id);
-  }, [floorLevels, view]);
+    return floorLevels
+      .filter((l) => {
+        const d = isLifted(l.facilityId) ? lift!.dLat : 0;
+        return intersects(
+          [l.bbox[0], l.bbox[1] + d, l.bbox[2], l.bbox[3] + d],
+          box,
+        );
+      })
+      .map((l) => l.id);
+  }, [floorLevels, view, lift]);
   const visibleKey = visibleIds.join('|');
 
   const [plans, setPlans] = useState<Map<string, LevelPlan>>(new Map());
@@ -335,6 +357,20 @@ export function FloorLayer({
       cancelled = true;
     };
   }, [visibleKey]);
+
+  // The plans as drawn: the lifted group's moved north.
+  const shownPlans = useMemo(() => {
+    if (!lift) return plans;
+    const out = new Map<string, LevelPlan>();
+    for (const [id, plan] of plans)
+      out.set(
+        id,
+        lift.group.levels.some((l) => l.id === id)
+          ? liftPlan(plan, lift.dLat)
+          : plan,
+      );
+    return out;
+  }, [plans, lift]);
 
   // Callbacks change every render; the layers read them through a ref.
   const handlers = useRef({
@@ -371,7 +407,7 @@ export function FloorLayer({
     roomLayers.current = new Map();
     const libraryRings = new Map<string, [number, number][][][]>();
     for (const id of visibleIds) {
-      const plan = plans.get(id);
+      const plan = shownPlans.get(id);
       const level = levelsById.get(id);
       if (!plan || !level) continue;
       for (const room of plan.rooms) {
@@ -532,7 +568,7 @@ export function FloorLayer({
   }, [
     map,
     renderers,
-    plans,
+    shownPlans,
     visibleKey,
     libraryRooms,
     libraryNames,
@@ -616,7 +652,7 @@ export function FloorLayer({
   }, [
     selectedLibraryId,
     pickedRooms,
-    plans,
+    shownPlans,
     visibleKey,
     libraryRooms,
     theme,
@@ -638,7 +674,7 @@ export function FloorLayer({
     const group = L.layerGroup().addTo(map);
     const best = new Map<string, { room: Room; area: number }>();
     for (const id of visibleIds) {
-      for (const room of plans.get(id)?.rooms ?? []) {
+      for (const room of shownPlans.get(id)?.rooms ?? []) {
         const info = ethRef.current?.get(room.id);
         if (!info) continue;
         const prev = best.get(info.room.id);
@@ -664,7 +700,7 @@ export function FloorLayer({
       );
     }
     return () => void group.remove();
-  }, [map, showLabels, plans, visibleKey, ethKey]);
+  }, [map, showLabels, shownPlans, visibleKey, ethKey]);
 
   const showLines = view.zoom >= LINE_ZOOM;
   // Line geometry per level and layer: simplified, parallel edges merged, small pieces dropped, corners rounded.
@@ -676,7 +712,7 @@ export function FloorLayer({
     const out = new Map<string, [LineLayer, L.LatLngTuple[][]][]>();
     if (!showLines) return out;
     for (const id of visibleIds) {
-      const plan = plans.get(id);
+      const plan = shownPlans.get(id);
       if (!plan) continue;
       out.set(
         id,
@@ -698,7 +734,7 @@ export function FloorLayer({
     }
     return out;
   }, [
-    plans,
+    shownPlans,
     visibleKey,
     showLines,
     radius,
@@ -733,6 +769,27 @@ export function FloorLayer({
   }, [map, renderers, levelLines, theme, minimal, presimplify]);
 
   return null;
+}
+
+const liftedPlans = new WeakMap<LevelPlan, { dLat: number; plan: LevelPlan }>();
+
+/** A plan moved `dLat` degrees north. */
+function liftPlan(plan: LevelPlan, dLat: number): LevelPlan {
+  const cached = liftedPlans.get(plan);
+  if (cached?.dLat === dLat) return cached.plan;
+  const lines: LevelPlan['lines'] = {};
+  for (const [layer, list] of Object.entries(plan.lines) as [
+    LineLayer,
+    [number, number][][],
+  ][])
+    lines[layer] = liftRings([list], dLat)[0];
+  const out = {
+    ...plan,
+    rooms: plan.rooms.map((r) => ({ ...r, rings: liftRings(r.rings, dLat) })),
+    lines,
+  };
+  liftedPlans.set(plan, { dLat, plan: out });
+  return out;
 }
 
 const SELECTED_ROOM: Record<Theme, string> = {

@@ -3,18 +3,15 @@ import L from 'leaflet';
 import { useMap, useMapEvents } from 'react-leaflet';
 import {
   intersects,
-  levelName,
   loadLevel,
   type FloorIndex,
   type LevelInfo,
   type LevelPlan,
   type LineLayer,
 } from '../floors/floorData';
-import { outlineToLatLngs } from './geo';
 import {
   dropSmallLines,
   mergeParallelEdges,
-  metersPerPixel,
   partPathOptions,
   polygonsSmallerThan,
   roundLines,
@@ -37,6 +34,7 @@ import {
   type Theme,
 } from './FloorLayer';
 import type { RoomInfo } from '../roomFeatures';
+import { floorLift, STACK_ZOOM, type BuildingGroup } from './buildingGroups';
 import {
   addRing,
   BASE_ZOOM,
@@ -53,14 +51,16 @@ import {
   type SceneView,
 } from './sceneCanvas';
 
-// Pseudo-3D view: the other floors of every building in view are drawn with
-// the same styles as the selected floor and moved north by `spacing` meters
-// per floor. Each floor is drawn on a scratch canvas and faded as a whole (so
-// overlapping shapes don't add up their alpha). The selected floor stays where
-// it is, drawn by FloorLayer, so it keeps its clicks, markers and outlines;
-// floors below sit under it, floors above lie over it. An outline around each
-// building's whole stack (its footprint swept from the lowest to the highest
-// floor shown) ties the floors together.
+// Pseudo-3D view of the building group in focus (see buildingGroups.ts): its
+// floors are stacked, each moved north by `spacing` meters per floor above the
+// group's ground floor, so the ground floor matches the building footprints of
+// the map. Every floor gets the same outline, the group's whole footprint.
+// The selected floor is drawn (lifted the same way) by FloorLayer, so it keeps
+// its clicks, markers and outlines; the other floors are drawn here with the
+// same styles, each on a scratch canvas faded as a whole (so overlapping shapes
+// don't add up their alpha). Floors below sit under the selected one, floors
+// above lie over it. An outline around the stack (the footprint swept from the
+// lowest to the highest floor shown) ties the floors together.
 //
 // Speed: nothing here is a Leaflet path. Geometry is projected once per level
 // and kept; paths of one paint are merged into one Path2D, rebuilt only when
@@ -72,10 +72,7 @@ import {
 // clicking it switches to that floor. Click-to-zoom zones and everything else
 // clickable (rooms, pins, workspace outlines, dataset items) come first.
 
-/** Below this zoom a storey is only a few pixels high: nothing is stacked. */
-const MIN_ZOOM = 16;
 const LABEL_ZOOM = 18;
-const M_PER_DEG_LAT = 110_574;
 
 const SHELL_PANE = ['floor-3d-shell', 338] as const;
 const BELOW_PANE = ['floor-3d-below', 345] as const;
@@ -84,6 +81,8 @@ const ABOVE_PANE = ['floor-3d-above', 365] as const;
 interface Props {
   theme: Theme;
   index: FloorIndex;
+  /** The building group stacked; null draws nothing. */
+  group: BuildingGroup | null;
   floor: number;
   onFloorChange: (floor: number) => void;
   style: View3DStyle;
@@ -113,12 +112,15 @@ interface Scene {
   floor: number;
   style: View3DStyle;
   paint: Paint;
+  stack: Stack;
+  /** Other floors drawn (the selected one is FloorLayer's), ascending. */
+  floors: number[];
+  /** Lowest and highest floor of the stack, the selected one included. */
+  lo: number;
+  hi: number;
   /** Levels of the other floors drawn. */
   levels: LevelInfo[];
-  /** Levels of the selected floor: clicks on them are left to the plan. */
-  current: LevelInfo[];
   plans: ReadonlyMap<string, LevelPlan>;
-  buildings: Building[];
 }
 
 /** Projected shape: origin and bounds in BASE_ZOOM pixels, geometry relative to the origin. */
@@ -130,19 +132,19 @@ interface Placed {
   lat: number;
 }
 
-interface Building extends Placed {
-  id: string;
-  /** Outer rings, relative to the origin. */
+/** The group's outline, projected. */
+interface Stack extends Placed {
+  group: BuildingGroup;
+  /** Outer rings (shell, roof). */
   rings: Flat[];
   roof: Path2D;
-  floors: number[];
-  labels: Map<number, string>;
+  /** Every polygon with its holes, for clicks. */
+  hit: Path2D;
 }
 
 interface LevelDrawable {
   paint: Paint;
   plan: LevelPlan | undefined;
-  outline: Batch | null;
   rooms: Batch[] | null;
   lines: Batch[] | null;
 }
@@ -150,6 +152,7 @@ interface LevelDrawable {
 export function Floors3D({
   theme,
   index,
+  group,
   floor,
   onFloorChange,
   style,
@@ -170,18 +173,22 @@ export function Floors3D({
     moveend: () => setView({ bounds: map.getBounds(), zoom: map.getZoom() }),
   });
 
-  // Levels of the floors shown, apart from the selected one.
-  const levels = useMemo(
+  const stack = useMemo(() => (group ? buildStack(group) : null), [group]);
+
+  // Floors of the group shown, apart from the selected one.
+  const floors = useMemo(
     () =>
-      index.levels
-        .filter(
-          (l) =>
-            l.floor !== floor &&
-            Math.abs(l.floor - floor) <= style.range &&
-            (style.showAbove || l.floor < floor),
-        )
-        .sort((a, b) => a.floor - b.floor),
-    [index, floor, style.range, style.showAbove],
+      (group?.floors ?? []).filter(
+        (f) =>
+          f !== floor &&
+          Math.abs(f - floor) <= style.range &&
+          (style.showAbove || f < floor),
+      ),
+    [group, floor, style.range, style.showAbove],
+  );
+  const levels = useMemo(
+    () => (group?.levels ?? []).filter((l) => floors.includes(l.floor)),
+    [group, floors],
   );
 
   const box = useMemo(() => {
@@ -194,12 +201,12 @@ export function Floors3D({
     };
   }, [view]);
 
-  // Plans of the levels in view (after their move north or south), loaded on demand.
+  // Plans of the levels in view (after their lift), loaded on demand.
   const loadIds =
-    view.zoom >= ROOM_ZOOM
+    group && view.zoom >= ROOM_ZOOM
       ? levels
           .filter((l) => {
-            const d = ((l.floor - floor) * style.spacing) / M_PER_DEG_LAT;
+            const d = floorLift(group, l.floor, style.spacing);
             return intersects(
               [l.bbox[0], l.bbox[1] + d, l.bbox[2], l.bbox[3] + d],
               box,
@@ -231,12 +238,6 @@ export function Floors3D({
       cancelled = true;
     };
   }, [loadKey]);
-
-  const current = useMemo(
-    () => index.levels.filter((l) => l.floor === floor),
-    [index, floor],
-  );
-  const buildings = useMemo(() => buildBuildings(index), [index]);
 
   // A slider of the 3D section must not count as a change of the plan styles.
   const minimalKey = minimal
@@ -286,42 +287,46 @@ export function Floors3D({
       side: 'below' | 'above',
     ) {
       const sc = scene.current;
-      if (!sc || v.zoom < MIN_ZOOM) return;
-      const byFloor = new Map<
-        number,
-        { level: LevelInfo; placed: Placed; dy: number }[]
-      >();
-      for (const level of sc.levels) {
-        if (side === 'below' ? level.floor > sc.floor : level.floor < sc.floor)
-          continue;
-        const placed = placeLevel(level);
-        const dy = floorShift(sc, level.floor, placed.lat, v.zoom);
-        if (!onCanvas(placed.box, dy, v)) continue;
-        (
-          byFloor.get(level.floor) ??
-          byFloor.set(level.floor, []).get(level.floor)!
-        ).push({ level, placed, dy });
-      }
+      if (!sc || v.zoom < STACK_ZOOM) return;
+      const st = sc.stack;
       const r = v.ratio;
       const s = v.scale;
       const rooms = v.zoom >= ROOM_ZOOM;
       const lines = rooms && v.zoom >= LINE_ZOOM && sc.style.ghostLines;
-      for (const f of [...byFloor.keys()].sort((a, b) => a - b)) {
+      const slab = outlineBatch(st.group, sc.paint);
+      for (const f of sc.floors) {
+        if (side === 'below' ? f > sc.floor : f < sc.floor) continue;
+        const dy = liftPx(sc, f) * s;
+        if (!onCanvas(st.box, dy, v)) continue;
         const off = v.scratch();
-        for (const { level, placed, dy } of byFloor.get(f)!) {
-          const d = drawableOf(sc, level, rooms, lines);
+        // Every floor has the group's whole outline, its rooms on top.
+        if (slab) {
           off.setTransform(
             r * s,
             0,
             0,
             r * s,
-            r * (placed.ox * s + v.offsetX),
-            r * (placed.oy * s + v.offsetY - dy),
+            r * (st.ox * s + v.offsetX),
+            r * (st.oy * s + v.offsetY - dy),
           );
-          if (d.outline) drawBatch(off, d.outline, s);
-          if (rooms) for (const b of d.rooms ?? []) drawBatch(off, b, s);
-          if (lines) for (const b of d.lines ?? []) drawBatch(off, b, s);
+          drawBatch(off, slab, s);
         }
+        if (rooms)
+          for (const level of sc.levels) {
+            if (level.floor !== f) continue;
+            const placed = placeLevel(level);
+            const d = drawableOf(sc, level, rooms, lines);
+            off.setTransform(
+              r * s,
+              0,
+              0,
+              r * s,
+              r * (placed.ox * s + v.offsetX),
+              r * (placed.oy * s + v.offsetY - dy),
+            );
+            for (const b of d.rooms ?? []) drawBatch(off, b, s);
+            if (lines) for (const b of d.lines ?? []) drawBatch(off, b, s);
+          }
         const alpha =
           sc.style.ghostOpacity *
           sc.style.falloff ** (Math.abs(f - sc.floor) - 1);
@@ -334,97 +339,92 @@ export function Floors3D({
       if (side === 'above') drawTop(ctx, v, sc);
     }
 
-    /** Roof edges and floor letters, over the whole stack. */
+    /** Roof edge and floor letters, over the whole stack. */
     function drawTop(ctx: CanvasRenderingContext2D, v: SceneView, sc: Scene) {
       const st = sc.style;
+      const b = sc.stack;
       const labels = st.floorLabels && v.zoom >= LABEL_ZOOM;
       if (!(st.shell && st.roof) && !labels) return;
       const r = v.ratio;
       const s = v.scale;
-      const css = labels ? getComputedStyle(document.documentElement) : null;
-      for (const b of sc.buildings) {
-        const range = stackOf(sc, b);
-        if (!range) continue;
-        const lo = floorShift(sc, range.lo, b.lat, v.zoom);
-        const hi = floorShift(sc, range.hi, b.lat, v.zoom);
-        if (!onCanvas(b.box, lo, v, hi - lo)) continue;
-        if (st.shell && st.roof && range.hi > sc.floor) {
-          ctx.setTransform(
-            r * s,
-            0,
-            0,
-            r * s,
-            r * (b.ox * s + v.offsetX),
-            r * (b.oy * s + v.offsetY - hi),
+      const lo = liftPx(sc, sc.lo) * s;
+      const hi = liftPx(sc, sc.hi) * s;
+      if (!onCanvas(b.box, lo, v, hi - lo)) return;
+      if (st.shell && st.roof && sc.hi > sc.floor) {
+        ctx.setTransform(
+          r * s,
+          0,
+          0,
+          r * s,
+          r * (b.ox * s + v.offsetX),
+          r * (b.oy * s + v.offsetY - hi),
+        );
+        ctx.globalAlpha = st.shellOpacity;
+        ctx.strokeStyle = st.shellColor;
+        ctx.lineWidth = st.shellWeight / s;
+        ctx.lineJoin = 'round';
+        ctx.stroke(b.roof);
+      }
+      if (labels && sc.floors.length) {
+        const css = getComputedStyle(document.documentElement);
+        ctx.setTransform(r, 0, 0, r, 0, 0);
+        const x = b.box[2] * s + v.offsetX + 6;
+        const yMid = ((b.box[1] + b.box[3]) / 2) * s + v.offsetY;
+        const shown = b.group.floors.includes(sc.floor)
+          ? [...sc.floors, sc.floor]
+          : sc.floors;
+        for (const f of shown)
+          drawLabel(
+            ctx,
+            css,
+            b.group.labels.get(f) ?? String(f),
+            x,
+            yMid - liftPx(sc, f) * s,
+            f === sc.floor,
           );
-          ctx.globalAlpha = st.shellOpacity;
-          ctx.strokeStyle = st.shellColor;
-          ctx.lineWidth = st.shellWeight / s;
-          ctx.lineJoin = 'round';
-          ctx.stroke(b.roof);
-        }
-        if (labels && range.floors.length > 1) {
-          ctx.setTransform(r, 0, 0, r, 0, 0);
-          const x = b.box[2] * s + v.offsetX + 6;
-          const yMid = ((b.box[1] + b.box[3]) / 2) * s + v.offsetY;
-          for (const f of range.floors)
-            drawLabel(
-              ctx,
-              css!,
-              b.labels.get(f) ?? String(f),
-              x,
-              yMid - floorShift(sc, f, b.lat, v.zoom),
-              f === sc.floor,
-            );
-        }
       }
     }
 
-    /** Outline of each building's stack: the union of its footprint at the lowest and highest floor and the band between. */
+    /** Outline of the stack: the union of its footprint at the lowest and highest floor and the band between. */
     function drawShell(ctx: CanvasRenderingContext2D, v: SceneView) {
       const sc = scene.current;
-      if (!sc || !sc.style.shell || v.zoom < MIN_ZOOM) return;
+      if (!sc || !sc.style.shell || v.zoom < STACK_ZOOM || sc.lo === sc.hi)
+        return;
+      const b = sc.stack;
       const s = v.scale;
+      const lo = liftPx(sc, sc.lo) * s;
+      const hi = liftPx(sc, sc.hi) * s;
+      if (!onCanvas(b.box, lo, v, hi - lo)) return;
       const path = new Path2D();
-      let any = false;
-      for (const b of sc.buildings) {
-        const range = stackOf(sc, b);
-        if (!range || range.lo === range.hi) continue;
-        const lo = floorShift(sc, range.lo, b.lat, v.zoom);
-        const hi = floorShift(sc, range.hi, b.lat, v.zoom);
-        if (!onCanvas(b.box, lo, v, hi - lo)) continue;
-        any = true;
-        for (const ring of b.rings) {
-          // In CSS pixels; every part wound the same way, so the nonzero fill is their union.
-          const n = ring.length / 2;
-          const xs = new Array<number>(n);
-          const ys = new Array<number>(n);
-          for (let i = 0; i < n; i++) {
-            xs[i] = (b.ox + ring[2 * i]) * s + v.offsetX;
-            ys[i] = (b.oy + ring[2 * i + 1]) * s + v.offsetY;
-          }
+      for (const ring of b.rings) {
+        // In CSS pixels; every part wound the same way, so the nonzero fill is their union.
+        const n = ring.length / 2;
+        const xs = new Array<number>(n);
+        const ys = new Array<number>(n);
+        for (let i = 0; i < n; i++) {
+          xs[i] = (b.ox + ring[2 * i]) * s + v.offsetX;
+          ys[i] = (b.oy + ring[2 * i + 1]) * s + v.offsetY;
+        }
+        addPositive(
+          path,
+          xs,
+          ys.map((y) => y - lo),
+        );
+        addPositive(
+          path,
+          xs,
+          ys.map((y) => y - hi),
+        );
+        for (let i = 0; i < n; i++) {
+          const j = (i + 1) % n;
+          if (Math.abs(xs[j] - xs[i]) < 0.01) continue;
           addPositive(
             path,
-            xs,
-            ys.map((y) => y - lo),
+            [xs[i], xs[j], xs[j], xs[i]],
+            [ys[i] - lo, ys[j] - lo, ys[j] - hi, ys[i] - hi],
           );
-          addPositive(
-            path,
-            xs,
-            ys.map((y) => y - hi),
-          );
-          for (let i = 0; i < n; i++) {
-            const j = (i + 1) % n;
-            if (Math.abs(xs[j] - xs[i]) < 0.01) continue;
-            addPositive(
-              path,
-              [xs[i], xs[j], xs[j], xs[i]],
-              [ys[i] - lo, ys[j] - lo, ys[j] - hi, ys[i] - hi],
-            );
-          }
         }
       }
-      if (!any) return;
       const st = sc.style;
       ctx.setTransform(v.ratio, 0, 0, v.ratio, 0, 0);
       ctx.lineJoin = 'round';
@@ -453,13 +453,7 @@ export function Floors3D({
       const plan = sc.plans.get(level.id);
       let d = drawables.current.get(level.id);
       if (!d || d.paint !== sc.paint || d.plan !== plan) {
-        d = {
-          paint: sc.paint,
-          plan,
-          outline: outlineBatch(level, sc.paint),
-          rooms: null,
-          lines: null,
-        };
+        d = { paint: sc.paint, plan, rooms: null, lines: null };
         drawables.current.set(level.id, d);
       }
       if (rooms && plan && !d.rooms)
@@ -483,10 +477,26 @@ export function Floors3D({
 
   // Redraw (no rebuild) whenever something drawn changes.
   useEffect(() => {
-    scene.current = { floor, style, paint, levels, current, plans, buildings };
+    const all = stack?.group.floors.includes(floor)
+      ? [...floors, floor]
+      : floors;
+    scene.current =
+      stack && all.length
+        ? {
+            floor,
+            style,
+            paint,
+            stack,
+            floors,
+            lo: Math.min(...all),
+            hi: Math.max(...all),
+            levels,
+            plans,
+          }
+        : null;
     hovered.current = null;
     for (const l of layers) l.redraw();
-  }, [layers, floor, style, paint, levels, current, plans, buildings]);
+  }, [layers, floor, style, paint, stack, floors, levels, plans]);
 
   // Clicking a floor that sticks out of the stack switches to it; hovering one lights it up.
   const switchTo = useRef(onFloorChange);
@@ -501,7 +511,7 @@ export function Floors3D({
     const hitAt = (e: MouseEvent) => {
       const sc = scene.current;
       const target = e.target as Element;
-      if (!sc || map.getZoom() < MIN_ZOOM || !container.contains(target))
+      if (!sc || map.getZoom() < STACK_ZOOM || !container.contains(target))
         return null;
       // Controls, pins, workspace outlines and plan rooms keep their own clicks; so do the admin click modes.
       if (
@@ -517,15 +527,17 @@ export function Floors3D({
         )
       )
         return null;
-      return levelAt(sc, map, map.mouseEventToContainerPoint(e));
+      return floorAt(sc, map, map.mouseEventToContainerPoint(e));
     };
-    const show = (level: LevelInfo | null, e?: MouseEvent) => {
-      const f = level?.floor ?? null;
-      container.style.cursor = level ? 'pointer' : '';
-      if (level && e) {
+    const show = (f: number | null, e?: MouseEvent) => {
+      const sc = scene.current;
+      container.style.cursor = f !== null ? 'pointer' : '';
+      if (f !== null && sc && e) {
         tooltip
           .setLatLng(map.mouseEventToLatLng(e))
-          .setContent(`Switch to ${levelName(level.id)}`);
+          .setContent(
+            `Switch to floor ${sc.stack.group.labels.get(f) ?? String(f)}`,
+          );
         if (!map.hasLayer(tooltip)) map.openTooltip(tooltip);
       } else if (map.hasLayer(tooltip)) map.closeTooltip(tooltip);
       if (f === hovered.current) return;
@@ -539,10 +551,10 @@ export function Floors3D({
     // that hit a layer arrives with that layer as its source (or not at all when the layer doesn't bubble).
     const onClick = (e: L.LeafletMouseEvent) => {
       if (e.sourceTarget !== map || dragged()) return;
-      const level = hitAt(e.originalEvent);
-      if (!level) return;
+      const f = hitAt(e.originalEvent);
+      if (f === null) return;
       show(null);
-      switchTo.current(level.floor);
+      switchTo.current(f);
     };
     const onMove = (e: MouseEvent) =>
       show(e.buttons || dragged() ? null : hitAt(e), e);
@@ -596,55 +608,36 @@ export function Floors3D({
  * The floor whose sticking-out part is at a container point: none inside the selected floor; else the
  * nearest floor below that contains the point (the front of the stack), failing that the nearest above.
  */
-function levelAt(sc: Scene, map: L.Map, p: L.Point): LevelInfo | null {
-  const zoom = map.getZoom();
-  const s = 2 ** (zoom - BASE_ZOOM);
+function floorAt(sc: Scene, map: L.Map, p: L.Point): number | null {
+  const s = 2 ** (map.getZoom() - BASE_ZOOM);
   const abs = map.containerPointToLayerPoint(p).add(map.getPixelOrigin());
   const x = abs.x / s;
   const y = abs.y / s;
-  const inside = (level: LevelInfo, dy: number) => {
-    const pl = placeLevel(level);
-    const ly = y + dy / s;
-    if (x < pl.box[0] || x > pl.box[2] || ly < pl.box[1] || ly > pl.box[3])
+  const st = sc.stack;
+  const inside = (f: number) => {
+    const ly = y + liftPx(sc, f);
+    if (x < st.box[0] || x > st.box[2] || ly < st.box[1] || ly > st.box[3])
       return false;
-    return hitContext().isPointInPath(hitPath(level), x - pl.ox, ly - pl.oy);
+    return hitContext().isPointInPath(st.hit, x - st.ox, ly - st.oy);
   };
-  if (sc.current.some((l) => inside(l, 0))) return null;
-  let best: { level: LevelInfo; rank: number } | null = null;
-  for (const level of sc.levels) {
-    const rank =
-      level.floor < sc.floor
-        ? sc.floor - level.floor
-        : 1000 + level.floor - sc.floor;
+  if (st.group.floors.includes(sc.floor) && inside(sc.floor)) return null;
+  let best: { floor: number; rank: number } | null = null;
+  for (const f of sc.floors) {
+    const rank = f < sc.floor ? sc.floor - f : 1000 + f - sc.floor;
     if (best && rank >= best.rank) continue;
-    if (inside(level, floorShift(sc, level.floor, placeLevel(level).lat, zoom)))
-      best = { level, rank };
+    if (inside(f)) best = { floor: f, rank };
   }
-  return best?.level ?? null;
+  return best?.floor ?? null;
 }
 
 let hitCtx: CanvasRenderingContext2D | null = null;
 const hitContext = () =>
   (hitCtx ??= document.createElement('canvas').getContext('2d')!);
 
-const hitPaths = new Map<string, Path2D>();
-function hitPath(level: LevelInfo): Path2D {
-  let path = hitPaths.get(level.id);
-  if (!path) {
-    path = new Path2D();
-    for (const rings of projectPolys(
-      outlineToLatLngs(level.outline),
-      placeLevel(level),
-    ))
-      for (const r of rings) addRing(path, r, true);
-    hitPaths.set(level.id, path);
-  }
-  return path;
-}
-
-/** Upward screen offset of a floor in CSS pixels at `zoom`. */
-const floorShift = (sc: Scene, f: number, lat: number, zoom: number) =>
-  ((f - sc.floor) * sc.style.spacing) / metersPerPixel(lat, zoom);
+/** Northward lift of a floor in BASE_ZOOM pixels: the lift FloorLayer gives the selected floor. */
+const liftPx = (sc: Scene, f: number) =>
+  projectY(sc.stack.lat) -
+  projectY(sc.stack.lat + floorLift(sc.stack.group, f, sc.style.spacing));
 
 /** Whether a box, moved up by `dy` (and stretched up by `extra`), touches the canvas. */
 function onCanvas(box: Placed['box'], dy: number, v: SceneView, extra = 0) {
@@ -653,19 +646,6 @@ function onCanvas(box: Placed['box'], dy: number, v: SceneView, extra = 0) {
   const yTop = box[1] * v.scale + v.offsetY - dy - Math.max(0, extra);
   const yBottom = box[3] * v.scale + v.offsetY - dy - Math.min(0, extra);
   return x1 >= 0 && x0 <= v.width && yBottom >= 0 && yTop <= v.height;
-}
-
-/** A building's lowest and highest floor shown. */
-function stackOf(sc: Scene, b: Building) {
-  const floors = b.floors.filter(
-    (f) =>
-      f === sc.floor ||
-      (Math.abs(f - sc.floor) <= sc.style.range &&
-        (sc.style.showAbove || f < sc.floor)),
-  );
-  return floors.length
-    ? { floors, lo: floors[0], hi: floors[floors.length - 1] }
-    : null;
 }
 
 function place(
@@ -691,44 +671,20 @@ function placeLevel(level: LevelInfo): Placed {
   return p;
 }
 
-function buildBuildings(index: FloorIndex): Building[] {
-  const levelsOf = new Map<string, LevelInfo[]>();
-  for (const l of index.levels)
-    (
-      levelsOf.get(l.facilityId) ??
-      levelsOf.set(l.facilityId, []).get(l.facilityId)!
-    ).push(l);
-  return index.facilities.flatMap((f) => {
-    const levels = levelsOf.get(f.id);
-    if (!levels) return [];
-    let [west, south, east, north] = [Infinity, Infinity, -Infinity, -Infinity];
-    for (const poly of f.outline.coordinates) {
-      for (const [lng, lat] of poly[0]) {
-        west = Math.min(west, lng);
-        east = Math.max(east, lng);
-        south = Math.min(south, lat);
-        north = Math.max(north, lat);
-      }
-    }
-    const p = place(west, south, east, north);
-    const rings = outlineToLatLngs(f.outline).map((poly) =>
-      projectRing(poly[0], p.ox, p.oy),
-    );
-    const roof = new Path2D();
-    for (const r of rings) addRing(roof, r, true);
-    const floors = [...new Set(levels.map((l) => l.floor))].sort(
-      (a, b) => a - b,
-    );
-    const labels = new Map(
-      floors.map((fl) => [
-        fl,
-        [...new Set(levels.filter((l) => l.floor === fl).map((l) => l.label))]
-          .sort()
-          .join('/'),
-      ]),
-    );
-    return [{ ...p, id: f.id, rings, roof, floors, labels }];
-  });
+const stacks = new WeakMap<BuildingGroup, Stack>();
+function buildStack(group: BuildingGroup): Stack {
+  let st = stacks.get(group);
+  if (st) return st;
+  const p = place(...group.bbox);
+  const latlngs = group.outline();
+  const rings = latlngs.map((poly) => projectRing(poly[0], p.ox, p.oy));
+  const roof = new Path2D();
+  for (const r of rings) addRing(roof, r, true);
+  const hit = new Path2D();
+  for (const rs of projectPolys(latlngs, p))
+    for (const r of rs) addRing(hit, r, true);
+  stacks.set(group, (st = { ...p, group, rings, roof, hit }));
+  return st;
 }
 
 function addPositive(path: Path2D, xs: number[], ys: number[]) {
@@ -808,7 +764,15 @@ function batch(
   return { ...paint, path };
 }
 
-function outlineBatch(level: LevelInfo, paint: Paint): Batch | null {
+const outlineBatches = new WeakMap<
+  BuildingGroup,
+  { paint: Paint; batch: Batch | null }
+>();
+
+/** The group's outline, styled as a level outline: the slab of every floor. */
+function outlineBatch(group: BuildingGroup, paint: Paint): Batch | null {
+  const cached = outlineBatches.get(group);
+  if (cached?.paint === paint) return cached.batch;
   const m = paint.minimal;
   const opts: L.PathOptions | null = m
     ? m.parts.levels.show
@@ -822,18 +786,20 @@ function outlineBatch(level: LevelInfo, paint: Paint): Batch | null {
       };
   if (!opts) return null;
   const key = geometryKey(m);
-  let g = outlineGeom.get(level.id);
+  let g = outlineGeom.get(group.id);
   if (!g || g.key !== key) {
-    const latlngs = outlineToLatLngs(level.outline);
+    const latlngs = group.outline();
     const polys = polygonsSmallerThan(latlngs, m?.minSize ?? 0)
       ? []
       : projectPolys(
           roundPolygons(latlngs, m?.cornerRadius ?? 0),
-          placeLevel(level),
+          buildStack(group),
         );
-    outlineGeom.set(level.id, (g = { key, polys }));
+    outlineGeom.set(group.id, (g = { key, polys }));
   }
-  return g.polys.length ? batch(g.polys, paintOf(opts, true), true) : null;
+  const out = g.polys.length ? batch(g.polys, paintOf(opts, true), true) : null;
+  outlineBatches.set(group, { paint, batch: out });
+  return out;
 }
 
 /** Rooms grouped by paint, in the order the paints first appear (as the plan draws them). */

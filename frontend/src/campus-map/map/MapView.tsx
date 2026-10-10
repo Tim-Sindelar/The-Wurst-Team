@@ -45,6 +45,14 @@ import {
 import type { RoomInfo } from '../roomFeatures';
 import type { NavigationConfig } from '../domain/navigation';
 import { NavZones } from './NavZones';
+import {
+  buildGroups,
+  floorLift,
+  liftRings,
+  STACK_ZOOM,
+  useBuildingGroup,
+  type BuildingGroup,
+} from './buildingGroups';
 
 const OUTLINE_COLORS: Record<OccupancyLevel, string> = {
   none: '#215caf',
@@ -192,6 +200,35 @@ export function MapView(props: Props) {
     () => new Map(data.libraries.map((l) => [l.id, l.name])),
     [data.libraries],
   );
+  // 3D view: the building group in focus is stacked, its floors lifted north (see Floors3D).
+  const groups = useMemo(
+    () => (props.floorIndex ? buildGroups(props.floorIndex) : null),
+    [props.floorIndex],
+  );
+  const [focusGroup, setFocusGroup] = useState<BuildingGroup | null>(null);
+  const stackGroup = props.view3d && zoom >= STACK_ZOOM ? focusGroup : null;
+  const spacing = props.view3d?.spacing ?? 0;
+  /** How far north a workspace or pin of a building's floor is drawn. */
+  const liftOf = (facilityId: string | null, f: number | null) =>
+    stackGroup &&
+    facilityId &&
+    f !== null &&
+    stackGroup.facilityIds.has(facilityId)
+      ? floorLift(stackGroup, f, spacing)
+      : 0;
+  const planLift = useMemo(
+    () =>
+      stackGroup
+        ? { group: stackGroup, dLat: floorLift(stackGroup, floor, spacing) }
+        : null,
+    [stackGroup, floor, spacing],
+  );
+  const libraryById = new Map(data.libraries.map((l) => [l.id, l]));
+  const libraryLift = (libraryId: string) => {
+    const lib = libraryById.get(libraryId);
+    return lib ? liftOf(lib.facilityId, lib.floor) : 0;
+  };
+
   const outlinedLibraries = data.libraries
     .filter((l) => outlineOf(l))
     .sort((a, b) => drawOrder(a) - drawOrder(b));
@@ -272,11 +309,13 @@ export function MapView(props: Props) {
             mensaRooms={props.mensaRooms}
             selectedMensaId={props.selectedMensaId}
             onSelectMensa={props.onSelectMensa}
+            lift={planLift}
           />
           {props.view3d && (
             <Floors3D
               theme={props.theme}
               index={props.floorIndex}
+              group={stackGroup}
               floor={floor}
               onFloorChange={props.onFloorChange}
               style={props.view3d}
@@ -298,6 +337,10 @@ export function MapView(props: Props) {
         </>
       )}
 
+      {props.view3d && (
+        <GroupTracker groups={groups} onChange={setFocusGroup} />
+      )}
+
       {props.navigation && (
         <NavZones
           config={props.navigation}
@@ -315,16 +358,15 @@ export function MapView(props: Props) {
         const selected = selection.libraryId === lib.id;
         const occColor = OUTLINE_COLORS[occupancyLevel(occ.free, occ.total)];
         const ws = minimal?.parts.workspaces;
+        const latlngs = liftRings(
+          outlineToLatLngs(outlineOf(lib)!),
+          liftOf(lib.facilityId, lib.floor),
+        );
         return (
           <Polygon
             key={lib.id}
             positions={
-              minimal
-                ? roundPolygons(
-                    outlineToLatLngs(outlineOf(lib)!),
-                    minimal.cornerRadius,
-                  )
-                : outlineToLatLngs(outlineOf(lib)!)
+              minimal ? roundPolygons(latlngs, minimal.cornerRadius) : latlngs
             }
             pathOptions={
               minimal && ws
@@ -412,7 +454,10 @@ export function MapView(props: Props) {
         return (
           <Marker
             key={lib.id}
-            position={[lib.position.lat, lib.position.lng]}
+            position={[
+              lib.position.lat + liftOf(lib.facilityId, lib.floor),
+              lib.position.lng,
+            ]}
             icon={libraryIcon({
               kind: lib.kind,
               free: occ.free,
@@ -466,7 +511,10 @@ export function MapView(props: Props) {
         tablesOnFloor.map((t) => (
           <Marker
             key={t.id}
-            position={[t.position.lat, t.position.lng]}
+            position={[
+              t.position.lat + libraryLift(t.libraryId),
+              t.position.lng,
+            ]}
             icon={tableIcon(
               t.label,
               selection.tableId === t.id && !selection.seatId,
@@ -491,7 +539,10 @@ export function MapView(props: Props) {
             return (
               <Marker
                 key={s.id}
-                position={[s.position.lat, s.position.lng]}
+                position={[
+                  s.position.lat + (table ? libraryLift(table.libraryId) : 0),
+                  s.position.lng,
+                ]}
                 icon={seatIcon(s.status, selection.seatId === s.id)}
                 zIndexOffset={800}
                 eventHandlers={{
@@ -513,6 +564,19 @@ export function MapView(props: Props) {
       {props.children}
     </MapContainer>
   );
+}
+
+/** Reports the building group the 3D view stacks (see useBuildingGroup). */
+function GroupTracker({
+  groups,
+  onChange,
+}: {
+  groups: ReadonlyMap<string, BuildingGroup> | null;
+  onChange: (group: BuildingGroup | null) => void;
+}) {
+  const group = useBuildingGroup(groups);
+  useEffect(() => onChange(group), [group, onChange]);
+  return null;
 }
 
 function MapEvents({ onZoom }: { onZoom: (zoom: number) => void }) {

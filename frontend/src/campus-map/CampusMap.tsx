@@ -754,7 +754,7 @@ export function CampusMap() {
             />
           </div>
           <Switch
-            label="3D: stack the floors of the buildings in view"
+            label="3D: stack the floors of the building in focus"
             checked={view3d}
             onChange={(e) => setView3d(e.currentTarget.checked)}
           />
