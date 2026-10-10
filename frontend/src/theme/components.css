@@ -382,6 +382,12 @@
   .admin-seat-slot {
     @apply cursor-copy;
   }
+  .admin-shortcuts {
+    @apply grid max-h-[70dvh] w-80 gap-4 overflow-y-auto;
+  }
+  .admin-shortcuts kbd {
+    @apply min-w-6 rounded-control border border-border-strong bg-surface-2 px-1.5 text-center text-small font-semibold;
+  }
   .admin-scene-table {
     @apply fill-surface-2 stroke-border-strong;
   }

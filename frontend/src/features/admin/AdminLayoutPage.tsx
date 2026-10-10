@@ -14,6 +14,7 @@ import {
   Checkbox,
   NativeSelect,
   NumberInput,
+  Popover,
   Text,
   TextInput,
   Title,
@@ -30,6 +31,7 @@ import geometry from './geometry';
 import { layoutSeatState } from './layoutSeatState';
 import { rotationFromPointer } from './layoutRotation';
 import { documentFor, readLayout } from './layoutDocument';
+import { shortcutGroups, tools } from './layoutShortcuts';
 import type {
   Feature,
   LayoutDocument,
@@ -52,20 +54,6 @@ type Drag = {
   screen: { x: number; y: number };
   scale: number;
 };
-const tools: [Tool, string, string][] = [
-  ['select', 'Select', 'V'],
-  ['table', 'Rectangle', 'T'],
-  ['round', 'Round', 'O'],
-  ['l', 'L shape', 'L'],
-  ['curved', 'Curved', 'U'],
-  ['seat', 'Seat', 'S'],
-  ['window', 'Window', 'W'],
-  ['door', 'Door', 'D'],
-  ['row', 'Seat rows', 'A'],
-  ['outlet', 'Power outlet', 'P'],
-  ['monitor', 'Monitor', 'E'],
-  ['quiet', 'Quiet area', 'Q'],
-];
 export function AdminLayoutPage() {
   const space = useOutletContext<api.AdminSpaceOverview>();
   let document;
@@ -116,6 +104,7 @@ function LayoutEditor({
     [message, setMessage] = useState(''),
     [rotating, setRotating] = useState(false),
     [clear, setClear] = useState(false),
+    [shortcutsOpen, setShortcutsOpen] = useState(false),
     [view, setView] = useState({
       x: 0,
       y: 0,
@@ -474,6 +463,11 @@ function LayoutEditor({
         }
         return;
       }
+      if (e.key === '?') {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
       if (e.altKey) return;
       const match = tools.find(
         ([, , shortcut]) => shortcut.toLowerCase() === k,
@@ -655,6 +649,52 @@ function LayoutEditor({
             >
               Features ▾ <kbd>B</kbd>
             </Button>
+            <Popover
+              opened={shortcutsOpen}
+              onChange={setShortcutsOpen}
+              position="bottom-end"
+              offset={8}
+              withinPortal
+              returnFocus
+            >
+              <Popover.Target>
+                <Button
+                  variant="tool"
+                  className="ml-auto"
+                  leftSection={<Icon name="keyboard" size="sm" />}
+                  aria-expanded={shortcutsOpen}
+                  aria-keyshortcuts="?"
+                  onClick={() => setShortcutsOpen((open) => !open)}
+                >
+                  Shortcuts <kbd>?</kbd>
+                </Button>
+              </Popover.Target>
+              <Popover.Dropdown
+                className="admin-shortcuts"
+                aria-label="Keyboard shortcuts"
+              >
+                {shortcutGroups.map((group) => (
+                  <section key={group.title} className="grid gap-2">
+                    <SectionLabel as="h3">{group.title}</SectionLabel>
+                    <dl className="grid gap-1.5">
+                      {group.items.map((shortcut) => (
+                        <div
+                          key={shortcut.action}
+                          className="flex items-baseline justify-between gap-4"
+                        >
+                          <dt className="text-small">{shortcut.action}</dt>
+                          <dd className="flex flex-none gap-1">
+                            {shortcut.keys.map((key) => (
+                              <kbd key={key}>{key}</kbd>
+                            ))}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ))}
+              </Popover.Dropdown>
+            </Popover>
           </div>
           {options && (
             <div

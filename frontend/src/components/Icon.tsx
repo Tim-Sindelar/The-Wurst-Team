@@ -85,6 +85,12 @@ const paths = {
       <path d="M3 12.5l9 5 9-5M3 17l9 5 9-5" />
     </>
   ),
+  keyboard: (
+    <>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M6 9h1M10 9h1M14 9h1M18 9h1M6 12.5h1M10 12.5h1M14 12.5h1M18 12.5h1M8 16h8" />
+    </>
+  ),
   minus: <path d="M5 12h14" />,
   moon: <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" />,
   pin: (
