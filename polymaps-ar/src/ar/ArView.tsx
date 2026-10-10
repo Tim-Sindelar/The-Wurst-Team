@@ -14,6 +14,8 @@ import { XrAlignment } from './xrAlignment';
 import { buildRouteMesh } from '../pathfinding/routeMesh';
 import type { Route } from '../pathfinding/route';
 import { HeadingFusion, orientationQuaternion, requestOrientationPermission, screenAngle, watchOrientation, type OrientationReading } from './orientation';
+import { VpsClient, focalFromFov, fovFromFocal, type VpsResult } from '../vps/client';
+import { VisualOffset, headingCorrection } from '../vps/fusion';
 
 export interface ArPose extends LngLat {
   levelId: string | null;
@@ -34,10 +36,24 @@ const EYE_HEIGHT = 1.5;
 /** Re-anchor (rebuild the scene around the user) beyond this distance, to keep float precision. */
 const REANCHOR_M = 300;
 const LABEL_RANGE_M = 25;
+/** Auto mode: next visual fix this long after the previous one finished. */
+const VPS_INTERVAL_MS = 3000;
+/** A visual fix's floor is trusted over the beacons' this long. */
+const VPS_LEVEL_HOLD_MS = 20_000;
+
+interface VpsState {
+  busy: boolean;
+  last: VpsResult | null;
+  error: string | null;
+}
+
+/** ?camera=<image url>: a still photo instead of the camera (testing the visual fix on a desktop). */
+const TEST_IMAGE = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('camera') : null;
 
 export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const poseRef = useRef(pose);
   poseRef.current = pose;
   const routeRef = useRef(route);
@@ -62,6 +78,16 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
   const hudRef = useRef<HTMLDivElement>(null);
   const [xrSupported, setXrSupported] = useState(false);
   const [inXr, setInXr] = useState(false);
+  // Visual positioning: the camera orientation as rendered each frame (to compare a visual fix
+  // with), the plan's anchor, the beacon position before the visual offset.
+  const vpsClient = useRef(new VpsClient());
+  const [vps, setVps] = useState<VpsState>({ busy: false, last: null, error: null });
+  const vpsBusy = useRef(false);
+  const [vpsAuto, setVpsAuto] = useState(false);
+  const visualOffset = useRef(new VisualOffset());
+  const visualLevel = useRef<{ levelId: string; t: number } | null>(null);
+  const renderedQ = useRef(new Quaternion());
+  const anchorRef = useRef<LngLat | null>(null);
 
   useEffect(() => {
     const xr = (navigator as Navigator & { xr?: XRSystem }).xr;
@@ -91,8 +117,77 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
     });
   };
 
+  /**
+   * One visual fix: features of the current camera frame go to the VPS server; the answer corrects
+   * the heading (and the position, see VisualOffset). The rendered orientation and the beacon
+   * position are taken at the same instant as the frame.
+   */
+  const localizeVisually = async () => {
+    const host = hostRef.current;
+    const p = poseRef.current;
+    const img = imageRef.current;
+    const video = TEST_IMAGE ? img : videoRef.current;
+    const vw = img && TEST_IMAGE ? img.naturalWidth : (videoRef.current?.videoWidth ?? 0);
+    const vh = img && TEST_IMAGE ? img.naturalHeight : (videoRef.current?.videoHeight ?? 0);
+    if (vpsBusy.current || !video || !host || !vw) return;
+    if (!p) {
+      setVps((v) => ({ ...v, error: 'Needs a beacon position first (the map is searched around it)' }));
+      return;
+    }
+    vpsBusy.current = true;
+    setVps((v) => ({ ...v, busy: true }));
+    const viewW = host.clientWidth, viewH = host.clientHeight;
+    const qAtCapture = renderedQ.current.clone();
+    const anchor = anchorRef.current;
+    const beaconAtCapture = anchor ? toLocal(p, anchor) : null;
+    try {
+      const res = await vpsClient.current.localize(video, vw, vh, focalFromFov(fovRef.current, vw, vh, viewW, viewH), {
+        lng: p.lng, lat: p.lat, levelId: p.levelId, accuracy: p.accuracy,
+      });
+      if (res.ok && res.quaternion && res.lng != null && res.lat != null) {
+        const visual = new Quaternion(...res.quaternion);
+        const d = headingCorrection(qAtCapture, visual);
+        setHeadingOffset((h) => ((((h + d + 180) % 360) + 360) % 360) - 180);
+        setCompassLocked(true);
+        // Without motion sensors (desktop, ?camera=) the pitch is the dragged one: take the visual one.
+        if (!orientationRef.current && res.pitch != null) lookRef.current.pitch = res.pitch;
+        if (anchor && beaconAtCapture && anchorRef.current === anchor) {
+          visualOffset.current.set(toLocal({ lng: res.lng, lat: res.lat }, anchor), beaconAtCapture, performance.now());
+        }
+        if (res.levelId) visualLevel.current = { levelId: res.levelId, t: performance.now() };
+        // The refined focal length is the camera's true field of view: match the overlay to it.
+        if (res.focalVideo && (res.inliers ?? 0) >= 80) setFov(Math.round(fovFromFocal(res.focalVideo, vw, vh, viewW, viewH)));
+      }
+      setVps({ busy: false, last: res, error: null });
+    } catch (e) {
+      setVps((v) => ({ ...v, busy: false, error: (e as Error).message }));
+      setVpsAuto(false);
+    } finally {
+      vpsBusy.current = false;
+    }
+  };
+  const localizeRef = useRef(localizeVisually);
+  localizeRef.current = localizeVisually;
+
+  // Auto mode: a visual fix every few seconds (the next starts after the previous one finished).
+  useEffect(() => {
+    if (!vpsAuto || inXr) return;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const loop = async () => {
+      await localizeRef.current();
+      if (!stop) timer = setTimeout(loop, VPS_INTERVAL_MS);
+    };
+    void loop();
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
+  }, [vpsAuto, inXr]);
+
   // Camera feed.
   useEffect(() => {
+    if (TEST_IMAGE) return;
     let stream: MediaStream | null = null;
     let cancelled = false;
     (async () => {
@@ -199,12 +294,16 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
       if (p) {
         if (!anchor || Math.hypot(toLocal(p, anchor).x, toLocal(p, anchor).y) > REANCHOR_M) {
           anchor = { lng: p.lng, lat: p.lat };
+          anchorRef.current = anchor;
           levelKey = '';
           camera.position.set(0, EYE_HEIGHT, 0);
           xrAlign.reset();
+          visualOffset.current.reset();
         }
-        if (p.levelId) void loadLevel(p.levelId, anchor);
-        const local = toLocal(p, anchor);
+        const vl = visualLevel.current;
+        const levelId = vl && performance.now() - vl.t < VPS_LEVEL_HOLD_MS ? vl.levelId : p.levelId;
+        if (levelId) void loadLevel(levelId, anchor);
+        const local = visualOffset.current.apply(toLocal(p, anchor), performance.now());
         target.set(local.x, EYE_HEIGHT, -local.y);
         // Glide towards new fixes instead of jumping (fixes come ~1 Hz).
         if (!inXr) camera.position.lerp(target, 0.08);
@@ -227,12 +326,14 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
         orientationQuaternion(q, o.alpha, o.beta, o.gamma, screenAngle());
         yawFix.setFromAxisAngle(up, (headingRef.current * Math.PI) / 180);
         camera.quaternion.copy(yawFix).multiply(q);
+        renderedQ.current.copy(camera.quaternion);
       } else {
         world.position.set(0, 0, 0);
         world.rotation.set(0, 0, 0);
         world.visible = true;
         const { yaw, pitch } = lookRef.current;
         camera.rotation.set((pitch * Math.PI) / 180, ((yaw + headingRef.current) * Math.PI) / 180, 0, 'YXZ');
+        renderedQ.current.copy(camera.quaternion);
       }
       // Route ribbon of the current floor (rebuilt when the route, floor or anchor changes).
       const r = routeRef.current;
@@ -301,7 +402,11 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
 
   return (
     <div className="ar-view">
-      <video ref={videoRef} className="ar-video" playsInline muted />
+      {TEST_IMAGE ? (
+        <img ref={imageRef} className="ar-video" src={TEST_IMAGE} alt="" crossOrigin="anonymous" onLoad={() => setCameraState('on')} onError={() => setCameraState('error')} />
+      ) : (
+        <video ref={videoRef} className="ar-video" playsInline muted />
+      )}
       {cameraState !== 'on' && !inXr && <div className="ar-fallback">{cameraState === 'error' ? 'No camera' : 'Starting camera…'}{fallbackLabel ? ` · ${fallbackLabel}` : ''}</div>}
       <div ref={hostRef} className="ar-canvas" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} />
       <div className="ar-hud" ref={hudRef}>
@@ -334,11 +439,22 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
           </label>
           {xrSupported && !inXr && <button onClick={() => startXr().catch((e: Error) => setStatus(`WebXR: ${e.message}`))}>Start WebXR AR</button>}
           {inXr && <button onClick={() => rendererRef.current?.xr.getSession()?.end()}>Exit WebXR</button>}
+          {!inXr && cameraState === 'on' && (
+            <>
+              <button disabled={vps.busy} onClick={() => void localizeVisually()} title="Match the camera image against the ETH 3D map (only image features are sent)">
+                {vps.busy ? 'Localizing…' : 'Localize visually'}
+              </button>
+              <label title="A visual fix every few seconds">
+                <input type="checkbox" checked={vpsAuto} onChange={(e) => setVpsAuto(e.target.checked)} /> auto
+              </label>
+            </>
+          )}
           {!inXr && <label>
             FOV {fov}°
             <input type="range" min={35} max={90} value={fov} onChange={(e) => setFov(Number(e.target.value))} />
           </label>}
         </div>
+        {(vps.last || vps.error) && <div className="ar-vps">{vpsStatus(vps)}</div>}
         <div className="ar-hint">
           {inXr
             ? 'WebXR: tracking by ARCore, plan anchored by the position fix and compass. Use the heading slider to line up walls.'
@@ -349,4 +465,12 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
       </div>
     </div>
   );
+}
+
+function vpsStatus({ last, error }: VpsState): string {
+  if (error) return `Visual fix failed: ${error}`;
+  if (!last) return '';
+  const t = `${(last.totalMs / 1000).toFixed(1)} s, ${Math.round(last.bytes / 1024)} KiB sent`;
+  if (!last.ok) return `No visual fix (${last.reason ?? 'unknown'}) · ${t}`;
+  return `Visual fix · ${last.inliers} inliers · heading ${last.heading?.toFixed(0)}° · ${last.levelId?.replace('ETH.', '')} · ${t}`;
 }

@@ -41,7 +41,15 @@ export default defineConfig({
   plugins: [react(), sharedFloors(), ...(process.env.PLAIN_HTTP ? [] : [basicSsl()])],
   // Own port: 5173 is the occupancy map's, and silently moving to the next free port
   // leaves the phone pointing at the wrong server.
-  server: { host: true, port: 5443, strictPort: true },
+  // The visual positioning server (../vps) answers vps/localize; the model is a static file in public/vps.
+  server: {
+    host: true,
+    port: 5443,
+    strictPort: true,
+    proxy: {
+      '^/vps/(localize|health)': { target: process.env.VPS_URL ?? 'http://127.0.0.1:8090', rewrite: (p) => p.replace(/^\/vps/, '') },
+    },
+  },
   preview: { host: true, port: 5443, strictPort: true },
   test: { environment: 'node' },
 });

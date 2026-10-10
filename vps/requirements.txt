@@ -1,0 +1,11 @@
+# Server (the VM): CPU torch is enough
+numpy
+scipy
+h5py
+pycolmap>=3.12
+fastapi
+uvicorn
+lightglue @ git+https://github.com/cvg/LightGlue
+# Map building (offline, a GPU helps): additionally
+#   hloc @ git+https://github.com/cvg/Hierarchical-Localization
+#   opencv-python-headless onnx onnxruntime tqdm

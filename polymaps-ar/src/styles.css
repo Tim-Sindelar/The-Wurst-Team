@@ -120,6 +120,7 @@ table.stats td:nth-child(2) { text-align: left; }
 .ar-hud input[type='range'] { width: 120px; }
 .ar-hud button { padding: 4px 10px; }
 .ar-hint { color: #c9d1dc; font-size: 0.78rem; }
+.ar-vps { color: #b8f0c8; font-size: 0.8rem; }
 
 @media (max-width: 860px) {
   .main { grid-template-columns: 1fr; grid-template-rows: minmax(320px, 55vh) auto; overflow: auto; }

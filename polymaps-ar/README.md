@@ -130,6 +130,23 @@ the comparison.
   The FOV slider matches the overlay to the camera's field of view.
 - Without motion sensors (desktop) dragging looks around, so the overlay can be checked anywhere.
 
+### Visual fix (`src/vps`, server in `../vps`)
+
+**Localize visually** (or **auto**, every 3 s) runs SuperPoint on the current camera frame in the
+browser (`public/vps/superpoint.onnx`, onnxruntime-web, WebGPU or WASM). It posts only the features
+(~260 KiB, never the image), together with the beacon fix, to `vps/localize`. The server matches
+them against LaMAR's 3D maps of HG E and CAB and returns the camera pose. The app then:
+
+- turns the heading so the rendered camera faces the visual one, and locks out the compass
+  (validation: median heading error 0.2° in HG, see `../vps/README.md`);
+- shifts beacon positions by the visual offset (full strength for 15 s, then fading over 30 s);
+- trusts the visual floor for 20 s;
+- sets the FOV slider from the refined focal length.
+
+In WebXR the camera belongs to ARCore. A visual fix taken before starting WebXR carries over,
+because the heading stays locked. `?camera=<image url>` uses a photo instead of the camera, to test
+on a desktop. The dev server proxies `/vps/localize` to `VPS_URL` (default `http://127.0.0.1:8090`).
+
 ## Pathfinding (`scraper/pathfinding`, `src/pathfinding`)
 
 Routes go to a room (search by name, e.g. `HG E 41`) or a tapped point, from the live BLE position

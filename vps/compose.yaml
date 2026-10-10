@@ -1,0 +1,9 @@
+# On the VM: docker compose up -d --build (in ~/ar/vps). The router proxies /ar/vps/localize here.
+services:
+  vps:
+    build: .
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./data/db:/data:ro
+    mem_limit: 3g
