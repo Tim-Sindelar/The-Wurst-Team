@@ -151,6 +151,23 @@
     @apply border-0 transition-[inset-inline-start] duration-150 ease-standard;
   }
 
+  /* --- Slider (map view picker) ------------------------------------------ */
+  .ui-slider {
+    @apply [--slider-color:var(--color-accent)] [--slider-track-bg:var(--color-surface-2)];
+  }
+  .ui-slider-thumb {
+    @apply rounded-full border-accent bg-surface text-accent;
+  }
+  .ui-slider-mark {
+    @apply border-border-strong bg-surface;
+  }
+  .ui-slider-mark[data-filled] {
+    @apply border-accent;
+  }
+  .ui-slider-mark-label {
+    @apply mt-2 text-label text-text-muted;
+  }
+
   /* --- Progress (timer bar) ----------------------------------------------- */
   .ui-progress {
     @apply h-1.5 rounded-[3px] bg-surface-2;

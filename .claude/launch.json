@@ -16,6 +16,20 @@
       "port": 5176
     },
     {
+      "name": "frontend-alt",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "frontend",
+        "--",
+        "--port",
+        "5177"
+      ],
+      "port": 5177
+    },
+    {
       "name": "backend",
       "runtimeExecutable": "backend/.venv/Scripts/python.exe",
       "runtimeArgs": [
@@ -80,6 +94,23 @@
       ],
       "port": 5443,
       "url": "https://localhost:5443"
+    },
+    {
+      "name": "polymaps-ar-http",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "C:/Users/diffr/code/wurst team repo 2/polymaps-ar",
+        "--",
+        "--port",
+        "5444"
+      ],
+      "env": {
+        "PLAIN_HTTP": "1"
+      },
+      "port": 5444
     }
   ]
 }
