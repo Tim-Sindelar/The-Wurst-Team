@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 from math import floor
 from uuid import UUID
 
-from sqlalchemy import bindparam, func, select, text
+from sqlalchemy import bindparam, delete, func, select, text
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -20,6 +21,7 @@ from app.features.reservations.models import (
 from app.features.reservations.schemas import (
     CreateReservationRequest,
     CurrentBreak,
+    FavouritesResponse,
     MyReservationResponse,
     OpeningInterval,
     ReservationAction,
@@ -34,6 +36,7 @@ from app.features.reservations.schemas import (
     SpacesResponse,
     SpaceSummary,
 )
+from app.models.favourite import FavouriteSpace
 
 LIVE_STATUSES = {"upcoming", "pending", "active", "on_break"}
 
@@ -346,6 +349,32 @@ class ReservationService:
             ],
         )
 
+    def favourites(self, user_id: UUID) -> FavouritesResponse:
+        ids = self.session.scalars(
+            select(FavouriteSpace.space_id)
+            .where(FavouriteSpace.user_id == user_id)
+            .order_by(FavouriteSpace.created_at, FavouriteSpace.space_id)
+        ).all()
+        return FavouritesResponse(space_ids=list(ids))
+
+    def set_favourite(self, user_id: UUID, space_id: UUID, favourite: bool) -> FavouritesResponse:
+        if favourite:
+            if self.session.get(StudySpace, space_id) is None:
+                raise BookingError(404, "not_found", "Study space not found")
+            self.session.execute(
+                insert(FavouriteSpace)
+                .values(user_id=user_id, space_id=space_id)
+                .on_conflict_do_nothing()
+            )
+        else:
+            self.session.execute(
+                delete(FavouriteSpace).where(
+                    FavouriteSpace.user_id == user_id, FavouriteSpace.space_id == space_id
+                )
+            )
+        self.session.flush()
+        return self.favourites(user_id)
+
     def space(self, space_id: UUID) -> SpaceResponse:
         space = self.session.get(StudySpace, space_id)
         if space is None:
@@ -463,6 +492,15 @@ class ReservationService:
             if state.status == "pending":
                 row = self.session.get(Reservation, state.id, populate_existing=True)
                 row.checked_in_at = now
+                # The session clock starts at the scan, not at the booking, so the
+                # time spent holding the seat is not taken out of the session.
+                # A pending booking has no successor, so moving the end is safe.
+                row.ends_at = (
+                    self.reservable_end(
+                        seat.id, now, now + timedelta(minutes=self.settings.session_length_minutes)
+                    )
+                    or row.ends_at
+                )
                 self.session.flush()
             return state.id, now
         if self._live(now, seat_ids=[seat.id]):

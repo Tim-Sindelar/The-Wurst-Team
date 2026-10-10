@@ -1,35 +1,46 @@
 import {
   ActionIcon,
+  Alert,
   Avatar,
   Card,
   Text,
   TextInput,
   Title,
 } from '@mantine/core';
-import { Link, useSearchParams } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Link } from 'react-router';
+import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
 import { Screen, ScreenMain } from '../components/Screen';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
+import { favouritesFirst, filterSpaces, toStudySpace } from '../domain/space';
+import { useFavourites } from '../hooks/useFavourites';
 import { useCurrentUser } from '../hooks/useCurrentUser';
-import type { BookingState } from '../mock/bookingContext';
-import { mockSpace, studySpaces } from '../mock/data';
-import { useMockBooking } from '../mock/useMockBooking';
+import { useMyReservation } from '../hooks/useMyReservation';
 import { paths } from '../routes';
-
-/* ?state=reserved, ?state=session or ?state=none forces the booking card. */
-const forcedState = (value: string | null): BookingState | null =>
-  value === 'reserved' || value === 'session' || value === 'none'
-    ? value
-    : null;
 
 export function HomeScreen() {
   const { user, initials, isPending, isError } = useCurrentUser();
-  const { seat, booking } = useMockBooking();
-  const [params] = useSearchParams();
-  const state = forcedState(params.get('state')) ?? booking;
+  const spacesQuery = useQuery({
+    ...listSpacesOptions(),
+    refetchInterval: 15_000,
+  });
+  const {
+    query: reservationQuery,
+    reservation,
+    held,
+    running,
+  } = useMyReservation();
+  const favourites = useFavourites();
+  const [search, setSearch] = useState('');
+  const allSpaces = spacesQuery.data?.spaces.map((space) =>
+    toStudySpace(space, favourites.ids.has(space.id)),
+  );
+  const spaces = allSpaces && favouritesFirst(filterSpaces(allSpaces, search));
 
   return (
     <Screen>
@@ -58,36 +69,75 @@ export function HomeScreen() {
             placeholder="Search study spaces"
             aria-label="Search study spaces"
             leftSection={<Icon name="search" />}
+            value={search}
+            onChange={(event) => setSearch(event.currentTarget.value)}
           />
         </div>
 
-        {state === 'reserved' && (
+        {reservation && (held || running) && (
           <BookingCard
-            to={paths.reservation}
-            stripe="reserved"
-            title={`Seat ${seat} · ${mockSpace.name}`}
-            detail="Reserved · tap to check in"
+            to={held ? paths.reservation : paths.session}
+            stripe={held ? 'reserved' : 'yours'}
+            title={`Seat ${reservation.seat.label} · ${reservation.space.name}`}
+            detail={
+              held ? 'Reserved · tap to check in' : 'In session · tap to open'
+            }
           />
         )}
-        {state === 'session' && (
-          <BookingCard
-            to={paths.session}
-            stripe="yours"
-            title={`Seat ${seat} · ${mockSpace.name}`}
-            detail="In session · tap to open"
-          />
+        {reservationQuery.isError && (
+          <Alert
+            variant="danger"
+            role="alert"
+            icon={<Icon name="alert" />}
+            title="Couldn't load your booking"
+          >
+            <Text size="sm">Check your connection and try again.</Text>
+          </Alert>
         )}
 
-        <ul
-          className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          aria-label="Recent and favourite study spaces"
-        >
-          {studySpaces.map((space) => (
-            <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
-              <SpaceCard space={space} />
-            </li>
-          ))}
-        </ul>
+        {favourites.failed && (
+          <Alert
+            variant="danger"
+            role="alert"
+            icon={<Icon name="alert" />}
+            title="Couldn't update your favourites"
+          >
+            <Text size="sm">Check your connection and try again.</Text>
+          </Alert>
+        )}
+
+        {spacesQuery.isError ? (
+          <Alert
+            variant="danger"
+            role="alert"
+            icon={<Icon name="alert" />}
+            title="Couldn't load study spaces"
+          >
+            <Text size="sm">Check your connection and try again.</Text>
+          </Alert>
+        ) : !spaces ? (
+          <Text c="dimmed" role="status">
+            Loading study spaces…
+          </Text>
+        ) : spaces.length === 0 ? (
+          <Text c="dimmed" role="status">
+            No study spaces match “{search.trim()}”.
+          </Text>
+        ) : (
+          <ul
+            className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="Study spaces"
+          >
+            {spaces.map((space) => (
+              <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
+                <SpaceCard
+                  space={space}
+                  onToggleFavourite={(on) => favourites.toggle(space.id, on)}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
 
         <Card
           component={Link}

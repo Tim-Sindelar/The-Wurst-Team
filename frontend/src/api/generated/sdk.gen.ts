@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, CheckInData, CheckInErrors, CheckInResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetEthRoomData, GetEthRoomErrors, GetEthRoomResponses, GetEthRoomsData, GetEthRoomsErrors, GetEthRoomsResponses, GetHealthData, GetHealthResponses, GetMapDatasetData, GetMapDatasetErrors, GetMapDatasetResponses, GetMapNavigationData, GetMapNavigationErrors, GetMapNavigationResponses, GetMapStyleData, GetMapStyleErrors, GetMapStyleResponses, GetMapWorkspacesData, GetMapWorkspacesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, GetUzhOccupancyData, GetUzhOccupancyErrors, GetUzhOccupancyResponses, ListMapDatasetsData, ListMapDatasetsResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, SaveMapNavigationData, SaveMapNavigationErrors, SaveMapNavigationResponses, SaveMapStyleData, SaveMapStyleErrors, SaveMapStyleResponses, SaveMapWorkspacesData, SaveMapWorkspacesErrors, SaveMapWorkspacesResponses, StartBreakData, StartBreakErrors, StartBreakResponses, UpdateMeData, UpdateMeErrors, UpdateMeResponses } from './types.gen';
+import type { AddFavouriteData, AddFavouriteErrors, AddFavouriteResponses, AdminCreateClosureData, AdminCreateClosureErrors, AdminCreateClosureResponses, AdminCreateSeatData, AdminCreateSeatErrors, AdminCreateSeatResponses, AdminCreateSpaceData, AdminCreateSpaceErrors, AdminCreateSpaceResponses, AdminDeleteClosureData, AdminDeleteClosureErrors, AdminDeleteClosureResponses, AdminEndReservationData, AdminEndReservationErrors, AdminEndReservationResponses, AdminGetSeatData, AdminGetSeatErrors, AdminGetSeatResponses, AdminGetSpaceOverviewData, AdminGetSpaceOverviewErrors, AdminGetSpaceOverviewResponses, AdminListClosuresData, AdminListClosuresErrors, AdminListClosuresResponses, AdminListSpacesData, AdminListSpacesErrors, AdminListSpacesResponses, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursErrors, AdminReplaceOpeningHoursResponses, AdminUpdateSeatData, AdminUpdateSeatErrors, AdminUpdateSeatResponses, AdminUpdateSpaceData, AdminUpdateSpaceErrors, AdminUpdateSpaceResponses, CheckInData, CheckInErrors, CheckInResponses, CreateReservationData, CreateReservationErrors, CreateReservationResponses, EndReservationData, EndReservationErrors, EndReservationResponses, ExtendReservationData, ExtendReservationErrors, ExtendReservationResponses, GetEthRoomData, GetEthRoomErrors, GetEthRoomResponses, GetEthRoomsData, GetEthRoomsErrors, GetEthRoomsResponses, GetHealthData, GetHealthResponses, GetMapDatasetData, GetMapDatasetErrors, GetMapDatasetResponses, GetMapNavigationData, GetMapNavigationErrors, GetMapNavigationResponses, GetMapStyleData, GetMapStyleErrors, GetMapStyleResponses, GetMapWorkspacesData, GetMapWorkspacesResponses, GetMeData, GetMeErrors, GetMeResponses, GetMyReservationData, GetMyReservationErrors, GetMyReservationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetRulesData, GetRulesErrors, GetRulesResponses, GetSpaceData, GetSpaceErrors, GetSpaceResponses, GetUzhOccupancyData, GetUzhOccupancyErrors, GetUzhOccupancyResponses, ListFavouritesData, ListFavouritesErrors, ListFavouritesResponses, ListMapDatasetsData, ListMapDatasetsResponses, ListSpacesData, ListSpacesErrors, ListSpacesResponses, RemoveFavouriteData, RemoveFavouriteErrors, RemoveFavouriteResponses, ReturnFromBreakData, ReturnFromBreakErrors, ReturnFromBreakResponses, SaveMapNavigationData, SaveMapNavigationErrors, SaveMapNavigationResponses, SaveMapStyleData, SaveMapStyleErrors, SaveMapStyleResponses, SaveMapWorkspacesData, SaveMapWorkspacesErrors, SaveMapWorkspacesResponses, StartBreakData, StartBreakErrors, StartBreakResponses, UpdateMeData, UpdateMeErrors, UpdateMeResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -251,6 +251,21 @@ export const updateMe = <ThrowOnError extends boolean = false>(options: Options<
 });
 
 /**
+ * List Favourites
+ */
+export const listFavourites = <ThrowOnError extends boolean = false>(options?: Options<ListFavouritesData, ThrowOnError>): RequestResult<ListFavouritesResponses, ListFavouritesErrors, ThrowOnError> => (options?.client ?? client).get<ListFavouritesResponses, ListFavouritesErrors, ThrowOnError>({ url: '/api/v1/me/favourites', ...options });
+
+/**
+ * Remove Favourite
+ */
+export const removeFavourite = <ThrowOnError extends boolean = false>(options: Options<RemoveFavouriteData, ThrowOnError>): RequestResult<RemoveFavouriteResponses, RemoveFavouriteErrors, ThrowOnError> => (options.client ?? client).delete<RemoveFavouriteResponses, RemoveFavouriteErrors, ThrowOnError>({ url: '/api/v1/me/favourites/{space_id}', ...options });
+
+/**
+ * Add Favourite
+ */
+export const addFavourite = <ThrowOnError extends boolean = false>(options: Options<AddFavouriteData, ThrowOnError>): RequestResult<AddFavouriteResponses, AddFavouriteErrors, ThrowOnError> => (options.client ?? client).put<AddFavouriteResponses, AddFavouriteErrors, ThrowOnError>({ url: '/api/v1/me/favourites/{space_id}', ...options });
+
+/**
  * Get My Reservation
  */
 export const getMyReservation = <ThrowOnError extends boolean = false>(options?: Options<GetMyReservationData, ThrowOnError>): RequestResult<GetMyReservationResponses, GetMyReservationErrors, ThrowOnError> => (options?.client ?? client).get<GetMyReservationResponses, GetMyReservationErrors, ThrowOnError>({ url: '/api/v1/me/reservation', ...options });
@@ -291,6 +306,11 @@ export const extendReservation = <ThrowOnError extends boolean = false>(options:
  * Return From Break
  */
 export const returnFromBreak = <ThrowOnError extends boolean = false>(options: Options<ReturnFromBreakData, ThrowOnError>): RequestResult<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError> => (options.client ?? client).post<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/return', ...options });
+
+/**
+ * Get Rules
+ */
+export const getRules = <ThrowOnError extends boolean = false>(options?: Options<GetRulesData, ThrowOnError>): RequestResult<GetRulesResponses, GetRulesErrors, ThrowOnError> => (options?.client ?? client).get<GetRulesResponses, GetRulesErrors, ThrowOnError>({ url: '/api/v1/rules', ...options });
 
 /**
  * List Spaces

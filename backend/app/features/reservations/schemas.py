@@ -60,6 +60,16 @@ SeatStatus = Literal["free", "reserved", "occupied", "on_break", "claimable", "u
 ReservationAction = Literal["check_in", "extend", "start_break", "return", "end"]
 
 
+class RulesResponse(BaseModel):
+    """Booking timing rules, in minutes. Configured in app/config.py."""
+
+    session_length_minutes: int
+    check_in_window_minutes: int
+    private_priority_window_minutes: int
+    public_reservation_window_minutes: int
+    break_budget_minutes: int
+
+
 class SpaceSummary(BaseModel):
     id: UUID
     name: str
@@ -88,6 +98,10 @@ class SpaceDetail(SpaceSummary):
 class SpacesResponse(BaseModel):
     server_time: datetime
     spaces: list[SpaceSummary]
+
+
+class FavouritesResponse(BaseModel):
+    space_ids: list[UUID]
 
 
 class SpaceResponse(BaseModel):

@@ -9,6 +9,8 @@ type TimerCardProps = {
   label: string;
   /** Seconds left when the card appears. */
   seconds: number;
+  /** Optional absolute expiry time for a persisted reservation. */
+  expiresAt?: number;
   /** Full length, for the progress bar. */
   total: number;
   stripe?: SeatState;
@@ -19,11 +21,12 @@ type TimerCardProps = {
 export function TimerCard({
   label,
   seconds,
+  expiresAt,
   total,
   stripe,
   children,
 }: TimerCardProps) {
-  const left = useCountdown(seconds);
+  const left = useCountdown(seconds, expiresAt);
   const labelId = useId();
 
   return (

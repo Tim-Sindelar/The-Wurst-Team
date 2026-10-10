@@ -946,6 +946,16 @@ export type EthSnapshot = {
 };
 
 /**
+ * FavouritesResponse
+ */
+export type FavouritesResponse = {
+    /**
+     * Space Ids
+     */
+    space_ids: Array<string>;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -1463,6 +1473,34 @@ export type RoomPlace = {
      */
     unitId: string;
     [key: string]: unknown;
+};
+
+/**
+ * RulesResponse
+ *
+ * Booking timing rules, in minutes. Configured in app/config.py.
+ */
+export type RulesResponse = {
+    /**
+     * Break Budget Minutes
+     */
+    break_budget_minutes: number;
+    /**
+     * Check In Window Minutes
+     */
+    check_in_window_minutes: number;
+    /**
+     * Private Priority Window Minutes
+     */
+    private_priority_window_minutes: number;
+    /**
+     * Public Reservation Window Minutes
+     */
+    public_reservation_window_minutes: number;
+    /**
+     * Session Length Minutes
+     */
+    session_length_minutes: number;
 };
 
 /**
@@ -2890,6 +2928,127 @@ export type UpdateMeResponses = {
 
 export type UpdateMeResponse = UpdateMeResponses[keyof UpdateMeResponses];
 
+export type ListFavouritesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/favourites';
+};
+
+export type ListFavouritesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListFavouritesError = ListFavouritesErrors[keyof ListFavouritesErrors];
+
+export type ListFavouritesResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type ListFavouritesResponse = ListFavouritesResponses[keyof ListFavouritesResponses];
+
+export type RemoveFavouriteData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/favourites/{space_id}';
+};
+
+export type RemoveFavouriteErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type RemoveFavouriteError = RemoveFavouriteErrors[keyof RemoveFavouriteErrors];
+
+export type RemoveFavouriteResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type RemoveFavouriteResponse = RemoveFavouriteResponses[keyof RemoveFavouriteResponses];
+
+export type AddFavouriteData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/favourites/{space_id}';
+};
+
+export type AddFavouriteErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AddFavouriteError = AddFavouriteErrors[keyof AddFavouriteErrors];
+
+export type AddFavouriteResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type AddFavouriteResponse = AddFavouriteResponses[keyof AddFavouriteResponses];
+
 export type GetMyReservationData = {
     body?: never;
     path?: never;
@@ -3163,6 +3322,43 @@ export type ReturnFromBreakResponses = {
 };
 
 export type ReturnFromBreakResponse = ReturnFromBreakResponses[keyof ReturnFromBreakResponses];
+
+export type GetRulesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/rules';
+};
+
+export type GetRulesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type GetRulesError = GetRulesErrors[keyof GetRulesErrors];
+
+export type GetRulesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RulesResponse;
+};
+
+export type GetRulesResponse = GetRulesResponses[keyof GetRulesResponses];
 
 export type ListSpacesData = {
     body?: never;
