@@ -1,15 +1,31 @@
-# Social frontend draft
+# Social frontend and optional sample preview
 
-This is a working design preview, available locally at `http://127.0.0.1:5173/social-draft`
-and in CI-deployed PR previews under `/pr/<number>/social-draft`. Friends, people search,
-requests, privacy and shared rooms use the real social backend when its capabilities say enabled.
-Disabled social uses sample data; the preview notice has been removed at the user’s request.
-Network/auth failures still show errors and never fall back to sample mutations. PR
-deployments enable the real directory in their isolated database. Party screens retain sample
-data and do not modify live bookings.
+Available locally at `http://127.0.0.1:5173/social-draft`, in production and in PRs under
+`/pr/<number>/social-draft`. Friends, requests, privacy, shared rooms, party invitations and
+bookings use the generated backend API. Production and CI previews enable social and disable
+sample mode. No sample people/parties are seeded, old browser previews are ignored, and network,
+authentication or disabled-backend failures show errors instead of sample mutations.
 
 `design-rules.md` continues to govern typography, spacing, themes, touch targets, and popups.
 There are no new design tokens, component variants, stylesheets, or dependencies.
+
+## Live party flow
+
+1. Create a named party, then send direct invitations to accepted friends. Invitations appear
+   under Study parties and in the Friends hub’s invitation count.
+2. Each invitee explicitly joins or declines. A conflicting active party shows a red notice
+   only at that decision; the backend enforces one active membership even across concurrent calls.
+3. The organizer chooses a real study space and manually assigns one distinct free seat to each
+   accepted member. The seat map and fallback seat picker use backend UUIDs and live availability.
+4. Confirming calls `bookPartyMutation` with the accepted roster and seat IDs. The server creates
+   all reservations atomically or returns an error; pending invitations are not included.
+5. Each member opens their own reservation and scans their seat QR code through the existing live
+   reservation/session screens. Deadlines come from backend rules, not sample timers.
+6. Cancelling a party releases unstarted reservations and hides it from the active list. Checked-in
+   members retain their individual sessions. Expired/ended own reservations free the party slot.
+
+Loading/errors appear in place, mutations refresh the shared booking/social queries, and party
+lists/details poll every 15 seconds. Production has no reset, role selector or mock scan controls.
 
 ## Layout references
 
@@ -64,7 +80,10 @@ update immediately without a notification. Urgent notices remain floating below 
 Party preview tools are collapsed below the party screens. They contain reset, booking-conflict controls,
 and (on party detail/reservation) a perspective selector. These controls are not product UI.
 
-## Preview walkthrough
+## Optional sample walkthrough
+
+The following walkthrough applies only with `VITE_SOCIAL_DEMO_ENABLED=true` (or local development
+when this flag is omitted). Set it to false and enable the backend to review the live flow above.
 
 1. Open Friends through the bottom navigation or `/social-draft`. Room sharing is off by default
    and its setting is at the top. Friends and shared room names are in one list, with locations
@@ -106,35 +125,28 @@ party IDs show an unavailable notice rather than opening a different party.
 Run `npm run test:social-draft` in `frontend/` for party storage, targeting, consent, and cancellation
 regressions. The hub sections, bottom navigation, inline confirmations, create/invite/list flow,
 Home roundtrip, reloads, directory search, cancelled-party visibility, preserved session access,
-recipient consent sheet, and legacy seat bookmark were also exercised in an in-memory DOM in dark and light modes. This checks interactions
-and markup; live visual review remains unavailable while computer use is not working.
+recipient consent sheet, and legacy seat bookmarks were also exercised in an in-memory DOM.
+The live flow was checked with an isolated PostgreSQL schema and a headless browser: create,
+invite, join, four-seat booking, individual QR check-in, and cancellation preserving a running
+session. Friends was rendered in both themes. Prefixed PR navigation, ignored saved samples and
+disabled-backend errors were checked against the production build.
 
 ## Remaining work
 
-- Review the draft in both themes against the references above. Live browser visual review was
-  unavailable in this session because computer use was not working.
 - Refine room browsing and the member waiting state.
-- Connect the party view models and reducer actions to generated social API helpers, preserving
-  party-booking consent. Friendship screens already use the generated API.
-- Use backend capability gating for real routes. The preview's `VITE_SOCIAL_DEMO_ENABLED` gate is separate
-  from `SOCIAL_ENABLED`; it must not become a production bypass.
-- Replace sample seat numbers and layout with backend IDs and the team's room-layout contract.
-- Use real reservation state and QR check-in; keep each member's booking and session individually owned.
-- Add loading and network error states, refresh data after mutations, and implement server-derived
-  expiry for the whole roster. The current prototype only counts down the viewed reservation/session.
-- Remove the preview toolbar and draft scan affordance before shipping.
+- Replace the shared stand-in floor-plan geometry once the backend supplies seat positions. All seat
+  IDs, labels and availability already come from the backend.
 
 Shared changes are `AppLayout` and `BottomNavigation` for persistent navigation,
 in-page routine `StatusBanner` confirmations, shared icons/theme styles, and the optional
 `SeatMap.highlightedSeats` prop. Individual seat screens omit highlights. The social draft code
-lives under `frontend/src/features/social-draft/`; `App.tsx` registers its lazy routes when the demo
-flag is enabled. Local development defaults on; CI enables the flag for PR builds and leaves it
-off in normal production. PR deploys separately enable the social backend; local live friendships
-require `SOCIAL_ENABLED=true`. Docker exposes `SOCIAL_DEMO_ENABLED` as a build argument.
-Home / Map / Profile stay available when the social preview is disabled; the Friends destination
-and its lazy routes follow the preview flag. DOM checks also
+lives under `frontend/src/features/social-draft/`; `App.tsx` registers its lazy routes when
+`VITE_SOCIAL_ENABLED` is enabled (the default). `VITE_SOCIAL_DEMO_ENABLED` independently chooses
+sample parties, and CI disables it for both PRs and production. Local live social requires
+`SOCIAL_ENABLED=true` in the backend. Docker exposes both feature and sample build arguments.
+Home / Map / Profile stay available when social is disabled. DOM checks also
 cover production mode with the flag enabled, prefixed links/storage, and four-seat manual booking.
 
 Directory interactions were checked in an in-memory DOM in dark and light: ID-based requests,
 refreshed pending states and persisted privacy. Explicit demo and failed-backend cases were also
-checked. This verifies markup and interactions; live visual review is still unavailable.
+checked. These checks cover markup and interactions; headless live screenshots cover both themes.

@@ -27,12 +27,24 @@ import { useSocialDraft } from './useSocialDraft';
 import { useFriends } from './useFriends';
 import { friendsWithLocationsFirst } from './friends';
 import { useNow } from '../../hooks/useNow';
+import { socialDemoEnabled } from '../../features';
+import { useParties } from './useParties';
 
 export function FriendsDraftScreen() {
   const { state } = useSocialDraft();
   const social = useFriends();
   const now = useNow();
-  const party = activeDraftParty(state.parties, 'you', now);
+  const parties = useParties();
+  const party = socialDemoEnabled
+    ? activeDraftParty(state.parties, 'you', now)
+    : parties.activeParty;
+  const invitations = parties.parties.filter(
+    (p) =>
+      p.status === 'open' &&
+      p.members.some(
+        (m) => m.person.id === parties.user?.id && m.status === 'invited',
+      ),
+  ).length;
   const incoming = social.requests.filter((r) => r.incoming).length;
   const [search, setSearch] = useState('');
   const [remove, setRemove] = useState<DraftPerson | null>(null);
@@ -82,9 +94,14 @@ export function FriendsDraftScreen() {
       >
         <div className="flex items-center justify-between gap-3">
           <div className="grid min-w-0 gap-1">
-            <Title order={2}>Study party · preview</Title>
+            <Title order={2}>
+              {socialDemoEnabled ? 'Study party · preview' : 'Study parties'}
+            </Title>
             <Text size="sm" c="dimmed">
               {party ? party.name : 'Create a party or review invitations'}
+              {!socialDemoEnabled &&
+                invitations > 0 &&
+                ` · ${invitations} ${invitations === 1 ? 'invitation' : 'invitations'}`}
             </Text>
           </div>
           <Icon name="chevronRight" />

@@ -61,7 +61,8 @@ jobs:
           --health-retries 30
     env:
       APP_BASE_PATH: ${{ github.event_name == 'pull_request' && format('/pr/{0}/', github.event.pull_request.number) || '/' }}
-      VITE_SOCIAL_DEMO_ENABLED: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+      VITE_SOCIAL_ENABLED: 'true'
+      VITE_SOCIAL_DEMO_ENABLED: 'false'
       DATABASE_URL: postgresql+psycopg://hackathon:ci_test_only@localhost:5432/hackathon_test
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -117,7 +118,7 @@ jobs:
       - name: Build web image and test deployment images
         run: |
           set -euo pipefail
-          docker build --platform linux/amd64 --build-arg "APP_BASE_PATH=$APP_BASE_PATH" --build-arg "SOCIAL_DEMO_ENABLED=$VITE_SOCIAL_DEMO_ENABLED" -f frontend/Dockerfile -t "wurst-web:$GITHUB_SHA" .
+          docker build --platform linux/amd64 --build-arg "APP_BASE_PATH=$APP_BASE_PATH" --build-arg "SOCIAL_ENABLED=$VITE_SOCIAL_ENABLED" --build-arg "SOCIAL_DEMO_ENABLED=$VITE_SOCIAL_DEMO_ENABLED" -f frontend/Dockerfile -t "wurst-web:$GITHUB_SHA" .
           docker run --rm --entrypoint caddy "wurst-web:$GITHUB_SHA" validate --config /etc/caddy/Caddyfile
           bash deploy/tests/integration.sh "$GITHUB_SHA" "$APP_BASE_PATH"
       - name: Package tested images

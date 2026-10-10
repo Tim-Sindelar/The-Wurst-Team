@@ -5,6 +5,7 @@ import {
   SocialDraftContext,
   draftPaths,
   activeDraftParty,
+  emptyDraftParty,
   type DraftAction,
 } from './draft';
 
@@ -28,7 +29,9 @@ export function useSocialDraft() {
   if (!value)
     throw new Error('Social draft must be inside its preview provider');
   const party =
-    value.state.parties.find((p) => p.id === partyId) ?? value.state.parties[0];
+    value.state.parties.find((p) => p.id === partyId) ??
+    value.state.parties[0] ??
+    emptyDraftParty;
   const viewer = party.members.some((m) => m.person.id === value.state.viewer)
     ? value.state.viewer
     : 'you';

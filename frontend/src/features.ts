@@ -1,5 +1,9 @@
-/** Local development defaults on; deployed demos must opt in at build time. */
-export const socialDemoEnabled =
-  import.meta.env.VITE_SOCIAL_DEMO_ENABLED === undefined
-    ? import.meta.env.DEV
-    : import.meta.env.VITE_SOCIAL_DEMO_ENABLED === 'true';
+import { resolveSocialMode } from './domain/socialMode';
+
+const social = resolveSocialMode(
+  import.meta.env.VITE_SOCIAL_ENABLED,
+  import.meta.env.VITE_SOCIAL_DEMO_ENABLED,
+  import.meta.env.DEV,
+);
+export const socialEnabled = social.enabled;
+export const socialDemoEnabled = social.demo;

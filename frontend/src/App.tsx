@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { AppLayout } from './components/AppLayout';
-import { socialDemoEnabled } from './features';
+import { socialEnabled } from './features';
 import { paths } from './routes';
 import { HomeScreen } from './screens/HomeScreen';
 import { MapScreen } from './screens/MapScreen';
@@ -10,7 +10,7 @@ import { ScanScreen } from './screens/ScanScreen';
 import { SeatMapScreen } from './screens/SeatMapScreen';
 import { SessionScreen } from './screens/SessionScreen';
 
-const socialDraftRoutes = socialDemoEnabled
+const socialDraftRoutes = socialEnabled
   ? (await import('./features/social-draft/routes')).socialDraftRoutes
   : [];
 

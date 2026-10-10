@@ -138,23 +138,26 @@ The `reservation_states` database view derives availability from the clock, incl
 
 The social backend supports signed-in user search and direct friend requests, accepted party membership,
 manual same-room seat assignments, atomic booking for all accepted members, and optional
-friend room sharing. It defaults to disabled (`SOCIAL_ENABLED=false`); enabling it does
+friend room sharing. Production and PR deployments enable it (`SOCIAL_ENABLED=true`); standalone
+backend settings default to disabled. Enabling it does
 not replace the frontend's live individual-booking flow. See [the social backend contract](docs/social-backend.md)
 for setup, endpoints, consent rules, and the frontend integration boundary.
 
-A separate frontend draft is at `http://127.0.0.1:5173/social-draft` and in CI-deployed PR previews.
+A social frontend is at `http://127.0.0.1:5173/social-draft`, in production and in CI-deployed PR previews.
 Open it through **Friends** in the Home / Map / Friends / Profile bottom navigation. Profile replaces
-the avatar shortcut on Home; Home / Map / Profile remain available when the social preview is off. Its hub
+the avatar shortcut on Home; Home / Map / Profile remain available when social is disabled. Its hub
 shows privacy first, a party entry and one friend list with shared rooms first. Requests have
 their own page; Add a friend stays pinned above bottom navigation. People search, friend requests,
 friendships and privacy use the real backend when enabled; signing in makes names and avatars
 discoverable, with room sharing off by default. PR deployments enable this in their isolated database.
-Party screens still use sample data saved locally and support switching perspectives. Only one
-joined active party per person is allowed; invitations can wait until that slot is free. A disabled
-backend uses sample friendships. Ordinary bookings are unchanged.
-See [the draft walkthrough](design/social-draft.md). `VITE_SOCIAL_DEMO_ENABLED=true` includes the draft
-in a build; CI enables it for PRs and disables it for regular production. Docker accepts the build
-argument `SOCIAL_DEMO_ENABLED=true`. Local development defaults on when the flag is omitted.
+Parties use real invitations, accepted membership, manual room/seat selection and atomic group
+booking. Everyone checks in independently through the existing reservation/session screens.
+Only one joined active party per person is allowed; invitations can wait until that slot is free.
+Saved previews never appear in production. A disabled backend shows an unavailable notice.
+See [the walkthrough](design/social-draft.md). `VITE_SOCIAL_ENABLED=false` hides the social feature.
+`VITE_SOCIAL_DEMO_ENABLED=true` separately enables the old sample UI; local development defaults to
+samples when this flag is omitted. CI disables samples for both PRs and production. Docker accepts
+the corresponding `SOCIAL_ENABLED` and `SOCIAL_DEMO_ENABLED` build arguments.
 
 ## Admin API demo
 

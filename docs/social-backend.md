@@ -1,11 +1,10 @@
 # Friends and party booking backend
 
-Social features are optional and disabled by default. This implementation does not change the
-existing live individual-booking flow. The generated frontend API client includes
-the new endpoints. The [frontend](../design/social-draft.md) now connects people search,
-friend requests, friends, privacy, and shared rooms to this API when enabled. Party screens remain
-a separate sample-data preview. PR deployments enable social in their isolated database; production
-remains disabled by default.
+Social features are optional; deployment Compose enables them in production and PRs, while
+standalone backend settings remain disabled by default. The [frontend](../design/social-draft.md)
+connects people search, friend requests, friends, privacy, shared rooms and parties through the
+generated API client. Party bookings create real, individually owned reservations; the existing
+reservation/session/QR screens handle each member’s check-in. Production never loads sample data.
 
 ## Enable locally
 
@@ -19,10 +18,11 @@ Startup applies the additive migration. Set the value back to `false` and recrea
 to disable social features. Existing reservations remain usable through the standard reservation,
 check-in, and session endpoints. Do not downgrade the database just to disable the feature.
 
-The frontend uses `getSocialCapabilitiesOptions()` to choose real friendships when enabled and
-a sample preview when disabled. The UI notice has been removed; this remains demo data. Network or authentication failures never
-fall back to sample mutations. All social APIs except capabilities are gated in the backend.
-The build-time demo flag still controls whether these screens and navigation are included.
+The frontend uses `getSocialCapabilitiesOptions()` to require an enabled backend. All social APIs
+except capabilities are gated in the backend. `VITE_SOCIAL_ENABLED` controls frontend availability;
+`VITE_SOCIAL_DEMO_ENABLED` independently selects local sample party screens. CI disables samples
+in production and PRs. Sample friendships require both the explicit demo mode and a disabled
+backend; network/auth failures never fall back to sample mutations.
 
 Use the existing managed-proxy authentication in deployment. Keep direct access blocked, keep
 managed authentication enabled, and use `AUTH_MODE=proxy`. Social never creates credentials,

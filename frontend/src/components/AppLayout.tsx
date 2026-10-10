@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { BottomNavigation } from './BottomNavigation';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 export function AppLayout() {
+  // Register the signed-in display profile even without a Home avatar shortcut.
+  useCurrentUser();
   const { pathname } = useLocation();
   const viewport = useRef<HTMLDivElement>(null);
   useEffect(() => {

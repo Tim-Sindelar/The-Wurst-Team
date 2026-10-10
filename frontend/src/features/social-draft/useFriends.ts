@@ -15,6 +15,7 @@ import {
 import type { DirectoryPerson } from '../../api/generated';
 import { apiProblem } from '../../domain/booking';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { socialDemoEnabled } from '../../features';
 import { samplePeople } from './directory';
 import type { DraftPerson } from './draft';
 import { useSocialDraft } from './useSocialDraft';
@@ -31,7 +32,7 @@ export function useFriends(search = '') {
     retry: false,
   });
   const live = capabilities.data?.enabled === true;
-  const demo = capabilities.data?.enabled === false;
+  const demo = socialDemoEnabled && capabilities.data?.enabled === false;
   const enabled = live && !!user;
   const me = useQuery({
     ...getSocialMeOptions({ redirect: 'error' }),
@@ -122,7 +123,12 @@ export function useFriends(search = '') {
       capabilities.isPending ||
       (live &&
         (!user || me.isPending || friends.isPending || requests.isPending)),
-    error: mutationError || (queryError ? apiProblem(queryError).message : ''),
+    error:
+      mutationError ||
+      (queryError ? apiProblem(queryError).message : '') ||
+      (capabilities.data?.enabled === false && !demo
+        ? 'Friends are temporarily unavailable. Please try again later.'
+        : ''),
     shareRoom: demo ? draft.state.shareRoom : (me.data?.share_room ?? false),
     friends: demo
       ? draft.state.friends

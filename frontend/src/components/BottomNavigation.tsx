@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router';
 import { paths } from '../routes';
-import { socialDemoEnabled } from '../features';
+import { socialEnabled } from '../features';
 import { Icon } from './Icon';
 
 /** The shell keeps navigation separate from scrolling content and actions. */
@@ -17,7 +17,7 @@ export function BottomNavigation() {
           <Icon name="map" />
           <span>Map</span>
         </NavLink>
-        {socialDemoEnabled && (
+        {socialEnabled && (
           <NavLink
             to="/social-draft"
             className="ui-bottom-nav-link"

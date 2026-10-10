@@ -123,6 +123,29 @@ export const sampleInvite: DraftPerson = {
 export const holdSeconds = 15 * 60;
 export const sessionSeconds = 120 * 60;
 
+/** Production never reads saved previews or seeds sample friendships/parties. */
+export function emptyDraftState(): DraftState {
+  return {
+    demoSeedVersion: 0,
+    revision: 0,
+    friends: [],
+    requests: [],
+    shareRoom: false,
+    viewer: 'you',
+    parties: [],
+    activePartyId: '',
+  };
+}
+
+export const emptyDraftParty: DraftParty = {
+  id: '',
+  organizerId: '',
+  name: '',
+  status: 'open',
+  members: [],
+  bookedAt: null,
+};
+
 const asMember = (person: DraftPerson, accepted = false): DraftMember => ({
   person,
   status: accepted ? 'accepted' : 'invited',

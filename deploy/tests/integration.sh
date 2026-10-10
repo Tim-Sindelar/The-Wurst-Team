@@ -62,21 +62,21 @@ save_name() {
   curl --fail --silent --show-error --max-time 10 -X PATCH \
     -H 'X-User-Id: persistence-test@example.invalid' -F "name=$2" "$1/api/v1/me" >/dev/null
 }
-check_social_demo() {
-  local entry=$1 enabled=$2
-  local asset
-  asset=$(curl --fail --silent --show-error --max-time 10 "$entry/" |
-    python3 -c 'import re,sys; print(re.search(r"<script[^>]+src=\"([^\"]+)\"", sys.stdin.read())[1])')
-  curl --fail --silent --show-error --max-time 10 "$url$asset" > "$scratch/social-bundle.js"
-  if [[ "$enabled" == true ]]; then
-    grep -Fq 'Main navigation' "$scratch/social-bundle.js"
-    grep -Fq 'social-draft' "$scratch/social-bundle.js"
-  else
-    if grep -Fq 'Main navigation' "$scratch/social-bundle.js"; then
-      echo 'The social navigation demo was unexpectedly enabled in production.' >&2
-      return 1
-    fi
-  fi
+check_social_mode() {
+  local entry=$1 demo=$2
+  curl --fail --silent --show-error --max-time 10 "$entry/social-config.json" |
+    python3 -c 'import json,sys; mode=json.load(sys.stdin); assert mode == {"enabled": True, "demo": sys.argv[1] == "true"}, mode' "$demo"
+  curl -fsS "$entry/api/v1/social/capabilities" |
+    python3 -c 'import json,sys; assert json.load(sys.stdin)["enabled"] is True'
+}
+check_empty_social() {
+  local entry=$1 endpoint key
+  for endpoint in friends friend-requests parties; do
+    key=$endpoint
+    [[ "$endpoint" != friend-requests ]] || key=requests
+    curl -fsS -H 'X-User-Id: persistence-test@example.invalid' "$entry/api/v1/social/$endpoint" |
+      python3 -c 'import json,sys; assert json.load(sys.stdin)[sys.argv[1]] == []' "$key"
+  done
 }
 check_spaces() {
   curl --fail --silent --show-error --max-time 10 \
@@ -94,7 +94,7 @@ for space in spaces:
 # Test both frontend prefixes regardless of whether CI is a push or PR run.
 if [[ "$base" == / ]]; then
   docker tag "wurst-web:$sha" "wurst-web:$prod_sha"
-  docker build --build-arg "APP_BASE_PATH=/pr/$pr/" --build-arg SOCIAL_DEMO_ENABLED=true -f frontend/Dockerfile -t "wurst-web:$pr_sha" .
+  docker build --build-arg "APP_BASE_PATH=/pr/$pr/" --build-arg SOCIAL_DEMO_ENABLED=false -f frontend/Dockerfile -t "wurst-web:$pr_sha" .
 else
   docker tag "wurst-web:$sha" "wurst-web:$pr_sha"
   docker build --build-arg APP_BASE_PATH=/ -f frontend/Dockerfile -t "wurst-web:$prod_sha" .
@@ -144,11 +144,11 @@ bash "$preview/deploy.sh" "$pr_sha" "$pr"
 [[ "$(readlink -f "$scratch/previews/pr-$pr/current")" == "$preview" ]]
 check_spaces "$url/pr/$pr" 2
 check_spaces "$url" 0
-check_social_demo "$url/pr/$pr" true
-check_social_demo "$url" false
-# The real directory is enabled only in the isolated PR database.
-curl -fsS "$url/pr/$pr/api/v1/social/capabilities" | python3 -c 'import json,sys; assert json.load(sys.stdin)["enabled"] is True'
-curl -fsS "$url/api/v1/social/capabilities" | python3 -c 'import json,sys; assert json.load(sys.stdin)["enabled"] is False'
+check_social_mode "$url/pr/$pr" false
+check_social_mode "$url" false
+# Both use live friendships; production starts without sample friends, requests or parties.
+check_empty_social "$url"
+check_empty_social "$url/pr/$pr"
 save_name "$url/pr/$pr" 'Isolated preview profile'
 check_name "$url/pr/$pr" 'Isolated preview profile'
 check_name "$url" 'Persists across releases'

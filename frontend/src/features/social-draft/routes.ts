@@ -1,7 +1,8 @@
 import type { RouteObject } from 'react-router';
 import { draftPaths } from './draft';
+import { socialDemoEnabled } from '../../features';
 
-/** Isolated preview. Screens load lazily only when the demo build flag is enabled. */
+/** Live production screens; sample party screens require an explicit demo build. */
 export const socialDraftRoutes: RouteObject[] = [
   {
     path: draftPaths.friends,
@@ -39,48 +40,58 @@ export const socialDraftRoutes: RouteObject[] = [
       {
         path: 'parties',
         lazy: async () => ({
-          Component: (await import('./PartyDraftScreens')).PartiesDraftScreen,
+          Component: socialDemoEnabled
+            ? (await import('./PartyDraftScreens')).PartiesDraftScreen
+            : (await import('./LivePartyScreens')).LivePartiesScreen,
         }),
       },
       {
         path: 'parties/new',
         lazy: async () => ({
-          Component: (await import('./PartyDraftScreens'))
-            .PartyEditorDraftScreen,
+          Component: socialDemoEnabled
+            ? (await import('./PartyDraftScreens')).PartyEditorDraftScreen
+            : (await import('./LivePartyScreens')).LivePartyEditorScreen,
         }),
       },
       {
         path: 'party/:partyId',
         lazy: async () => ({
-          Component: (await import('./PartyDraftScreens')).PartyDraftScreen,
+          Component: socialDemoEnabled
+            ? (await import('./PartyDraftScreens')).PartyDraftScreen
+            : (await import('./LivePartyScreens')).LivePartyScreen,
         }),
       },
       {
         path: 'party/:partyId/invite',
         lazy: async () => ({
-          Component: (await import('./PartyDraftScreens'))
-            .InviteFriendsDraftScreen,
+          Component: socialDemoEnabled
+            ? (await import('./PartyDraftScreens')).InviteFriendsDraftScreen
+            : (await import('./LivePartyScreens')).LiveInviteFriendsScreen,
         }),
       },
       {
         path: 'party/:partyId/seats',
         lazy: async () => ({
-          Component: (await import('./PartyBookingDraftScreens'))
-            .PartySeatsDraftScreen,
+          Component: socialDemoEnabled
+            ? (await import('./PartyBookingDraftScreens')).PartySeatsDraftScreen
+            : (await import('./LivePartyBookingScreen')).LivePartySeatsScreen,
         }),
       },
       {
         path: 'party/:partyId/reservation',
         lazy: async () => ({
-          Component: (await import('./PartyBookingDraftScreens'))
-            .PartyReservationDraftScreen,
+          Component: socialDemoEnabled
+            ? (await import('./PartyBookingDraftScreens'))
+                .PartyReservationDraftScreen
+            : (await import('./LivePartyScreens')).LivePartyReservationScreen,
         }),
       },
       {
         path: 'party/:partyId/scan',
         lazy: async () => ({
-          Component: (await import('./PartyBookingDraftScreens'))
-            .PartyScanDraftScreen,
+          Component: socialDemoEnabled
+            ? (await import('./PartyBookingDraftScreens')).PartyScanDraftScreen
+            : (await import('./LivePartyScreens')).LivePartyScanScreen,
         }),
       },
       ...[

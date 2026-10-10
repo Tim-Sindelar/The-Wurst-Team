@@ -2,6 +2,7 @@ import { Alert, Anchor, Button, NativeSelect, Text } from '@mantine/core';
 import { useEffect, useReducer, type ReactNode } from 'react';
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { Icon } from '../../components/Icon';
+import { socialDemoEnabled } from '../../features';
 import {
   ActionBar,
   Screen,
@@ -12,6 +13,7 @@ import {
   SocialDraftContext,
   draftPaths,
   draftReducer,
+  emptyDraftState,
   loadDraftState,
   partyPath,
   saveDraftState,
@@ -20,20 +22,29 @@ import { useSocialDraft } from './useSocialDraft';
 
 export function SocialDraftLayout() {
   const [state, dispatch] = useReducer(draftReducer, undefined, () =>
-    loadDraftState(import.meta.env.BASE_URL),
+    socialDemoEnabled
+      ? loadDraftState(import.meta.env.BASE_URL)
+      : emptyDraftState(),
   );
-  useEffect(() => saveDraftState(state, import.meta.env.BASE_URL), [state]);
+  useEffect(() => {
+    if (socialDemoEnabled) saveDraftState(state, import.meta.env.BASE_URL);
+  }, [state]);
   return (
     <SocialDraftContext value={{ state, dispatch }}>
       <DraftContent key={state.revision} />
-      <DraftPreviewControls />
+      {socialDemoEnabled && <DraftPreviewControls />}
     </SocialDraftContext>
   );
 }
 
 function DraftContent() {
   const { state, partyExists } = useSocialDraft();
-  if (!partyExists)
+  const { pathname } = useLocation();
+  if (
+    socialDemoEnabled &&
+    pathname.startsWith(draftPaths.party + '/') &&
+    !partyExists
+  )
     return (
       <DraftFrame title="Party not found" backTo={draftPaths.parties}>
         <Alert title="This party isn’t saved in this preview">
@@ -52,6 +63,7 @@ export function LegacyPartyRedirect() {
   const { state } = useSocialDraft();
   const { pathname, search } = useLocation();
   const section = pathname.slice(draftPaths.party.length);
+  if (!socialDemoEnabled) return <Navigate replace to={draftPaths.parties} />;
   return (
     <Navigate replace to={`${partyPath(state.party.id)}${section}${search}`} />
   );
