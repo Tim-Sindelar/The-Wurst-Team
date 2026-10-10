@@ -4,7 +4,8 @@ FROM ghcr.io/astral-sh/uv:0.11.21@sha256:ff07b86af50d4d9391d9daf4ff89ce427bc544f
 FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 AS map-floors
 WORKDIR /build
 COPY scraper/scrape_polymaps.py scraper/
-RUN python scraper/scrape_polymaps.py scraper/polymaps_data
+ARG GEODATA_CACHE_WEEK=local
+RUN : "$GEODATA_CACHE_WEEK" && python scraper/scrape_polymaps.py scraper/polymaps_data
 COPY scraper/extract_floors.py scraper/build_library_outlines.py scraper/
 COPY backend/app/features/campus_map/map-data/generated.json occupancy-map-preview/data/generated.json
 RUN python scraper/extract_floors.py --floors-only \
