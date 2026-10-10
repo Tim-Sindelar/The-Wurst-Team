@@ -20,8 +20,10 @@ type SeatMapProps = {
   /** The selected seat, or null when nothing is selected. */
   selected: string | null;
   onSelect: (seatId: string) => void;
+  /** Optional group selection; individual-seat screens keep their existing behavior. */
+  highlightedSeats?: string[];
   /** The empty map was tapped. */
-  onDeselect: () => void;
+  onDeselect?: () => void;
   /** Top-right text button: picks a free seat. Leave out to hide it. */
   onChooseFree?: () => void;
   /** No free seat to choose: the button stays but is disabled. */
@@ -40,6 +42,7 @@ export function SeatMap({
   onChooseFree,
   chooseFreeDisabled = false,
   getCovered,
+  highlightedSeats = [],
 }: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -69,7 +72,7 @@ export function SeatMap({
         selectedRef.current ? (coveredRef.current?.() ?? 0) : 0,
       onSeatTap: (seat) => onSelectRef.current(String(seat.dataset.seatId)),
       onMapPress: () => setKeyOpen(false),
-      onMapTap: () => onDeselectRef.current(),
+      onMapTap: () => onDeselectRef.current?.(),
     });
     panZoomRef.current = panZoom;
     setReady(true);
@@ -151,7 +154,9 @@ export function SeatMap({
             state={seat.state}
             x={seat.x}
             y={seat.y}
-            selected={seat.id === selected}
+            selected={
+              seat.id === selected || highlightedSeats.includes(seat.id)
+            }
             onSelect={() => onSelect(seat.id)}
           />
         ))}

@@ -441,7 +441,7 @@
 
     <section>
       <h2>Popups</h2>
-      <p class="lead">Two kinds only. Try them: a decision sheet slides up from the bottom and a notification banner slides in from the top. Closing a sheet any way except its right-hand button counts as Cancel.</p>
+      <p class="lead">Two kinds only. Decisions use bottom sheets; routine confirmations stay in the page. Urgent banners appear below the header. Closing a sheet any way except its right-hand button counts as Cancel.</p>
       <div class="specimens">
         <div class="specimen">
           <h3>Decision sheet</h3>
@@ -457,10 +457,33 @@
           <div class="stage">
             <button class="btn btn--secondary" type="button" data-banner-open="banner-checkin">Check-in reminder (stays)</button>
             <button class="btn btn--secondary" type="button" data-banner-open="banner-window">Extension window (fades after 6s)</button>
+            <div class="banner-region banner-region--inline">
+              <div class="banner" id="banner-window" role="status" hidden>
+                <i class="icon i-clock"></i>
+                <div class="banner__text">
+                  <span class="banner__title">Extension window open</span>
+                  <span class="t-small t-muted">You have 10 minutes to extend your session.</span>
+                </div>
+                <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
+              </div>
+            </div>
           </div>
           <p class="specimen__note">Urgent ones (check-in reminder, seat lost, session end) stay until dismissed.</p>
         </div>
       </div>
+    </section>
+
+    <section>
+      <h2>Bottom navigation</h2>
+      <div class="stage stage--phone" data-code>
+        <nav class="bottom-nav" aria-label="Main navigation">
+          <a class="bottom-nav__link" href="http://127.0.0.1:5173/" aria-current="page"><i class="icon i-home" aria-hidden="true"></i><span>Home</span></a>
+          <a class="bottom-nav__link" href="http://127.0.0.1:5173/map"><i class="icon i-map" aria-hidden="true"></i><span>Map</span></a>
+          <a class="bottom-nav__link" href="http://127.0.0.1:5173/social-draft"><i class="icon i-friends" aria-hidden="true"></i><span>Friends</span></a>
+          <a class="bottom-nav__link" href="http://127.0.0.1:5173/profile"><i class="icon i-user" aria-hidden="true"></i><span>Profile</span></a>
+        </nav>
+      </div>
+      <p class="specimen__note">Home / Map / Friends / Profile appear in production and PRs. Explicitly disabling social hides Friends. Keep this bar outside the scrolling content, below page actions. Profile replaces the avatar shortcut on Home.</p>
     </section>
 
     <section>
@@ -530,14 +553,6 @@
         <span class="t-small t-muted">Seat 14 is released in 3 minutes.</span>
       </div>
       <button class="btn btn--quiet" type="button" data-banner-close>Scan</button>
-      <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
-    </div>
-    <div class="banner" id="banner-window" role="status" hidden>
-      <i class="icon i-clock"></i>
-      <div class="banner__text">
-        <span class="banner__title">Extension window open</span>
-        <span class="t-small t-muted">You have 10 minutes to extend your session.</span>
-      </div>
       <button class="icon-button" type="button" data-banner-close aria-label="Dismiss"><i class="icon i-close"></i></button>
     </div>
   </div>

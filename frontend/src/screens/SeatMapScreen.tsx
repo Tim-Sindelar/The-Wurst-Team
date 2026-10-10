@@ -261,7 +261,7 @@ export function SeatMapScreen() {
         )}
 
         {takenLabel && (
-          <div className="absolute inset-x-3 bottom-[calc(--spacing(3)+env(safe-area-inset-bottom))] z-2">
+          <div className="absolute inset-x-3 bottom-3 z-2">
             <Alert
               variant="danger"
               role="alert"

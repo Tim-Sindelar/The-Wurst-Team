@@ -1,14 +1,14 @@
 """add recent spaces
 
 Revision ID: e4b8a1c63f27
-Revises: f4c9d812a6e7
+Revises: c8a72d6e1940
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "e4b8a1c63f27"
-down_revision = "f4c9d812a6e7"
+down_revision = "c8a72d6e1940"
 branch_labels = None
 depends_on = None
 

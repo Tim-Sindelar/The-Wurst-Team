@@ -1,12 +1,4 @@
-import {
-  ActionIcon,
-  Alert,
-  Avatar,
-  Card,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Alert, Card, Text, TextInput, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -28,12 +20,10 @@ import { useFavourites } from '../hooks/useFavourites';
 import { useRecents } from '../hooks/useRecents';
 import { formatCountdown, secondsUntil } from '../hooks/useCountdown';
 import { useNow } from '../hooks/useNow';
-import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useMyReservation } from '../hooks/useMyReservation';
 import { paths } from '../routes';
 
 export function HomeScreen() {
-  const { user, initials, isPending, isError } = useCurrentUser();
   const spacesQuery = useQuery({
     ...listSpacesOptions(),
     refetchInterval: 15_000,
@@ -66,20 +56,7 @@ export function HomeScreen() {
     <Screen>
       <SafeAreaTop />
       <ScreenMain>
-        <div className="flex items-center justify-between gap-2">
-          <Title order={1}>Study Spaces</Title>
-          <ActionIcon
-            component={Link}
-            to={paths.profile}
-            aria-label={isError ? 'Profile unavailable' : 'Profile'}
-            aria-busy={isPending}
-            className="-mr-0.5"
-          >
-            <Avatar src={user?.photo_url} aria-hidden="true">
-              {initials}
-            </Avatar>
-          </ActionIcon>
-        </div>
+        <Title order={1}>Study Spaces</Title>
 
         <div className="sticky top-[env(safe-area-inset-top)] z-2 -mx-4 -mt-4 -mb-2 bg-bg px-4 pt-4 pb-2">
           <TextInput

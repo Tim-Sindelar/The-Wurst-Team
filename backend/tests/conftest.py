@@ -11,12 +11,16 @@ from app.config import get_settings
 from app.models import (
     Break,
     FavouriteSpace,
+    Friendship,
     MapDocument,
     MapEntity,
     MapOverride,
+    Party,
+    PartyMember,
     RecentSpace,
     Reservation,
     Seat,
+    SocialUser,
     SpaceClosure,
     SpaceOpeningInterval,
     StudySpace,
@@ -63,6 +67,10 @@ def db(test_engine: Engine) -> Iterator[Engine]:
     yield test_engine
     with Session(test_engine) as session:
         for model in (
+            PartyMember,
+            Party,
+            Friendship,
+            SocialUser,
             FavouriteSpace,
             RecentSpace,
             Break,

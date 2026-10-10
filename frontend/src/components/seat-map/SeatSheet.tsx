@@ -103,7 +103,7 @@ export function SeatSheet({
       >
         <Icon name="close" />
       </ActionIcon>
-      <div className="grid gap-3 px-4 pt-1 pb-[calc(--spacing(4)+env(safe-area-inset-bottom))]">
+      <div className="grid gap-3 px-4 pt-1 pb-4">
         <div className="grid gap-1 pr-11">
           <Title order={3} className="break-words">
             {title}
