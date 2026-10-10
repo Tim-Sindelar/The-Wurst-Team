@@ -81,7 +81,10 @@ export function AdminLayoutPage() {
           Link a campus room border before placing furniture. Existing seats
           will remain available for assignment.
         </Alert>
-        <AdminNewSpacePage existingSpaceId={space.id} />
+        <AdminNewSpacePage
+          existingSpaceId={space.id}
+          existingMapRoomId={space.map_room_id}
+        />
       </>
     );
   return (

@@ -1,7 +1,7 @@
 import {
   createBrowserRouter,
-  Outlet,
   Navigate,
+  Outlet,
   RouterProvider,
   ScrollRestoration,
 } from 'react-router';
@@ -66,6 +66,7 @@ const router = createBrowserRouter(
         },
         { path: paths.home, element: <HomeScreen /> },
         { path: paths.map, element: <MapScreen /> },
+        { path: '/seats', element: <Navigate to={paths.home} replace /> },
         { path: paths.seatMap, element: <SeatMapScreen /> },
         { path: paths.reservation, element: <ReservationScreen /> },
         { path: paths.scan, element: <ScanScreen /> },

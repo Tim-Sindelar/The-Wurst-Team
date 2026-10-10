@@ -151,7 +151,7 @@ export function createPanZoom({
     if (pointers.size === 1) {
       const seat =
         event.target instanceof Element
-          ? event.target.closest<HTMLElement>('[data-seat-number]')
+          ? event.target.closest<HTMLElement>('[data-seat-id]')
           : null;
       gesture = { kind: 'pan', origin: p, x, y, seat, moved: false };
     } else if (pointers.size === 2) startPinch();
@@ -255,7 +255,7 @@ export function createPanZoom({
   const onFocusIn = (event: FocusEvent) => {
     const seat =
       event.target instanceof Element
-        ? event.target.closest<HTMLElement>('[data-seat-number]')
+        ? event.target.closest<HTMLElement>('[data-seat-id]')
         : null;
     if (seat) centerOn(Number(seat.dataset.x), Number(seat.dataset.y));
   };

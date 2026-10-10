@@ -12,9 +12,11 @@ from app.features.reservations.schemas import (
     BookingErrorResponse,
     CheckInRequest,
     CreateReservationRequest,
+    FavouritesResponse,
     MyReservationResponse,
     RequestValidationErrorResponse,
     ReservationResponse,
+    RulesResponse,
     SpaceResponse,
     SpacesResponse,
 )
@@ -53,9 +55,43 @@ def commit_response(
     return response
 
 
+@router.get("/rules", response_model=RulesResponse, operation_id="get_rules")
+def get_rules(settings: Annotated[Settings, Depends(get_settings)]) -> RulesResponse:
+    return RulesResponse(
+        session_length_minutes=settings.session_length_minutes,
+        check_in_window_minutes=settings.check_in_window_minutes,
+        private_priority_window_minutes=settings.private_priority_window_minutes,
+        public_reservation_window_minutes=settings.public_reservation_window_minutes,
+        break_budget_minutes=settings.break_budget_minutes,
+    )
+
+
 @router.get("/spaces", response_model=SpacesResponse, operation_id="list_spaces")
-def list_spaces(service: Service) -> SpacesResponse:
-    return service.spaces()
+def list_spaces(service: Service, map_room_id: str | None = None) -> SpacesResponse:
+    return service.spaces(map_room_id)
+
+
+@router.get("/me/favourites", response_model=FavouritesResponse, operation_id="list_favourites")
+def list_favourites(service: Service, user_id: CurrentUser) -> FavouritesResponse:
+    return service.favourites(user_id)
+
+
+@router.put(
+    "/me/favourites/{space_id}", response_model=FavouritesResponse, operation_id="add_favourite"
+)
+def add_favourite(space_id: UUID, service: Service, user_id: CurrentUser) -> FavouritesResponse:
+    response = service.set_favourite(user_id, space_id, True)
+    service.session.commit()
+    return response
+
+
+@router.delete(
+    "/me/favourites/{space_id}", response_model=FavouritesResponse, operation_id="remove_favourite"
+)
+def remove_favourite(space_id: UUID, service: Service, user_id: CurrentUser) -> FavouritesResponse:
+    response = service.set_favourite(user_id, space_id, False)
+    service.session.commit()
+    return response
 
 
 @router.get("/spaces/{space_id}", response_model=SpaceResponse, operation_id="get_space")

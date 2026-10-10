@@ -49,9 +49,22 @@ export function ScreenHeader({ title, backTo, backLabel }: ScreenHeaderProps) {
 }
 
 /** Scrolling content of a screen, 16px gutter, 16px between blocks. */
-export function ScreenMain({ children }: { children: ReactNode }) {
+export function ScreenMain({
+  children,
+  fit = false,
+}: {
+  children: ReactNode;
+  fit?: boolean;
+}) {
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 py-4">{children}</main>
+    <main
+      className={cx(
+        'flex flex-1 flex-col px-4 py-4',
+        fit ? 'min-h-0 gap-3 [&>*]:shrink-0' : 'gap-4',
+      )}
+    >
+      {children}
+    </main>
   );
 }
 

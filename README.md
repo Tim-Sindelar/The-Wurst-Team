@@ -27,7 +27,7 @@ npm run dev --prefix frontend
 ```
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
-The React admin panel at `/admin`, campus map and profile use the backend API. Student seat selection, reservation timers and session screens still use mock booking state. The HTML references remain in `design/admin/`.
+The React admin panel at `/admin`, campus map, profile and student booking screens use the backend API. The HTML references remain in `design/admin/`.
 Vite proxies relative `/api` requests to the backend on port 8000. Set `VITE_API_PROXY_TARGET` when running a local backend on another port. Backend source changes reload automatically; migrations run when the backend container starts.
 
 Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend/package-lock.json`. Rebuild the backend container after changing Python dependencies.
@@ -114,7 +114,7 @@ Timing rules live in `backend/app/config.py` and can be overridden in `backend/.
 | `PUBLIC_RESERVATION_WINDOW_MINUTES` | 10 | How long before session end others may reserve the next session |
 | `BREAK_BUDGET_MINUTES` | 30 | Total break allowance per reservation |
 
-All values must be positive; the public window must be shorter than the private window, which must be shorter than the session. The check-in window must also be shorter than the session. Existing deadlines and captured break budgets remain unchanged when settings change. New extensions and eligibility windows use current settings. Breaks share one allowance and do not pause the session or replenish on extension.
+`GET /api/v1/rules` returns these values in minutes, and the frontend reads them from there instead of keeping its own copy. All values must be positive; the public window must be shorter than the private window, which must be shorter than the session. The check-in window must also be shorter than the session. Existing deadlines and captured break budgets remain unchanged when settings change. New extensions and eligibility windows use current settings. Breaks share one allowance and do not pause the session or replenish on extension.
 
 The `reservation_states` database view derives availability from the clock, including no-shows and expired breaks. Its underlying `reservation_states_at(timestamp)` function lets each transaction use one instant after acquiring locks and lets tests exercise exact boundaries. Early release advances the next booking when the earlier start is available, even without a background worker. Its session and check-in deadline are capped at closing or the next closure; a blocked earlier start keeps the scheduled start. Notifications are deferred.
 
@@ -144,7 +144,7 @@ For proxy authentication configure `ADMIN_USER_IDS` as a JSON array of administr
 | DELETE | `/spaces/{space_id}/closures/{closure_id}` | Remove a closure |
 | POST | `/reservations/{reservation_id}/end` | End/cancel a booking immediately; repeat safely |
 
-Create a room with `{"name":"Reading room","lat":47.37,"lng":8.54}`. Rooms default to Swiss time (`Europe/Zurich`) and continuous opening, and seats default to active. Existing rooms and seats receive those defaults through the migration. Room creation does not create seats; add them through the seats endpoint with `{"label":"A-1"}`. Editing a room or seat accepts only supplied fields; empty patches and explicit nulls are rejected. There are no hard-delete, ban, or QR-rotation endpoints.
+Create a room with `{"name":"Reading room","map_room_id":"ETH.HG.E.E_007"}`. The room ID must exist in the floor-plan catalog; the backend supplies its coordinates. Rooms default to Swiss time (`Europe/Zurich`) and continuous opening, and seats default to active. Existing rooms and seats receive those defaults through the migration. Room creation does not create seats; add them through the seats endpoint with `{"label":"A-1"}`. Editing a room or seat accepts only supplied fields; empty patches and explicit nulls are rejected. There are no hard-delete, ban, or QR-rotation endpoints.
 
 Opening hours use room-local time, including Zurich daylight-saving changes. Each interval has `weekday` (Monday `0` through Sunday `6`), `start_minute`, and `end_minute` (minutes since midnight, with `1440` representing the end of the day). For example, `{"opening_hours":[{"weekday":0,"start_minute":480,"end_minute":1200}]}` opens Monday 08:00–20:00 and closes every other day. Multiple intervals are supported; adjacent intervals are continuous and overlaps are rejected. Split overnight hours across adjacent weekdays. An empty list closes the room all week.
 
@@ -166,7 +166,7 @@ The HTML mockups stay in `design/admin/`. React feature code lives in `frontend/
 - Users: search profiles and reservation records, edit display names, review history and study time excluding breaks, and end live bookings. Email, ban and account deletion controls are omitted because the backend does not model them.
 - QR codes: select seats, generate 3 × 3 or 4 × 4 cm QR images from backend tokens, export SVGs and print bordered labels. Room submenus stay locked to that room. Use a stable student-app address for real printing. `/check-in?qr_token=…` reads the current reservation; opening the link does not check in. An explicit button submits the authenticated POST.
 
-Apply the new archive migration before running this version. From `backend/`, run `uv run --locked alembic upgrade head` if not using Compose. Schema-version-1 layouts retain campus unit/workspace references in `room.mapRef`, geographic coordinates and approximate metre scale. These link the catalogs; the mobile map's generated inventory remains a separate model and is not rewritten by layout saves.
+Apply the migrations before running this version. Main’s map-room migration requires an empty `study_spaces` table; preserve existing data and plan its migration rather than clearing it automatically. From `backend/`, run `uv run --locked alembic upgrade head` if not using Compose. Schema-version-1 layouts retain campus unit/workspace references in `room.mapRef`, geographic coordinates and approximate metre scale. These link the catalogs; the mobile map's generated inventory remains a separate model and is not rewritten by layout saves.
 
 ### Room borders
 

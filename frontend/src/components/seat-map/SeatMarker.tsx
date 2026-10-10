@@ -4,7 +4,8 @@ import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
 import { Icon } from '../Icon';
 
 type SeatMarkerProps = {
-  number: number;
+  id: string;
+  label: string;
   state: SeatState;
   /** Centre on the room canvas. */
   x: number;
@@ -16,14 +17,15 @@ type SeatMarkerProps = {
 /* A seat on the map: a 44px tap target around a 32 × 36 filled seat with its
    number. On-break seats add a cup badge, bookable seats a clock badge. */
 export function SeatMarker({
-  number,
+  id,
+  label,
   state,
   x,
   y,
   selected,
   onSelect,
 }: SeatMarkerProps) {
-  const label = `Seat ${number}, ${seatStateName[state].toLowerCase()}${selected ? ', selected' : ''}`;
+  const description = `Seat ${label}, ${seatStateName[state].toLowerCase()}${selected ? ', selected' : ''}`;
   const badge =
     state === 'break' ? 'coffee' : state === 'bookable' ? 'clock' : null;
 
@@ -34,18 +36,18 @@ export function SeatMarker({
 
   return (
     <UnstyledButton
-      className="absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center text-text"
+      className="group absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center text-text focus:outline-none"
       style={{ left: x, top: y }}
-      data-seat-number={number}
+      data-seat-id={id}
       data-x={x}
       data-y={y}
-      aria-label={label}
+      aria-label={description}
       aria-pressed={selected}
       onClick={onClick}
     >
       <span
         className={[
-          'grid h-9 w-8 place-items-center rounded-control border-2 border-(--state) bg-(--state) text-small leading-none font-bold',
+          'grid h-9 w-8 place-items-center rounded-control border-2 border-(--state) bg-(--state) text-small leading-none font-bold group-focus-visible:shadow-[0_0_0_2px_var(--color-surface),0_0_0_4px_var(--color-focus)]',
           stateVar[state],
           state === 'occupied' ? 'text-on-seat-muted' : 'text-on-seat',
           selected
@@ -56,7 +58,7 @@ export function SeatMarker({
           .filter(Boolean)
           .join(' ')}
       >
-        {String(number).padStart(2, '0')}
+        {label}
       </span>
       {badge && (
         <span

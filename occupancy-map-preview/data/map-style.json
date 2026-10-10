@@ -1,0 +1,183 @@
+{
+  "light": {
+    "basemapLabels": false,
+    "basemapOpacity": 1,
+    "parts": {
+      "workspaces": {
+        "show": true,
+        "color": "#215caf",
+        "weight": 1.4,
+        "opacity": 1,
+        "fill": 0.15,
+        "fillColor": "#215caf"
+      },
+      "libraryRooms": {
+        "show": false,
+        "color": "#215caf",
+        "weight": 1,
+        "opacity": 1,
+        "fill": 0.25,
+        "fillColor": "#215caf"
+      },
+      "levels": {
+        "show": true,
+        "color": "#3c4450",
+        "weight": 1.5,
+        "opacity": 1,
+        "fill": 0.3,
+        "fillColor": "#cacad7"
+      },
+      "buildings": {
+        "show": false,
+        "color": "#c3cad4",
+        "weight": 1,
+        "opacity": 1,
+        "fill": 0.75,
+        "fillColor": "#dfe3ea"
+      },
+      "rooms": {
+        "show": true,
+        "color": "#9e9b9a",
+        "weight": 0.6,
+        "opacity": 0.7,
+        "fill": 0.3,
+        "fillColor": "#e0e0e0"
+      },
+      "walls": {
+        "show": false,
+        "color": "#000000",
+        "weight": 1.8,
+        "opacity": 1,
+        "fill": 0,
+        "fillColor": "#3c4450"
+      },
+      "doors": {
+        "show": false,
+        "color": "#8a94a3",
+        "weight": 0.8,
+        "opacity": 0.4,
+        "fill": 0,
+        "fillColor": "#8a94a3"
+      },
+      "stairs": {
+        "show": true,
+        "color": "#9aa3ae",
+        "weight": 0.6,
+        "opacity": 0.3,
+        "fill": 0,
+        "fillColor": "#9aa3ae"
+      }
+    },
+    "roomKinds": [
+      "teaching",
+      "study",
+      "circulation",
+      "stairs",
+      "office",
+      "sanitary",
+      "other",
+      "service",
+      "outdoor",
+      "food",
+      "lab"
+    ],
+    "occupancyColors": true,
+    "cornerRadius": 0.3,
+    "simplify": 0,
+    "minSize": 2.5,
+    "mergeDistance": 0,
+    "mergeAngle": 3,
+    "roundJoins": true,
+    "highlightWidth": 0.5,
+    "highlightFill": 0.25,
+    "highlightCustomColor": false,
+    "highlightColor": "#e8590c"
+  },
+  "dark": {
+    "basemapLabels": false,
+    "basemapOpacity": 0.5,
+    "parts": {
+      "workspaces": {
+        "show": true,
+        "color": "#4c8dff",
+        "weight": 2.5,
+        "opacity": 1,
+        "fill": 0.15,
+        "fillColor": "#4c8dff"
+      },
+      "libraryRooms": {
+        "show": true,
+        "color": "#4c8dff",
+        "weight": 1,
+        "opacity": 1,
+        "fill": 0.3,
+        "fillColor": "#4c8dff"
+      },
+      "levels": {
+        "show": true,
+        "color": "#8792a5",
+        "weight": 1.5,
+        "opacity": 1,
+        "fill": 0.9,
+        "fillColor": "#1e232c"
+      },
+      "buildings": {
+        "show": true,
+        "color": "#3d4553",
+        "weight": 1,
+        "opacity": 1,
+        "fill": 0.4,
+        "fillColor": "#2a303b"
+      },
+      "rooms": {
+        "show": false,
+        "color": "#3d4553",
+        "weight": 0.6,
+        "opacity": 1,
+        "fill": 0,
+        "fillColor": "#3d4553"
+      },
+      "walls": {
+        "show": false,
+        "color": "#aab3c2",
+        "weight": 1,
+        "opacity": 0.8,
+        "fill": 0,
+        "fillColor": "#aab3c2"
+      },
+      "doors": {
+        "show": false,
+        "color": "#6d7788",
+        "weight": 0.8,
+        "opacity": 1,
+        "fill": 0,
+        "fillColor": "#6d7788"
+      },
+      "stairs": {
+        "show": false,
+        "color": "#5b6474",
+        "weight": 0.6,
+        "opacity": 1,
+        "fill": 0,
+        "fillColor": "#5b6474"
+      }
+    },
+    "roomKinds": [
+      "teaching",
+      "study",
+      "circulation",
+      "stairs"
+    ],
+    "occupancyColors": true,
+    "cornerRadius": 0,
+    "simplify": 1,
+    "minSize": 0,
+    "mergeDistance": 0,
+    "mergeAngle": 5,
+    "roundJoins": true,
+    "highlightWidth": 1,
+    "highlightFill": 0.15,
+    "highlightCustomColor": false,
+    "highlightColor": "#ffa94d"
+  }
+}

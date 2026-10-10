@@ -1,7 +1,7 @@
 import { Text } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { cx } from './cx';
-import type { Availability } from '../mock/data';
+import type { Availability } from '../domain/space';
 
 const level: Record<Availability, string> = {
   high: '[--level:var(--color-avail-high)]',

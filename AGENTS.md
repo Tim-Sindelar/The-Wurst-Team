@@ -15,8 +15,9 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/components/` | Shared building blocks: `Screen` frame, `DecisionSheet`, `StatusBanner`, `TimerCard`, `SeatChip`, `Icon`, the seat map |
 | `src/screens/` | One file per screen, in flow order: Home, SeatMap, Reservation, Scan, Session, Profile |
 | `src/domain/` | Domain types and per-state lookups (seat states, labels, state classes) |
-| `src/mock/` | Sample data and the mock booking state. Replaced by API data later |
+| `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useQrScanner`, `useNow`, `useCountdown` |
 | `src/routes.ts` | Screen paths |
+| `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
 
 ### Styling
@@ -45,7 +46,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | Icons | `Icon` from `src/components/Icon.tsx` only (24px outline, 1.75 stroke). Add new icons there |
 | Screen layout | `Screen` > `ScreenHeader` (back, title, theme switch) > `ScreenMain` > `ActionBar` |
 
-Only two kinds of popup exist: the decision sheet and the notification banner. Don't add a third. Errors on a screen are shown in place as a `danger` notice.
+Only two kinds of popup exist: the decision sheet and the notification banner. Don't add a third. (The campus map's bottom sheets, `MapSheet`, use the decision sheet's frame for its settings and its room dashboard.) Errors on a screen are shown in place as a `danger` notice.
 
 ### Design rules that apply to code
 
@@ -57,14 +58,29 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Text never below 12px; long names (40+ characters) must wrap or truncate cleanly.
 - Phone first: a 390px column, centred on desktop. Don't stretch layouts wider.
 
+### Campus map
+
+- The map screen is full screen: top bar (back, title, theme), Leaflet map, floor picker on the right, and a bottom toolbar (time, live rooms, campus data, map options) whose buttons open `MapSheet` bottom sheets.
+- Tapping a room, workspace or pin selects it and shows a card above the toolbar; tapping it again (or the card) opens the dashboard sheet with its details and the lists the preview had in its side panel.
+- The map components keep their own markup and class names, styled in `src/campus-map/campus-map.css`, the one plain CSS file outside `src/theme`. Its colour names point at the design tokens. Colours drawn on the map come from the backend's map style (`GET /api/v1/map/style`). The ESLint React Compiler rules are off for this folder (the Leaflet layers rely on latest-value refs).
+- All map data comes from the backend feature `backend/app/features/campus_map/` under `/api/v1/map`: workspaces, map style and navigation (Postgres), ETH room bookings, campus datasets and floor plans. The loaders in `src/campus-map/data/`, `datasets/repository.ts` and `map/minimalStyle.ts` call it through the generated client (`unwrap` in `data/api.ts`); floor plans and room photos are plain URLs under `MAP_API`. The map needs `make backend` running.
+- `occupancy-map-preview/` stays the developer tool for the map: its Admin mode edits workspaces and navigation, its Style panel edits the map style. After saving there, run `make map-sync` to import the files into the backend. There is no admin or style editor in this app.
+- The backend Docker build generates floor plans and workspace outlines into `/app/floors` and sets `MAP_FLOORS_DIR` to that directory. Outside Docker, floor plans are read from `occupancy-map-preview/public/floors` (built by `make map-floors`, not in git), or from the backend's `MAP_FLOORS_DIR`.
+
 ### Data and state
 
-- The screens are mocks: no backend calls yet. Sample data lives in `src/mock/data.ts`. The chosen seat and booking state (`none`, `reserved`, `session`) live in `MockBookingProvider` and persist in `localStorage`.
-- Mock-only URL switches mirror the HTML mockups: `/?state=reserved|session|none`, `/session?phase=priority|open|break`, `/session?extended=1`, `/scan?from=extend|break-start|break-end`, `/scan?error=1`.
-- When wiring the backend, fetch with the generated TanStack Query helpers from `src/api/generated/` and replace the `src/mock` imports screen by screen. Don't hand-write fetch calls or API types.
+- Screens fetch with the generated TanStack Query helpers from `src/api/generated/` (`useQuery(listSpacesOptions())`, `useMutation(checkInMutation())`). Don't hand-write fetch calls or API types. The Vite dev server proxies `/api` to the backend on port 8000.
+- The current booking comes from `useMyReservation()`. After any booking change call `useRefreshBooking()`'s function so Home, the seat map and the booking screens agree. Server timestamps go through `toClient()` so a wrong device clock can't skew countdowns.
+- Failed calls are shown in place: use `apiProblem(error)` for the sentence, in a `danger` `Alert` or inside the `DecisionSheet`.
+- Timing rules (check-in window, session length, extension windows, break allowance) are set in `backend/app/config.py` and read through `useRules()` (`GET /api/v1/rules`). Never hardcode them in the frontend.
+- The API has no seat positions yet, so `src/domain/room.ts` places seats on a stand-in floor plan. Replace it with `SpaceDetail.layout` once the backend provides one.
+- Profile and the home avatar use `/api/v1/me` through `useCurrentUser`. Profile saves a display name and optional photo through the generated `updateMeMutation`; the backend persists these in `user_profiles` without changing auth identity.
+- Favourites live in `favourite_spaces` and come through `useFavourites()` (`/api/v1/me/favourites`). The star updates at once and rolls back if the call fails. Home puts favourites first and filters by the search box (`filterSpaces`, `favouritesFirst` in `domain/space.ts`).
+- Still mock: the notification switches on Profile.
+- Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`; the scan screen also takes a typed code for devices without a camera. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
 
 ### Code conventions
 
 - Files that export components export only components (React Fast Refresh). Put contexts, hooks and constants in their own files.
 - Dependencies are pinned to exact versions in `package.json`.
-- Before pushing, run `npm run lint`, `npm run typecheck` and `npm run build` in `frontend/`. For visual changes, compare the screen against its mockup in `design/screens/` in both themes.
+- Before pushing, run `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` in `frontend/`. For visual changes, compare the screen against its mockup in `design/screens/` in both themes.

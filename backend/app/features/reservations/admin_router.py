@@ -49,6 +49,7 @@ router = APIRouter(
         403: {"model": ErrorResponse},
         404: {"model": BookingErrorResponse},
         409: {"model": BookingErrorResponse},
+        503: {"model": BookingErrorResponse},
         422: {"model": RequestValidationErrorResponse},
     },
 )

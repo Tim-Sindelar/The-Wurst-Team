@@ -153,18 +153,18 @@ def test_layout_rejects_invalid_geometry_without_writes(client, seats, change):
     assert client.get(room_path(seats) + "/overview", headers=ADMIN).json()["space"]["layout"] == {}
 
 
-def test_room_binding_is_unique_and_archive_restore_is_safe(client, seats):
+def test_room_binding_is_unique_and_archive_restore_preserves_link(client, seats):
     proposed = layout(seats[0].id)
-    proposed["room"]["mapRef"] = {"unitId": "ETH.HG.E.E_001"}
+    proposed["room"]["mapRef"] = {"unitId": "ETH.HG.E.E_007"}
     saved = client.put(room_path(seats) + "/layout", headers=ADMIN, json={"layout": proposed})
     assert saved.status_code == 200
-    assert saved.json()["space"]["map_unit_id"] == "ETH.HG.E.E_001"
+    assert saved.json()["space"]["map_unit_id"] == "ETH.HG.E.E_007"
     assert saved.headers["Cache-Control"] == "no-store"
-    body = {"name": "Same room", "lat": 47.37, "lng": 8.54, "layout": proposed}
+    body = {"name": "Same room", "map_room_id": "ETH.HG.E.E_007", "layout": proposed}
     assert client.post("/api/v1/admin/spaces", headers=ADMIN, json=body).status_code == 409
     assert client.delete(room_path(seats), headers=ADMIN).status_code == 200
-    assert client.post("/api/v1/admin/spaces", headers=ADMIN, json=body).status_code == 201
-    assert client.post(room_path(seats) + "/restore", headers=ADMIN).status_code == 409
+    assert client.post("/api/v1/admin/spaces", headers=ADMIN, json=body).status_code == 409
+    assert client.post(room_path(seats) + "/restore", headers=ADMIN).status_code == 200
 
 
 def test_layout_uses_geometry_engine_measurements(client, seats):
@@ -180,3 +180,12 @@ def test_layout_uses_geometry_engine_measurements(client, seats):
     response = client.put(room_path(seats) + "/layout", headers=ADMIN, json={"layout": proposed})
     assert response.status_code == 200, response.text
     assert response.json()["space"]["layout"]["room"]["measurements"] == boundary["measurements"]
+
+
+def test_layout_cannot_reassign_the_linked_map_room(client, seats):
+    proposed = layout(seats[0].id)
+    proposed["room"]["mapRef"] = {"unitId": "ETH.HG.E.E_051"}
+    response = client.put(room_path(seats) + "/layout", headers=ADMIN, json={"layout": proposed})
+    assert response.status_code == 400
+    assert response.json()["code"] == "room_mismatch"
+    assert client.get(room_path(seats) + "/overview", headers=ADMIN).json()["space"]["layout"] == {}

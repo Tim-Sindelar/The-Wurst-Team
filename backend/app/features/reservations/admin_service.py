@@ -5,8 +5,9 @@ from secrets import token_urlsafe
 from uuid import UUID
 
 from fastapi.exceptions import RequestValidationError
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, or_, select, text
 
+from app.features.campus_map.floor_plans import FloorPlans
 from app.features.reservations.admin_schemas import (
     AdminClosureDeletedResponse,
     AdminClosureResponse,
@@ -121,6 +122,7 @@ class AdminReservationService(ReservationService):
             name=room.name,
             is_archived=room.is_archived,
             map_unit_id=self.map_unit_id(room.layout or {}),
+            map_room_id=room.map_room_id,
             lat=room.lat,
             lng=room.lng,
             timezone=room.timezone,
@@ -309,9 +311,13 @@ class AdminReservationService(ReservationService):
         self.session.execute(
             select(func.pg_advisory_xact_lock(func.hashtext("study-room:" + unit)))
         )
+        if space_id is not None and self.room(space_id).map_room_id != unit:
+            raise BookingError(400, "room_mismatch", "Layout must use the linked campus room")
         query = select(StudySpace.id).where(
-            StudySpace.is_archived.is_(False),
-            StudySpace.layout["room"]["mapRef"]["unitId"].astext == unit,
+            or_(
+                StudySpace.map_room_id == unit,
+                StudySpace.layout["room"]["mapRef"]["unitId"].astext == unit,
+            ),
         )
         if space_id is not None:
             query = query.where(StudySpace.id != space_id)
@@ -320,8 +326,30 @@ class AdminReservationService(ReservationService):
 
     def create_space(self, request: CreateSpaceRequest) -> AdminSpaceResponse:
         self.validate_timezone(request.timezone)
+        unit = self.map_unit_id(request.layout)
+        if unit and unit != request.map_room_id:
+            raise BookingError(400, "room_mismatch", "Layout must use the linked campus room")
         self.validate_map_binding(request.layout)
-        room = StudySpace(**request.model_dump(exclude={"opening_hours"}))
+        plans = FloorPlans(self.settings.map_floors_dir).index()
+        if plans is None:
+            raise BookingError(503, "floor_plans_unavailable", "Floor plans are unavailable")
+        place = plans.by_id.get(request.map_room_id)
+        if place is None:
+            raise RequestValidationError(
+                [
+                    {
+                        "loc": ("body", "map_room_id"),
+                        "type": "value_error",
+                        "msg": "Unknown map room ID",
+                        "input": request.map_room_id,
+                    }
+                ]
+            )
+        room = StudySpace(
+            **request.model_dump(exclude={"opening_hours"}),
+            lat=place["lat"],
+            lng=place["lng"],
+        )
         self.session.add(room)
         self.session.flush()
         self.set_hours(room.id, request.opening_hours)

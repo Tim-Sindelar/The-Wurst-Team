@@ -31,8 +31,10 @@ function FitFloor({ points }: { points: [number, number][] }) {
 }
 export function AdminNewSpacePage({
   existingSpaceId,
+  existingMapRoomId,
 }: {
   existingSpaceId?: string;
+  existingMapRoomId?: string;
 }) {
   const action = useAdminAction(),
     navigate = useNavigate();
@@ -41,8 +43,12 @@ export function AdminNewSpacePage({
     queryFn: loadFloorIndex,
     staleTime: Infinity,
   });
-  const [facility, setFacility] = useState('ETH.HG'),
-    [level, setLevel] = useState('ETH.HG.E'),
+  const [facility, setFacility] = useState(
+      existingMapRoomId?.split('.').slice(0, 2).join('.') || 'ETH.HG',
+    ),
+    [level, setLevel] = useState(
+      existingMapRoomId?.split('.').slice(0, 3).join('.') || 'ETH.HG.E',
+    ),
     [search, setSearch] = useState(''),
     [picked, setPicked] = useState<Room | null>(null),
     [timezone, setTimezone] = useState('Europe/Zurich');
@@ -52,15 +58,23 @@ export function AdminNewSpacePage({
     enabled: !!level,
     staleTime: Infinity,
   });
+  useEffect(() => {
+    if (existingMapRoomId && floor.data)
+      setPicked(
+        floor.data.rooms.find((r) => r.id === existingMapRoomId) || null,
+      );
+  }, [existingMapRoomId, floor.data]);
   const workspaces = useQuery(q.getMapWorkspacesOptions());
   const spaces = useQuery(q.adminListSpacesOptions({ headers: adminHeaders }));
   const levels =
     index.data?.levels.filter((l) => l.facilityId === facility) || [];
   const rooms =
-    floor.data?.rooms.filter((r) =>
-      (roomName(r.id) + ' ' + r.use)
-        .toLowerCase()
-        .includes(search.toLowerCase()),
+    floor.data?.rooms.filter(
+      (r) =>
+        (!existingMapRoomId || r.id === existingMapRoomId) &&
+        (roomName(r.id) + ' ' + r.use)
+          .toLowerCase()
+          .includes(search.toLowerCase()),
     ) || [];
   const points =
     floor.data?.rooms.flatMap((r) => r.rings.flatMap((poly) => poly.flat())) ||
@@ -98,14 +112,9 @@ export function AdminNewSpacePage({
       await action.run(() => Promise.reject(e), '');
       return;
     }
-    const center = picked.rings[0][0];
-    const lat = center.reduce((n, p) => n + p[0], 0) / center.length,
-      lng = center.reduce((n, p) => n + p[1], 0) / center.length;
     await action.run(async () => {
       const body = {
         name: roomName(picked.id),
-        lat,
-        lng,
         timezone,
         layout: documentFor(room, []) as unknown as Record<string, unknown>,
       };
@@ -118,7 +127,7 @@ export function AdminNewSpacePage({
           })
         : await api.adminCreateSpace({
             headers: adminHeaders,
-            body,
+            body: { ...body, map_room_id: picked.id },
             throwOnError: true,
           });
       navigate('/admin/spaces/' + result.data.space.id + '/layout');
@@ -127,10 +136,7 @@ export function AdminNewSpacePage({
   const registered =
     picked &&
     spaces.data?.spaces.some(
-      (s) =>
-        !s.is_archived &&
-        s.map_unit_id === picked.id &&
-        s.id !== existingSpaceId,
+      (s) => s.map_room_id === picked.id && s.id !== existingSpaceId,
     );
   return (
     <div className="grid gap-4">
@@ -152,6 +158,7 @@ export function AdminNewSpacePage({
       <div className="grid gap-3 md:grid-cols-2">
         <NativeSelect
           label="Building"
+          disabled={!!existingSpaceId}
           data={
             index.data?.facilities.map((f) => ({
               value: f.id,
@@ -170,6 +177,7 @@ export function AdminNewSpacePage({
         />
         <NativeSelect
           label="Floor"
+          disabled={!!existingSpaceId}
           data={levels.map((l) => ({ value: l.id, label: l.label }))}
           value={level}
           onChange={(e) => {
@@ -219,7 +227,12 @@ export function AdminNewSpacePage({
                     fillOpacity: 0.7,
                     weight: 1,
                   }}
-                  eventHandlers={{ click: () => setPicked(r) }}
+                  eventHandlers={{
+                    click: () => {
+                      if (!existingMapRoomId || r.id === existingMapRoomId)
+                        setPicked(r);
+                    },
+                  }}
                 >
                   <Tooltip>
                     {roomName(r.id)} · {r.use}
@@ -256,7 +269,12 @@ export function AdminNewSpacePage({
       <Text>
         {picked ? roomName(picked.id) + ' selected' : 'No room selected'}
       </Text>
-      {registered && <Alert>This room is already registered.</Alert>}
+      {registered && (
+        <Alert>
+          This room is already registered. Restore its study place if it was
+          deleted.
+        </Alert>
+      )}
       <div className="flex gap-3">
         <Button variant="secondary" onClick={() => navigate('/admin')}>
           Cancel

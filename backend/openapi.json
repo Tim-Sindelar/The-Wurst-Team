@@ -393,6 +393,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "map_unit_id": {
             "anyOf": [
               {
@@ -435,6 +439,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -494,6 +499,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "map_unit_id": {
             "anyOf": [
               {
@@ -543,6 +552,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -636,6 +646,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "map_unit_id": {
             "anyOf": [
               {
@@ -671,6 +685,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -1104,22 +1119,15 @@
       "CreateSpaceRequest": {
         "additionalProperties": false,
         "properties": {
-          "lat": {
-            "maximum": 90.0,
-            "minimum": -90.0,
-            "title": "Lat",
-            "type": "number"
-          },
           "layout": {
             "additionalProperties": true,
             "title": "Layout",
             "type": "object"
           },
-          "lng": {
-            "maximum": 180.0,
-            "minimum": -180.0,
-            "title": "Lng",
-            "type": "number"
+          "map_room_id": {
+            "minLength": 1,
+            "title": "Map Room Id",
+            "type": "string"
           },
           "name": {
             "maxLength": 200,
@@ -1142,8 +1150,7 @@
         },
         "required": [
           "name",
-          "lat",
-          "lng"
+          "map_room_id"
         ],
         "title": "CreateSpaceRequest",
         "type": "object"
@@ -1740,6 +1747,23 @@
           "errors"
         ],
         "title": "EthSnapshot",
+        "type": "object"
+      },
+      "FavouritesResponse": {
+        "properties": {
+          "space_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Space Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "space_ids"
+        ],
+        "title": "FavouritesResponse",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -2672,6 +2696,40 @@
         "title": "RoomPlace",
         "type": "object"
       },
+      "RulesResponse": {
+        "description": "Booking timing rules, in minutes. Configured in app/config.py.",
+        "properties": {
+          "break_budget_minutes": {
+            "title": "Break Budget Minutes",
+            "type": "integer"
+          },
+          "check_in_window_minutes": {
+            "title": "Check In Window Minutes",
+            "type": "integer"
+          },
+          "private_priority_window_minutes": {
+            "title": "Private Priority Window Minutes",
+            "type": "integer"
+          },
+          "public_reservation_window_minutes": {
+            "title": "Public Reservation Window Minutes",
+            "type": "integer"
+          },
+          "session_length_minutes": {
+            "title": "Session Length Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_length_minutes",
+          "check_in_window_minutes",
+          "private_priority_window_minutes",
+          "public_reservation_window_minutes",
+          "break_budget_minutes"
+        ],
+        "title": "RulesResponse",
+        "type": "object"
+      },
       "SaveLayoutRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2803,6 +2861,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -2833,6 +2895,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -2887,6 +2950,10 @@
             "title": "Lng",
             "type": "number"
           },
+          "map_room_id": {
+            "title": "Map Room Id",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -2903,6 +2970,7 @@
         "required": [
           "id",
           "name",
+          "map_room_id",
           "lat",
           "lng",
           "total_seats",
@@ -3048,19 +3116,6 @@
       "UpdateSpaceRequest": {
         "additionalProperties": false,
         "properties": {
-          "lat": {
-            "anyOf": [
-              {
-                "maximum": 90.0,
-                "minimum": -90.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lat"
-          },
           "layout": {
             "anyOf": [
               {
@@ -3072,19 +3127,6 @@
               }
             ],
             "title": "Layout"
-          },
-          "lng": {
-            "anyOf": [
-              {
-                "maximum": 180.0,
-                "minimum": -180.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lng"
           },
           "name": {
             "anyOf": [
@@ -3350,6 +3392,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "End Reservation",
@@ -3429,6 +3481,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "List Spaces",
@@ -3516,6 +3578,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Create Space",
@@ -3607,6 +3679,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Archive Space",
@@ -3724,6 +3806,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Update Space",
@@ -3849,6 +3941,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "List Closures",
@@ -3966,6 +4068,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Create Closure",
@@ -4085,6 +4197,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Delete Closure",
@@ -4204,6 +4326,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Save Layout",
@@ -4323,6 +4455,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Replace Opening Hours",
@@ -4414,6 +4556,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Get Space Overview",
@@ -4505,6 +4657,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Restore Space",
@@ -4606,6 +4768,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Create Seat",
@@ -4707,6 +4879,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Get Seat",
@@ -4834,6 +5016,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Update Seat",
@@ -4913,6 +5105,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "List Users",
@@ -5004,6 +5206,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Get User",
@@ -5103,6 +5315,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Update User",
@@ -5829,6 +6051,211 @@
         ]
       }
     },
+    "/api/v1/me/favourites": {
+      "get": {
+        "operationId": "list_favourites",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavouritesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Favourites",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/me/favourites/{space_id}": {
+      "delete": {
+        "operationId": "remove_favourite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavouritesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Remove Favourite",
+        "tags": [
+          "reservations"
+        ]
+      },
+      "put": {
+        "operationId": "add_favourite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavouritesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Add Favourite",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
     "/api/v1/me/reservation": {
       "get": {
         "operationId": "get_my_reservation",
@@ -6299,9 +6726,88 @@
         ]
       }
     },
+    "/api/v1/rules": {
+      "get": {
+        "operationId": "get_rules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Rules",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
     "/api/v1/spaces": {
       "get": {
         "operationId": "list_spaces",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "map_room_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Map Room Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {

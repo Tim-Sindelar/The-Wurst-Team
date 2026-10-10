@@ -28,6 +28,7 @@ class StudySpace(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(Text)
+    map_room_id: Mapped[str] = mapped_column(Text, unique=True)
     lat: Mapped[float]
     lng: Mapped[float]
     layout: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))

@@ -230,6 +230,10 @@ export type AdminSpaceDetails = {
      */
     lng: number;
     /**
+     * Map Room Id
+     */
+    map_room_id: string;
+    /**
      * Map Unit Id
      */
     map_unit_id?: string | null;
@@ -301,6 +305,10 @@ export type AdminSpaceOverview = {
      * Lng
      */
     lng: number;
+    /**
+     * Map Room Id
+     */
+    map_room_id: string;
     /**
      * Map Unit Id
      */
@@ -393,6 +401,10 @@ export type AdminSpaceSummary = {
      * Lng
      */
     lng: number;
+    /**
+     * Map Room Id
+     */
+    map_room_id: string;
     /**
      * Map Unit Id
      */
@@ -663,19 +675,15 @@ export type CreateSeatRequest = {
  */
 export type CreateSpaceRequest = {
     /**
-     * Lat
-     */
-    lat: number;
-    /**
      * Layout
      */
     layout?: {
         [key: string]: unknown;
     };
     /**
-     * Lng
+     * Map Room Id
      */
-    lng: number;
+    map_room_id: string;
     /**
      * Name
      */
@@ -1022,6 +1030,16 @@ export type EthSnapshot = {
      */
     ttlSeconds: number;
     [key: string]: unknown;
+};
+
+/**
+ * FavouritesResponse
+ */
+export type FavouritesResponse = {
+    /**
+     * Space Ids
+     */
+    space_ids: Array<string>;
 };
 
 /**
@@ -1545,6 +1563,34 @@ export type RoomPlace = {
 };
 
 /**
+ * RulesResponse
+ *
+ * Booking timing rules, in minutes. Configured in app/config.py.
+ */
+export type RulesResponse = {
+    /**
+     * Break Budget Minutes
+     */
+    break_budget_minutes: number;
+    /**
+     * Check In Window Minutes
+     */
+    check_in_window_minutes: number;
+    /**
+     * Private Priority Window Minutes
+     */
+    private_priority_window_minutes: number;
+    /**
+     * Public Reservation Window Minutes
+     */
+    public_reservation_window_minutes: number;
+    /**
+     * Session Length Minutes
+     */
+    session_length_minutes: number;
+};
+
+/**
  * SaveLayoutRequest
  */
 export type SaveLayoutRequest = {
@@ -1637,6 +1683,10 @@ export type SpaceDetail = {
      */
     lng: number;
     /**
+     * Map Room Id
+     */
+    map_room_id: string;
+    /**
      * Name
      */
     name: string;
@@ -1693,6 +1743,10 @@ export type SpaceSummary = {
      * Lng
      */
     lng: number;
+    /**
+     * Map Room Id
+     */
+    map_room_id: string;
     /**
      * Name
      */
@@ -1800,19 +1854,11 @@ export type UpdateSeatRequest = {
  */
 export type UpdateSpaceRequest = {
     /**
-     * Lat
-     */
-    lat?: number | null;
-    /**
      * Layout
      */
     layout?: {
         [key: string]: unknown;
     } | null;
-    /**
-     * Lng
-     */
-    lng?: number | null;
     /**
      * Name
      */
@@ -1950,6 +1996,10 @@ export type AdminEndReservationErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminEndReservationError = AdminEndReservationErrors[keyof AdminEndReservationErrors];
@@ -1993,6 +2043,10 @@ export type AdminListSpacesErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminListSpacesError = AdminListSpacesErrors[keyof AdminListSpacesErrors];
@@ -2036,6 +2090,10 @@ export type AdminCreateSpaceErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminCreateSpaceError = AdminCreateSpaceErrors[keyof AdminCreateSpaceErrors];
@@ -2084,6 +2142,10 @@ export type AdminArchiveSpaceErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminArchiveSpaceError = AdminArchiveSpaceErrors[keyof AdminArchiveSpaceErrors];
@@ -2139,6 +2201,10 @@ export type AdminUpdateSpaceErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminUpdateSpaceError = AdminUpdateSpaceErrors[keyof AdminUpdateSpaceErrors];
@@ -2196,6 +2262,10 @@ export type AdminListClosuresErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminListClosuresError = AdminListClosuresErrors[keyof AdminListClosuresErrors];
@@ -2251,6 +2321,10 @@ export type AdminCreateClosureErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminCreateClosureError = AdminCreateClosureErrors[keyof AdminCreateClosureErrors];
@@ -2310,6 +2384,10 @@ export type AdminDeleteClosureErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminDeleteClosureError = AdminDeleteClosureErrors[keyof AdminDeleteClosureErrors];
@@ -2365,6 +2443,10 @@ export type AdminSaveLayoutErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminSaveLayoutError = AdminSaveLayoutErrors[keyof AdminSaveLayoutErrors];
@@ -2420,6 +2502,10 @@ export type AdminReplaceOpeningHoursErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminReplaceOpeningHoursError = AdminReplaceOpeningHoursErrors[keyof AdminReplaceOpeningHoursErrors];
@@ -2468,6 +2554,10 @@ export type AdminGetSpaceOverviewErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminGetSpaceOverviewError = AdminGetSpaceOverviewErrors[keyof AdminGetSpaceOverviewErrors];
@@ -2516,6 +2606,10 @@ export type AdminRestoreSpaceErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminRestoreSpaceError = AdminRestoreSpaceErrors[keyof AdminRestoreSpaceErrors];
@@ -2564,6 +2658,10 @@ export type AdminCreateSeatErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminCreateSeatError = AdminCreateSeatErrors[keyof AdminCreateSeatErrors];
@@ -2616,6 +2714,10 @@ export type AdminGetSeatErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminGetSeatError = AdminGetSeatErrors[keyof AdminGetSeatErrors];
@@ -2675,6 +2777,10 @@ export type AdminUpdateSeatErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminUpdateSeatError = AdminUpdateSeatErrors[keyof AdminUpdateSeatErrors];
@@ -2718,6 +2824,10 @@ export type AdminListUsersErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminListUsersError = AdminListUsersErrors[keyof AdminListUsersErrors];
@@ -2766,6 +2876,10 @@ export type AdminGetUserErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminGetUserError = AdminGetUserErrors[keyof AdminGetUserErrors];
@@ -2814,6 +2928,10 @@ export type AdminUpdateUserErrors = {
      * Unprocessable Entity
      */
     422: RequestValidationErrorResponse;
+    /**
+     * Service Unavailable
+     */
+    503: BookingErrorResponse;
 };
 
 export type AdminUpdateUserError = AdminUpdateUserErrors[keyof AdminUpdateUserErrors];
@@ -3281,6 +3399,127 @@ export type UpdateMeResponses = {
 
 export type UpdateMeResponse = UpdateMeResponses[keyof UpdateMeResponses];
 
+export type ListFavouritesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/favourites';
+};
+
+export type ListFavouritesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListFavouritesError = ListFavouritesErrors[keyof ListFavouritesErrors];
+
+export type ListFavouritesResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type ListFavouritesResponse = ListFavouritesResponses[keyof ListFavouritesResponses];
+
+export type RemoveFavouriteData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/favourites/{space_id}';
+};
+
+export type RemoveFavouriteErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type RemoveFavouriteError = RemoveFavouriteErrors[keyof RemoveFavouriteErrors];
+
+export type RemoveFavouriteResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type RemoveFavouriteResponse = RemoveFavouriteResponses[keyof RemoveFavouriteResponses];
+
+export type AddFavouriteData = {
+    body?: never;
+    path: {
+        /**
+         * Space Id
+         */
+        space_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/favourites/{space_id}';
+};
+
+export type AddFavouriteErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type AddFavouriteError = AddFavouriteErrors[keyof AddFavouriteErrors];
+
+export type AddFavouriteResponses = {
+    /**
+     * Successful Response
+     */
+    200: FavouritesResponse;
+};
+
+export type AddFavouriteResponse = AddFavouriteResponses[keyof AddFavouriteResponses];
+
 export type GetMyReservationData = {
     body?: never;
     path?: never;
@@ -3555,10 +3794,52 @@ export type ReturnFromBreakResponses = {
 
 export type ReturnFromBreakResponse = ReturnFromBreakResponses[keyof ReturnFromBreakResponses];
 
-export type ListSpacesData = {
+export type GetRulesData = {
     body?: never;
     path?: never;
     query?: never;
+    url: '/api/v1/rules';
+};
+
+export type GetRulesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type GetRulesError = GetRulesErrors[keyof GetRulesErrors];
+
+export type GetRulesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RulesResponse;
+};
+
+export type GetRulesResponse = GetRulesResponses[keyof GetRulesResponses];
+
+export type ListSpacesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Map Room Id
+         */
+        map_room_id?: string | null;
+    };
     url: '/api/v1/spaces';
 };
 

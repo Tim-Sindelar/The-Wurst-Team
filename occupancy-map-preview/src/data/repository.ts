@@ -14,7 +14,8 @@ export interface OccupancyRepository {
 /**
  * Talks to `GET/PUT {baseUrl}/occupancy`. In this preview that endpoint is
  * served by the Vite dev-server plugin in `server/jsonFileApi.ts`, which
- * reads/writes `data/occupancy.json`.
+ * merges `data/generated.json` (pipeline output) with `data/overrides.json`
+ * (admin edits) on load, and writes only the overrides on save.
  */
 export class HttpRepository implements OccupancyRepository {
   constructor(private readonly baseUrl = '/api') {}
