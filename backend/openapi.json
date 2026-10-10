@@ -2187,6 +2187,24 @@
         "title": "ReadinessResponse",
         "type": "object"
       },
+      "RecentsResponse": {
+        "description": "Space ids, most recently used first.",
+        "properties": {
+          "space_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Space Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "space_ids"
+        ],
+        "title": "RecentsResponse",
+        "type": "object"
+      },
       "ReplaceOpeningHoursRequest": {
         "additionalProperties": false,
         "properties": {
@@ -5462,6 +5480,67 @@
           }
         },
         "summary": "Add Favourite",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/me/recents": {
+      "get": {
+        "operationId": "list_recents",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Recents",
         "tags": [
           "reservations"
         ]

@@ -55,10 +55,16 @@ export function filterSpaces(
   return spaces.filter((space) => space.name.toLowerCase().includes(needle));
 }
 
-/** Favourites first; otherwise the order is kept. */
-export function favouritesFirst(spaces: StudySpace[]): StudySpace[] {
-  return [
-    ...spaces.filter((space) => space.favourite),
-    ...spaces.filter((space) => !space.favourite),
-  ];
+/** The favourite spaces, in their current order. */
+export function favouriteSpaces(spaces: StudySpace[]): StudySpace[] {
+  return spaces.filter((space) => space.favourite);
+}
+
+/** The spaces named in `recentIds`, in that order (most recent first). */
+export function recentSpaces(
+  spaces: StudySpace[],
+  recentIds: readonly string[],
+): StudySpace[] {
+  const byId = new Map(spaces.map((space) => [space.id, space]));
+  return recentIds.flatMap((id) => byId.get(id) ?? []);
 }

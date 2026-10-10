@@ -14,11 +14,19 @@ import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
 import { Icon } from '../components/Icon';
 import { Screen, ScreenMain } from '../components/Screen';
+import { SectionLabel } from '../components/SectionLabel';
 import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
-import { favouritesFirst, filterSpaces, toStudySpace } from '../domain/space';
+import {
+  favouriteSpaces,
+  filterSpaces,
+  recentSpaces,
+  toStudySpace,
+  type StudySpace,
+} from '../domain/space';
 import { useFavourites } from '../hooks/useFavourites';
+import { useRecents } from '../hooks/useRecents';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useMyReservation } from '../hooks/useMyReservation';
 import { paths } from '../routes';
@@ -36,11 +44,21 @@ export function HomeScreen() {
     running,
   } = useMyReservation();
   const favourites = useFavourites();
+  const recents = useRecents();
   const [search, setSearch] = useState('');
   const allSpaces = spacesQuery.data?.spaces.map((space) =>
     toStudySpace(space, favourites.ids.has(space.id)),
   );
-  const spaces = allSpaces && favouritesFirst(filterSpaces(allSpaces, search));
+  const spaces = allSpaces && filterSpaces(allSpaces, search);
+  const searching = search.trim() !== '';
+  const rows = spaces && [
+    { id: 'favourites', title: 'Favourites', spaces: favouriteSpaces(spaces) },
+    {
+      id: 'recent',
+      title: 'Recent',
+      spaces: recentSpaces(spaces, recents.ids),
+    },
+  ];
 
   return (
     <Screen>
@@ -115,28 +133,45 @@ export function HomeScreen() {
           >
             <Text size="sm">Check your connection and try again.</Text>
           </Alert>
-        ) : !spaces ? (
+        ) : !rows ? (
           <Text c="dimmed" role="status">
             Loading study spaces…
           </Text>
-        ) : spaces.length === 0 ? (
+        ) : searching ? (
+          spaces.length === 0 ? (
+            <Text c="dimmed" role="status">
+              No study spaces match “{search.trim()}”.
+            </Text>
+          ) : (
+            <ul className="grid gap-3" aria-label="Search results">
+              {spaces.map((space) => (
+                <li key={space.id}>
+                  <SpaceCard
+                    space={space}
+                    onToggleFavourite={(on) => favourites.toggle(space.id, on)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )
+        ) : rows.every((row) => row.spaces.length === 0) ? (
           <Text c="dimmed" role="status">
-            No study spaces match “{search.trim()}”.
+            Star a study space or book a seat to see it here. Search or open the
+            map to find any space.
           </Text>
         ) : (
-          <ul
-            className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            aria-label="Study spaces"
-          >
-            {spaces.map((space) => (
-              <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
-                <SpaceCard
-                  space={space}
-                  onToggleFavourite={(on) => favourites.toggle(space.id, on)}
+          rows.map(
+            (row) =>
+              row.spaces.length > 0 && (
+                <SpaceRow
+                  key={row.id}
+                  id={row.id}
+                  title={row.title}
+                  spaces={row.spaces}
+                  onToggleFavourite={favourites.toggle}
                 />
-              </li>
-            ))}
-          </ul>
+              ),
+          )
         )}
 
         <Card
@@ -190,5 +225,32 @@ function BookingCard({ to, stripe, title, detail }: BookingCardProps) {
         <Icon name="chevronRight" />
       </div>
     </Card>
+  );
+}
+
+type SpaceRowProps = {
+  id: string;
+  title: string;
+  spaces: StudySpace[];
+  onToggleFavourite: (id: string, on: boolean) => void;
+};
+
+/** A titled, swipeable row of space cards. */
+function SpaceRow({ id, title, spaces, onToggleFavourite }: SpaceRowProps) {
+  const labelId = `space-row-${id}`;
+  return (
+    <section aria-labelledby={labelId} className="grid gap-2">
+      <SectionLabel id={labelId}>{title}</SectionLabel>
+      <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {spaces.map((space) => (
+          <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
+            <SpaceCard
+              space={space}
+              onToggleFavourite={(on) => onToggleFavourite(space.id, on)}
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

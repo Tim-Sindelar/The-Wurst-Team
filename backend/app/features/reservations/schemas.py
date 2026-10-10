@@ -105,6 +105,12 @@ class FavouritesResponse(BaseModel):
     space_ids: list[UUID]
 
 
+class RecentsResponse(BaseModel):
+    """Space ids, most recently used first."""
+
+    space_ids: list[UUID]
+
+
 class SpaceResponse(BaseModel):
     server_time: datetime
     space: SpaceDetail

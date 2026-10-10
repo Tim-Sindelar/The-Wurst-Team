@@ -5,7 +5,8 @@ import { seatMapPath } from '../routes';
 import { AvailabilityLabel } from './AvailabilityLabel';
 import { Icon } from './Icon';
 
-/* Study-space card for the swipe row. The whole card opens the seat map
+/* Study-space card for the swipe rows. Every card has the same fixed height
+   (names clamp to two lines) so rows and cards line up. The whole card opens the seat map
    through its title link; the favourite star sits above that link. */
 type SpaceCardProps = {
   space: StudySpace;
@@ -18,10 +19,10 @@ export function SpaceCard({ space, onToggleFavourite }: SpaceCardProps) {
   return (
     <Card
       component="article"
-      className="relative h-full grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto] overflow-visible"
+      className="relative h-32 grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto] overflow-visible"
     >
       <div className="flex items-center justify-between gap-2 self-start">
-        <Title order={2} className="min-w-0 flex-1">
+        <Title order={2} className="line-clamp-2 min-w-0 flex-1">
           <Anchor
             component={Link}
             to={seatMapPath(space.id)}

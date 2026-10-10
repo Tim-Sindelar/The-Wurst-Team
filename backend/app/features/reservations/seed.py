@@ -1,11 +1,12 @@
 """Idempotent demo catalogue: python -m app.features.reservations.seed."""
 
 import json
+from datetime import timedelta
 from pathlib import Path
 from secrets import token_urlsafe
 from uuid import NAMESPACE_URL, uuid5
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,8 @@ from app.config import get_settings
 from app.database import SessionLocal
 from app.features.campus_map.floor_plans import FloorPlans
 from app.features.reservations.models import Seat, SpaceOpeningInterval, StudySpace
+from app.models.favourite import FavouriteSpace
+from app.models.recent import RecentSpace
 
 
 def seed_demo(session: Session, floors_dir: Path | None = None) -> list[Seat]:
@@ -74,9 +77,32 @@ def seed_demo(session: Session, floors_dir: Path | None = None) -> list[Seat]:
     return list(session.scalars(select(Seat).where(Seat.id.in_(seat_ids)).order_by(Seat.id)))
 
 
+def seed_demo_shortcuts(session: Session, seats: list[Seat]) -> None:
+    """Gives the default demo user favourites and recents so Home has rows to show."""
+    user_id = get_settings().dummy_user_id
+    space_ids = list(dict.fromkeys(seat.space_id for seat in seats))
+    for index, space_id in enumerate(space_ids):
+        session.execute(
+            insert(FavouriteSpace)
+            .values(user_id=user_id, space_id=space_id)
+            .on_conflict_do_nothing()
+        )
+        # Recents run in the opposite order, so the two rows differ.
+        session.execute(
+            insert(RecentSpace)
+            .values(
+                user_id=user_id,
+                space_id=space_ids[-1 - index],
+                last_used_at=func.now() - timedelta(hours=index),
+            )
+            .on_conflict_do_nothing()
+        )
+
+
 def main() -> None:
     with SessionLocal() as session:
         seats = seed_demo(session)
+        seed_demo_shortcuts(session, seats)
         session.commit()
         print(
             json.dumps(

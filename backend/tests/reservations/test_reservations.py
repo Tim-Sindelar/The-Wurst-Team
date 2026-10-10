@@ -474,3 +474,18 @@ def test_favourites_belong_to_the_user_and_are_idempotent(client, seats):
         assert response.status_code == 200
         assert response.json() == {"space_ids": []}
     assert client.delete(f"/api/v1/me/favourites/{uuid4()}").status_code == 200
+
+
+def test_recents_follow_bookings_and_scans_per_user(client, seats):
+    space = str(seats[0].space_id)
+    me, other = identity(), identity()
+    assert client.get("/api/v1/me/recents", headers=me).json() == {"space_ids": []}
+    assert book(client, seats[0], me).status_code == 201
+    assert book(client, seats[1], other).status_code == 201
+    assert walk_up(client, seats[0], me).status_code == 200  # same space again: still one entry
+    assert client.get("/api/v1/me/recents", headers=me).json() == {"space_ids": [space]}
+    assert client.get("/api/v1/me/recents", headers=other).json() == {"space_ids": [space]}
+    assert client.get("/api/v1/me/recents", headers=identity()).json() == {"space_ids": []}
+    # A refused booking leaves no trace.
+    assert book(client, seats[2], me).status_code == 409
+    assert client.get("/api/v1/me/recents", headers=me).json() == {"space_ids": [space]}

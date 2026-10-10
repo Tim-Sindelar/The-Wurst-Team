@@ -8,7 +8,8 @@ import {
 import { layoutSeats } from '../src/domain/room.ts';
 import {
   describeAvailability,
-  favouritesFirst,
+  favouriteSpaces,
+  recentSpaces,
   filterSpaces,
   type StudySpace,
 } from '../src/domain/space.ts';
@@ -120,7 +121,7 @@ test('search matches the name anywhere, ignoring case and padding', () => {
   assert.equal(filterSpaces(spaces, 'zzz').length, 0);
 });
 
-test('favourites come first and keep their order otherwise', () => {
+test('favourites keep their order', () => {
   const spaces = [
     space('A', false),
     space('B', true),
@@ -128,7 +129,15 @@ test('favourites come first and keep their order otherwise', () => {
     space('D', true),
   ];
   assert.deepEqual(
-    favouritesFirst(spaces).map((item) => item.name),
-    ['B', 'D', 'A', 'C'],
+    favouriteSpaces(spaces).map((item) => item.name),
+    ['B', 'D'],
+  );
+});
+
+test('recents list the known spaces, most recent first', () => {
+  const spaces = [space('A', false), space('B', true), space('C', false)];
+  assert.deepEqual(
+    recentSpaces(spaces, ['C', 'gone', 'A']).map((item) => item.name),
+    ['C', 'A'],
   );
 });

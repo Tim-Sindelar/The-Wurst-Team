@@ -14,6 +14,7 @@ from app.models import (
     MapDocument,
     MapEntity,
     MapOverride,
+    RecentSpace,
     Reservation,
     Seat,
     SpaceClosure,
@@ -63,6 +64,7 @@ def db(test_engine: Engine) -> Iterator[Engine]:
     with Session(test_engine) as session:
         for model in (
             FavouriteSpace,
+            RecentSpace,
             Break,
             Reservation,
             SpaceClosure,
