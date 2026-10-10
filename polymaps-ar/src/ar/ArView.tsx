@@ -470,7 +470,7 @@ export function ArView({ floors, pose, route = null, fallbackLabel }: Props) {
 function vpsStatus({ last, error }: VpsState): string {
   if (error) return `Visual fix failed: ${error}`;
   if (!last) return '';
-  const t = `${(last.totalMs / 1000).toFixed(1)} s, ${Math.round(last.bytes / 1024)} KiB sent`;
+  const t = `${(last.totalMs / 1000).toFixed(1)} s (features ${(last.extractMs / 1000).toFixed(1)} s, ${last.backend}), ${Math.round(last.bytes / 1024)} KiB sent`;
   if (!last.ok) return `No visual fix (${last.reason ?? 'unknown'}) · ${t}`;
   return `Visual fix · ${last.inliers} inliers · heading ${last.heading?.toFixed(0)}° · ${last.levelId?.replace('ETH.', '')} · ${t}`;
 }

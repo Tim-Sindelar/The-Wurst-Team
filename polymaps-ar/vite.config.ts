@@ -51,5 +51,7 @@ export default defineConfig({
     },
   },
   preview: { host: true, port: 5443, strictPort: true },
+  // The SuperPoint worker imports onnxruntime-web dynamically: needs ES module workers.
+  worker: { format: 'es' },
   test: { environment: 'node' },
 });

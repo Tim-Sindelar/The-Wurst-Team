@@ -31,6 +31,8 @@ export interface VpsResult extends LocalizeResponse {
   /** Total time on the phone, ms (extraction + upload + server). */
   totalMs: number;
   extractMs: number;
+  /** onnxruntime backend on the phone: webgpu or wasm. */
+  backend: string;
   bytes: number;
 }
 
@@ -71,6 +73,7 @@ export class VpsClient {
       focalVideo: out.focal ? out.focal / scaleX : undefined,
       totalMs: performance.now() - t0,
       extractMs: t1 - t0,
+      backend: extractor.backend,
       bytes: body.byteLength,
     };
   }

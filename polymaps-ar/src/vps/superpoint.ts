@@ -95,40 +95,34 @@ export function toGray(source: CanvasImageSource, srcWidth: number, srcHeight: n
 
 type Ort = typeof import('onnxruntime-web');
 
-export class SuperPointExtractor {
-  private constructor(private readonly ort: Ort, private readonly session: InferenceSession) {}
+/** WebGPU only where the device really has an adapter (many WebViews expose navigator.gpu without one). */
+async function hasWebGpu(): Promise<boolean> {
+  const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
+  if (!gpu) return false;
+  try {
+    return (await gpu.requestAdapter()) != null;
+  } catch {
+    return false;
+  }
+}
 
-  /** `modelUrl` relative to the page. Prefers WebGPU, falls back to multi-threaded WASM. */
-  static async load(modelUrl: string): Promise<SuperPointExtractor> {
+/**
+ * The network in the current thread (normally inside superpointWorker.ts). The backend is chosen
+ * once, before onnxruntime initialises its WASM runtime: that can only be initialised once per
+ * thread, so a failed attempt can't be retried with another backend.
+ */
+export class SuperPointRunner {
+  private constructor(private readonly ort: Ort, private readonly session: InferenceSession, readonly backend: string) {}
+
+  /** `modelUrl` absolute (a worker resolves relative URLs against its script, not the page). */
+  static async create(modelUrl: string, forceWasm = false): Promise<SuperPointRunner> {
     const ort = await import('onnxruntime-web');
-    // Inference in a worker: the AR view keeps rendering while a frame is processed.
-    ort.env.wasm.proxy = true;
-    ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 1);
-    const providers: string[] = [];
-    if ('gpu' in navigator) providers.push('webgpu');
-    providers.push('wasm');
-    let session: InferenceSession | null = null;
-    let lastError: unknown;
-    for (const ep of providers) {
-      try {
-        session = await ort.InferenceSession.create(modelUrl, { executionProviders: [ep], graphOptimizationLevel: 'all' });
-        break;
-      } catch (e) {
-        lastError = e;
-        // WebGPU and the proxy worker don't mix in all builds; retry this provider in-thread.
-        if (ort.env.wasm.proxy) {
-          ort.env.wasm.proxy = false;
-          try {
-            session = await ort.InferenceSession.create(modelUrl, { executionProviders: [ep], graphOptimizationLevel: 'all' });
-            break;
-          } catch (e2) {
-            lastError = e2;
-          }
-        }
-      }
-    }
-    if (!session) throw lastError instanceof Error ? lastError : new Error(String(lastError));
-    return new SuperPointExtractor(ort, session);
+    ort.env.wasm.proxy = false;
+    // Threads need SharedArrayBuffer, i.e. a cross-origin isolated page.
+    ort.env.wasm.numThreads = globalThis.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 1) : 1;
+    const providers = !forceWasm && (await hasWebGpu()) ? ['webgpu', 'wasm'] : ['wasm'];
+    const session = await ort.InferenceSession.create(modelUrl, { executionProviders: providers, graphOptimizationLevel: 'all' });
+    return new SuperPointRunner(ort, session, providers[0]);
   }
 
   async extract(gray: Float32Array, width: number, height: number, maxKeypoints: number): Promise<Features> {
@@ -142,5 +136,65 @@ export class SuperPointExtractor {
     const descriptors = sampleDescriptors(dense, c, h, w, kp.keypoints);
     for (const t of Object.values(out)) (t as Tensor).dispose?.();
     return { width, height, keypoints: kp.keypoints, scores: kp.scores, descriptors };
+  }
+}
+
+/** ?vpsBackend=wasm: skip WebGPU (testing the path most phone WebViews take). */
+const FORCE_WASM = typeof location !== 'undefined' && new URLSearchParams(location.search).get('vpsBackend') === 'wasm';
+
+type Reply = { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string };
+
+/**
+ * SuperPoint for the page: runs in a Web Worker so the AR view keeps rendering while a frame is
+ * processed (1-3 s on a phone). Falls back to the page's thread if a worker can't be started.
+ */
+export class SuperPointExtractor {
+  private constructor(
+    private readonly worker: Worker | null,
+    private readonly local: SuperPointRunner | null,
+    readonly backend: string,
+  ) {}
+
+  private static pending = new Map<number, (r: Reply) => void>();
+  private static nextId = 1;
+
+  private static call(worker: Worker, msg: Record<string, unknown>, transfer: Transferable[] = []): Promise<unknown> {
+    const id = SuperPointExtractor.nextId++;
+    return new Promise((resolve, reject) => {
+      SuperPointExtractor.pending.set(id, (r) => (r.ok ? resolve(r.result) : reject(new Error(r.error))));
+      worker.postMessage({ ...msg, id }, transfer);
+    });
+  }
+
+  /** `modelUrl` relative to the page. */
+  static async load(modelUrl: string): Promise<SuperPointExtractor> {
+    const url = new URL(modelUrl, document.baseURI).href;
+    let worker: Worker | null = null;
+    try {
+      worker = new Worker(new URL('./superpointWorker.ts', import.meta.url), { type: 'module' });
+    } catch (e) {
+      console.warn('SuperPoint worker unavailable, running on the page', e);
+    }
+    if (worker) {
+      worker.onmessage = (e: MessageEvent<Reply>) => {
+        SuperPointExtractor.pending.get(e.data.id)?.(e.data);
+        SuperPointExtractor.pending.delete(e.data.id);
+      };
+      try {
+        const backend = (await SuperPointExtractor.call(worker, { type: 'init', modelUrl: url, forceWasm: FORCE_WASM })) as string;
+        return new SuperPointExtractor(worker, null, backend);
+      } catch (e) {
+        worker.terminate();
+        // The worker's own WASM init failed: the page's thread has a fresh one to try.
+        console.warn('SuperPoint worker failed, running on the page', e);
+      }
+    }
+    const local = await SuperPointRunner.create(url, FORCE_WASM);
+    return new SuperPointExtractor(null, local, local.backend);
+  }
+
+  async extract(gray: Float32Array, width: number, height: number, maxKeypoints: number): Promise<Features> {
+    if (this.local) return this.local.extract(gray, width, height, maxKeypoints);
+    return (await SuperPointExtractor.call(this.worker!, { type: 'extract', gray, width, height, maxKeypoints }, [gray.buffer])) as Features;
   }
 }
