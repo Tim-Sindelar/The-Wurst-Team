@@ -15,6 +15,7 @@ from app.features.reservations.schemas import (
     MyReservationResponse,
     RequestValidationErrorResponse,
     ReservationResponse,
+    RulesResponse,
     SpaceResponse,
     SpacesResponse,
 )
@@ -51,6 +52,17 @@ def commit_response(
     response = service.response(reservation_id, now)
     service.session.commit()
     return response
+
+
+@router.get("/rules", response_model=RulesResponse, operation_id="get_rules")
+def get_rules(settings: Annotated[Settings, Depends(get_settings)]) -> RulesResponse:
+    return RulesResponse(
+        session_length_minutes=settings.session_length_minutes,
+        check_in_window_minutes=settings.check_in_window_minutes,
+        private_priority_window_minutes=settings.private_priority_window_minutes,
+        public_reservation_window_minutes=settings.public_reservation_window_minutes,
+        break_budget_minutes=settings.break_budget_minutes,
+    )
 
 
 @router.get("/spaces", response_model=SpacesResponse, operation_id="list_spaces")

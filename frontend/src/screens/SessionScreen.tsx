@@ -15,7 +15,6 @@ import { SeatChip } from '../components/SeatChip';
 import { StatusBanner } from '../components/StatusBanner';
 import { TimerCard } from '../components/TimerCard';
 import { apiProblem, secondsBetween } from '../domain/booking';
-import { rules } from '../domain/rules';
 import { stripeClass } from '../domain/seat';
 import {
   useMyReservation,
@@ -23,6 +22,7 @@ import {
   useRefreshBooking,
 } from '../hooks/useMyReservation';
 import { useNow } from '../hooks/useNow';
+import { useRules } from '../hooks/useRules';
 import { paths } from '../routes';
 
 type Sheet = 'extend' | 'break' | 'end' | null;
@@ -40,6 +40,7 @@ export function SessionScreen() {
   const refresh = useRefreshBooking();
   const { query, running, toClient } = useMyReservation();
   const now = useNow();
+  const { query: rulesQuery, rules } = useRules();
   const end = useMutation(endReservationMutation());
   const [params, setParams] = useSearchParams();
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -62,7 +63,7 @@ export function SessionScreen() {
   useRefetchAt(sessionEnd, refetch);
   useRefetchAt(breakEnd, refetch);
 
-  if (query.isError) {
+  if (query.isError || rulesQuery.isError) {
     return (
       <Screen>
         {header}
@@ -77,7 +78,13 @@ export function SessionScreen() {
           </Alert>
         </ScreenMain>
         <ActionBar>
-          <Button fullWidth onClick={() => void refetch()}>
+          <Button
+            fullWidth
+            onClick={() => {
+              void refetch();
+              void rulesQuery.refetch();
+            }}
+          >
             Try again
           </Button>
         </ActionBar>
@@ -85,7 +92,7 @@ export function SessionScreen() {
     );
   }
 
-  if (!query.data) {
+  if (!query.data || !rules) {
     return (
       <Screen>
         {header}
@@ -108,7 +115,8 @@ export function SessionScreen() {
   const secondsLeft = Math.max(0, Math.round((sessionEnd - now) / 1000));
   const extensionOpen = actions.includes('extend');
   /* In the last public-window minutes anyone can book the next session. */
-  const othersCanBook = secondsLeft <= rules.publicWindowMinutes * 60;
+  const othersCanBook =
+    secondsLeft <= rules.public_reservation_window_minutes * 60;
   const canBreak = actions.includes('start_break');
   const breakMinutes = Math.floor(running.break_seconds_remaining / 60);
   const endsAt = new Intl.DateTimeFormat(undefined, {
@@ -142,7 +150,9 @@ export function SessionScreen() {
           <Alert icon={<Icon name="clock" />} title="Priority extension">
             <Text size="sm" c="dimmed">
               Only you can extend for the next{' '}
-              {rules.priorityWindowMinutes - rules.publicWindowMinutes} minutes.
+              {rules.private_priority_window_minutes -
+                rules.public_reservation_window_minutes}{' '}
+              minutes.
             </Text>
             <div className="mt-2">
               <Button onClick={() => setSheet('extend')}>Extend session</Button>
@@ -275,9 +285,9 @@ export function SessionScreen() {
         actionLabel="Extend session"
         onConfirm={() => navigate(`${paths.scan}?from=extend`)}
       >
-        Adds {rules.sessionMinutes / 60} hours, or less if the room closes
-        sooner. You'll scan the QR code again to confirm you're still at your
-        seat.
+        Adds {rules.session_length_minutes / 60} hours, or less if the room
+        closes sooner. You'll scan the QR code again to confirm you're still at
+        your seat.
       </DecisionSheet>
 
       <DecisionSheet

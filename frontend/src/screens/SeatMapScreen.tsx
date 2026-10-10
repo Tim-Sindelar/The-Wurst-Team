@@ -27,8 +27,8 @@ import {
   seatStateName,
   stripeClass,
 } from '../domain/seat';
-import { rules } from '../domain/rules';
 import { useMyReservation, useRefreshBooking } from '../hooks/useMyReservation';
+import { useRules } from '../hooks/useRules';
 import { paths } from '../routes';
 
 export function SeatMapScreen() {
@@ -40,6 +40,7 @@ export function SeatMapScreen() {
     ...getSpaceOptions({ path: { space_id: spaceId } }),
     refetchInterval: 15_000,
   });
+  const { query: rulesQuery, rules } = useRules();
   const { reservation, held, running } = useMyReservation();
   const reserve = useMutation(createReservationMutation());
   const [picked, setPicked] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export function SeatMapScreen() {
     />
   );
 
-  if (spaceQuery.isError) {
+  if (spaceQuery.isError || rulesQuery.isError) {
     return (
       <Screen>
         {header}
@@ -76,7 +77,13 @@ export function SeatMapScreen() {
           </Alert>
         </ScreenMain>
         <ActionBar>
-          <Button fullWidth onClick={() => void spaceQuery.refetch()}>
+          <Button
+            fullWidth
+            onClick={() => {
+              void spaceQuery.refetch();
+              void rulesQuery.refetch();
+            }}
+          >
             Try again
           </Button>
         </ActionBar>
@@ -84,7 +91,7 @@ export function SeatMapScreen() {
     );
   }
 
-  if (!space) {
+  if (!space || !rules) {
     return (
       <Screen>
         {header}
@@ -160,8 +167,8 @@ export function SeatMapScreen() {
   }
 
   const sheetNote = later
-    ? `${space.name}. Your time starts ${reservableFrom ? `at ${reservableFrom}, ` : ''}when the current session ends. Check in within ${rules.checkInMinutes} minutes after that.`
-    : `${space.name}. Check in within ${rules.checkInMinutes} minutes of reserving, or the seat is released.`;
+    ? `${space.name}. Your time starts ${reservableFrom ? `at ${reservableFrom}, ` : ''}when the current session ends. Check in within ${rules.check_in_window_minutes} minutes after that.`
+    : `${space.name}. Check in within ${rules.check_in_window_minutes} minutes of reserving, or the seat is released.`;
 
   return (
     <Screen className="h-dvh overflow-hidden">

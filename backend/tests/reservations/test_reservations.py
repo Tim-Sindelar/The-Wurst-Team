@@ -398,3 +398,16 @@ def test_migration_round_trip(db):
     migrate(db)
     with db.connect() as connection:
         assert connection.scalar(text("SELECT count(*) FROM reservation_states")) == 0
+
+
+def test_rules_report_the_configured_timing(client, policy):
+    policy.check_in_window_minutes = 5
+    response = client.get("/api/v1/rules")
+    assert response.status_code == 200
+    assert response.json() == {
+        "session_length_minutes": 120,
+        "check_in_window_minutes": 5,
+        "private_priority_window_minutes": 20,
+        "public_reservation_window_minutes": 10,
+        "break_budget_minutes": 30,
+    }

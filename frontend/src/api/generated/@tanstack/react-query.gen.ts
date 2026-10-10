@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, checkIn, createReservation, endReservation, extendReservation, getHealth, getMyReservation, getReadiness, getSpace, listSpaces, type Options, returnFromBreak, startBreak } from '../sdk.gen';
-import type { AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetHealthData, GetHealthResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, StartBreakData, StartBreakError, StartBreakResponse } from '../types.gen';
+import { adminCreateClosure, adminCreateSeat, adminCreateSpace, adminDeleteClosure, adminEndReservation, adminGetSeat, adminGetSpaceOverview, adminListClosures, adminListSpaces, adminReplaceOpeningHours, adminUpdateSeat, adminUpdateSpace, checkIn, createReservation, endReservation, extendReservation, getHealth, getMyReservation, getReadiness, getRules, getSpace, listSpaces, type Options, returnFromBreak, startBreak } from '../sdk.gen';
+import type { AdminCreateClosureData, AdminCreateClosureError, AdminCreateClosureResponse, AdminCreateSeatData, AdminCreateSeatError, AdminCreateSeatResponse, AdminCreateSpaceData, AdminCreateSpaceError, AdminCreateSpaceResponse, AdminDeleteClosureData, AdminDeleteClosureError, AdminDeleteClosureResponse, AdminEndReservationData, AdminEndReservationError, AdminEndReservationResponse, AdminGetSeatData, AdminGetSeatError, AdminGetSeatResponse, AdminGetSpaceOverviewData, AdminGetSpaceOverviewError, AdminGetSpaceOverviewResponse, AdminListClosuresData, AdminListClosuresError, AdminListClosuresResponse, AdminListSpacesData, AdminListSpacesError, AdminListSpacesResponse, AdminReplaceOpeningHoursData, AdminReplaceOpeningHoursError, AdminReplaceOpeningHoursResponse, AdminUpdateSeatData, AdminUpdateSeatError, AdminUpdateSeatResponse, AdminUpdateSpaceData, AdminUpdateSpaceError, AdminUpdateSpaceResponse, CheckInData, CheckInError, CheckInResponse, CreateReservationData, CreateReservationError, CreateReservationResponse, EndReservationData, EndReservationError, EndReservationResponse, ExtendReservationData, ExtendReservationError, ExtendReservationResponse, GetHealthData, GetHealthResponse, GetMyReservationData, GetMyReservationError, GetMyReservationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetRulesData, GetRulesError, GetRulesResponse, GetSpaceData, GetSpaceError, GetSpaceResponse, ListSpacesData, ListSpacesError, ListSpacesResponse, ReturnFromBreakData, ReturnFromBreakError, ReturnFromBreakResponse, StartBreakData, StartBreakError, StartBreakResponse } from '../types.gen';
 
 /**
  * End Reservation
@@ -402,6 +402,24 @@ export const returnFromBreakMutation = (options?: Partial<Options<ReturnFromBrea
     };
     return mutationOptions;
 };
+
+export const getRulesQueryKey = (options?: Options<GetRulesData>) => createQueryKey('getRules', options);
+
+/**
+ * Get Rules
+ */
+export const getRulesOptions = (options?: Options<GetRulesData>) => queryOptions<GetRulesResponse, GetRulesError, GetRulesResponse, ReturnType<typeof getRulesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRules({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRulesQueryKey(options)
+});
 
 export const listSpacesQueryKey = (options?: Options<ListSpacesData>) => createQueryKey('listSpaces', options);
 

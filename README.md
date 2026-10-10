@@ -114,7 +114,7 @@ Timing rules live in `backend/app/config.py` and can be overridden in `backend/.
 | `PUBLIC_RESERVATION_WINDOW_MINUTES` | 10 | How long before session end others may reserve the next session |
 | `BREAK_BUDGET_MINUTES` | 30 | Total break allowance per reservation |
 
-All values must be positive; the public window must be shorter than the private window, which must be shorter than the session. The check-in window must also be shorter than the session. Existing deadlines and captured break budgets remain unchanged when settings change. New extensions and eligibility windows use current settings. Breaks share one allowance and do not pause the session or replenish on extension.
+`GET /api/v1/rules` returns these values in minutes, and the frontend reads them from there instead of keeping its own copy. All values must be positive; the public window must be shorter than the private window, which must be shorter than the session. The check-in window must also be shorter than the session. Existing deadlines and captured break budgets remain unchanged when settings change. New extensions and eligibility windows use current settings. Breaks share one allowance and do not pause the session or replenish on extension.
 
 The `reservation_states` database view derives availability from the clock, including no-shows and expired breaks. Its underlying `reservation_states_at(timestamp)` function lets each transaction use one instant after acquiring locks and lets tests exercise exact boundaries. Early release advances the next booking when the earlier start is available, even without a background worker. Its session and check-in deadline are capped at closing or the next closure; a blocked earlier start keeps the scheduled start. Notifications are deferred.
 

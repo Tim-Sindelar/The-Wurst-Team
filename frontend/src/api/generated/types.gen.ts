@@ -820,6 +820,34 @@ export type ReserveSeatRequest = {
 };
 
 /**
+ * RulesResponse
+ *
+ * Booking timing rules, in minutes. Configured in app/config.py.
+ */
+export type RulesResponse = {
+    /**
+     * Break Budget Minutes
+     */
+    break_budget_minutes: number;
+    /**
+     * Check In Window Minutes
+     */
+    check_in_window_minutes: number;
+    /**
+     * Private Priority Window Minutes
+     */
+    private_priority_window_minutes: number;
+    /**
+     * Public Reservation Window Minutes
+     */
+    public_reservation_window_minutes: number;
+    /**
+     * Session Length Minutes
+     */
+    session_length_minutes: number;
+};
+
+/**
  * SeatAvailability
  */
 export type SeatAvailability = {
@@ -1950,6 +1978,43 @@ export type ReturnFromBreakResponses = {
 };
 
 export type ReturnFromBreakResponse = ReturnFromBreakResponses[keyof ReturnFromBreakResponses];
+
+export type GetRulesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/rules';
+};
+
+export type GetRulesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type GetRulesError = GetRulesErrors[keyof GetRulesErrors];
+
+export type GetRulesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RulesResponse;
+};
+
+export type GetRulesResponse = GetRulesResponses[keyof GetRulesResponses];
 
 export type ListSpacesData = {
     body?: never;

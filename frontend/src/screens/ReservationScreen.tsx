@@ -14,13 +14,13 @@ import {
 import { SeatChip } from '../components/SeatChip';
 import { TimerCard } from '../components/TimerCard';
 import { apiProblem, secondsBetween } from '../domain/booking';
-import { rules } from '../domain/rules';
 import { stripeClass } from '../domain/seat';
 import {
   useMyReservation,
   useRefetchAt,
   useRefreshBooking,
 } from '../hooks/useMyReservation';
+import { useRules } from '../hooks/useRules';
 import { paths } from '../routes';
 
 const header = (
@@ -35,6 +35,7 @@ export function ReservationScreen() {
   const navigate = useNavigate();
   const refresh = useRefreshBooking();
   const { query, held, running, toClient } = useMyReservation();
+  const { query: rulesQuery, rules } = useRules();
   const end = useMutation(endReservationMutation());
   const [cancelOpen, setCancelOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -47,13 +48,13 @@ export function ReservationScreen() {
     : null;
   const total = held
     ? upcoming
-      ? rules.publicWindowMinutes * 60
+      ? Math.max(1, (rules?.public_reservation_window_minutes ?? 0) * 60)
       : Math.max(1, secondsBetween(held.starts_at, held.check_in_deadline))
     : 1;
   const { refetch } = query;
   useRefetchAt(target, refetch);
 
-  if (query.isError) {
+  if (query.isError || rulesQuery.isError) {
     return (
       <Screen>
         {header}
@@ -68,7 +69,13 @@ export function ReservationScreen() {
           </Alert>
         </ScreenMain>
         <ActionBar>
-          <Button fullWidth onClick={() => void refetch()}>
+          <Button
+            fullWidth
+            onClick={() => {
+              void refetch();
+              void rulesQuery.refetch();
+            }}
+          >
             Try again
           </Button>
         </ActionBar>
@@ -76,7 +83,7 @@ export function ReservationScreen() {
     );
   }
 
-  if (!query.data) {
+  if (!query.data || !rules) {
     return (
       <Screen>
         {header}
@@ -164,7 +171,7 @@ export function ReservationScreen() {
         >
           <Text size="sm" c="dimmed">
             {upcoming
-              ? `The current session is about to end. Scan the QR code on your table once your time starts, within ${rules.checkInMinutes} minutes.`
+              ? `The current session is about to end. Scan the QR code on your table once your time starts, within ${rules.check_in_window_minutes} minutes.`
               : 'Scan the QR code on your table when you arrive. If the time runs out, the seat is released for others.'}
           </Text>
         </TimerCard>
