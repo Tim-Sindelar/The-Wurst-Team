@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 from uuid import UUID
 
 from pydantic import Field, model_validator
@@ -15,6 +16,7 @@ class Settings(BaseSettings):
     private_priority_window_minutes: int = Field(default=20, gt=0)
     public_reservation_window_minutes: int = Field(default=10, gt=0)
     break_budget_minutes: int = Field(default=30, gt=0)
+    auth_mode: Literal["proxy", "demo"] = "proxy"
     dummy_user_id: UUID = UUID("00000000-0000-0000-0000-000000000001")
     dummy_auth_allow_header: bool = True
     dummy_is_admin: bool = False

@@ -6,5 +6,14 @@ from app.features.reservations.models import (
     SpaceOpeningInterval,
     StudySpace,
 )
+from app.models.profile import UserProfile
 
-__all__ = ["Break", "Reservation", "Seat", "SpaceClosure", "SpaceOpeningInterval", "StudySpace"]
+__all__ = [
+    "Break",
+    "Reservation",
+    "Seat",
+    "SpaceClosure",
+    "SpaceOpeningInterval",
+    "StudySpace",
+    "UserProfile",
+]

@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -14,3 +15,10 @@ class ReadinessResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class UserResponse(BaseModel):
+    id: UUID
+    name: str
+    email: str | None
+    photo_url: str | None = None

@@ -16,7 +16,6 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/screens/` | One file per screen, in flow order: Home, SeatMap, Reservation, Scan, Session, Profile |
 | `src/domain/` | Domain types and per-state lookups (seat states, labels, state classes) |
 | `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useQrScanner`, `useNow`, `useCountdown` |
-| `src/mock/` | Sample data for what the API lacks (the signed-in user). Everything else comes from the API |
 | `src/routes.ts` | Screen paths |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
 
@@ -65,7 +64,8 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Failed calls are shown in place: use `apiProblem(error)` for the sentence, in a `danger` `Alert` or inside the `DecisionSheet`.
 - Timing rules (check-in window, session length, extension windows, break allowance) are set in `backend/app/config.py` and read through `useRules()` (`GET /api/v1/rules`). Never hardcode them in the frontend.
 - The API has no seat positions yet, so `src/domain/room.ts` places seats on a stand-in floor plan. Replace it with `SpaceDetail.layout` once the backend provides one.
-- Still mock: the user's name and avatar (`src/mock/data.ts`), the favourite stars, the notification switches on Profile, and the campus map placeholder on Home.
+- Profile and the home avatar use `/api/v1/me` through `useCurrentUser`. Profile saves a display name and optional photo through the generated `updateMeMutation`; the backend persists these in `user_profiles` without changing auth identity.
+- Still mock: the favourite stars, the notification switches on Profile, and the campus map placeholder on Home.
 - Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`; the scan screen also takes a typed code for devices without a camera. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
 
 ### Code conventions

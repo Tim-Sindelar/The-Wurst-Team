@@ -18,11 +18,12 @@ import { SpaceCard } from '../components/SpaceCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
 import { toStudySpace } from '../domain/space';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useMyReservation } from '../hooks/useMyReservation';
-import { mockUser } from '../mock/data';
 import { paths } from '../routes';
 
 export function HomeScreen() {
+  const { user, initials, isPending, isError } = useCurrentUser();
   const spacesQuery = useQuery({
     ...listSpacesOptions(),
     refetchInterval: 15_000,
@@ -45,10 +46,13 @@ export function HomeScreen() {
             <ActionIcon
               component={Link}
               to={paths.profile}
-              aria-label="Profile"
+              aria-label={isError ? 'Profile unavailable' : 'Profile'}
+              aria-busy={isPending}
               className="-mr-0.5"
             >
-              <Avatar aria-hidden="true">{mockUser.initials}</Avatar>
+              <Avatar src={user?.photo_url} aria-hidden="true">
+                {initials}
+              </Avatar>
             </ActionIcon>
           </div>
         </div>
