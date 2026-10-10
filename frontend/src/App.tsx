@@ -22,8 +22,8 @@ import { ScanScreen } from './screens/ScanScreen';
 import { SeatMapScreen } from './screens/SeatMapScreen';
 import { SessionScreen } from './screens/SessionScreen';
 
-const socialDraftRoutes = socialEnabled
-  ? (await import('./features/social-draft/routes')).socialDraftRoutes
+const socialRoutes = socialEnabled
+  ? (await import('./features/social/routes')).socialRoutes
   : [];
 
 const router = createBrowserRouter(
@@ -65,7 +65,7 @@ const router = createBrowserRouter(
         { path: paths.session, element: <SessionScreen /> },
         { path: paths.profile, element: <ProfileScreen /> },
         { path: paths.profileEdit, element: <ProfileEditScreen /> },
-        ...socialDraftRoutes,
+        ...socialRoutes,
       ],
     },
   ],

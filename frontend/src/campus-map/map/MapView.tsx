@@ -4,7 +4,6 @@ import {
   MapContainer,
   Marker,
   Polygon,
-  ScaleControl,
   useMap,
   useMapEvents,
 } from 'react-leaflet';
@@ -303,7 +302,6 @@ export function MapView(props: Props) {
       <VectorBasemap style="positron" labels={labels} />
       <AttributionText />
       <BasemapOpacity opacity={minimal ? minimal.basemapOpacity : 1} />
-      <ScaleControl imperial={false} />
 
       <MapEvents
         onZoom={(z) => {

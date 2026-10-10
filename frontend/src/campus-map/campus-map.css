@@ -64,7 +64,8 @@
       [type='checkbox'],
       [type='radio'],
       [type='range'],
-      [type='color']
+      [type='color'],
+      .ui-input
     ),
     select {
       font-size: var(--text-body);
@@ -85,7 +86,8 @@
       accent-color: var(--accent);
       min-height: 32px;
     }
-    a {
+    /* Plain links only: Mantine buttons rendered as links keep their theme. */
+    a:not([data-variant]) {
       color: var(--accent);
     }
     .muted {
@@ -631,10 +633,6 @@
     .free-filters input[type='search'] {
       flex: 1;
       min-width: 120px;
-    }
-    .workspace-search {
-      width: 100%;
-      margin-bottom: 10px;
     }
     /* Live status of the ETH rooms of a workspace, in its popup. */
     .live-rooms {
@@ -1297,13 +1295,10 @@
       font-size: 10px;
     }
 
-    /* Leaflet controls: 44px touch targets, below the top bar */
+    /* Leaflet controls: 44px touch targets */
     .leaflet-container {
       font: inherit;
       background: #e9edf2;
-    }
-    .leaflet-top {
-      top: calc(64px + env(safe-area-inset-top));
     }
     .leaflet-bottom {
       bottom: env(safe-area-inset-bottom);
@@ -1317,7 +1312,7 @@
     }
     .leaflet-bar a,
     .leaflet-control-layers,
-    .leaflet-control-layers-toggle {
+    a.leaflet-control-layers-toggle {
       background-color: var(--panel);
       color: var(--text);
       border-color: var(--border);
@@ -1328,12 +1323,13 @@
       line-height: 44px;
       font-size: 22px;
     }
-    .leaflet-bar a.nav-home {
-      font-size: 22px;
-    }
     .leaflet-control-layers-toggle {
       width: 44px;
       height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image: none;
     }
     /* The layers button opens the map view sheet (ModeControl). */
     .leaflet-bar a:focus-visible,
@@ -1357,14 +1353,6 @@
     }
     .leaflet-control-attribution a {
       color: var(--accent);
-    }
-    .leaflet-control-scale {
-      margin-bottom: 4px;
-    }
-    .leaflet-control-scale-line {
-      background: color-mix(in srgb, var(--panel) 80%, transparent);
-      color: var(--text);
-      border-color: var(--muted);
     }
     .leaflet-tooltip {
       background: var(--panel);

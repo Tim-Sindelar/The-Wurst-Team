@@ -1,7 +1,7 @@
 import { Alert, Button, Text } from '@mantine/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import {
   createReservationMutation,
   getMyReservationQueryKey,
@@ -25,6 +25,10 @@ import { describeAvailability } from '../domain/space';
 import { isReservable, seatStateDetail, seatStateName } from '../domain/seat';
 import { useMyReservation, useRefreshBooking } from '../hooks/useMyReservation';
 import { useRules } from '../hooks/useRules';
+import { socialEnabled } from '../features';
+import { going } from '../features/social/groups';
+import { groupSeatsPath } from '../features/social/paths';
+import { useGroups } from '../features/social/useSocial';
 import { paths } from '../routes';
 
 export function SeatMapScreen() {
@@ -39,6 +43,7 @@ export function SeatMapScreen() {
   const { query: rulesQuery, rules } = useRules();
   const { reservation, held, running } = useMyReservation();
   const reserve = useMutation(createReservationMutation());
+  const groups = useGroups();
   const [picked, setPicked] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   /* Label of a seat somebody else reserved a moment before us, shown as a warning. */
@@ -74,6 +79,23 @@ export function SeatMapScreen() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [picked, sheetOpen]);
+
+  /* Organizing a study group someone has joined: rooms are picked for the
+     whole group, so open Book together with this room. */
+  const group = groups.active;
+  if (
+    socialEnabled &&
+    group?.status === 'open' &&
+    group.organizer_id === groups.user?.id &&
+    going(group).length > 1
+  )
+    return (
+      <Navigate
+        replace
+        to={`${groupSeatsPath(group.id)}?room=${encodeURIComponent(spaceId)}`}
+      />
+    );
+  const checkingGroup = socialEnabled && groups.loading && !groups.error;
 
   const header = (
     <ScreenHeader
@@ -122,7 +144,7 @@ export function SeatMapScreen() {
     );
   }
 
-  if (!space || !rules) {
+  if (!space || !rules || checkingGroup) {
     return (
       <Screen>
         {header}

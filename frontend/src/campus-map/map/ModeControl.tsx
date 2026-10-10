@@ -1,12 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import { useMap } from 'react-leaflet';
+import { Icon } from '../../components/Icon';
 
 /** The layers button at the top right: opens the "Map view" sheet (CampusMap). */
 export function ModeControl({ onOpen }: { onOpen: () => void }) {
   const map = useMap();
   const open = useRef(onOpen);
   open.current = onOpen;
+  const [button, setButton] = useState<HTMLElement | null>(null);
   useEffect(() => {
     const control = new L.Control({ position: 'topright' });
     control.onAdd = () => {
@@ -21,10 +24,15 @@ export function ModeControl({ onOpen }: { onOpen: () => void }) {
         L.DomEvent.preventDefault(e);
         open.current();
       });
+      setButton(btn);
       return box;
     };
     control.addTo(map);
-    return () => void control.remove();
+    return () => {
+      control.remove();
+      setButton(null);
+    };
   }, [map]);
-  return null;
+  // The app's own outline icon, not Leaflet's raster one.
+  return button && createPortal(<Icon name="layers" />, button);
 }

@@ -271,6 +271,34 @@ button {
 :root[data-theme='light'] .theme-toggle .i-moon {
   display: none;
 }
+/* --- Count badge: number of waiting requests on the header bell --------- */
+/* Put it inside a 44px .icon-button with .has-badge. Always paired with an
+   aria-label that says the count, so it never relies on colour alone. */
+.has-badge {
+  position: relative;
+}
+.badge {
+  position: absolute;
+  top: 0;
+  right: calc(-1 * var(--sp-1));
+  display: grid;
+  place-items: center;
+  box-sizing: content-box;
+  min-width: calc(var(--sp-4) + var(--sp-1));
+  height: calc(var(--sp-4) + var(--sp-1));
+  padding: 0 var(--sp-1);
+  background: var(--accent);
+  border: calc(var(--stroke) * 2) solid var(--surface);
+  border-radius: var(--radius-sheet);
+  color: var(--on-accent);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+}
+.app__main > .row .badge {
+  border-color: var(--bg); /* Home's heading row sits on the page, not a header */
+}
+
 /* --- Avatar (profile picture). Initials now; an <img> inside works too. -- */
 /* Put it inside a 44px .icon-button so the tap target stays big enough. */
 .avatar {

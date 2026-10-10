@@ -61,9 +61,13 @@
       @apply cursor-default border-transparent bg-surface-2 text-text-muted;
     }
   }
-  /* Two buttons share a sheet row, so trim the side padding. */
-  .ui-sheet-actions .ui-button {
-    @apply px-2;
+  /* Two buttons share a row (decision sheet, action bar), so trim the side
+     padding and let a long label wrap instead of being cut off. */
+  .ui-button-row .ui-button {
+    @apply h-auto min-h-12 px-2 py-1;
+  }
+  .ui-button-row .ui-button-label {
+    @apply text-center whitespace-normal;
   }
   .ui-button-inner {
     @apply gap-2;
@@ -142,8 +146,10 @@
     @apply text-text-muted;
   }
 
+  /* --- Checkbox: picking people. 20px box, accent when ticked. ---------- */
   .ui-checkbox {
-    @apply border-border-strong bg-surface;
+    @apply cursor-pointer rounded-control border-border-strong bg-surface;
+
     &:checked {
       @apply border-accent bg-accent;
     }
@@ -210,6 +216,10 @@
   .ui-avatar--lg {
     @apply size-18 min-w-18;
   }
+  /* Small: overlapping stacks of people and the seat picker's member chips. */
+  .ui-avatar--sm {
+    @apply size-8 min-w-8;
+  }
   .ui-avatar-placeholder {
     @apply rounded-full border border-border-strong text-small leading-none font-bold text-text;
     background: color-mix(
@@ -220,6 +230,9 @@
   }
   .ui-avatar-placeholder--lg {
     @apply text-heading;
+  }
+  .ui-avatar-placeholder--sm {
+    @apply text-label;
   }
 
   /* --- Alert: in-page notice with a 6px stripe. info, warning, danger. ---- */
@@ -277,6 +290,43 @@
     }
     & svg {
       @apply size-6;
+    }
+  }
+
+  /* --- Notifications: stack of banners for server events, placed like an
+     urgent StatusBanner -------------------------------------------------- */
+  /* Mantine renders a container for every position; only the one we use
+     moves, so the empty others stay out of the way. */
+  .ui-notifications[data-position='top-center'] {
+    @apply top-[calc(--spacing(16)+env(safe-area-inset-top))] w-full max-w-none p-2 tablet:max-w-phone;
+  }
+  .ui-notifications-item + .ui-notifications-item {
+    @apply mt-2;
+  }
+  /* A banner with somewhere to go: its title is a link stretched over the
+     whole banner; the close button stays on top. */
+  .ui-notifications-item:has(.ui-banner-link) {
+    @apply relative;
+
+    /* Tint without losing the opaque background, as filled buttons do. */
+    &:hover {
+      @apply shadow-[inset_0_0_0_100px_var(--color-hover),var(--shadow-card)];
+    }
+    &:has(.ui-banner-link:focus-visible) {
+      @apply outline-2 outline-offset-2 outline-focus outline-solid;
+    }
+    & .ui-banner-close {
+      @apply relative z-1;
+    }
+  }
+  .ui-banner-link {
+    @apply text-inherit no-underline;
+
+    &::after {
+      @apply absolute inset-0 rounded-card content-[''];
+    }
+    &:focus-visible {
+      @apply outline-none;
     }
   }
 

@@ -9,7 +9,7 @@ import { layoutSeats } from '../src/domain/room.ts';
 import {
   describeAvailability,
   favouriteSpaces,
-  recentSpaces,
+  spacesByIds,
   filterSpaces,
   type StudySpace,
 } from '../src/domain/space.ts';
@@ -177,10 +177,10 @@ test('favourites keep their order', () => {
   );
 });
 
-test('recents list the known spaces, most recent first', () => {
+test('id lists pick the known spaces, in their order', () => {
   const spaces = [space('A', false), space('B', true), space('C', false)];
   assert.deepEqual(
-    recentSpaces(spaces, ['C', 'gone', 'A']).map((item) => item.name),
+    spacesByIds(spaces, ['C', 'gone', 'A']).map((item) => item.name),
     ['C', 'A'],
   );
 });

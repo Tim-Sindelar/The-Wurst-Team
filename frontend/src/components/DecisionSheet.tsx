@@ -93,7 +93,7 @@ export function DecisionSheet({
           <Text component="div" c="dimmed">
             {children}
           </Text>
-          <div className="ui-sheet-actions mt-2 grid grid-cols-2 gap-3">
+          <div className="ui-button-row mt-2 grid grid-cols-2 gap-3">
             <Button variant="secondary" onClick={onClose}>
               {safeLabel}
             </Button>

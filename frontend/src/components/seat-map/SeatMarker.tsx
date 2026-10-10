@@ -16,6 +16,8 @@ type SeatMarkerProps = {
   features?: string[];
   selected: boolean;
   onSelect: () => void;
+  /** Who the seat is for in a group booking: their initials replace the number. */
+  person?: { initials: string; name: string };
 };
 
 /* A seat on the map: a 44px tap target around a 32 × 36 filled seat with its
@@ -30,10 +32,11 @@ export function SeatMarker({
   features = [],
   selected,
   onSelect,
+  person,
 }: SeatMarkerProps) {
   const description = [
     `Seat ${label}`,
-    seatStateName[state].toLowerCase(),
+    ...(person ? [`for ${person.name}`] : [seatStateName[state].toLowerCase()]),
     ...features.map((feature) => feature.toLowerCase()),
     ...(selected ? ['selected'] : []),
   ].join(', ');
@@ -73,7 +76,7 @@ export function SeatMarker({
       <span
         className={`relative col-start-1 row-start-1 text-small leading-none font-bold ${state === 'occupied' ? 'text-on-seat-muted' : 'text-on-seat'}`}
       >
-        {label}
+        {person?.initials ?? label}
       </span>
       {badge && (
         <span

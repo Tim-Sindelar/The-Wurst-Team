@@ -35,8 +35,6 @@ type SeatMapProps = {
   /** The selected seat, or null when nothing is selected. */
   selected: string | null;
   onSelect: (seatId: string) => void;
-  /** Optional group selection; individual-seat screens keep their existing behavior. */
-  highlightedSeats?: string[];
   /** The empty map was tapped. */
   onDeselect?: () => void;
   /** Top-right text button: picks a free seat. Leave out to hide it. */
@@ -45,6 +43,8 @@ type SeatMapProps = {
   chooseFreeDisabled?: boolean;
   /** Height in px of the seat card covering the bottom of the map right now. */
   getCovered?: () => number;
+  /** Group booking: seats given to people, by seat id. They show initials. */
+  people?: Record<string, { initials: string; name: string }>;
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
@@ -58,7 +58,7 @@ export function SeatMap({
   onChooseFree,
   chooseFreeDisabled = false,
   getCovered,
-  highlightedSeats = [],
+  people,
 }: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -197,10 +197,9 @@ export function SeatMap({
             y={seat.y}
             angle={seat.angle}
             features={seat.badges.map((badge) => geometry.BADGES[badge])}
-            selected={
-              seat.id === selected || highlightedSeats.includes(seat.id)
-            }
+            selected={seat.id === selected}
             onSelect={() => onSelect(seat.id)}
+            person={people?.[seat.id]}
           />
         ))}
         {/* Feature badges sit on top of the seats, as in the layout editor. */}

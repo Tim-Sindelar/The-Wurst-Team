@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Book together · Study Spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../base.css">
+  <script src="../base.js"></script>
+  <!-- PROTOTYPE. Proposed components for group booking. Tokens only.
+       Once the design is approved they move to base.css + components.html. -->
+  <style>
+    /* Full screen like the single-seat map: header, search, map to the edges, action bar. */
+    .app--frame { height: 100dvh; min-height: 0; }
+    .app--frame > * { flex-shrink: 0; }
+    .app--frame > .app__actions { position: static; }
+    .booking { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .room-search { padding: var(--sp-3) var(--gutter); background: var(--bg); border-bottom: var(--stroke) solid var(--border); }
+    .booking .seat-map { flex: 1; height: auto; min-height: 0; border: 0; border-radius: 0; }
+
+    /* Search results cover the map while the search box is in use (Home's results list). */
+    .results { position: absolute; inset: calc(var(--control-h) + var(--sp-6) + var(--stroke)) 0 0; z-index: 5; display: grid; align-content: start; gap: var(--sp-2); padding: var(--sp-3) var(--gutter); overflow-y: auto; background: var(--bg); }
+    .result { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: calc(var(--tap-min) + var(--sp-4)); padding: var(--sp-3) var(--sp-4); text-align: left; color: var(--text); }
+    .result[aria-disabled='true'] { color: var(--text-muted); }
+    .result__text { flex: 1; min-width: 0; display: grid; gap: var(--sp-1); }
+    .result__name { font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
+    .result .i-check { color: var(--accent); }
+
+    /* Map overlays: room label and "Seat us together" next to the info button. */
+    /* The selected room sits in the search box's place; tapping it starts a search. */
+    .room-field { width: 100%; justify-content: flex-start; text-align: left; color: var(--text); cursor: pointer; }
+    .room-field:hover { box-shadow: inset 0 0 0 100px var(--hover); }
+    .room-field__name { flex: 1; min-width: 0; overflow: hidden; font-weight: var(--fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
+    .room-field .avail { flex: none; font-size: var(--fs-small); }
+    .room-field .i-search { color: var(--text-muted); }
+
+    /* Seats given to a member show their initials. */
+    .seat.is-assigned .seat__num { font-size: var(--fs-label); letter-spacing: 0; }
+
+    /* Floating card at the bottom of the map: who gets the next seat. */
+    .picker { position: absolute; left: var(--sp-3); right: var(--sp-3); bottom: var(--sp-3); z-index: 2; gap: var(--sp-3); padding: var(--sp-3); box-shadow: var(--shadow); }
+    .picker__now { display: flex; align-items: center; gap: var(--sp-3); }
+    .picker__now .avatar { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .picker__now.is-new .avatar { animation: pop var(--dur-base) var(--ease); }
+    @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .tray { display: flex; gap: var(--sp-2); margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; list-style: none; }
+    .tray::-webkit-scrollbar { display: none; }
+    .member {
+      display: flex; align-items: center; gap: var(--sp-2); flex: none; min-height: var(--tap-min);
+      padding: var(--sp-1) var(--sp-3) var(--sp-1) var(--sp-1);
+      background: var(--surface); border: var(--stroke) solid var(--border-strong); border-radius: var(--radius-card); color: var(--text); text-align: left;
+    }
+    .member[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 var(--stroke) var(--accent); }
+    .member__text { display: grid; line-height: var(--lh-tight); }
+    .member__name { font-weight: var(--fw-semibold); font-size: var(--fs-small); }
+    .member__seat { font-size: var(--fs-label); color: var(--text-muted); }
+    .member .avatar { width: var(--sp-8); height: var(--sp-8); font-size: var(--fs-label); }
+    .member.is-set .avatar { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .map-notice { position: absolute; left: var(--sp-3); right: var(--sp-3); bottom: var(--sp-3); z-index: 3; box-shadow: var(--shadow); }
+    .sheet-list { display: grid; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; }
+    .sheet-list li { display: flex; justify-content: space-between; gap: var(--sp-3); }
+  </style>
+</head>
+<body>
+  <div class="app app--frame">
+    <header class="app-header">
+      <a class="icon-button" href="08-friends.html#group" aria-label="Back to study group"><i class="icon i-back" aria-hidden="true"></i></a>
+      <h1 class="app-header__title">Book together</h1>
+      <a class="icon-button has-badge" href="08-friends.html#requests" aria-label="Requests, 2 waiting"><i class="icon i-bell" aria-hidden="true"></i><span class="badge" aria-hidden="true">2</span></a>
+      <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light theme"><i class="icon i-sun" aria-hidden="true"></i><i class="icon i-moon" aria-hidden="true"></i></button>
+    </header>
+
+    <main class="booking">
+      <div class="room-search">
+        <button class="search room-field" type="button" id="room-btn" aria-label="Room: HG E 41, 17 free. Change room">
+          <i class="icon i-pin" aria-hidden="true"></i>
+          <span class="room-field__name" id="room-name">HG E 41</span>
+          <span class="avail avail--high" id="room-free">17 free</span>
+          <i class="icon i-search" aria-hidden="true"></i>
+        </button>
+        <label class="search" id="room-input" hidden>
+          <i class="icon i-search" aria-hidden="true"></i>
+          <span class="sr-only">Search study spaces</span>
+          <input type="search" id="q" placeholder="Search study spaces" autocomplete="off" aria-controls="results" aria-expanded="false">
+        </label>
+      </div>
+      <div class="results" id="results" hidden></div>
+
+      <div class="seat-map" data-seat-map data-room="HG E 41" tabindex="0" role="region" aria-label="Room map. Tap a free seat to give it to the person shown below.">
+        <div class="seat-map__world">
+          <svg class="seat-map__geometry" viewBox="0 0 640 760" aria-hidden="true" focusable="false">
+            <path class="floor-plan__room-fill" d="M28 28H612V450H510V732H28Z"/>
+            <path class="floor-plan__wall" d="M260 732H28V28H612V450H510V732H330"/>
+            <path class="floor-plan__window" d="M82 28H236M342 28H486M612 208V392"/>
+            <path class="floor-plan__door" d="M260 732V662M260 662A70 70 0 0 1 330 732"/>
+            <rect class="seat-map__table" x="96" y="122" width="128" height="36" rx="5"/><text class="seat-map__label" x="160" y="144">A</text>
+            <rect class="seat-map__table" x="372" y="122" width="128" height="36" rx="5"/><text class="seat-map__label" x="436" y="144">B</text>
+            <rect class="seat-map__table" x="96" y="282" width="128" height="36" rx="5"/><text class="seat-map__label" x="160" y="304">C</text>
+            <rect class="seat-map__table" x="372" y="282" width="128" height="36" rx="5"/><text class="seat-map__label" x="436" y="304">D</text>
+            <rect class="seat-map__table" x="96" y="442" width="128" height="36" rx="5"/><text class="seat-map__label" x="160" y="464">E</text>
+            <rect class="seat-map__table" x="372" y="442" width="128" height="36" rx="5"/><text class="seat-map__label" x="436" y="464">F</text>
+            <rect class="seat-map__table" x="96" y="602" width="128" height="36" rx="5"/><text class="seat-map__label" x="160" y="624">G</text>
+            <rect class="seat-map__table" x="372" y="602" width="128" height="36" rx="5"/><text class="seat-map__label" x="436" y="624">H</text>
+            <rect class="seat-map__table" x="580" y="198" width="18" height="192" rx="5"/>
+          </svg>
+          <!-- Seats are generated by the script below. -->
+        </div>
+        <details class="seat-map__info" data-map-info>
+          <summary class="icon-button" aria-label="Seat colour information"><i class="icon i-info" aria-hidden="true"></i></summary>
+          <div class="seat-map__info-panel">
+            <h3 class="t-label">Seat colours</h3>
+            <ul class="stack stack--tight">
+              <li class="seat-map__key-row"><span class="seat-map__key-colour is-free" aria-hidden="true"></span>Free</li>
+              <li class="seat-map__key-row"><span class="seat-map__key-colour is-yours" aria-hidden="true"></span>Your group (initials)</li>
+              <li class="seat-map__key-row"><span class="seat-map__key-colour is-reserved" aria-hidden="true"></span>Reserved</li>
+              <li class="seat-map__key-row"><span class="seat-map__key-colour is-occupied" aria-hidden="true"></span>Occupied</li>
+              <li class="seat-map__key-row"><span class="seat-map__key-colour is-break" aria-hidden="true"></span>On break</li>
+              <li class="seat-map__key-row"><span class="seat-map__key-colour is-bookable" aria-hidden="true"></span>Occupied, bookable</li>
+            </ul>
+          </div>
+        </details>
+        <div class="seat-map__controls" aria-label="Map controls">
+          <button class="icon-button" type="button" data-map-zoom="in" aria-label="Zoom in"><i class="icon i-plus" aria-hidden="true"></i></button>
+          <button class="icon-button seat-map__minus" type="button" data-map-zoom="out" aria-label="Zoom out"><i class="icon i-plus" aria-hidden="true"></i></button>
+          <button class="icon-button" type="button" data-map-fit aria-label="Fit whole room"><i class="icon i-fit-room" aria-hidden="true"></i></button>
+        </div>
+
+        <section class="card picker" aria-label="Seat assignments" id="picker">
+          <div class="row">
+            <div class="picker__now grow" id="now" aria-live="polite"></div>
+            <button class="btn btn--secondary" style="min-height:var(--tap-min);padding:0 var(--sp-3)" type="button" id="together"><i class="icon icon--sm i-friends" aria-hidden="true"></i>Seat us together</button>
+          </div>
+          <ul class="tray" id="tray"></ul>
+        </section>
+
+        <div class="notice notice--danger map-notice" role="alert" id="taken" hidden>
+          <i class="icon i-alert" aria-hidden="true"></i>
+          <div class="notice__text">
+            <span class="notice__title">Seat 16 was just taken</span>
+            <div class="notice__actions"><button class="btn btn--secondary" type="button" id="taken-fix">Choose another seat</button></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="app__actions">
+      <button class="btn btn--primary btn--block" type="button" id="reserve" disabled>Reserve 3 seats</button>
+    </div>
+  </div>
+
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+    <div class="sheet__grab"></div>
+    <button class="icon-button sheet__close" type="button" data-sheet-close aria-label="Close"><i class="icon i-close" aria-hidden="true"></i></button>
+    <form class="sheet__body" method="dialog">
+      <h2 class="t-title" id="sheet-title">Reserve 3 seats in HG E 41?</h2>
+      <ul class="sheet-list" id="sheet-list"></ul>
+      <p class="t-muted">Everyone checks in within 15 minutes.</p>
+      <div class="sheet__actions">
+        <button class="btn btn--secondary" value="cancel">Keep choosing</button>
+        <button class="btn btn--primary" value="ok">Reserve 3 seats</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+  (() => {
+    const SEATS = [
+      [1,132,92],[2,188,92],[3,132,188],[4,188,188],[5,408,92],[6,464,92],[7,408,188],[8,464,188],
+      [9,132,252],[10,188,252],[11,132,348],[12,188,348],[13,408,252],[14,464,252],[15,408,348],[16,464,348],
+      [17,132,412],[18,188,412],[19,132,508],[20,188,508],[21,408,412],[22,464,412],[23,408,508],[24,464,508],
+      [25,132,572],[26,188,572],[27,132,668],[28,188,668],[29,408,572],[30,464,572],[31,408,668],[32,464,668],
+      [33,548,224],[34,548,284],[35,548,344],
+    ];
+    const BASE = { 2:'occupied',7:'occupied',13:'occupied',20:'occupied',27:'occupied',32:'occupied',
+      3:'reserved',10:'reserved',15:'reserved',19:'reserved',24:'reserved',29:'reserved',34:'reserved',
+      5:'break',11:'break',25:'break',8:'bookable',22:'bookable' };
+    const ROOMS = [
+      { name: 'HG E 41', free: null },
+      { name: 'CAB G 61', free: [1, 4, 6, 25, 26, 28, 33] },
+      { name: 'CAB E 11', free: [9, 12, 14, 16, 21, 23, 30, 31] },
+      { name: 'ML J 34.1 · Mechanical Engineering Library', free: [9, 30] },
+      { name: 'HG D 16.2', closed: true, free: [] },
+      { name: 'ETZ E 9', free: [] },
+    ];
+    const MEMBERS = [
+      { id: 'you', name: 'You', ini: 'AM' },
+      { id: 'mia', name: 'Mia', ini: 'MS' },
+      { id: 'theo', name: 'Theo', ini: 'TB' },
+    ];
+    const NAMES = { free: 'free', reserved: 'reserved', occupied: 'occupied', break: 'on break', bookable: 'occupied, bookable later' };
+    const stateIn = (room, n) => room.free ? (room.free.includes(n) ? 'free' : (BASE[n] || 'occupied')) : (BASE[n] || 'free');
+    const freeCount = (room) => SEATS.filter(([n]) => stateIn(room, n) === 'free').length;
+    const fits = (room) => !room.closed && freeCount(room) >= MEMBERS.length;
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+    const world = document.querySelector('.seat-map__world');
+    const map = document.querySelector('[data-seat-map]');
+    world.insertAdjacentHTML('beforeend', SEATS.map(([n, x, y]) =>
+      `<button class="seat" type="button" data-seat-number="${n}" data-seat-state="free" data-x="${x}" data-y="${y}" aria-pressed="false"><span class="seat__body"><span class="seat__num">${String(n).padStart(2, '0')}</span></span></button>`).join(''));
+    const seatEls = [...world.querySelectorAll('.seat')];
+
+    let room = ROOMS[0];
+    let assign = {};      // member id -> seat number
+    let active = 'you';
+    let hint = '';
+    let lastActive = null;
+    const $ = (id) => document.getElementById(id);
+    const owner = (n) => Object.keys(assign).find((m) => assign[m] === n);
+    const member = (id) => MEMBERS.find((m) => m.id === id);
+    const complete = () => MEMBERS.every((m) => assign[m.id]);
+    const who = (id) => id === 'you' ? 'you' : member(id).name;
+
+    function renderSeats() {
+      seatEls.forEach((el) => {
+        const n = Number(el.dataset.seatNumber);
+        const st = stateIn(room, n);
+        const o = owner(n);
+        el.dataset.seatState = st;
+        el.className = `seat ${o ? 'is-yours is-assigned' : `is-${st}`}`;
+        el.setAttribute('aria-pressed', String(!!o));
+        el.querySelector('.seat__num').textContent = o ? member(o).ini : String(n).padStart(2, '0');
+        el.querySelector('.seat__badge')?.remove();
+        if (!o && (st === 'break' || st === 'bookable')) el.insertAdjacentHTML('beforeend', `<span class="seat__badge" aria-hidden="true"><i class="icon icon--sm i-${st === 'break' ? 'coffee' : 'clock'}"></i></span>`);
+        el.setAttribute('aria-label', `Seat ${n}, ${o ? `for ${who(o)}` : NAMES[st]}`);
+      });
+      const free = freeCount(room);
+      $('room-name').textContent = room.name;
+      $('room-free').textContent = `${free} free`;
+      $('room-free').className = `avail avail--${free < 8 ? 'mid' : 'high'}`;
+      $('room-btn').setAttribute('aria-label', `Room: ${room.name}, ${free} free. Change room`);
+    }
+    function renderPicker() {
+      const done = complete();
+      const now = $('now');
+      now.innerHTML = done
+        ? `<span class="avatar" aria-hidden="true"><i class="icon icon--sm i-check"></i></span><span class="t-title">Everyone has a seat</span>`
+        : `<span class="avatar" aria-hidden="true">${member(active).ini}</span><span class="grow" style="display:grid"><span class="t-small t-muted">${hint || 'Tap a free seat for'}</span><span class="t-title">${active === 'you' ? 'You' : member(active).name}</span></span>`;
+      if (!done && lastActive !== active) { now.classList.remove('is-new'); void now.offsetWidth; now.classList.add('is-new'); }
+      lastActive = done ? null : active;
+      $('tray').innerHTML = MEMBERS.map((m) => {
+        const seat = assign[m.id];
+        return `<li><button class="member ${seat ? 'is-set' : ''}" type="button" data-member="${m.id}" aria-pressed="${!done && m.id === active}" aria-label="${m.name}${seat ? `, seat ${seat}` : ', no seat yet'}">
+          <span class="avatar" aria-hidden="true">${m.ini}</span>
+          <span class="member__text"><span class="member__name">${m.name}</span>${seat ? `<span class="member__seat">Seat ${seat}</span>` : ''}</span></button></li>`;
+      }).join('');
+      $('tray').querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const left = MEMBERS.filter((m) => !assign[m.id]).length;
+      $('reserve').disabled = !done;
+      $('reserve').textContent = done ? `Reserve ${MEMBERS.length} seats` : `Pick ${left} more seat${left > 1 ? 's' : ''}`;
+    }
+    const render = () => { renderSeats(); renderPicker(); };
+
+    function tapSeat(n) {
+      const st = stateIn(room, n);
+      const o = owner(n);
+      hint = '';
+      if (o && o === active) delete assign[o];          // tap your own pick again to clear it
+      else if (o) active = o;                             // tap someone's seat to change theirs
+      else if (st !== 'free') hint = `Seat ${n} is ${NAMES[st]}. Pick a free seat for`;
+      else {
+        assign[active] = n;
+        /* Move straight on to the next person without a seat. */
+        const order = MEMBERS.map((m) => m.id);
+        const from = order.indexOf(active);
+        const next = [...order.slice(from + 1), ...order.slice(0, from)].find((id) => !assign[id]);
+        if (next) active = next;
+      }
+      $('taken').hidden = true;
+      render();
+    }
+
+    /* base.js captures the pointer on the map, so a tap's click lands on the map,
+       not the seat. Track the seat under the finger and treat a short, still press as a tap. */
+    let press = null;
+    map.addEventListener('pointerdown', (e) => {
+      const seat = e.target.closest('.seat');
+      press = seat ? { seat, x: e.clientX, y: e.clientY } : null;
+    });
+    map.addEventListener('pointerup', (e) => {
+      if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 8) {
+        const n = Number(press.seat.dataset.seatNumber);
+        setTimeout(() => tapSeat(n));
+      }
+      press = null;
+    });
+    /* Keyboard (Enter/Space on a focused seat). */
+    world.addEventListener('click', (e) => {
+      const seat = e.target.closest('.seat');
+      if (seat && e.detail === 0) setTimeout(() => tapSeat(Number(seat.dataset.seatNumber)));
+    });
+
+    function together() {
+      const free = SEATS.filter(([n]) => stateIn(room, n) === 'free');
+      const table = (n) => { const [, x, y] = SEATS[n - 1]; return x > 520 ? 'window' : `${x < 300 ? 'L' : 'R'}${Math.floor((y - 60) / 160)}`; };
+      let best = null;
+      free.forEach(([a, ax, ay]) => {
+        const near = free.map(([n, x, y]) => [n, Math.hypot(x - ax, y - ay) + (table(n) === table(a) ? 0 : 1000)]).sort((p, q) => p[1] - q[1]).slice(0, MEMBERS.length);
+        const cost = near.reduce((s, [, d]) => s + d, 0);
+        if (near.length === MEMBERS.length && (!best || cost < best.cost)) best = { cost, seats: near.map(([n]) => n).sort((p, q) => p - q) };
+      });
+      if (!best) { hint = 'Not enough free seats. Pick a seat for'; renderPicker(); return; }
+      assign = Object.fromEntries(MEMBERS.map((m, i) => [m.id, best.seats[i]]));
+      hint = '';
+      $('taken').hidden = true;
+      render();
+      map.querySelector('[data-map-fit]').click();
+    }
+
+    /* Room search: Home's search box, results cover the map while it's in use. */
+    function renderResults() {
+      const q = $('q').value.trim().toLowerCase();
+      const list = ROOMS.filter((r) => !q || r.name.toLowerCase().includes(q))
+        .sort((a, b) => (fits(b) - fits(a)) || (freeCount(b) - freeCount(a)));
+      $('results').innerHTML = list.length ? list.map((r) => {
+        const free = freeCount(r);
+        const level = !fits(r) ? 'none' : free < 8 ? 'mid' : 'high';
+        const words = r.closed ? 'Closed' : fits(r) ? `${free} free` : `${free} free · too small`;
+        return `<button class="card result" type="button" data-room="${ROOMS.indexOf(r)}" ${fits(r) ? '' : 'aria-disabled="true"'}>
+          <span class="result__text"><span class="result__name">${esc(r.name)}</span><span class="avail avail--${level} t-small">${words}</span></span>
+          ${r === room ? '<i class="icon i-check" role="img" aria-label="Selected"></i>' : ''}</button>`;
+      }).join('') : '<p class="t-muted">No study spaces match.</p>';
+    }
+    const openResults = (open) => {
+      $('results').hidden = !open;
+      $('room-btn').hidden = open;
+      $('room-input').hidden = !open;
+      $('q').setAttribute('aria-expanded', String(open));
+      if (open) renderResults(); else $('q').value = '';
+    };
+    $('room-btn').addEventListener('click', () => { openResults(true); $('q').focus(); });
+    $('q').addEventListener('focus', () => openResults(true));
+    $('q').addEventListener('input', () => openResults(true));
+    $('q').addEventListener('keydown', (e) => { if (e.key === 'Escape') { openResults(false); $('room-btn').focus(); } });
+    document.addEventListener('pointerdown', (e) => {
+      if (!$('results').hidden && !e.target.closest('#results, .room-search')) openResults(false);
+    });
+    $('results').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-room]');
+      if (!b || b.getAttribute('aria-disabled') === 'true') return;
+      const r = ROOMS[Number(b.dataset.room)];
+      if (r !== room) { room = r; assign = {}; active = 'you'; hint = ''; }
+      map.dataset.room = r.name;
+      $('sheet-title').textContent = `Reserve 3 seats in ${r.name}?`;
+      $('q').value = '';
+      openResults(false);
+      render();
+      map.querySelector('[data-map-fit]').click();
+    });
+
+    $('tray').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-member]');
+      if (!b) return;
+      active = b.dataset.member; hint = '';
+      if (complete()) delete assign[active];   // when everyone is seated, tapping a person re-picks theirs
+      render();
+    });
+    $('together').addEventListener('click', together);
+    $('reserve').addEventListener('click', () => {
+      $('sheet-list').innerHTML = MEMBERS.map((m) => `<li><span>${m.name}</span><strong>Seat ${assign[m.id]}</strong></li>`).join('');
+      $('sheet').showModal();
+    });
+    $('sheet').querySelector('form').addEventListener('submit', (e) => {
+      if (e.submitter?.value !== 'ok') return;
+      /* ?error=1 shows the "seat just taken" state instead of succeeding. */
+      if (new URLSearchParams(location.search).get('error') === '1' && assign.mia) {
+        $('taken').querySelector('.notice__title').textContent = `Seat ${assign.mia} was just taken`;
+        delete assign.mia; active = 'mia';
+        setTimeout(() => { render(); $('taken').hidden = false; });
+        return;
+      }
+      location.href = '08-friends.html?scenario=booked#group';
+    });
+    $('taken-fix').addEventListener('click', () => { $('taken').hidden = true; });
+
+    render();
+    /* base.js selects a seat when it sets up the map; restore our state after it. */
+    document.addEventListener('DOMContentLoaded', () => setTimeout(render));
+  })();
+  </script>
+</body>
+</html>
