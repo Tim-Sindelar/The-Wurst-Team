@@ -1,8 +1,8 @@
 # Friends and party booking backend
 
 Social features are optional and disabled by default. This implementation does not change the
-existing frontend screens or mocked booking state. The generated frontend API client includes
-the new endpoints; UI integration is the next milestone. A separate development-only
+existing live individual-booking flow. The generated frontend API client includes
+the new endpoints; social UI integration is the next milestone. A separate locally enabled and PR-preview-enabled
 [frontend draft](../design/social-draft.md) now previews the flow with isolated sample data.
 
 ## Enable locally
@@ -120,6 +120,10 @@ locking helper, Alembic's revision graph, and generated API files. The social an
 heads are joined by `b7e2f91a4c60`, so databases on either feature branch can upgrade without
 rewriting applied revisions. Join any future competing heads with a merge revision. Regenerate
 the client from the merged backend using `make generate`.
+The latest merge `d9f607c2a184` joins that head with favourites and study-space room links.
+Main's room-link migration requires empty study-space tables if room links have not yet been
+applied; it refuses to discard existing rooms. Resolve room mapping before upgrading a populated
+older database. Migration tests cover the earlier social/map heads and all three newer heads.
 
 ## Verification
 

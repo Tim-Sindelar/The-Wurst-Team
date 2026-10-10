@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { cx } from './cx';
 import { Icon } from './Icon';
 import { ThemeToggle } from './ThemeToggle';
+import { socialDemoEnabled } from '../features';
 
 /* The phone column every screen sits in: 390px wide, centred on desktop,
    full height, with the action bar pinned to the bottom. */
@@ -19,7 +20,7 @@ export function Screen({
     <div
       className={cx(
         'relative mx-auto flex w-full max-w-phone flex-col border-x border-border bg-bg',
-        import.meta.env.DEV ? 'min-h-full' : 'min-h-dvh',
+        socialDemoEnabled ? 'min-h-full' : 'min-h-dvh',
         className,
       )}
     >

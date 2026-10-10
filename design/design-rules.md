@@ -134,7 +134,7 @@ Used to tell the user something happened. No decision needed (at most one action
 - The extension phases on the session screen are a banner in the page, not a popup.
 
 ## Navigation (mock behaviour)
-- Development trial: Home / Map / Friends bottom navigation sits outside the scrolling viewport. Page action bars sit above it, and the map fills the remaining viewport. Selected destinations have a label, icon, and top border indicator. The Friends hub has privacy first, then Study parties, Stalk my friends (only shared rooms), and Manage friends. No Friends/Parties toggle.
+- Demo trial (local and PR previews): Home / Map / Friends bottom navigation sits outside the scrolling viewport. Page action bars sit above it, and the map fills the remaining viewport. Selected destinations have a label, icon, and top border indicator. The Friends hub has privacy first, then Study parties, Stalk my friends (only shared rooms), and Manage friends. No Friends/Parties toggle.
 - Moving between screens is a styled `<a href>`. Relative paths so the files open from disk.
 - Flow: Home → Seat arrangement → (Reserve sheet) → Reservation → QR scan → Session → Home.
   - Every card on Home opens the seat map (it is always HG E 41 in the mock).

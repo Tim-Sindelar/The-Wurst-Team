@@ -93,6 +93,14 @@ The URL uses the same managed login as production; it works without another doma
 
 Pushing new commits updates the preview and its existing comment. Its database persists across updates and stays separate from production and other PRs. The frontend builds with the PR base path, so assets, React Router navigation, and generated API calls stay under `/pr/<number>/`. Mock booking local-storage keys also have a PR prefix. Profile photos are returned as embedded data URLs, so they also work under the preview path.
 
+PR builds set `VITE_SOCIAL_DEMO_ENABLED=true` and pass `SOCIAL_DEMO_ENABLED=true` to the frontend
+Docker build. This includes the Home / Map / Friends navigation and isolated social draft at
+`/pr/<number>/social-draft`; its sample parties persist only in that preview's browser storage.
+It does not enable the social backend or create live bookings. Normal production builds leave
+the demo disabled. This is a build-time flag: changing a running container's environment cannot
+change an already compiled frontend. The integration test checks that the preview bundle contains
+the social navigation and the production bundle excludes it.
+
 Each preview deployment seeds two demo study spaces with four seats each, open all day every day. The seed is idempotent: updates preserve existing rooms, seats, QR tokens, and bookings. Production deployments do not run this seed.
 
 Closing or merging the PR removes its route, containers, private networks, PostgreSQL volume, releases, and backups, then marks the comment as removed. This intentionally deletes that preview’s data. Production, other previews, and the shared `/ar/` router remain running. The workflow checks that a PR is still open and at the expected commit before deploying, so a run delayed by checks cannot recreate an already closed preview.

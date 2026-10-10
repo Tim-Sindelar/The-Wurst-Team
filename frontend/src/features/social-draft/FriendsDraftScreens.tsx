@@ -10,7 +10,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useHref, useSearchParams } from 'react-router';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
 import { SectionLabel } from '../../components/SectionLabel';
@@ -314,13 +314,11 @@ export function AddFriendDraftScreen() {
 
 function AddFriendPreview({ inviteCode }: { inviteCode: string | null }) {
   const { state, dispatch } = useSocialDraft();
-  const ownLink = `${window.location.origin}${draftPaths.add}?invite=you`;
+  const addPath = useHref(draftPaths.add);
+  const ownLink = `${window.location.origin}${addPath}?invite=you`;
+  const sampleLink = `${window.location.origin}${addPath}?invite=sam`;
   const [invite, setInvite] = useState(() =>
-    inviteCode === 'sam'
-      ? `${window.location.origin}${draftPaths.add}?invite=sam`
-      : inviteCode === 'you'
-        ? ownLink
-        : '',
+    inviteCode === 'sam' ? sampleLink : inviteCode === 'you' ? ownLink : '',
   );
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -337,7 +335,7 @@ function AddFriendPreview({ inviteCode }: { inviteCode: string | null }) {
       }
       if (
         url.origin !== window.location.origin ||
-        url.pathname !== draftPaths.add ||
+        url.pathname !== addPath ||
         url.searchParams.get('invite') !== 'sam'
       ) {
         setError(
@@ -422,13 +420,9 @@ function AddFriendPreview({ inviteCode }: { inviteCode: string | null }) {
             setError('');
           }}
         />
-        {invite === `${window.location.origin}${draftPaths.add}?invite=sam` &&
-          !error && (
-            <PersonRow
-              person={sampleInvite}
-              detail="Send a request to connect"
-            />
-          )}
+        {invite === sampleLink && !error && (
+          <PersonRow person={sampleInvite} detail="Send a request to connect" />
+        )}
         <Text size="sm" c="dimmed">
           Opening a link doesn’t add anyone automatically.
         </Text>

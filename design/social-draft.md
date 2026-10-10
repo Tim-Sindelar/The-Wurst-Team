@@ -1,8 +1,8 @@
 # Social frontend draft
 
-This is a working design preview, available only in Vite development mode at
-`http://127.0.0.1:5173/social-draft`. It uses isolated sample data and does not call the social
-backend or modify the existing mock booking state. Navigation and sample mutations work so the
+This is a working design preview, available locally at `http://127.0.0.1:5173/social-draft`
+and in CI-deployed PR previews under `/pr/<number>/social-draft`. It uses isolated sample data
+and does not call the social backend or modify live individual bookings. Navigation and sample mutations work so the
 team can refine the experience before API integration.
 
 `design-rules.md` continues to govern typography, spacing, themes, touch targets, and popups.
@@ -31,7 +31,7 @@ colours appear only on seats and seat summaries. Non-seat membership states use 
 Destructive decisions use the existing danger decision sheet, and confirmations use the existing
 notification banner. Both colour schemes are supported through existing theme tokens.
 
-The development app trials persistent **Home / Map / Friends** bottom navigation, outside the
+The demo trials persistent **Home / Map / Friends** bottom navigation, outside the
 scrolling viewport. Page actions sit above it, and the campus map fills the remaining viewport.
 Friends is a short hub: privacy first, then Study parties and Stalk my friends under Study together,
 and Manage friends under Friendships. Requests and removal live only in Manage friends; shared
@@ -77,7 +77,8 @@ and (on party detail/reservation) a perspective selector. These controls are not
    cancel/end only their own seat. Open Stalk my friends to see only friends' shared study rooms.
 8. **Reset preview** restores the sample data, clears screen-local form state, and returns to Friends.
    Friends, requests, privacy, and parties persist in an isolated localStorage entry. Reloading
-   starts with the organizer perspective. If browser storage is blocked, data lasts for the current
+   starts with your own perspective. PR previews have separate storage keys, and friend links
+   include the preview base path. If browser storage is blocked, data lasts for the current
    social visit only. No real backend state is changed.
 
 The seat picker's Preview tools link to `?error=1` to simulate availability changing at confirmation.
@@ -98,7 +99,7 @@ and markup; live visual review remains unavailable while computer use is not wor
 - Refine room browsing and the member waiting state.
 - Replace preview view models and reducer actions with the generated social API helpers, preserving
   explicit friendship acceptance and party-booking consent.
-- Use backend capability gating for real routes. The preview's development-only gate is separate
+- Use backend capability gating for real routes. The preview's `VITE_SOCIAL_DEMO_ENABLED` gate is separate
   from `SOCIAL_ENABLED`; it must not become a production bypass.
 - Replace sample seat numbers and layout with backend IDs and the team's room-layout contract.
 - Use real reservation state and QR check-in; keep each member's booking and session individually owned.
@@ -109,4 +110,8 @@ and markup; live visual review remains unavailable while computer use is not wor
 Shared changes are `AppLayout` and `BottomNavigation` for the development navigation trial,
 in-page routine `StatusBanner` confirmations, shared icons/theme styles, and the optional
 `SeatMap.highlightedSeats` prop. Individual seat screens omit highlights. The social draft code
-lives under `frontend/src/features/social-draft/`; `App.tsx` registers its lazy routes in development.
+lives under `frontend/src/features/social-draft/`; `App.tsx` registers its lazy routes when the demo
+flag is enabled. Local development defaults on; CI enables the flag for PR builds and leaves it
+off in normal production. Docker exposes `SOCIAL_DEMO_ENABLED` as a build argument.
+The deployed bundle check verifies navigation is included only in preview images. DOM checks also
+cover production mode with the flag enabled, prefixed links/storage, and four-seat manual booking.

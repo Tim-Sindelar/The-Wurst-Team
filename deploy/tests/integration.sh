@@ -62,6 +62,22 @@ save_name() {
   curl --fail --silent --show-error --max-time 10 -X PATCH \
     -H 'X-User-Id: persistence-test@example.invalid' -F "name=$2" "$1/api/v1/me" >/dev/null
 }
+check_social_demo() {
+  local entry=$1 enabled=$2
+  local asset
+  asset=$(curl --fail --silent --show-error --max-time 10 "$entry/" |
+    python3 -c 'import re,sys; print(re.search(r"<script[^>]+src=\"([^\"]+)\"", sys.stdin.read())[1])')
+  curl --fail --silent --show-error --max-time 10 "$url$asset" > "$scratch/social-bundle.js"
+  if [[ "$enabled" == true ]]; then
+    grep -Fq 'Main navigation' "$scratch/social-bundle.js"
+    grep -Fq 'social-draft' "$scratch/social-bundle.js"
+  else
+    if grep -Fq 'Main navigation' "$scratch/social-bundle.js"; then
+      echo 'The social navigation demo was unexpectedly enabled in production.' >&2
+      return 1
+    fi
+  fi
+}
 check_spaces() {
   curl --fail --silent --show-error --max-time 10 \
     -H 'X-User-Id: persistence-test@example.invalid' "$1/api/v1/spaces" |
@@ -78,7 +94,7 @@ for space in spaces:
 # Test both frontend prefixes regardless of whether CI is a push or PR run.
 if [[ "$base" == / ]]; then
   docker tag "wurst-web:$sha" "wurst-web:$prod_sha"
-  docker build --build-arg "APP_BASE_PATH=/pr/$pr/" -f frontend/Dockerfile -t "wurst-web:$pr_sha" .
+  docker build --build-arg "APP_BASE_PATH=/pr/$pr/" --build-arg SOCIAL_DEMO_ENABLED=true -f frontend/Dockerfile -t "wurst-web:$pr_sha" .
 else
   docker tag "wurst-web:$sha" "wurst-web:$pr_sha"
   docker build --build-arg APP_BASE_PATH=/ -f frontend/Dockerfile -t "wurst-web:$prod_sha" .
@@ -128,6 +144,8 @@ bash "$preview/deploy.sh" "$pr_sha" "$pr"
 [[ "$(readlink -f "$scratch/previews/pr-$pr/current")" == "$preview" ]]
 check_spaces "$url/pr/$pr" 2
 check_spaces "$url" 0
+check_social_demo "$url/pr/$pr" true
+check_social_demo "$url" false
 save_name "$url/pr/$pr" 'Isolated preview profile'
 check_name "$url/pr/$pr" 'Isolated preview profile'
 check_name "$url" 'Persists across releases'

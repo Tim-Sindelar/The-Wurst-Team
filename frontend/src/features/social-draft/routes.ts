@@ -1,7 +1,7 @@
 import type { RouteObject } from 'react-router';
 import { draftPaths } from './draft';
 
-/** Development preview only. All screen modules load lazily and stay out of production. */
+/** Isolated preview. Screens load lazily only when the demo build flag is enabled. */
 export const socialDraftRoutes: RouteObject[] = [
   {
     path: draftPaths.friends,

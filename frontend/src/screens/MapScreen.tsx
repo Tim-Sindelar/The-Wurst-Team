@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { socialDemoEnabled } from '../features';
 
 /* Leaflet and MapLibre are big, so the map loads only when this screen opens. */
 const CampusMap = lazy(() =>
@@ -9,7 +10,7 @@ export function MapScreen() {
   return (
     <Suspense
       fallback={
-        <div className={import.meta.env.DEV ? 'h-full bg-bg' : 'h-dvh bg-bg'} />
+        <div className={socialDemoEnabled ? 'h-full bg-bg' : 'h-dvh bg-bg'} />
       }
     >
       <CampusMap />

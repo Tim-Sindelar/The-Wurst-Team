@@ -139,14 +139,16 @@ The `reservation_states` database view derives availability from the clock, incl
 The social backend supports friend invite links and requests, accepted party membership,
 manual same-room seat assignments, atomic booking for all accepted members, and optional
 friend room sharing. It defaults to disabled (`SOCIAL_ENABLED=false`); enabling it does
-not replace the frontend's existing mocked booking flow. See [the social backend contract](docs/social-backend.md)
+not replace the frontend's live individual-booking flow. See [the social backend contract](docs/social-backend.md)
 for setup, endpoints, consent rules, and the frontend integration boundary.
 
-A separate development-only frontend draft is at `http://127.0.0.1:5173/social-draft`.
-Open it through **Friends** in the development Home / Map / Friends bottom navigation. Its hub
+A separate frontend draft is at `http://127.0.0.1:5173/social-draft` and in CI-deployed PR previews.
+Open it through **Friends** in the Home / Map / Friends bottom navigation. Its hub
 separates parties, shared friend rooms and friend management. It uses sample data, saves multiple parties
 and privacy preferences locally, supports switching party perspectives, and leaves ordinary bookings alone.
-See [the draft walkthrough](design/social-draft.md). It is not registered in production builds.
+See [the draft walkthrough](design/social-draft.md). `VITE_SOCIAL_DEMO_ENABLED=true` includes the draft
+in a build; CI enables it for PRs and disables it for regular production. Docker accepts the build
+argument `SOCIAL_DEMO_ENABLED=true`. Local development defaults on when the flag is omitted.
 
 ## Admin API demo
 

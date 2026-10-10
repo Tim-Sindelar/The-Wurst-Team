@@ -19,8 +19,10 @@ import {
 import { useSocialDraft } from './useSocialDraft';
 
 export function SocialDraftLayout() {
-  const [state, dispatch] = useReducer(draftReducer, undefined, loadDraftState);
-  useEffect(() => saveDraftState(state), [state]);
+  const [state, dispatch] = useReducer(draftReducer, undefined, () =>
+    loadDraftState(import.meta.env.BASE_URL),
+  );
+  useEffect(() => saveDraftState(state, import.meta.env.BASE_URL), [state]);
   return (
     <SocialDraftContext value={{ state, dispatch }}>
       <DraftContent key={state.revision} />

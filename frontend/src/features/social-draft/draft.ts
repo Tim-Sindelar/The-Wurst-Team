@@ -289,6 +289,10 @@ export function draftReducer(
 
 export const draftStorageKey = 'study-spaces:social-draft:v2';
 
+export function socialDraftStorageKey(basePath: string) {
+  return basePath === '/' ? draftStorageKey : `${basePath}${draftStorageKey}`;
+}
+
 /** Upgrade the previous one-party demo once, preserving custom parties and reservations. */
 function seedDemoParties(state: DraftState): DraftState {
   if (state.demoSeedVersion === 1) return state;
@@ -370,18 +374,20 @@ export function restoreDraftState(saved: string | null): DraftState {
   }
 }
 
-export function loadDraftState(): DraftState {
+export function loadDraftState(basePath = '/'): DraftState {
   try {
-    return restoreDraftState(localStorage.getItem(draftStorageKey));
+    return restoreDraftState(
+      localStorage.getItem(socialDraftStorageKey(basePath)),
+    );
   } catch {
     return initialDraftState();
   }
 }
 
-export function saveDraftState(state: DraftState) {
+export function saveDraftState(state: DraftState, basePath = '/') {
   try {
     localStorage.setItem(
-      draftStorageKey,
+      socialDraftStorageKey(basePath),
       JSON.stringify({ ...state, viewer: 'you' }),
     );
   } catch {

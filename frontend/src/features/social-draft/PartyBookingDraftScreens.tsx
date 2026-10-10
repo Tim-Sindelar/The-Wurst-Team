@@ -102,12 +102,14 @@ export function PartySeatsDraftScreen() {
             {active === state.viewer ? 'yourself' : person?.name}. Choose seats
             close to each other.
           </Text>
-          <SeatMap
-            seats={roomSeats}
-            selected={String(assignments[active] ?? '')}
-            highlightedSeats={picked.map(String)}
-            onSelect={(id) => choose(Number(id))}
-          />
+          <div className="h-105 shrink-0">
+            <SeatMap
+              seats={roomSeats}
+              selected={String(assignments[active] ?? '')}
+              highlightedSeats={picked.map(String)}
+              onSelect={(id) => choose(Number(id))}
+            />
+          </div>
           {error && (
             <Alert
               variant="danger"

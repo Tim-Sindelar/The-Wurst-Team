@@ -6,7 +6,38 @@ import {
   initialDraftState,
   partyPath,
   restoreDraftState,
+  loadDraftState,
+  saveDraftState,
 } from '../src/features/social-draft/draft.ts';
+
+test('separate PR previews and local development keep separate saved demos', () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const storage = new Map();
+  const mockStorage = {
+    getItem: (key) => storage.get(key) ?? null,
+    setItem: (key, value) => storage.set(key, value),
+  };
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: mockStorage,
+    configurable: true,
+    writable: true,
+  });
+  try {
+    const custom = draftReducer(initialDraftState(), {
+      type: 'create-party',
+      id: 'pr-only',
+      name: 'Only in PR 23',
+    });
+    saveDraftState(custom, '/pr/23/');
+    saveDraftState(initialDraftState(), '/pr/24/');
+    assert.equal(loadDraftState('/pr/23/').parties[0].name, 'Only in PR 23');
+    assert.equal(loadDraftState('/pr/24/').parties.length, 2);
+    assert.equal(loadDraftState().parties.length, 2);
+  } finally {
+    if (previous === undefined) delete globalThis.localStorage;
+    else Object.defineProperty(globalThis, 'localStorage', previous);
+  }
+});
 
 test('local demo shows one incoming invitation and one fully joined four-person party', () => {
   const { parties, viewer } = initialDraftState();
