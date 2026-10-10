@@ -10,7 +10,8 @@
 		root * /srv
 		route {
 			try_files {path} /index.html
-			header /index.html Cache-Control "no-cache"
+			@fresh path /index.html /sw.js /manifest.webmanifest
+			header @fresh Cache-Control "no-cache"
 			file_server
 		}
 	}

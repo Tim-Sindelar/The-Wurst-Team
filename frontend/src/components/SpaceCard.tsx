@@ -1,11 +1,13 @@
 import { ActionIcon, Anchor, Card, Title } from '@mantine/core';
 import { Link } from 'react-router';
 import type { StudySpace } from '../domain/space';
+import { roomPhotoUrl } from '../domain/roomPhoto';
 import { seatMapPath } from '../routes';
 import { AvailabilityLabel } from './AvailabilityLabel';
 import { Icon } from './Icon';
 
-/* Study-space card for the swipe row. The whole card opens the seat map
+/* Study-space card for the swipe rows. Every card has the same fixed height
+   (names clamp to two lines) so rows and cards line up. The whole card opens the seat map
    through its title link; the favourite star sits above that link. */
 type SpaceCardProps = {
   space: StudySpace;
@@ -18,10 +20,21 @@ export function SpaceCard({ space, onToggleFavourite }: SpaceCardProps) {
   return (
     <Card
       component="article"
-      className="relative h-full grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto] overflow-visible"
+      className="relative isolate h-32 grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto] overflow-visible text-on-photo"
     >
+      {/* The room photo, always softly blurred and dimmed so the text stays readable. */}
+      <div
+        className="absolute inset-0 -z-10 overflow-hidden rounded-[inherit]"
+        aria-hidden="true"
+      >
+        <div
+          className="absolute inset-0 scale-105 bg-cover bg-center blur-[2px]"
+          style={{ backgroundImage: `url(${roomPhotoUrl(space.id)})` }}
+        />
+        <div className="absolute inset-0 bg-photo-scrim" />
+      </div>
       <div className="flex items-center justify-between gap-2 self-start">
-        <Title order={2} className="min-w-0 flex-1">
+        <Title order={2} className="line-clamp-2 min-w-0 flex-1 text-on-photo">
           <Anchor
             component={Link}
             to={seatMapPath(space.id)}
@@ -32,7 +45,7 @@ export function SpaceCard({ space, onToggleFavourite }: SpaceCardProps) {
           </Anchor>
         </Title>
         <ActionIcon
-          className="relative z-1 -my-2 -mr-2 text-text-muted aria-pressed:text-accent"
+          className="relative z-1 -my-2 -mr-2 text-on-photo"
           aria-pressed={favourite}
           aria-label={`Favourite ${space.name}`}
           onClick={() => onToggleFavourite(!favourite)}

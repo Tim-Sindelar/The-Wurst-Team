@@ -8,7 +8,7 @@ export function BottomNavigation() {
   const { pathname } = useLocation();
   return (
     <nav className="ui-bottom-nav" aria-label="Main navigation">
-      <div className="mx-auto grid w-full max-w-phone auto-cols-fr grid-flow-col">
+      <div className="mx-auto grid w-full tablet:max-w-phone auto-cols-fr grid-flow-col">
         <NavLink to={paths.home} end className="ui-bottom-nav-link">
           <Icon name="home" />
           <span>Home</span>

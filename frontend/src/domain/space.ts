@@ -1,4 +1,5 @@
 import type { SpaceSummary } from '../api/generated';
+import { searchByName } from './similarity.ts';
 
 export type Availability = 'high' | 'mid' | 'none';
 
@@ -45,20 +46,25 @@ export function toStudySpace(
   };
 }
 
-/** The spaces whose name contains the search text, ignoring case. */
+/** The spaces that match the search text, best match first. Forgives case,
+   accents, word order, partial words and small typos. */
 export function filterSpaces(
   spaces: StudySpace[],
   search: string,
 ): StudySpace[] {
-  const needle = search.trim().toLowerCase();
-  if (!needle) return spaces;
-  return spaces.filter((space) => space.name.toLowerCase().includes(needle));
+  return searchByName(spaces, search, (space) => space.name);
 }
 
-/** Favourites first; otherwise the order is kept. */
-export function favouritesFirst(spaces: StudySpace[]): StudySpace[] {
-  return [
-    ...spaces.filter((space) => space.favourite),
-    ...spaces.filter((space) => !space.favourite),
-  ];
+/** The favourite spaces, in their current order. */
+export function favouriteSpaces(spaces: StudySpace[]): StudySpace[] {
+  return spaces.filter((space) => space.favourite);
+}
+
+/** The spaces named in `recentIds`, in that order (most recent first). */
+export function recentSpaces(
+  spaces: StudySpace[],
+  recentIds: readonly string[],
+): StudySpace[] {
+  const byId = new Map(spaces.map((space) => [space.id, space]));
+  return recentIds.flatMap((id) => byId.get(id) ?? []);
 }

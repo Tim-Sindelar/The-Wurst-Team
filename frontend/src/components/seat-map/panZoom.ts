@@ -27,21 +27,17 @@ type Gesture =
       worldY: number;
     };
 
-export type PanZoomView = {
-  scale: number;
-  canZoomIn: boolean;
-  canZoomOut: boolean;
-};
-
 export type PanZoomOptions = {
   viewport: HTMLElement;
   world: HTMLElement;
-  /** Called after every redraw. */
-  onDraw: (view: PanZoomView) => void;
+  /** Pixels at the bottom of the viewport that something (the seat card) covers right now. */
+  getCovered?: () => number;
   /** A seat was tapped without dragging. */
   onSeatTap: (seat: HTMLElement) => void;
-  /** Any pointer press on the map outside the info key (closes the key). */
+  /** Any pointer press on the map outside the buttons (closes the colour key). */
   onMapPress: () => void;
+  /** The empty map (no seat, not the buttons) was tapped without dragging. */
+  onMapTap: () => void;
 };
 
 export type PanZoom = {
@@ -57,9 +53,10 @@ const clamp = (v: number, lo: number, hi: number) =>
 export function createPanZoom({
   viewport,
   world,
-  onDraw,
+  getCovered,
   onSeatTap,
   onMapPress,
+  onMapTap,
 }: PanZoomOptions): PanZoom {
   const pointers = new Map<number, Point>();
   const worldWidth = world.offsetWidth;
@@ -84,11 +81,6 @@ export function createPanZoom({
     x = w <= width ? (width - w) / 2 : clamp(x, width - w, 0);
     y = h <= height ? (height - h) / 2 : clamp(y, height - h, 0);
     world.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-    onDraw({
-      scale,
-      canZoomIn: scale < MAX_SCALE - 0.001,
-      canZoomOut: scale > minScale() + 0.001,
-    });
   };
 
   /* Selecting from the overview zooms back to at least 100% to inspect. */
@@ -96,7 +88,8 @@ export function createPanZoom({
     fitted = false;
     scale = Math.max(1, scale);
     x = width / 2 - wx * scale;
-    y = height / 2 - wy * scale;
+    /* Centre in the part of the map the seat card doesn't cover. */
+    y = (height - (getCovered?.() ?? 0)) / 2 - wy * scale;
     draw();
   };
 
@@ -143,7 +136,6 @@ export function createPanZoom({
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== 0 || inside(event, '[data-map-info]')) return;
     onMapPress();
-    if (inside(event, '[data-map-controls]')) return;
     event.preventDefault();
     const p = point(event);
     pointers.set(event.pointerId, p);
@@ -189,6 +181,11 @@ export function createPanZoom({
       gesture?.kind === 'pan' && !gesture.moved && event.type === 'pointerup'
         ? gesture.seat
         : null;
+    const tappedEmpty =
+      gesture?.kind === 'pan' &&
+      !gesture.moved &&
+      !gesture.seat &&
+      event.type === 'pointerup';
     pointers.delete(event.pointerId);
     if (viewport.hasPointerCapture(event.pointerId))
       viewport.releasePointerCapture(event.pointerId);
@@ -209,7 +206,7 @@ export function createPanZoom({
     if (tapped) {
       onSeatTap(tapped);
       tapped.focus({ preventScroll: true });
-    }
+    } else if (tappedEmpty) onMapTap();
   };
 
   const onWheel = (event: WheelEvent) => {
@@ -222,11 +219,7 @@ export function createPanZoom({
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (
-      inside(event, '[data-map-controls]') ||
-      inside(event, '[data-map-info]')
-    )
-      return;
+    if (inside(event, '[data-map-info]')) return;
     if (event.key === '+' || event.key === '=') zoomTo(scale * 1.25);
     else if (event.key === '-') zoomTo(scale * 0.8);
     else if (event.key === '0' || event.key === 'Home') fit();

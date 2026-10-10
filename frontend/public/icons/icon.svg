@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- A seat map: three seats and yours. Full bleed so it also works as a maskable icon. -->
+  <rect width="512" height="512" fill="#121212"/>
+  <g fill="none" stroke="#808080" stroke-width="14">
+    <rect x="127" y="127" width="106" height="106" rx="24"/>
+    <rect x="127" y="279" width="106" height="106" rx="24"/>
+    <rect x="279" y="279" width="106" height="106" rx="24"/>
+  </g>
+  <rect x="272" y="120" width="120" height="120" rx="28" fill="#6d9de0"/>
+  <path d="M302 182l22 22 40-44" fill="none" stroke="#121212" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

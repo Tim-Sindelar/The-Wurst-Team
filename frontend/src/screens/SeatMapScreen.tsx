@@ -1,6 +1,6 @@
-import { Alert, Button, Card, Text, Title } from '@mantine/core';
+import { Alert, Button, Text } from '@mantine/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
   createReservationMutation,
@@ -16,17 +16,12 @@ import {
   ScreenHeader,
   ScreenMain,
 } from '../components/Screen';
-import { SeatChip } from '../components/SeatChip';
 import { SeatMap } from '../components/seat-map/SeatMap';
+import { SeatSheet } from '../components/seat-map/SeatSheet';
 import { apiProblem } from '../domain/booking';
 import { layoutSeats } from '../domain/room';
 import { describeAvailability } from '../domain/space';
-import {
-  isReservable,
-  seatStateDetail,
-  seatStateName,
-  stripeClass,
-} from '../domain/seat';
+import { isReservable, seatStateDetail, seatStateName } from '../domain/seat';
 import { useMyReservation, useRefreshBooking } from '../hooks/useMyReservation';
 import { useRules } from '../hooks/useRules';
 import { paths } from '../routes';
@@ -45,6 +40,10 @@ export function SeatMapScreen() {
   const reserve = useMutation(createReservationMutation());
   const [picked, setPicked] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  /* Label of a seat somebody else reserved a moment before us, shown as a warning. */
+  const [takenLabel, setTakenLabel] = useState<string | null>(null);
+  /* Height of the seat card over the map, so a picked seat is centred above it. */
+  const sheetHeight = useRef(0);
 
   const space = spaceQuery.data?.space;
   const ownSeatId =
@@ -54,11 +53,37 @@ export function SeatMapScreen() {
     [space?.seats, ownSeatId],
   );
 
+  const freeCount = space
+    ? space.seats.filter((item) => item.state === 'free').length
+    : 0;
+  const level = space
+    ? describeAvailability(space.free_seats, space.total_seats, space.is_open)
+    : null;
+
+  useEffect(() => {
+    if (!picked || sheetOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPicked(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [picked, sheetOpen]);
+
   const header = (
     <ScreenHeader
-      title="Study Spaces"
+      title={space?.name ?? 'Study Spaces'}
       backTo={paths.home}
       backLabel="Back to home"
+      subtitle={
+        space &&
+        level && (
+          <AvailabilityLabel availability={level.availability} size="small">
+            {space.is_open
+              ? `${freeCount} free of ${space.seats.length} seats`
+              : 'Closed right now'}
+          </AvailabilityLabel>
+        )
+      }
     />
   );
 
@@ -104,18 +129,7 @@ export function SeatMapScreen() {
     );
   }
 
-  const fallback =
-    seats.find((item) => item.state === 'yours') ??
-    seats.find((item) => item.state === 'free') ??
-    seats[0];
-  const seat = seats.find((item) => item.id === picked) ?? fallback;
-  const freeCount = seats.filter((item) => item.state === 'free').length;
-  const level = describeAvailability(
-    space.free_seats,
-    space.total_seats,
-    space.is_open,
-  );
-
+  const seat = seats.find((item) => item.id === picked) ?? null;
   const timeFormat = new Intl.DateTimeFormat(undefined, {
     hour: '2-digit',
     minute: '2-digit',
@@ -125,9 +139,17 @@ export function SeatMapScreen() {
     ? timeFormat.format(new Date(seat.reservableAt))
     : null;
 
+  const pick = (seatId: string | null) => {
+    setTakenLabel(null);
+    setPicked(seatId);
+  };
+
   const chooseAnyFree = () => {
-    const free = seats.find((item) => item.state === 'free');
-    if (free) setPicked(free.id);
+    /* A random free seat, never the one already shown (unless it's the only one). */
+    const free = seats.filter((item) => item.state === 'free');
+    const others = free.filter((item) => item.id !== picked);
+    const pool = others.length > 0 ? others : free;
+    if (pool.length > 0) pick(pool[Math.floor(Math.random() * pool.length)].id);
   };
 
   const confirmReserve = () => {
@@ -140,7 +162,17 @@ export function SeatMapScreen() {
           void refresh();
           navigate(paths.reservation);
         },
-        onError: () => void refresh(),
+        onError: (error) => {
+          void refresh();
+          /* Someone else got the seat first: leave the sheet, explain it on the screen. */
+          if (apiProblem(error).code === 'seat_unavailable') {
+            setSheetOpen(false);
+            reserve.reset();
+            setPicked(null);
+            setTakenLabel(seat.label);
+            void spaceQuery.refetch();
+          }
+        },
       },
     );
   };
@@ -154,9 +186,9 @@ export function SeatMapScreen() {
   const later = seat?.state === 'bookable';
   const busy = ownSeatId !== null && !own;
   const canReserve =
-    Boolean(seat) && space.is_open && !busy && isReservable(seat.state);
+    seat !== null && space.is_open && !busy && isReservable(seat.state);
 
-  let actionLabel = 'No seats to show';
+  let actionLabel = '';
   if (seat) {
     if (own) actionLabel = running ? 'View session' : 'View reservation';
     else if (!space.is_open) actionLabel = 'Closed · unavailable';
@@ -166,27 +198,39 @@ export function SeatMapScreen() {
     else actionLabel = `${seatStateName[seat.state]} · unavailable`;
   }
 
-  const sheetNote = later
-    ? `${space.name}. Your time starts ${reservableFrom ? `at ${reservableFrom}, ` : ''}when the current session ends. Check in within ${rules.check_in_window_minutes} minutes after that.`
-    : `${space.name}. Check in within ${rules.check_in_window_minutes} minutes of reserving, or the seat is released.`;
+  const checkIn = (
+    <strong className="font-bold text-text">
+      {rules.check_in_window_minutes} minutes
+    </strong>
+  );
+  const sheetNote = later ? (
+    <>
+      Your time starts{' '}
+      {reservableFrom
+        ? `at ${reservableFrom}`
+        : 'when the current session ends'}
+      . Check in within {checkIn} after that.
+    </>
+  ) : (
+    <>Check in within {checkIn} or the seat is released.</>
+  );
+
+  const seatDetail = seat
+    ? own
+      ? running
+        ? 'Your session'
+        : 'Reserved for you'
+      : later && reservableFrom
+        ? `Occupied · available to reserve from ${reservableFrom}`
+        : seatStateDetail[seat.state]
+    : null;
 
   return (
     <Screen className="h-dvh overflow-hidden">
       {header}
 
-      <ScreenMain fit>
-        <div className="grid gap-1">
-          <Title order={2} className="text-heading">
-            {space.name}
-          </Title>
-          <AvailabilityLabel availability={level.availability} size="small">
-            {space.is_open
-              ? `${freeCount} free of ${seats.length} seats`
-              : 'Closed right now'}
-          </AvailabilityLabel>
-        </div>
-
-        {hidden > 0 && (
+      {hidden > 0 && (
+        <div className="px-4 pt-3">
           <Alert
             variant="warning"
             icon={<Icon name="alert" />}
@@ -194,67 +238,72 @@ export function SeatMapScreen() {
           >
             <Text size="sm">The room plan has no space for them yet.</Text>
           </Alert>
-        )}
+        </div>
+      )}
 
-        {seat ? (
-          <>
-            <div className="min-h-0 flex-1 basis-0">
-              <SeatMap seats={seats} selected={seat.id} onSelect={setPicked} />
-            </div>
-
-            <Card
-              component="article"
-              className={stripeClass[seat.state]}
-              aria-labelledby="selected-seat-title"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Title order={3} id="selected-seat-title">
-                  Seat {seat.label}
-                </Title>
-                <SeatChip state={seat.state} />
-              </div>
-              <Text size="sm" c="dimmed">
-                {space.name} ·{' '}
-                {own
-                  ? running
-                    ? 'Your session'
-                    : 'Reserved for you'
-                  : later && reservableFrom
-                    ? `Occupied · available to reserve from ${reservableFrom}`
-                    : seatStateDetail[seat.state]}
-              </Text>
-            </Card>
-          </>
+      <main className="relative min-h-0 flex-1">
+        {seats.length > 0 ? (
+          <SeatMap
+            seats={seats}
+            selected={seat?.id ?? null}
+            onSelect={pick}
+            onDeselect={() => pick(null)}
+            onChooseFree={ownSeatId === null ? chooseAnyFree : undefined}
+            chooseFreeDisabled={!seats.some((item) => item.state === 'free')}
+            getCovered={() => sheetHeight.current}
+          />
         ) : (
-          <Alert icon={<Icon name="clock" />} title="No seats in service">
-            <Text size="sm">This study space has no seats you can book.</Text>
-          </Alert>
+          <div className="p-4">
+            <Alert icon={<Icon name="clock" />} title="No seats in service">
+              <Text size="sm">This study space has no seats you can book.</Text>
+            </Alert>
+          </div>
         )}
-      </ScreenMain>
 
-      <ActionBar>
-        <Button
-          variant="secondary"
-          fullWidth
-          disabled={!seats.some((item) => item.state === 'free')}
-          onClick={chooseAnyFree}
-        >
-          Choose any free seat
-        </Button>
-        <Button
-          fullWidth
-          disabled={!own && !canReserve}
-          onClick={() =>
-            own
-              ? navigate(running ? paths.session : paths.reservation)
-              : setSheetOpen(true)
-          }
-        >
-          {actionLabel}
-        </Button>
-      </ActionBar>
+        {takenLabel && (
+          <div className="absolute inset-x-3 bottom-3 z-2">
+            <Alert
+              variant="danger"
+              role="alert"
+              icon={<Icon name="alert" />}
+              title={`Seat ${takenLabel} was just taken`}
+              className="shadow-card"
+            >
+              <Text size="sm">
+                Someone else reserved it a moment before you, so pick another
+                seat.
+              </Text>
+              <Button
+                variant="secondary"
+                className="mt-3"
+                onClick={() => setTakenLabel(null)}
+              >
+                Choose another seat
+              </Button>
+            </Alert>
+          </div>
+        )}
+
+        {seat && (
+          <SeatSheet
+            key={seat.id}
+            title={`Seat ${seat.label}`}
+            state={seat.state}
+            detail={`${space.name} · ${seatDetail}`}
+            actionLabel={actionLabel}
+            actionDisabled={!own && !canReserve}
+            onAction={() =>
+              own
+                ? navigate(running ? paths.session : paths.reservation)
+                : setSheetOpen(true)
+            }
+            onHeight={(height) => {
+              sheetHeight.current = height;
+            }}
+            onClose={() => pick(null)}
+          />
+        )}
+      </main>
 
       <DecisionSheet
         opened={sheetOpen}
