@@ -71,6 +71,15 @@ async def handle_booking_conflict(request: Request, exc: IntegrityError) -> JSON
         return await handle_booking_error(
             request, BookingError(409, "duplicate_seat_label", "Seat label already exists in room")
         )
+    if (
+        getattr(exc.orig, "sqlstate", None) == "23505"
+        and getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
+        == "study_spaces_map_room_id_key"
+    ):
+        return await handle_booking_error(
+            request,
+            BookingError(409, "map_room_already_linked", "Map room already has a study space"),
+        )
     if getattr(exc.orig, "sqlstate", None) != "23P01":
         raise exc
     error = BookingError(409, "booking_conflict", "Availability changed; refresh and try again")

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.features.reservations.schemas import ReserveSeatRequest
 from app.features.reservations.seed import seed_demo
 from app.features.reservations.service import BookingError, ReservationService, reservation_states
-from app.models import Break, Reservation, Seat
+from app.models import Break, Reservation, Seat, StudySpace
 from tests.conftest import migrate
 
 
@@ -305,18 +305,30 @@ def test_configuration_changes_only_affect_new_deadlines(client, seats, clock, p
 
 def test_seed_is_idempotent_and_preserves_bookings(db, clock, policy):
     with Session(db) as session:
-        seeded = seed_demo(session)
+        seeded = seed_demo(session, policy.map_floors_dir)
         assert len(seeded) == 8
         original_tokens = {seat.id: seat.qr_token for seat in seeded}
         session.commit()
         service = ReservationService(session, policy)
         reservation_id, _ = service.check_in(uuid4(), seeded[0].qr_token)
         session.commit()
-        seeded_again = seed_demo(session)
+        seeded_again = seed_demo(session, policy.map_floors_dir)
         session.commit()
         assert {seat.id: seat.qr_token for seat in seeded_again} == original_tokens
         assert session.scalar(select(func.count()).select_from(Seat)) == 8
         assert session.get(Reservation, reservation_id).checked_in_at == clock.value
+
+
+def test_seed_requires_valid_floor_plan_rooms(db, policy, tmp_path):
+    with Session(db) as session:
+        with pytest.raises(ValueError, match="Floor plans are unavailable"):
+            seed_demo(session, tmp_path / "missing")
+        (policy.map_floors_dir / "levels" / "ETH.HG.E.json").write_text(
+            '{"origin": [8.5, 47.3], "scale": 1000000, "rooms": []}', encoding="utf-8"
+        )
+        with pytest.raises(ValueError, match="Demo map room not found"):
+            seed_demo(session, policy.map_floors_dir)
+        assert session.scalar(select(func.count()).select_from(StudySpace)) == 0
 
 
 def race(db, policy, calls):

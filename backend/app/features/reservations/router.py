@@ -67,8 +67,8 @@ def get_rules(settings: Annotated[Settings, Depends(get_settings)]) -> RulesResp
 
 
 @router.get("/spaces", response_model=SpacesResponse, operation_id="list_spaces")
-def list_spaces(service: Service) -> SpacesResponse:
-    return service.spaces()
+def list_spaces(service: Service, map_room_id: str | None = None) -> SpacesResponse:
+    return service.spaces(map_room_id)
 
 
 @router.get("/me/favourites", response_model=FavouritesResponse, operation_id="list_favourites")

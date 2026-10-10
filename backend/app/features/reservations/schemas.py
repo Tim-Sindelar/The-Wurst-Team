@@ -73,6 +73,7 @@ class RulesResponse(BaseModel):
 class SpaceSummary(BaseModel):
     id: UUID
     name: str
+    map_room_id: str
     lat: float
     lng: float
     total_seats: int
