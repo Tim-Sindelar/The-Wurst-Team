@@ -3,8 +3,10 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { jsonDocumentApi, jsonFileApi, validateMapStyle } from './server/jsonFileApi';
 import { validateNavigation } from './src/domain/navigation';
+import { ethRoomsApi } from './server/ethRoomsApi';
 
 const dataFile = (name: string) => fileURLToPath(new URL(`./data/${name}`, import.meta.url));
+const here = (rel: string) => fileURLToPath(new URL(rel, import.meta.url));
 
 export default defineConfig({
   plugins: [
@@ -16,6 +18,14 @@ export default defineConfig({
     }),
     jsonDocumentApi({ route: '/api/map-style', file: dataFile('map-style.json'), validate: validateMapStyle }),
     jsonDocumentApi({ route: '/api/navigation', file: dataFile('navigation.json'), validate: validateNavigation }),
+    // Live room bookings via eth_room_dashboard.py (started on demand unless ETH_ROOMS_AUTOSTART=0).
+    ethRoomsApi({
+      target: process.env.ETH_ROOMS_URL ?? 'http://127.0.0.1:8765',
+      floorsDir: here('./public/floors'),
+      script: here('../eth_room_dashboard.py'),
+      snapshotFile: dataFile('cache/eth-rooms.json'),
+      autostart: process.env.ETH_ROOMS_AUTOSTART !== '0',
+    }),
   ],
   optimizeDeps: { exclude: ['maplibre-gl', '@maplibre/maplibre-gl-leaflet'] },
   server: {

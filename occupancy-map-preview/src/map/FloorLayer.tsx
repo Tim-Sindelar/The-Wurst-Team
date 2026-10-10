@@ -5,11 +5,14 @@ import { useMap, useMapEvents } from 'react-leaflet';
 import { intersects, loadLevel, type FloorIndex, type LevelPlan, type LineLayer, type Room, type RoomKind } from '../floors/floorData';
 import type { RoomRef } from '../domain/types';
 import { outlineToLatLngs } from './geo';
-import { dropSmallLines, mergeParallelEdges, metersPerPixel, partPathOptions, polygonsSmallerThan, roundLines, roundPolygons, simplifyLines, type MinimalStyle, type PartKey } from './minimalStyle';
+import { dropSmallLines, mergeParallelEdges, metersPerPixel, partPathOptions, polygonsSmallerThan, roundLines, roundPolygons, simplifyLines, type MinimalStyle, type OccupancyStyle, type PartKey } from './minimalStyle';
+import { hhmm, ROOM_STATUS_LABELS, BOOKING_KIND_LABELS } from '../domain/ethRooms';
+import type { RoomInfo } from '../roomFeatures';
 
 /** Rooms are drawn from this zoom level on, walls and doors from LINE_ZOOM. */
 export const ROOM_ZOOM = 18;
 const LINE_ZOOM = 19;
+const LABEL_ZOOM = 19;
 const OUTLINE_ZOOM = 15;
 
 export type Theme = 'light' | 'dark';
@@ -65,7 +68,7 @@ const BUILDING_STYLE: Record<Theme, { color: string; fillColor: string; fillOpac
 
 const LINE_PART: Record<LineLayer, PartKey> = { wall: 'walls', door: 'doors', stair: 'stairs' };
 
-const PANES = { buildings: ['floor-buildings', 340], rooms: ['floor-rooms', 350], lines: ['floor-lines', 360] } as const;
+const PANES = { buildings: ['floor-buildings', 340], rooms: ['floor-rooms', 350], lines: ['floor-lines', 360], labels: ['floor-labels', 370] } as const;
 
 interface Props {
   theme: Theme;
@@ -85,6 +88,16 @@ interface Props {
   onPickRoom: (room: RoomRef) => void;
   /** Minimal render mode style; null draws the detailed plan. */
   minimal: MinimalStyle | null;
+  /** Live room mode: ETH rooms by PolyMaps unit id, with their status; null when off. */
+  ethRooms: ReadonlyMap<string, RoomInfo> | null;
+  /** Colors rooms by status when set. */
+  occupancyStyle: OccupancyStyle | null;
+  /** Writes room number and seats on the ETH rooms. */
+  roomLabels: boolean;
+  /** ETH room whose details are open, outlined. */
+  selectedEthRoom: string | null;
+  /** Clicking an ETH room; null when room details are off. */
+  onEthRoomClick: ((ethId: string) => void) | null;
 }
 
 interface RoomLayer {
@@ -99,7 +112,7 @@ interface RoomLayer {
  * use, library rooms highlighted) plus walls, doors and stairs. Level files
  * are loaded lazily for the levels in view.
  */
-export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, showRoomDetails, selectedLibraryId, onSelectLibrary, picking, pickedRooms, onPickRoom, minimal }: Props) {
+export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, showRoomDetails, selectedLibraryId, onSelectLibrary, picking, pickedRooms, onPickRoom, minimal, ethRooms, occupancyStyle, roomLabels, selectedEthRoom, onEthRoomClick }: Props) {
   const map = useMap();
   const [view, setView] = useState(() => ({ bounds: map.getBounds(), zoom: map.getZoom() }));
   useMapEvents({ moveend: () => setView({ bounds: map.getBounds(), zoom: map.getZoom() }) });
@@ -114,6 +127,11 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
       }
       return L.canvas({ pane: name, padding: 0.3 });
     };
+    if (!map.getPane(PANES.labels[0])) {
+      const pane = map.createPane(PANES.labels[0]);
+      pane.style.zIndex = String(PANES.labels[1]);
+      pane.style.pointerEvents = 'none';
+    }
     return { buildings: make(PANES.buildings), rooms: make(PANES.rooms, true), lines: make(PANES.lines) };
   }, [map]);
 
@@ -180,8 +198,13 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
   }, [visibleKey]);
 
   // Callbacks change every render; the layers read them through a ref.
-  const handlers = useRef({ onSelectLibrary, onPickRoom, picking });
-  handlers.current = { onSelectLibrary, onPickRoom, picking };
+  const handlers = useRef({ onSelectLibrary, onPickRoom, picking, onEthRoomClick });
+  handlers.current = { onSelectLibrary, onPickRoom, picking, onEthRoomClick };
+  // Statuses change every minute; the layers only rebuild when the set of ETH rooms changes,
+  // tooltips and styles read the current statuses through this ref.
+  const ethRef = useRef(ethRooms);
+  ethRef.current = ethRooms;
+  const ethKey = useMemo(() => (ethRooms ? [...ethRooms.keys()].sort().join('|') : ''), [ethRooms]);
   const levelsById = useMemo(() => new Map(index.levels.map((l) => [l.id, l])), [index]);
 
   const roomLayers = useRef(new Map<string, RoomLayer>());
@@ -196,28 +219,39 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
       if (!plan || !level) continue;
       for (const room of plan.rooms) {
         const libraryId = libraryRooms.get(room.id) ?? null;
-        // Workspace rooms stay regardless of size, they are the click targets.
-        if (!libraryId && polygonsSmallerThan(room.rings, minSize)) continue;
+        const eth = ethRef.current?.get(room.id) ?? null;
+        // Workspace and ETH rooms stay regardless of size, they are click targets.
+        if (!libraryId && !eth && polygonsSmallerThan(room.rings, minSize)) continue;
         const poly = L.polygon(roundPolygons(room.rings, radius), {
           renderer: renderers.rooms,
           ...roomLayerStyle(theme, room.kind, libraryId, selectedLibraryId, pickedRooms.has(room.id), minimal, picking),
         });
         // Normal map: only rooms of an enabled workspace get a tooltip, showing the workspace name.
         // Admin mode keeps the room details, they are needed to pick rooms.
-        const title = room.label && room.label !== room.name ? `${room.label} · ${room.name}` : room.name;
+        const name = room.name || room.id;
+        const title = room.label && room.label !== name ? `${room.label} · ${name}` : name;
         const tip = showRoomDetails
           ? `<strong>${escapeHtml(title)}</strong><br>${escapeHtml(room.use || 'Raum')}${room.area ? ` · ${room.area} m²` : ''}`
           : libraryId && libraryNames.get(libraryId)
             ? `<strong>${escapeHtml(libraryNames.get(libraryId)!)}</strong>`
             : null;
-        if (tip) poly.bindTooltip(tip, { sticky: true, direction: 'top', offset: [0, -6] });
+        if (eth) {
+          // Built when shown, so it tells the status at the time being displayed.
+          poly.bindTooltip(
+            () => {
+              const info = ethRef.current?.get(room.id);
+              return info ? ethTooltip(info, libraryId ? libraryNames.get(libraryId) : undefined) : tip ?? escapeHtml(title);
+            },
+            { sticky: true, direction: 'top', offset: [0, -6] },
+          );
+        } else if (tip) poly.bindTooltip(tip, { sticky: true, direction: 'top', offset: [0, -6] });
         poly.on('click', (e) => {
           const h = handlers.current;
           if (h.picking) {
             L.DomEvent.stop(e);
             h.onPickRoom({
               id: room.id,
-              name: room.name,
+              name,
               levelId: level.id,
               facilityId: level.facilityId,
               floor: level.floor,
@@ -225,8 +259,10 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
               center: roomCenter(room),
               address: [index.facilities.find((x) => x.id === level.facilityId)?.address, room.name].filter(Boolean).join(', ') || null,
             });
-          } else if (libraryId) {
-            h.onSelectLibrary(libraryId);
+          } else {
+            const info = ethRef.current?.get(room.id);
+            if (info && h.onEthRoomClick) h.onEthRoomClick(info.room.id);
+            if (libraryId) h.onSelectLibrary(libraryId);
           }
         });
         roomLayers.current.set(room.id, { poly, kind: room.kind, libraryId });
@@ -256,16 +292,58 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
     }
     return () => void roomGroup.remove();
     // Selection changes are applied by restyling below instead of rebuilding.
-  }, [map, renderers, plans, visibleKey, libraryRooms, libraryNames, showRoomDetails, levelsById, theme, radius, minSize]);
+  }, [map, renderers, plans, visibleKey, libraryRooms, libraryNames, showRoomDetails, levelsById, theme, radius, minSize, ethKey]);
 
   useEffect(() => {
     for (const [roomId, { poly, kind, libraryId }] of roomLayers.current) {
-      poly.setStyle(roomLayerStyle(theme, kind, libraryId, selectedLibraryId, pickedRooms.has(roomId), minimal, picking));
+      const picked = pickedRooms.has(roomId);
+      const info = ethRooms?.get(roomId);
+      poly.setStyle(
+        info && occupancyStyle && !picked
+          ? occupancyPath(occupancyStyle, info, info.room.id === selectedEthRoom)
+          : info && info.room.id === selectedEthRoom && !picked
+            ? { ...roomLayerStyle(theme, kind, libraryId, selectedLibraryId, picked, minimal, picking), stroke: true, color: SELECTED_ROOM[theme], weight: 2.5, opacity: 1 }
+            : roomLayerStyle(theme, kind, libraryId, selectedLibraryId, picked, minimal, picking),
+      );
     }
     for (const [libraryId, fill] of fillLayers.current) {
       fill.setStyle(roomStyle(theme, 'library', libraryId, selectedLibraryId, false, minimal, picking));
     }
-  }, [selectedLibraryId, pickedRooms, plans, visibleKey, libraryRooms, theme, minimal, picking, radius]);
+  }, [selectedLibraryId, pickedRooms, plans, visibleKey, libraryRooms, theme, minimal, picking, radius, ethRooms, occupancyStyle, selectedEthRoom, ethKey]);
+
+  // Room number and seats on each ETH room in view (one label per room, on its largest part).
+  const showLabels = roomLabels && view.zoom >= LABEL_ZOOM && !!ethRooms;
+  useEffect(() => {
+    if (!showLabels) return;
+    const group = L.layerGroup().addTo(map);
+    const best = new Map<string, { room: Room; area: number }>();
+    for (const id of visibleIds) {
+      for (const room of plans.get(id)?.rooms ?? []) {
+        const info = ethRef.current?.get(room.id);
+        if (!info) continue;
+        const prev = best.get(info.room.id);
+        if (!prev || room.area > prev.area) best.set(info.room.id, { room, area: room.area });
+      }
+    }
+    for (const [ethId, { room }] of best) {
+      const info = ethRef.current!.get(room.id)!;
+      const seats = info.room.seats ?? info.room.workplaces;
+      const short = ethId.split(' ').slice(1).join(' ');
+      group.addLayer(
+        L.marker(roomCenter(room), {
+          pane: PANES.labels[0],
+          interactive: false,
+          keyboard: false,
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="room-label"><b>${escapeHtml(short)}</b>${seats != null ? `<span>${seats} seats</span>` : ''}</div>`,
+            iconSize: [0, 0],
+          }),
+        }),
+      );
+    }
+    return () => void group.remove();
+  }, [map, showLabels, plans, visibleKey, ethKey]);
 
   const showLines = view.zoom >= LINE_ZOOM;
   // Line geometry per level and layer: simplified, parallel edges merged, small pieces dropped, corners rounded.
@@ -306,6 +384,35 @@ export function FloorLayer({ theme, index, floor, libraryRooms, libraryNames, sh
   }, [map, renderers, levelLines, theme, minimal, presimplify]);
 
   return null;
+}
+
+const SELECTED_ROOM: Record<Theme, string> = { light: '#1c2430', dark: '#ffffff' };
+
+/** A room colored by its booking status. */
+function occupancyPath(style: OccupancyStyle, info: RoomInfo, selected: boolean): L.PolylineOptions {
+  const color = style[info.state.status];
+  return {
+    ...DETAILED_PATH,
+    stroke: selected || style.weight > 0,
+    color: selected ? style.selected : color,
+    weight: selected ? Math.max(2.5, style.weight + 2) : style.weight,
+    opacity: 1,
+    fill: true,
+    fillColor: color,
+    fillOpacity: style.fill,
+  };
+}
+
+function ethTooltip({ room, state }: RoomInfo, workspace?: string) {
+  const seats = room.seats != null ? `${room.seats} seats` : room.workplaces != null ? `${room.workplaces} workplaces` : null;
+  const lines = [`<strong>${escapeHtml(room.id)}</strong> · ${escapeHtml(room.type)}${seats ? ` · ${seats}` : ''}`];
+  if (workspace) lines.push(escapeHtml(workspace));
+  const what = (b: NonNullable<RoomInfo['state']['current']>) => escapeHtml(b.title || BOOKING_KIND_LABELS[b.kind]);
+  if (state.status === 'busy' && state.current) lines.push(`${ROOM_STATUS_LABELS.busy} until ${hhmm(state.until)}: ${what(state.current)}`);
+  else if (state.status === 'closed') lines.push(`${ROOM_STATUS_LABELS.closed} until ${hhmm(state.until)}`);
+  else if (state.status === 'unknown') lines.push(ROOM_STATUS_LABELS.unknown);
+  else lines.push(state.until >= 1440 ? 'Free for the rest of the day' : `Free until ${hhmm(state.until)}${state.next ? `: ${what(state.next)}` : ''}`);
+  return lines.join('<br>');
 }
 
 /** Style of a room's own polygon: workspace rooms are only hit targets, their fill comes from the merged shape. */

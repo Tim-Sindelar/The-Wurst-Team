@@ -23,6 +23,21 @@ export interface PartStyle {
   fillColor: string;
 }
 
+/** Colors of the live room occupancy mode; used in both render modes. */
+export interface OccupancyStyle {
+  free: string;
+  soon: string;
+  busy: string;
+  closed: string;
+  unknown: string;
+  /** Fill opacity of a colored room. */
+  fill: number;
+  /** Room outline width in px (0 = none). */
+  weight: number;
+  /** Outline of the room whose details are open. */
+  selected: string;
+}
+
 export interface MinimalStyle {
   basemapLabels: boolean;
   /** 0 hides the basemap, leaving only the plain map background. */
@@ -51,6 +66,7 @@ export interface MinimalStyle {
   /** Selected workspace: use `highlightColor` instead of the normal color. */
   highlightCustomColor: boolean;
   highlightColor: string;
+  occupancy: OccupancyStyle;
 }
 
 export const PART_LABELS: Record<PartKey, { label: string; polygon: boolean }> = {
@@ -97,6 +113,7 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
     highlightFill: 0.12,
     highlightCustomColor: false,
     highlightColor: '#e8590c',
+    occupancy: { free: '#2e9d5b', soon: '#e0a020', busy: '#d0453c', closed: '#8a94a3', unknown: '#c3cad4', fill: 0.45, weight: 0.8, selected: '#1c2430' },
   },
   dark: {
     basemapLabels: false,
@@ -123,6 +140,7 @@ export const DEFAULT_MINIMAL: Record<Theme, MinimalStyle> = {
     highlightFill: 0.15,
     highlightCustomColor: false,
     highlightColor: '#ffa94d',
+    occupancy: { free: '#3fbf74', soon: '#f0b43a', busy: '#ef5f55', closed: '#6d7788', unknown: '#3d4553', fill: 0.5, weight: 0.8, selected: '#ffffff' },
   },
 };
 
@@ -141,7 +159,7 @@ function mergeStyles(base: MinimalStyles, over: PartialStyles | null): MinimalSt
   for (const theme of ['light', 'dark'] as const) {
     const s = over?.[theme];
     if (!s) continue;
-    out[theme] = { ...out[theme], ...s, parts: { ...out[theme].parts } };
+    out[theme] = { ...out[theme], ...s, parts: { ...out[theme].parts }, occupancy: { ...base[theme].occupancy, ...s.occupancy } };
     for (const key of Object.keys(out[theme].parts) as PartKey[]) {
       out[theme].parts[key] = { ...base[theme].parts[key], ...s.parts?.[key] };
     }

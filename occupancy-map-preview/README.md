@@ -6,6 +6,7 @@ A React + Leaflet preview of an ETH workspace occupancy map. Workspaces are libr
 - **Admin**: register workspaces, tables and seats by clicking on the map, edit their details, and drag any pin to fix its position. Edits save automatically to `data/occupancy.json`.
 - **Rooms**: in Admin mode, "Select rooms" lets you click any PolyMaps rooms on the map (across floors), then add them to an existing workspace or create a new one of any type from them. A room belongs to one workspace only, so assigning it moves it out of its old one. Rooms can be removed from a workspace in its details.
 - **Quick navigation**: the map starts framing both campuses (all workspaces, enabled or not, near Zentrum and Hönggerberg). Clicking inside an area (e.g. a campus) or a building zooms there, but only while the map's zoom is in that zone's range: areas while zoomed out further than a set level, buildings between two levels. Buildings win over areas, and the ⌂ button flies back to the start view. In Admin mode, "Quick navigation" edits the zones: click polygon (drawn on the map, or copied from a building footprint), target zoom and active zoom range. Stored in `data/navigation.json`; until that exists, one area per campus is derived from the workspaces. Normal panning and zooming are unaffected.
+- **Live rooms**: the "Live rooms" switch on the map colors the ETH lecture and seminar rooms by today's bookings (free, booked soon, in use, building closed, no data). Under "Rooms ▾" each part can be switched on or off: occupancy colors, room labels (number and seats, from zoom 19), room details on click (photos, today's schedule, equipment, the full ETH room sheet and attachments), a list of free rooms (longest free first, click to fly there), a time slider for any time of today, and the live seat occupancy of the nearby UZH libraries. The status colors, fill and outline are set in the Style panel like the other map colors (per theme, savable as the standard). See "Live room data" below.
 - **Library outlines**: in Admin mode, draw and edit each library's floor outline directly on the map (polygons, rectangles, holes, several wings). It's stored as a GeoJSON MultiPolygon in `outline`, so it stays aligned with the map and the tables/seats at every zoom level and can go straight into a spatial database (e.g. PostGIS) later.
 
 ```bash
@@ -30,6 +31,15 @@ The floor picker on the right switches floors. Library pins on other floors are 
 
 Base layers: OpenStreetMap, swisstopo map, and swisstopo aerial imagery (up to zoom 20). The map zooms to 22 for placing seats.
 
+## Live room data
+
+Bookings come from the ETH Room Info API through `eth_room_dashboard.py` (it has no CORS headers, so the browser can't call it directly):
+
+- The dev server forwards `/api/eth/*` to the script (`ETH_ROOMS_URL`, default `http://127.0.0.1:8765`) and starts it with `python3` (`python` on Windows, or `$PYTHON`) on the first request if it isn't running. Set `ETH_ROOMS_AUTOSTART=0` to run it yourself (`python eth_room_dashboard.py --no-browser`).
+- The script keeps all rooms with today's bookings in `data/cache/eth-rooms.json` with the time they were fetched (`fetchedAt`), and asks ETH again only when that is an hour old or from another day; a failed fetch is retried after 5 minutes, and the last good data is kept meanwhile. Every fetch is logged with its timestamp to `data/cache/eth-rooms.log`. `python eth_room_dashboard.py --snapshot` refreshes the file the same way and exits (e.g. for cron).
+- ETH rooms are put on the floor plans by their room number: the dev server looks up each ETH id (`HG E 7`) among the PolyMaps room names, then the names derived from the unit ids (`ETH.HG.E.E_007`), then the display labels, ignoring case, spacing and zero padding. "Rooms ▾" shows how many were found and lists the rest.
+- Statuses are computed in the browser from the bookings, in Zurich time, so they stay current between fetches. They are bookings, not sensors: a free room may still be in use.
+
 ## Architecture (built for moving into a bigger site)
 
 ```
@@ -37,7 +47,7 @@ src/domain/      types.ts, validate.ts, operations.ts: framework-free model + pu
 src/data/        repository.ts: OccupancyRepository interface + HttpRepository
 src/map/         Leaflet map, marker icons, Geoman-based outline editor, GeoJSON helpers
 src/components/  View and Admin side panels
-server/          jsonFileApi.ts: Vite middleware standing in for a backend
+server/          jsonFileApi.ts: Vite middleware standing in for a backend; ethRoomsApi.ts: live room data proxy + matching
 ```
 
 - The UI only reaches storage through `OccupancyRepository`. Today `HttpRepository` calls `GET/PUT /api/occupancy`. The Vite dev and preview servers answer those calls by reading and writing the JSON file, after validating the data with the same `validate.ts` the client uses.

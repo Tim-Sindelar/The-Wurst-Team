@@ -22,8 +22,17 @@ import {
   type RenderMode,
 } from './map/minimalStyle';
 import { EMPTY_SELECTION, type Mode, type PlacingKind, type SaveState, type Selection } from './state';
+import { loadRoomFeatures, saveRoomFeatures, type RoomFeatures, type RoomInfo } from './roomFeatures';
+import { roomStateAt, type RoomState } from './domain/ethRooms';
+import { useEthRooms, useZurichClock } from './data/useEthRooms';
+import { RoomModeButton, RoomPanel } from './components/RoomControls';
+import { OccupancyLegend } from './components/OccupancyLegend';
+import { RoomDetails } from './components/RoomDetails';
+import { FreeRooms } from './components/FreeRooms';
+import { UzhPanel } from './components/UzhPanel';
 
 const SAVE_DEBOUNCE_MS = 400;
+const NO_DATA: RoomState = { status: 'unknown', current: null, next: null, until: 1440 };
 
 function filterEnabled(data: OccupancyData): OccupancyData {
   const libraries = data.libraries.filter((l) => l.enabled);
@@ -93,6 +102,41 @@ export default function App() {
 
   const [floorIndex, setFloorIndex] = useState<FloorIndex | null>(null);
   const [floor, setFloor] = useState(0);
+
+  // ---- live room mode (ETH room bookings) ----
+  const [roomFeatures, setRoomFeaturesState] = useState<RoomFeatures>(loadRoomFeatures);
+  const setRoomFeatures = (f: RoomFeatures) => {
+    setRoomFeaturesState(f);
+    saveRoomFeatures(f);
+  };
+  const [roomPanelOpen, setRoomPanelOpen] = useState(false);
+  const rooms = roomFeatures.enabled;
+  const { response: ethResponse, error: ethError } = useEthRooms(rooms);
+  const clock = useZurichClock(rooms);
+  // A time of today picked with the slider; null follows the clock.
+  const [pickedMinute, setPickedMinute] = useState<number | null>(null);
+  const live = !roomFeatures.timeSlider || pickedMinute === null;
+  const minute = live ? clock.minute : pickedMinute!;
+  const [selectedEthRoom, setSelectedEthRoom] = useState<string | null>(null);
+  const snapshot = ethResponse?.snapshot ?? null;
+  // Right after midnight the snapshot is still yesterday's until the next fetch.
+  const dayMismatch = !!snapshot && snapshot.date !== clock.date;
+  const roomInfos = useMemo<RoomInfo[]>(
+    () =>
+      snapshot
+        ? snapshot.rooms.map((room) => ({ room, state: dayMismatch ? NO_DATA : roomStateAt(room, minute, roomFeatures.soonMinutes) }))
+        : [],
+    [snapshot, dayMismatch, minute, roomFeatures.soonMinutes],
+  );
+  const roomInfoById = useMemo(() => new Map(roomInfos.map((i) => [i.room.id, i])), [roomInfos]);
+  /** PolyMaps unit id → ETH room, for drawing; null unless something on the map uses it. */
+  const roomsOnPlan = useMemo(() => {
+    if (!rooms || !ethResponse || !(roomFeatures.occupancy || roomFeatures.labels || roomFeatures.details)) return null;
+    const byUnit = new Map<string, RoomInfo>();
+    for (const info of roomInfos) for (const place of ethResponse.matches[info.room.id] ?? []) byUnit.set(place.unitId, info);
+    return byUnit;
+  }, [rooms, ethResponse, roomInfos, roomFeatures.occupancy, roomFeatures.labels, roomFeatures.details]);
+  const placedRooms = useMemo(() => new Set(Object.keys(ethResponse?.matches ?? {})), [ethResponse]);
 
   useEffect(() => {
     repository.load().then(
@@ -175,6 +219,27 @@ export default function App() {
     else flyTo(lib.position, lib.rooms.length ? 20 : 19);
   };
 
+  /** Opens a room's details (if that feature is on) and flies to it, on its floor. */
+  const showEthRoom = (id: string) => {
+    if (roomFeatures.details) setSelectedEthRoom(id);
+    const place = ethResponse?.matches[id]?.[0];
+    if (place) {
+      setFloor(place.floor);
+      flyTo({ lat: place.lat, lng: place.lng }, 20);
+    }
+  };
+  const selectedRoomInfo = rooms && roomFeatures.details && selectedEthRoom ? roomInfoById.get(selectedEthRoom) ?? null : null;
+  const roomStyle = minimalStyles[theme].occupancy;
+  const legendNote = !snapshot
+    ? ethResponse?.state === 'running'
+      ? `Fetching today's bookings from ETH… ${ethResponse.done} / ${ethResponse.total || '?'}`
+      : ethError || ethResponse?.error
+        ? 'Room data unavailable, see Rooms ▾'
+        : 'Loading room data…'
+    : dayMismatch
+      ? "Today's bookings are being fetched…"
+      : null;
+
   const switchMode = (m: Mode) => {
     setMode(m);
     setPlacing(null);
@@ -255,6 +320,28 @@ export default function App() {
         {mode === 'admin' && <SaveIndicator state={saveState} />}
 
         <div className="panel-body">
+          {selectedRoomInfo && (
+            <RoomDetails
+              info={selectedRoomInfo}
+              buildingName={snapshot?.buildings[selectedRoomInfo.room.building] ?? null}
+              minute={minute}
+              colors={roomStyle}
+              onClose={() => setSelectedEthRoom(null)}
+              onShowOnMap={placedRooms.has(selectedRoomInfo.room.id) ? () => showEthRoom(selectedRoomInfo.room.id) : null}
+            />
+          )}
+          {rooms && roomFeatures.freeList && snapshot && !dayMismatch && (
+            <FreeRooms
+              infos={roomInfos}
+              minute={minute}
+              live={live}
+              colors={roomStyle}
+              onMap={placedRooms}
+              selectedId={selectedRoomInfo?.room.id ?? null}
+              onSelect={showEthRoom}
+            />
+          )}
+          {rooms && roomFeatures.uzh && <UzhPanel />}
           {mode === 'view' ? (
             <ViewerPanel
               data={visible}
@@ -399,7 +486,24 @@ export default function App() {
             navigation && commitNavigation({ zones: navigation.zones.map((z) => (z.id === id ? { ...z, outline } : z)) })
           }
           homePositions={homePositions(data.libraries)}
+          ethRooms={roomsOnPlan}
+          occupancyStyle={rooms && roomFeatures.occupancy ? roomStyle : null}
+          roomLabels={rooms && roomFeatures.labels}
+          selectedEthRoom={selectedRoomInfo?.room.id ?? null}
+          onEthRoomClick={rooms && roomFeatures.details ? setSelectedEthRoom : null}
         />
+        {rooms && (roomFeatures.occupancy || roomFeatures.timeSlider) && (
+          <OccupancyLegend
+            infos={roomInfos}
+            colors={roomStyle}
+            showColors={roomFeatures.occupancy}
+            minute={minute}
+            live={live}
+            showSlider={roomFeatures.timeSlider}
+            onMinute={setPickedMinute}
+            note={legendNote}
+          />
+        )}
         <RenderControls
           theme={theme}
           mode={renderMode}
@@ -418,6 +522,21 @@ export default function App() {
             clearLocalTweaks(theme);
             setMinimalStyles({ ...minimalStyles, [theme]: standardStyles[theme] });
           }}
+          occupancyActive={rooms && roomFeatures.occupancy}
+          extraBar={
+            <RoomModeButton
+              features={roomFeatures}
+              onChange={setRoomFeatures}
+              open={roomPanelOpen}
+              onOpen={setRoomPanelOpen}
+              busy={ethResponse?.state === 'running'}
+            />
+          }
+          extraPanel={
+            rooms && roomPanelOpen ? (
+              <RoomPanel features={roomFeatures} onChange={setRoomFeatures} response={ethResponse} error={ethError} floorPlans={floorIndex !== null} />
+            ) : null
+          }
         />
       </main>
     </div>

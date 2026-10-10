@@ -11,9 +11,17 @@ serves a single-page dashboard.
 
     python eth_room_dashboard.py            # opens http://127.0.0.1:8765
     python eth_room_dashboard.py --port 9000 --no-browser
+    python eth_room_dashboard.py --snapshot # refresh the map snapshot if stale, then exit
 
 Stdlib only. Responses are cached on disk (system temp dir) so a reload of the
 same day does not hit ETH ~450 times again.
+
+The occupancy map (occupancy-map-preview) reads /api/snapshot: every room
+with today's bookings in one document. It is kept in a local file together
+with the time it was fetched (--snapshot-file, default
+occupancy-map-preview/data/cache/eth-rooms.json) and fetched again from ETH
+at most once an hour, or when the day changed. Every fetch is logged with its
+timestamp to the same path with a .log suffix.
 
 ETH Room Info endpoints used (base: https://ethz.ch/bin/ethz/roominfo?path=):
     /rooms                                   room list incl. equipment fields
@@ -58,7 +66,12 @@ META_TTL = 24 * 3600
 DAY_TTL = 6 * 3600
 DETAIL_TTL = 24 * 3600
 UZH_TTL = 120
+SNAPSHOT_TTL = 3600
+# After a failed snapshot fetch, wait this long before trying ETH again.
+SNAPSHOT_RETRY = 300
 WORKERS = 12
+SNAPSHOT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "occupancy-map-preview", "data", "cache", "eth-rooms.json")
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 ROOM_RE = re.compile(r"^[A-Z0-9]{1,6} [A-Z0-9]{1,3} [A-Za-z0-9.\-]{1,12}$")
@@ -110,6 +123,26 @@ def eth_url(path, **params):
     for k, v in params.items():
         url += f"&{k}={urllib.parse.quote(str(v))}"
     return url
+
+
+def eth_file(fid):
+    """Room photo or attachment. Files never change under their id, so they are kept on disk."""
+    path = os.path.join(CACHE_DIR, f"file-{fid}")
+    try:
+        with open(path + ".type", encoding="utf-8") as f:
+            ctype = f.read().strip()
+        with open(path, "rb") as f:
+            return f.read(), ctype
+    except OSError:
+        pass
+    body, ctype = http_get(eth_url(f"/v2/files/{fid}"))
+    if ctype.startswith(("image/", "application/pdf")):
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(body)
+        with open(path + ".type", "w", encoding="utf-8") as f:
+            f.write(ctype)
+    return body, ctype
 
 
 def eth_json(path, ttl, **params):
@@ -170,8 +203,8 @@ def normalize_allocation(a):
     }
 
 
-def room_allocations(rid, date_from, date_to):
-    raw = eth_json(f"/rooms/{rid}/allocations", DAY_TTL, **{"from": date_from, "to": date_to})
+def room_allocations(rid, date_from, date_to, ttl=DAY_TTL):
+    raw = eth_json(f"/rooms/{rid}/allocations", ttl, **{"from": date_from, "to": date_to})
     return [normalize_allocation(a) for a in raw if a.get("date_from") and a.get("date_to")]
 
 
@@ -217,6 +250,223 @@ def day_job(date):
             _day_jobs[date] = job
             threading.Thread(target=_run_day_job, args=(date, job), daemon=True).start()
     return job
+
+
+# --------------------------------------------------------------------------- #
+# Map snapshot: all rooms + today's bookings, refreshed at most hourly
+# --------------------------------------------------------------------------- #
+
+BUSY_KINDS = {"lecture", "exercise", "lecture_exercise", "course_other", "event", "reserved"}
+EQUIPMENT = [
+    ("Projector", lambda r: bool(r.get("beamer"))),
+    ("Speakers", lambda r: bool(r.get("speakers"))),
+    ("HDMI input", lambda r: (num(r.get("hdmiConnections")) or 0) > 0),
+    ("Microphones", lambda r: (num(r.get("microphones")) or 0) + (num(r.get("microphonesWireless")) or 0) > 0),
+    ("Board / wallchart", lambda r: bool(r.get("wallchart"))),
+    ("Lecturer desk", lambda r: bool(r.get("lecturersDesk"))),
+    ("Projection screen", lambda r: bool(r.get("projectionScreen"))),
+    ("Recording", lambda r: bool(r.get("record"))),
+    ("Visualizer", lambda r: bool(r.get("visualizer"))),
+    ("Video conference", lambda r: bool(r.get("videoConference"))),
+    ("Hearing assistance", lambda r: bool(r.get("hearingImpairedSupport"))),
+    ("Lecture transmission", lambda r: bool(r.get("dataTransfer"))),
+]
+
+
+def num(v):
+    """Seats etc. come back as numbers or numeric strings."""
+    try:
+        return None if v is None or v == "" else float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def zurich_now():
+    """Booking times are Zurich local time, whatever the machine's time zone."""
+    try:
+        from zoneinfo import ZoneInfo
+        return dt.datetime.now(ZoneInfo("Europe/Zurich"))
+    except Exception:  # no tz database (e.g. Windows without tzdata)
+        return dt.datetime.now().astimezone()
+
+
+def to_minute(stamp, date):
+    """'2026-10-10T08:15:00' -> minutes after midnight of `date`, clamped to the day."""
+    d = stamp[:10]
+    if d < date:
+        return 0
+    if d > date:
+        return 1440
+    h, m = int(stamp[11:13]), int(stamp[14:16])
+    return 1440 if (h, m) == (23, 59) else h * 60 + m
+
+
+def snapshot_room(r, allocations, date, type_names, error=None):
+    bookings = []
+    for a in allocations:
+        s, e = to_minute(a["start"], date), to_minute(a["end"], date)
+        if e > s:
+            bookings.append({"s": s, "e": e, "kind": a["kind"], "title": a["title"],
+                             "number": a["number"], "organiser": a["organiser"]})
+    bookings.sort(key=lambda b: (b["s"], b["e"]))
+    seats, workplaces = num(r.get("seats")), num(r.get("workplaces"))
+    return {
+        "id": room_id(r),
+        "building": r["building"],
+        "floor": r["floor"],
+        "room": r["room"],
+        "type": type_names.get(r.get("typecode")) or r.get("type") or "Unknown",
+        "seats": int(seats) if seats is not None else None,
+        "workplaces": int(workplaces) if workplaces is not None else None,
+        "campus": (r.get("location") or {}).get("areaDesc"),
+        "equipment": [label for label, has in EQUIPMENT if has(r)],
+        "bookings": bookings,
+        "error": error,
+    }
+
+
+def build_snapshot(progress):
+    """Every room with its bookings for today (Zurich), as the map consumes it."""
+    started = time.time()
+    meta = get_meta()
+    date = zurich_now().date().isoformat()
+    type_names = {t.get("typecode"): t.get("type") for t in meta["types"]}
+    rooms = meta["rooms"]
+    progress["total"], progress["done"] = len(rooms), 0
+    allocations, errors = {}, {}
+    with ThreadPoolExecutor(WORKERS) as pool:
+        futures = {pool.submit(room_allocations, room_id(r), date, date, SNAPSHOT_TTL): room_id(r) for r in rooms}
+        for fut in as_completed(futures):
+            rid = futures[fut]
+            try:
+                allocations[rid] = fut.result()
+            except Exception as e:  # keep going, the room shows as "no data"
+                errors[rid] = str(e)
+            progress["done"] += 1
+    return {
+        "schemaVersion": 1,
+        "fetchedAt": zurich_now().isoformat(timespec="seconds"),
+        "date": date,
+        "ttlSeconds": SNAPSHOT_TTL,
+        "fetchSeconds": round(time.time() - started, 1),
+        "source": ETH_BASE,
+        "buildings": {b.get("code"): b.get("name") for b in meta["buildings"]},
+        "rooms": [snapshot_room(r, allocations.get(room_id(r), []), date, type_names, errors.get(room_id(r)))
+                  for r in rooms],
+        "errors": len(errors),
+    }
+
+
+def read_snapshot(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            snap = json.load(f)
+        return snap if isinstance(snap, dict) and snap.get("fetchedAt") else None
+    except (OSError, ValueError):
+        return None
+
+
+def snapshot_age(snap, now=None):
+    """Seconds since the snapshot was fetched; None if it has no usable timestamp."""
+    try:
+        fetched = dt.datetime.fromisoformat(snap["fetchedAt"])
+    except (TypeError, KeyError, ValueError):
+        return None
+    now = now or zurich_now()
+    if fetched.tzinfo is None:
+        fetched = fetched.astimezone()
+    return (now - fetched).total_seconds()
+
+
+def snapshot_stale(snap, now=None):
+    """Older than an hour, from another day, or missing."""
+    if not snap:
+        return True
+    now = now or zurich_now()
+    age = snapshot_age(snap, now)
+    return age is None or age >= SNAPSHOT_TTL or snap.get("date") != now.date().isoformat()
+
+
+def write_snapshot(path, snap):
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(snap, f, ensure_ascii=False, separators=(",", ":"))
+    os.replace(tmp, path)
+
+
+def log_fetch(path, line):
+    """Appends one line per ETH fetch, starting with its timestamp, to <snapshot>.log."""
+    try:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(os.path.splitext(path)[0] + ".log", "a", encoding="utf-8") as f:
+            f.write(f"{zurich_now().isoformat(timespec='seconds')}\t{line}\n")
+    except OSError:
+        pass
+
+
+class Snapshots:
+    """The snapshot file plus at most one background refresh at a time."""
+
+    def __init__(self, path):
+        self.path = path
+        self.lock = threading.Lock()
+        self.value = read_snapshot(path)
+        self.running = False
+        self.progress = {"done": 0, "total": 0}
+        self.error = None
+        self.failed_at = 0.0
+
+    def refresh(self):
+        """Fetches from ETH and stores the result; keeps the old snapshot on failure."""
+        try:
+            snap = build_snapshot(self.progress)
+            write_snapshot(self.path, snap)
+            log_fetch(self.path, f"ok\tdate={snap['date']}\trooms={len(snap['rooms'])}"
+                                 f"\terrors={snap['errors']}\tseconds={snap['fetchSeconds']}")
+            with self.lock:
+                self.value, self.error = snap, None
+        except Exception as e:
+            log_fetch(self.path, f"failed\t{type(e).__name__}: {e}")
+            with self.lock:
+                self.error, self.failed_at = f"{type(e).__name__}: {e}", time.time()
+        finally:
+            with self.lock:
+                self.running = False
+
+    def status(self, background=True):
+        """Current snapshot and refresh state; starts a refresh when it is stale."""
+        with self.lock:
+            # Another process (e.g. a cron --snapshot run) may have written a newer file.
+            if snapshot_stale(self.value):
+                on_disk = read_snapshot(self.path)
+                if on_disk and not snapshot_stale(on_disk):
+                    self.value = on_disk
+            start = (snapshot_stale(self.value) and not self.running
+                     and time.time() - self.failed_at >= SNAPSHOT_RETRY)
+            if start:
+                self.running, self.progress = True, {"done": 0, "total": 0}
+        if start:
+            if background:
+                threading.Thread(target=self.refresh, daemon=True).start()
+            else:
+                self.refresh()
+        with self.lock:
+            snap = self.value
+            age = snapshot_age(snap) if snap else None
+            return {
+                "state": "running" if self.running else "error" if self.error and snapshot_stale(snap) else "ok",
+                "done": self.progress["done"],
+                "total": self.progress["total"],
+                "error": self.error,
+                "stale": snapshot_stale(snap),
+                "ageSeconds": None if age is None else round(age),
+                "nextFetchInSeconds": None if age is None else max(0, round(SNAPSHOT_TTL - age)),
+                "snapshot": snap,
+            }
+
+
+snapshots = None  # set in main()
 
 
 # --------------------------------------------------------------------------- #
@@ -317,10 +567,12 @@ class Handler(BaseHTTPRequestHandler):
                 fid = q.get("id", "")
                 if not fid.isdigit():
                     return self._bad("bad file id")
-                body, ctype = http_get(eth_url(f"/v2/files/{fid}"))
+                body, ctype = eth_file(fid)
                 self._send(200, body, ctype, cache="max-age=86400")
             elif url.path == "/api/uzh":
                 self._send(200, uzh_occupancy())
+            elif url.path == "/api/snapshot":
+                self._send(200, snapshots.status())
             else:
                 self._send(404, {"error": "not found"})
         except Exception as e:
@@ -331,7 +583,20 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--snapshot-file", default=os.environ.get("ETH_ROOMS_SNAPSHOT", SNAPSHOT_FILE),
+                    help="where the map snapshot and its fetch log are kept (default: %(default)s)")
+    ap.add_argument("--snapshot", action="store_true",
+                    help="refresh the map snapshot if it is over an hour old, print its state and exit")
     args = ap.parse_args()
+    global snapshots
+    snapshots = Snapshots(args.snapshot_file)
+    if args.snapshot:
+        st = snapshots.status(background=False)
+        snap = st["snapshot"]
+        print(f"{args.snapshot_file}: " + (f"fetched {snap['fetchedAt']}, {len(snap['rooms'])} rooms, "
+                                          f"{snap['errors']} errors" if snap else "no snapshot")
+              + (f" (last fetch failed: {st['error']})" if st["error"] else ""))
+        return
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     url = f"http://127.0.0.1:{args.port}/"
     print(f"ETH room dashboard on {url}  (cache: {CACHE_DIR})  Ctrl+C to stop")

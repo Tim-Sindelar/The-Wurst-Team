@@ -11,7 +11,8 @@ import { FloorLayer, type Theme } from './FloorLayer';
 import { VectorBasemap, OPENFREEMAP_ATTRIBUTION } from './VectorBasemap';
 import { FloorPicker } from './FloorPicker';
 import { libraryFloorLabel, levelName, loadLibraryOutlineRoomKeys, loadLibraryOutlines, outlineFromRooms, roomsKey, type FloorIndex } from '../floors/floorData';
-import { partPathOptions, roundPolygons, type MinimalStyle } from './minimalStyle';
+import { partPathOptions, roundPolygons, type MinimalStyle, type OccupancyStyle } from './minimalStyle';
+import type { RoomInfo } from '../roomFeatures';
 import type { NavigationConfig, NavZone } from '../domain/navigation';
 import { NavZones } from './NavZones';
 
@@ -73,6 +74,12 @@ interface Props {
   onNavOutlineChange: (zoneId: string, outline: MultiPolygon | null) => void;
   /** The start view (and the home button) frames these: both campuses. */
   homePositions: LatLng[];
+  /** Live room mode (see FloorLayer). */
+  ethRooms: ReadonlyMap<string, RoomInfo> | null;
+  occupancyStyle: OccupancyStyle | null;
+  roomLabels: boolean;
+  selectedEthRoom: string | null;
+  onEthRoomClick: ((ethId: string) => void) | null;
 }
 
 const toLatLng = (ll: { lat: number; lng: number }): LatLng => ({ lat: ll.lat, lng: ll.lng });
@@ -192,6 +199,11 @@ export function MapView(props: Props) {
             pickedRooms={props.pickedRooms}
             onPickRoom={props.onPickRoom}
             minimal={minimal}
+            ethRooms={props.ethRooms}
+            occupancyStyle={props.occupancyStyle}
+            roomLabels={props.roomLabels}
+            selectedEthRoom={props.selectedEthRoom}
+            onEthRoomClick={props.onEthRoomClick}
           />
           <FloorPicker index={props.floorIndex} floor={floor} libraries={data.libraries} onChange={props.onFloorChange} />
         </>
