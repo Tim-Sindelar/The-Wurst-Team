@@ -32,7 +32,7 @@ export function roundedBox(parent,size,at,color,r=.05,details=4) {
   }
   return mesh(parent,geometries.get(key),color,at);
 }
-function label(parent,text,at,width=1.4,height=.33){
+export function label(parent,text,at,width=1.4,height=.33){
   const c=document.createElement('canvas');c.width=768;c.height=160;
   const ctx=c.getContext('2d');ctx.fillStyle='#e9e7dd';ctx.fillRect(0,0,768,160);
   ctx.fillStyle='#3d4844';ctx.font='500 64px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,384,80);
@@ -79,8 +79,8 @@ export function person(parent,at,{color='#859678',skin='#d0a486',seated=false,ba
   for(const side of [-1,1]){
     const thigh=limb(hips,[side*.15,-.1,0],'#424c50',.36);
     const knee=group(thigh.pivot,[0,-.36,0]);
-    roundedBox(knee,[.17,.36,.18],[0,-.18,0],'#424c50',.025);
-    roundedBox(knee,[.21,.12,.35],[0,-.39,.07],'#deded4',.035);
+    roundedBox(knee,[.17,seated?.51:.36,.18],[0,seated?-.255:-.18,0],'#424c50',.025);
+    roundedBox(knee,[.21,.12,.35],[0,seated?-.535:-.39,.07],'#deded4',.035);
     if(seated){thigh.pivot.rotation.x=-Math.PI/2;knee.rotation.x=Math.PI/2;}
     legs.push({hip:thigh.pivot,knee});
   }
@@ -161,7 +161,7 @@ export function buildBathroom(scene){
     box(root,[.085,.05,2.65],[x,2.21,-.6],'#9fac9e');
   }
   // Front door, jamb and latch. The overhead camera sees into the enclosure.
-  roundedBox(root,[1.78,2.12,.055],[0,1.12,.725],'#c6cfc2',.025);
+  roundedBox(root,[1.78,1.88,.055],[0,1.28,.725],'#c6cfc2',.025);
   box(root,[.05,2.24,.085],[-.93,1.12,.725],'#9fac9e');
   box(root,[.05,2.24,.085],[.93,1.12,.725],'#9fac9e');
   box(root,[.13,.045,.06],[.65,1.22,.765],'#7c8981');
@@ -171,7 +171,7 @@ export function buildBathroom(scene){
   const bowl=mesh(t,new THREE.SphereGeometry(.4,12,7),'#f0f0e8',[0,.65,.12]);bowl.scale.set(1,.45,1.22);
   const seat=mesh(t,new THREE.TorusGeometry(.3,.055,5,16),'#d1d7cd',[0,.74,.12],[Math.PI/2,0,0]);seat.scale.y=1.2;
   box(t,[.13,.035,.045],[.2,1.15,-.28],'#aab4ae');
-  const student=person(root,[0,.08,-.8],{seated:true,color:'#859678'});
+  const student=person(root,[0,.005,-.8],{seated:true,color:'#859678'});
   backpack(root,[-.66,0,-.42]);
   box(root,[.06,.04,.1],[-.92,1.1,-.65],'#99a79c');
   const roll=cylinder(root,.1,.1,.17,[-.82,1.1,-.65],'#ecece1',12);roll.rotation.z=Math.PI/2;
