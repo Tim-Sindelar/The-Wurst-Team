@@ -19,11 +19,13 @@ declare global {
     polymapsBeacons?: (beacons: RawBeacon[]) => void;
     /** Set by the native shell so the page can tell the bridge is there. */
     polymapsNativeBridge?: boolean;
+    /** The Android shell's JavaScript interface (polymaps-ar/android). */
+    PolymapsAndroid?: { status(): string };
   }
 }
 
 export function nativeBridgeAvailable(): boolean {
-  return typeof window !== 'undefined' && window.polymapsNativeBridge === true;
+  return typeof window !== 'undefined' && (window.polymapsNativeBridge === true || window.PolymapsAndroid !== undefined);
 }
 
 export class NativeBridgeBeaconSource implements BeaconSource {

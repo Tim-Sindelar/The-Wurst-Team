@@ -12,7 +12,7 @@ import { GeolocationSource } from './positioning/sources/geolocation';
 import { NativeBridgeBeaconSource, nativeBridgeAvailable } from './positioning/sources/nativeBridge';
 import { SimulatedBeaconSource, type SimulatedTruth } from './positioning/sources/simulated';
 import { SimulatedGpsSource } from './positioning/sources/simulatedGps';
-import { WebBluetoothBeaconSource, webBluetoothScanningSupported } from './positioning/sources/webBluetooth';
+import { WebBluetoothBeaconSource, webBluetoothScanningSupported, webBluetoothStats } from './positioning/sources/webBluetooth';
 import type { FixSource, PositionFix } from './positioning/types';
 import { NavData } from './pathfinding/navData';
 import { RoutePanel, type PickTarget } from './pathfinding/RoutePanel';
@@ -41,7 +41,7 @@ export function App() {
   const [loadError, setLoadError] = useState<string[]>([]);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [startSim] = useState(initialSim);
-  const [bleMode, setBleMode] = useState<BleMode>(startSim ? 'simulation' : 'off');
+  const [bleMode, setBleMode] = useState<BleMode>(startSim ? 'simulation' : nativeBridgeAvailable() ? 'native' : 'off');
   const [gpsMode, setGpsMode] = useState<GpsMode>(startSim ? 'simulation' : 'off');
   const [bleFix, setBleFix] = useState<PositionFix | null>(null);
   const [gpsFix, setGpsFix] = useState<PositionFix | null>(null);
@@ -353,6 +353,7 @@ function StatusPanel({ radioMap, bleFix, gpsFix, engine }: { radioMap: RadioMap 
           {engine.lastEstimate ? ` · floor confidence ${Math.round(engine.lastEstimate.levelConfidence * 100)} %` : ''}
         </p>
       )}
+      {engine?.name === 'BLE (Web Bluetooth)' && <WebBluetoothDiagnostics />}
       <h3>How the BLE position is computed</h3>
       <p>
         PolyMaps positions phones with ~12 000 Bluetooth iBeacons (UUID <code>{radioMap?.index.uuid[0] ?? '…'}</code>). Its radio map, the
@@ -370,5 +371,23 @@ function StatusPanel({ radioMap, bleFix, gpsFix, engine }: { radioMap: RadioMap 
         <li><b>No phone:</b> BLE simulation draws scans from the radio map with realistic noise.</li>
       </ul>
     </div>
+  );
+}
+
+/** Live counters of the Web Bluetooth scan (also in the console as window.__ble). */
+function WebBluetoothDiagnostics() {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const s = webBluetoothStats;
+  const companies = [...s.companies].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  return (
+    <p className="muted">
+      Scan: {s.adverts} adverts from {s.devices.size} devices · Apple data {s.apple} · iBeacon {s.ibeacon} · PolyMaps {s.matched}
+      {companies.length > 0 && <> · companies {companies.map(([id, n]) => `0x${id.toString(16).padStart(4, '0')}×${n}`).join(' ')}</>}
+      {s.otherUuids.size > 0 && <> · other iBeacon UUIDs {[...s.otherUuids].slice(0, 3).join(', ')}</>}
+    </p>
   );
 }

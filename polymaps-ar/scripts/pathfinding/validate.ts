@@ -11,7 +11,7 @@
  *   npm run validate-routes -- --rooms [--pairs 300]   room-to-room success rate and speed
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { distance, inMultiPolygon, seededRandom, type LngLat } from '../../src/geo';
 import { findRoute } from '../../src/pathfinding/route';
 import { loadNavFromDisk } from './route';
@@ -229,7 +229,7 @@ async function main() {
   console.log(`  details: ${out}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((e) => {
     console.error(e);
     process.exit(1);

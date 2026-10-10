@@ -36,6 +36,12 @@ function sharedFloors(): Plugin {
 // HTTPS (self-signed) because camera, Web Bluetooth and motion sensors need a secure context
 // when the phone opens the dev server over the LAN. Set PLAIN_HTTP=1 for local headless testing.
 export default defineConfig({
+  // BASE_PATH=/ar/ when served under a path prefix (the VM's router). Data is fetched relative to the page.
+  base: process.env.BASE_PATH ?? '/',
   plugins: [react(), sharedFloors(), ...(process.env.PLAIN_HTTP ? [] : [basicSsl()])],
+  // Own port: 5173 is the occupancy map's, and silently moving to the next free port
+  // leaves the phone pointing at the wrong server.
+  server: { host: true, port: 5443, strictPort: true },
+  preview: { host: true, port: 5443, strictPort: true },
   test: { environment: 'node' },
 });

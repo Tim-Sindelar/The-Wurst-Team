@@ -9,7 +9,7 @@ python scraper/scrape_polymaps.py scraper/polymaps_data   # PolyMaps layers (flo
 python scraper/extract_floors.py                          # -> occupancy-map-preview/public/floors
 python scraper/extract_ips.py                             # -> polymaps-ar/public/ips (downloads the radio map)
 python scraper/pathfinding/build_navigation.py            # -> polymaps-ar/public/nav (~1.5 min; numpy pillow scipy shapely)
-cd polymaps-ar && npm install && npm run dev              # https://<your-ip>:5173 (self-signed)
+cd polymaps-ar && npm install && npm run dev              # https://<your-ip>:5443 (self-signed)
 ```
 
 | command | what |

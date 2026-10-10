@@ -3,7 +3,7 @@
  *   npm run route -- "HG E 41" "CAB G 61"      (NAV_DIR=... to use another nav directory)
  */
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { NavData, cellCenter, type NavIndex } from '../../src/pathfinding/navData';
 import { describe, findRoute } from '../../src/pathfinding/route';
 
@@ -34,4 +34,4 @@ async function main() {
   for (const line of describe(route, (id) => id.replace('ETH.', ''))) console.log('  ' + line);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main().catch((e) => (console.error(e.message), process.exit(1)));
+if (import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((e) => (console.error(e.message), process.exit(1)));

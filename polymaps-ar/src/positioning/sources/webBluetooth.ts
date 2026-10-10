@@ -31,6 +31,24 @@ export function webBluetoothScanningSupported(): boolean {
   return bluetooth() !== null;
 }
 
+/** What the last scan received, to tell "Chrome delivers nothing" from "our filter drops it". */
+export const webBluetoothStats = {
+  adverts: 0,
+  apple: 0,
+  ibeacon: 0,
+  matched: 0,
+  devices: new Set<string>(),
+  companies: new Map<number, number>(),
+  otherUuids: new Set<string>(),
+  reset() {
+    this.adverts = this.apple = this.ibeacon = this.matched = 0;
+    this.devices.clear();
+    this.companies.clear();
+    this.otherUuids.clear();
+  },
+};
+(globalThis as { __ble?: typeof webBluetoothStats }).__ble = webBluetoothStats;
+
 export class WebBluetoothBeaconSource implements BeaconSource {
   readonly name = 'Web Bluetooth';
   private scan: LEScan | null = null;
@@ -45,15 +63,33 @@ export class WebBluetoothBeaconSource implements BeaconSource {
     const bt = bluetooth();
     if (!bt) throw new Error('Web Bluetooth scanning is not available (Chrome Android with experimental web platform features)');
     this.listener = (e: Event) => {
-      const ev = e as AdvertisementEvent;
+      const ev = e as AdvertisementEvent & { device?: { id: string } };
+      const st = webBluetoothStats;
+      st.adverts++;
+      if (ev.device) st.devices.add(ev.device.id);
+      ev.manufacturerData?.forEach((_, id) => st.companies.set(id, (st.companies.get(id) ?? 0) + 1));
       const data = ev.manufacturerData?.get(APPLE_COMPANY_ID);
       if (!data || ev.rssi === undefined) return;
+      st.apple++;
       const frame = parseIBeacon(data);
-      if (!frame || !this.uuids.has(frame.uuid)) return;
+      if (!frame) return;
+      st.ibeacon++;
+      if (!this.uuids.has(frame.uuid)) return void st.otherUuids.add(frame.uuid);
+      st.matched++;
       onReadings([{ ...frame, rssi: ev.rssi, timestamp: Date.now() }]);
     };
+    webBluetoothStats.reset();
     bt.addEventListener('advertisementreceived', this.listener);
-    this.scan = await bt.requestLEScan({ acceptAllAdvertisements: true, keepRepeatedDevices: true });
+    try {
+      this.scan = await bt.requestLEScan({ acceptAllAdvertisements: true, keepRepeatedDevices: true });
+    } catch (e) {
+      // Chrome's "Bluetooth adapter not available" usually means a missing Android permission, not missing hardware.
+      if (e instanceof DOMException && e.name === 'NotFoundError')
+        throw new Error(
+          `${e.message}. Turn on Bluetooth and Location, and give Chrome the "Nearby devices" and "Location" permissions (Android Settings > Apps > Chrome > Permissions).`,
+        );
+      throw e;
+    }
   }
 
   stop(): void {
