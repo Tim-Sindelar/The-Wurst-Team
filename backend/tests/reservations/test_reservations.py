@@ -489,3 +489,36 @@ def test_recents_follow_bookings_and_scans_per_user(client, seats):
     # A refused booking leaves no trace.
     assert book(client, seats[2], me).status_code == 409
     assert client.get("/api/v1/me/recents", headers=me).json() == {"space_ids": [space]}
+
+
+def test_popular_spaces_rank_last_weeks_occupancy(client, seats, clock):
+    space = str(seats[0].space_id)
+    popular = lambda: client.get("/api/v1/spaces/popular").json()["space_ids"]  # noqa: E731
+    # Nothing used yet: every space at 0%, by name; the seatless room ranks too.
+    assert popular()[1] == space and len(popular()) == 2
+    me = identity()
+    reservation = walk_up(client, seats[0], me).json()["reservation"]
+    clock.advance(minutes=30)
+    assert popular()[0] == space  # a running session counts up to now
+    assert action(client, reservation["id"], "end", me).status_code == 200
+    clock.advance(minutes=60 * 24 * 7 - 1)
+    assert popular()[0] == space  # the last minute of it is still in the window
+    clock.advance(minutes=1)
+    assert popular()[1] == space
+
+
+def test_popular_spaces_compare_shares_not_seat_time(client, db, seats, clock):
+    with Session(db, expire_on_commit=False) as session:
+        small = session.scalar(select(StudySpace).where(StudySpace.name == "Empty test room"))
+        lone = Seat(space_id=small.id, label="B-1", qr_token=uuid4().hex)
+        session.add(lone)
+        session.commit()
+    # An hour on 2 of 3 seats is more seat time than an hour on the only seat,
+    # but a smaller share of the room.
+    for seat in (*seats[:2], lone):
+        assert walk_up(client, seat, identity()).status_code == 200
+    clock.advance(minutes=60)
+    assert client.get("/api/v1/spaces/popular").json()["space_ids"] == [
+        str(small.id),
+        str(seats[0].space_id),
+    ]

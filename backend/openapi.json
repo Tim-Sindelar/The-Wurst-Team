@@ -2571,6 +2571,24 @@
         "title": "PeopleResponse",
         "type": "object"
       },
+      "PopularSpacesResponse": {
+        "description": "Space ids, the most occupied over the last week first.",
+        "properties": {
+          "space_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Space Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "space_ids"
+        ],
+        "title": "PopularSpacesResponse",
+        "type": "object"
+      },
       "PrivacyUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -7993,6 +8011,67 @@
           }
         },
         "summary": "List Spaces",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/spaces/popular": {
+      "get": {
+        "operationId": "list_popular_spaces",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PopularSpacesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Popular Spaces",
         "tags": [
           "reservations"
         ]

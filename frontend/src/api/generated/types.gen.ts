@@ -1467,6 +1467,18 @@ export type PeopleResponse = {
 };
 
 /**
+ * PopularSpacesResponse
+ *
+ * Space ids, the most occupied over the last week first.
+ */
+export type PopularSpacesResponse = {
+    /**
+     * Space Ids
+     */
+    space_ids: Array<string>;
+};
+
+/**
  * PrivacyUpdate
  */
 export type PrivacyUpdate = {
@@ -4530,6 +4542,43 @@ export type ListSpacesResponses = {
 };
 
 export type ListSpacesResponse = ListSpacesResponses[keyof ListSpacesResponses];
+
+export type ListPopularSpacesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/spaces/popular';
+};
+
+export type ListPopularSpacesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListPopularSpacesError = ListPopularSpacesErrors[keyof ListPopularSpacesErrors];
+
+export type ListPopularSpacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PopularSpacesResponse;
+};
+
+export type ListPopularSpacesResponse = ListPopularSpacesResponses[keyof ListPopularSpacesResponses];
 
 export type GetSpaceData = {
     body?: never;

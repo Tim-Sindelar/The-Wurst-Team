@@ -24,6 +24,7 @@ from app.features.reservations.schemas import (
     FavouritesResponse,
     MyReservationResponse,
     OpeningInterval,
+    PopularSpacesResponse,
     RecentsResponse,
     ReservationAction,
     ReservationDetails,
@@ -42,6 +43,34 @@ from app.models.recent import RecentSpace
 
 LIVE_STATUSES = {"upcoming", "pending", "active", "on_break"}
 RECENTS_LIMIT = 10
+POPULAR_LIMIT = 5
+POPULAR_WINDOW = timedelta(days=7)
+
+# Share of each space's seat time that was checked in during [since, until): seconds
+# sat (breaks included) over active seats times the space's weekly opening hours.
+# A seven-day window covers each weekday once, so the weekly hours are the open time.
+POPULAR_SPACES = text("""
+    WITH used AS (
+        SELECT seat.space_id, sum(extract(epoch FROM
+            LEAST(r.effective_ends_at, :until) - GREATEST(r.checked_in_at, :since)
+        )) AS seconds
+        FROM reservation_states_at(:until) r JOIN seats seat ON seat.id = r.seat_id
+        WHERE r.checked_in_at < :until AND r.effective_ends_at > :since
+        GROUP BY seat.space_id
+    ), capacity AS (
+        SELECT space.id AS space_id,
+            (SELECT count(*) FROM seats seat
+                WHERE seat.space_id = space.id AND seat.is_active)
+            * (SELECT COALESCE(sum(h.end_minute - h.start_minute), 0) * 60
+                FROM space_opening_intervals h WHERE h.space_id = space.id) AS seconds
+        FROM study_spaces space
+    )
+    SELECT c.space_id FROM capacity c
+    JOIN study_spaces space ON space.id = c.space_id
+    LEFT JOIN used u ON u.space_id = c.space_id
+    ORDER BY COALESCE(u.seconds / NULLIF(c.seconds, 0), 0) DESC, space.name, space.id
+    LIMIT :limit
+""")
 
 
 class BookingError(Exception):
@@ -430,6 +459,14 @@ class ReservationService:
             )
         self.session.flush()
         return self.favourites(user_id)
+
+    def popular(self) -> PopularSpacesResponse:
+        now = self.now()
+        ids = self.session.scalars(
+            POPULAR_SPACES,
+            {"since": now - POPULAR_WINDOW, "until": now, "limit": POPULAR_LIMIT},
+        ).all()
+        return PopularSpacesResponse(space_ids=list(ids))
 
     def recents(self, user_id: UUID) -> RecentsResponse:
         ids = self.session.scalars(

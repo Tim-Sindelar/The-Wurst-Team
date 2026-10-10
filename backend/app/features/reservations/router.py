@@ -14,6 +14,7 @@ from app.features.reservations.schemas import (
     CreateReservationRequest,
     FavouritesResponse,
     MyReservationResponse,
+    PopularSpacesResponse,
     RecentsResponse,
     RequestValidationErrorResponse,
     ReservationResponse,
@@ -70,6 +71,13 @@ def get_rules(settings: Annotated[Settings, Depends(get_settings)]) -> RulesResp
 @router.get("/spaces", response_model=SpacesResponse, operation_id="list_spaces")
 def list_spaces(service: Service, map_room_id: str | None = None) -> SpacesResponse:
     return service.spaces(map_room_id)
+
+
+@router.get(
+    "/spaces/popular", response_model=PopularSpacesResponse, operation_id="list_popular_spaces"
+)
+def list_popular_spaces(service: Service) -> PopularSpacesResponse:
+    return service.popular()
 
 
 @router.get("/me/favourites", response_model=FavouritesResponse, operation_id="list_favourites")

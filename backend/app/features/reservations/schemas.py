@@ -111,6 +111,12 @@ class RecentsResponse(BaseModel):
     space_ids: list[UUID]
 
 
+class PopularSpacesResponse(BaseModel):
+    """Space ids, the most occupied over the last week first."""
+
+    space_ids: list[UUID]
+
+
 class SpaceResponse(BaseModel):
     server_time: datetime
     space: SpaceDetail
