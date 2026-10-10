@@ -13,7 +13,6 @@ import type { LatLngBoundsLiteral } from 'leaflet';
 import { Link } from 'react-router';
 import { cx } from '../components/cx';
 import { Icon, type IconName } from '../components/Icon';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { paths } from '../routes';
 import { FreeRooms } from './components/FreeRooms';
 import { OccupancyLegend } from './components/OccupancyLegend';
@@ -569,7 +568,6 @@ export function CampusMap() {
           >
             Campus map
           </Title>
-          <ThemeToggle />
         </div>
       </header>
 

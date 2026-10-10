@@ -54,11 +54,28 @@ export function SeatMapScreen() {
     [space?.seats, ownSeatId],
   );
 
+  const freeCount = space
+    ? space.seats.filter((item) => item.state === 'free').length
+    : 0;
+  const level = space
+    ? describeAvailability(space.free_seats, space.total_seats, space.is_open)
+    : null;
+
   const header = (
     <ScreenHeader
-      title="Study Spaces"
+      title={space?.name ?? 'Study Spaces'}
       backTo={paths.home}
       backLabel="Back to home"
+      subtitle={
+        space &&
+        level && (
+          <AvailabilityLabel availability={level.availability} size="small">
+            {space.is_open
+              ? `${freeCount} free of ${space.seats.length} seats`
+              : 'Closed right now'}
+          </AvailabilityLabel>
+        )
+      }
     />
   );
 
@@ -109,13 +126,6 @@ export function SeatMapScreen() {
     seats.find((item) => item.state === 'free') ??
     seats[0];
   const seat = seats.find((item) => item.id === picked) ?? fallback;
-  const freeCount = seats.filter((item) => item.state === 'free').length;
-  const level = describeAvailability(
-    space.free_seats,
-    space.total_seats,
-    space.is_open,
-  );
-
   const timeFormat = new Intl.DateTimeFormat(undefined, {
     hour: '2-digit',
     minute: '2-digit',
@@ -175,17 +185,6 @@ export function SeatMapScreen() {
       {header}
 
       <ScreenMain fit>
-        <div className="grid gap-1">
-          <Title order={2} className="text-heading">
-            {space.name}
-          </Title>
-          <AvailabilityLabel availability={level.availability} size="small">
-            {space.is_open
-              ? `${freeCount} free of ${seats.length} seats`
-              : 'Closed right now'}
-          </AvailabilityLabel>
-        </div>
-
         {hidden > 0 && (
           <Alert
             variant="warning"
@@ -235,14 +234,16 @@ export function SeatMapScreen() {
       </ScreenMain>
 
       <ActionBar>
-        <Button
-          variant="secondary"
-          fullWidth
-          disabled={!seats.some((item) => item.state === 'free')}
-          onClick={chooseAnyFree}
-        >
-          Choose any free seat
-        </Button>
+        {ownSeatId === null && (
+          <Button
+            variant="secondary"
+            fullWidth
+            disabled={!seats.some((item) => item.state === 'free')}
+            onClick={chooseAnyFree}
+          >
+            Choose any free seat
+          </Button>
+        )}
         <Button
           fullWidth
           disabled={!own && !canReserve}

@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { cx } from './cx';
 import { Icon } from './Icon';
-import { ThemeToggle } from './ThemeToggle';
 
 /* The phone column every screen sits in: 390px wide, centred on desktop,
    full height, with the action bar pinned to the bottom. */
@@ -31,19 +30,35 @@ type ScreenHeaderProps = {
   title: string;
   backTo: string;
   backLabel: string;
+  /** A line under the title, such as how many seats are free. */
+  subtitle?: ReactNode;
 };
 
-/** Top bar: back arrow, screen title, theme switch. */
-export function ScreenHeader({ title, backTo, backLabel }: ScreenHeaderProps) {
+/** Top bar: back arrow, screen title (and optional subtitle). */
+export function ScreenHeader({
+  title,
+  backTo,
+  backLabel,
+  subtitle,
+}: ScreenHeaderProps) {
   return (
-    <header className="flex min-h-16 items-center gap-2 border-b border-border bg-surface pr-2 pl-4">
-      <ActionIcon component={Link} to={backTo} aria-label={backLabel}>
-        <Icon name="back" />
-      </ActionIcon>
-      <Title order={1} className="min-w-0 flex-1 truncate text-title font-bold">
-        {title}
-      </Title>
-      <ThemeToggle />
+    <header className="border-b border-border bg-surface">
+      <div className="flex min-h-16 items-center gap-2 pr-2 pl-4">
+        <ActionIcon component={Link} to={backTo} aria-label={backLabel}>
+          <Icon name="back" />
+        </ActionIcon>
+        <Title
+          order={1}
+          className={cx(
+            'min-w-0 flex-1 text-title font-bold',
+            subtitle ? 'line-clamp-2 [overflow-wrap:anywhere]' : 'truncate',
+          )}
+        >
+          {title}
+        </Title>
+      </div>
+      {/* Lines up under the title: gutter + 44px back button + gap. */}
+      {subtitle && <div className="-mt-4 pr-4 pb-3 pl-17">{subtitle}</div>}
     </header>
   );
 }

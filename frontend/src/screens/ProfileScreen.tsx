@@ -22,6 +22,7 @@ import {
   ScreenMain,
 } from '../components/Screen';
 import { SectionLabel } from '../components/SectionLabel';
+import { ThemeSwitch } from '../components/ThemeSwitch';
 import { StatusBanner } from '../components/StatusBanner';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { paths } from '../routes';
@@ -228,6 +229,11 @@ function ProfileEditor({
               {error ?? saveError}
             </Alert>
           )}
+        </Card>
+
+        <SectionLabel>Appearance</SectionLabel>
+        <Card component="section" aria-label="Appearance settings">
+          <ThemeSwitch />
         </Card>
 
         <SectionLabel>Notifications</SectionLabel>

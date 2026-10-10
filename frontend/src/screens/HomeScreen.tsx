@@ -8,7 +8,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { cx } from '../components/cx';
@@ -16,7 +16,6 @@ import { Icon } from '../components/Icon';
 import { Screen, ScreenMain } from '../components/Screen';
 import { SectionLabel } from '../components/SectionLabel';
 import { SpaceCard } from '../components/SpaceCard';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { stripeClass, type SeatState } from '../domain/seat';
 import {
   favouriteSpaces,
@@ -27,6 +26,8 @@ import {
 } from '../domain/space';
 import { useFavourites } from '../hooks/useFavourites';
 import { useRecents } from '../hooks/useRecents';
+import { formatCountdown, secondsUntil } from '../hooks/useCountdown';
+import { useNow } from '../hooks/useNow';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useMyReservation } from '../hooks/useMyReservation';
 import { paths } from '../routes';
@@ -42,6 +43,7 @@ export function HomeScreen() {
     reservation,
     held,
     running,
+    toClient,
   } = useMyReservation();
   const favourites = useFavourites();
   const recents = useRecents();
@@ -66,7 +68,6 @@ export function HomeScreen() {
         <div className="flex items-center justify-between gap-2">
           <Title order={1}>Study Spaces</Title>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <ActionIcon
               component={Link}
               to={paths.profile}
@@ -98,7 +99,18 @@ export function HomeScreen() {
             stripe={held ? 'reserved' : 'yours'}
             title={`Seat ${reservation.seat.label} · ${reservation.space.name}`}
             detail={
-              held ? 'Reserved · tap to check in' : 'In session · tap to open'
+              held ? (
+                'Reserved · tap to check in'
+              ) : (
+                <SessionDetail
+                  onBreak={running?.status === 'on_break'}
+                  endsAt={
+                    running?.status === 'on_break' && running.current_break
+                      ? toClient(running.current_break.ends_at)
+                      : toClient(running!.ends_at)
+                  }
+                />
+              )
             }
           />
         )}
@@ -173,25 +185,6 @@ export function HomeScreen() {
               ),
           )
         )}
-
-        <Card
-          component={Link}
-          to={paths.map}
-          className="no-underline hover:shadow-[inset_0_0_0_100px_var(--color-hover),var(--shadow-card)]"
-        >
-          <div className="flex items-center gap-3">
-            <Icon name="map" size="lg" className="flex-none text-accent" />
-            <div className="grid min-w-0 flex-1 gap-1">
-              <Title order={2} className="text-title">
-                Campus map
-              </Title>
-              <Text size="sm" c="dimmed">
-                Workspaces, free rooms, mensas and transport on the floor plans
-              </Text>
-            </div>
-            <Icon name="chevronRight" />
-          </div>
-        </Card>
       </ScreenMain>
     </Screen>
   );
@@ -201,7 +194,7 @@ type BookingCardProps = {
   to: string;
   stripe: SeatState;
   title: string;
-  detail: string;
+  detail: ReactNode;
 };
 
 /** The card for a held or running booking, linking to its screen. */
@@ -252,5 +245,25 @@ function SpaceRow({ id, title, spaces, onToggleFavourite }: SpaceRowProps) {
         ))}
       </ul>
     </section>
+  );
+}
+
+/** "In session" (or "On break") with the time left ticking next to it. */
+function SessionDetail({
+  onBreak,
+  endsAt,
+}: {
+  onBreak: boolean;
+  endsAt: number;
+}) {
+  const now = useNow();
+  return (
+    <>
+      {onBreak ? 'On break' : 'In session'} ·{' '}
+      <span className="font-bold tabular-nums">
+        {formatCountdown(secondsUntil(endsAt, now))}
+      </span>{' '}
+      left
+    </>
   );
 }
