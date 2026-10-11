@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Study Spaces 4K fallback capture</title>
+  <style>
+    html,body{margin:0;width:3840px;height:2160px;overflow:hidden;background:#eeece6}
+    iframe{position:absolute;inset:0;width:1280px;height:720px;border:0;transform:scale(3);transform-origin:top left}
+    html.editing,html.editing body{width:1280px;height:720px}
+    html.editing iframe{transform:none}
+    #toggle{position:fixed;left:0;top:0;width:1px;height:1px;padding:0;border:0;opacity:0;z-index:10}
+  </style>
+</head>
+<body>
+  <iframe id="pitch-frame" title="Study Spaces 4K capture"></iframe>
+  <button id="toggle" aria-label="Toggle capture editing"></button>
+  <script>
+    const params=new URLSearchParams(location.search);
+    params.set('quality','export');
+    document.getElementById('pitch-frame').src='/?'+params.toString();
+    document.getElementById('toggle').addEventListener('click',()=>document.documentElement.classList.toggle('editing'));
+  </script>
+</body>
+</html>

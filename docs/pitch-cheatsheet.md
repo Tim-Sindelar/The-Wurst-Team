@@ -6,7 +6,7 @@
 - Local app: **http://localhost:5173/**
 - Local admin: **http://localhost:5173/admin**
 - Hosted app for the iPhone: **https://02.hackathon.ethz.ch/**
-- Offline files: `pitch/fallback/output/Study-Spaces-Pitch-Fallback.pptx` and `.pdf`
+- Offline files: `pitch/fallback/output/Study-Spaces-Pitch-Fallback-4K.pptx` and `.pdf`
 
 Keep the PDF open on another desktop, and keep FaceTime's phone share and camera feed connected. The normal presentation URL must not contain `capture=`.
 

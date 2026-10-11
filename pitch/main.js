@@ -23,7 +23,8 @@ try{
   throw error;
 }
 const lowQuality=new URLSearchParams(location.search).get('quality')==='low';
-renderer.setPixelRatio(Math.min(devicePixelRatio,lowQuality?1:1.25));
+const exportQuality=new URLSearchParams(location.search).get('quality')==='export';
+renderer.setPixelRatio(exportQuality?3:Math.min(devicePixelRatio,lowQuality?1:1.25));
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -321,7 +322,7 @@ function resize(){
 }
 function render(now){
   const rawDelta=now-last,delta=Math.min(rawDelta,100);last=now;
-  if(current===2&&rawDelta>0&&rawDelta<180){frameTotal+=rawDelta;frameSamples++;if(frameSamples===90&&frameTotal/frameSamples>28&&!lowQuality){renderer.setPixelRatio(1);forceDraw=true;}}
+  if(current===2&&rawDelta>0&&rawDelta<180){frameTotal+=rawDelta;frameSamples++;if(frameSamples===90&&frameTotal/frameSamples>28&&!lowQuality&&!exportQuality){renderer.setPixelRatio(1);forceDraw=true;}}
   if(!paused){elapsed+=delta;transition+=delta;updateCut(delta);}
   if(current===0)exteriorMotion();
   else if(current===1)hallMotion();
