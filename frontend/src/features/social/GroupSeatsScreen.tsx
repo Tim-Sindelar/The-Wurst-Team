@@ -23,7 +23,6 @@ import {
 import { AvailabilityLabel } from '../../components/AvailabilityLabel';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
-import { notify } from '../../components/notify';
 import { ActionBar, Screen, ScreenHeader } from '../../components/Screen';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { SpaceLists } from '../../components/SpaceLists';
@@ -57,7 +56,7 @@ export function GroupSeatsScreen() {
     <ScreenHeader
       title="Book together"
       backTo={groupPath(groupId)}
-      backLabel="Back to study group"
+      backLabel="Back to study party"
     />
   );
   if (!group)
@@ -71,8 +70,8 @@ export function GroupSeatsScreen() {
             retry={social.missing ? undefined : social.retry}
             title={
               social.missing
-                ? 'Study group not found'
-                : "Couldn't load this study group"
+                ? 'Study party not found'
+                : "Couldn't load this study party"
             }
           />
         </div>
@@ -266,10 +265,7 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
         }
       },
     );
-    if (ok) {
-      notify(`${group.name} is booked`, 'calendarCheck');
-      navigate(paths.reservation);
-    }
+    if (ok) navigate(paths.reservation);
   };
 
   /* The picker card's height, so a chosen seat is centred above it. */
@@ -297,7 +293,7 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
       <ScreenHeader
         title={room?.name ?? 'Book together'}
         backTo={groupPath(group.id)}
-        backLabel="Back to study group"
+        backLabel="Back to study party"
         subtitle={
           room &&
           level && (
@@ -407,7 +403,7 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
 
         <section
           ref={pickerRef}
-          aria-label="Seats for your group"
+          aria-label="Seats for your party"
           className="absolute inset-x-0 bottom-0 z-2 grid gap-3 rounded-t-sheet border border-b-0 border-border bg-surface p-4 shadow-card"
         >
           <div className="flex items-center gap-3" aria-live="polite">

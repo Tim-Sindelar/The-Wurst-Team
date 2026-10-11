@@ -8,7 +8,6 @@ import type {
 } from '../../api/generated';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
-import { notify } from '../../components/notify';
 import {
   ActionBar,
   Screen,
@@ -216,10 +215,7 @@ export function FriendsScreen() {
               path: { friendship_id: friend.friendship_id },
             }),
           );
-          if (ok) {
-            setRemoving(null);
-            notify('Friend removed');
-          }
+          if (ok) setRemoving(null);
         }}
       >
         {actions.error || 'You’ll stop seeing each other’s rooms.'}
@@ -256,16 +252,13 @@ function SearchResults({
           variant="secondary"
           disabled={actions.busy}
           aria-label={`Accept ${person.name}`}
-          onClick={async () => {
-            if (
-              await actions.run(() =>
-                actions.acceptRequest.mutateAsync({
-                  path: { friendship_id: person.friendship_id! },
-                }),
-              )
+          onClick={() =>
+            actions.run(() =>
+              actions.acceptRequest.mutateAsync({
+                path: { friendship_id: person.friendship_id! },
+              }),
             )
-              notify(`You’re now friends with ${person.name}`, 'userCheck');
-          }}
+          }
         >
           Accept
         </Button>
@@ -276,16 +269,13 @@ function SearchResults({
           variant="quiet"
           disabled={actions.busy}
           aria-label={`Cancel request to ${person.name}`}
-          onClick={async () => {
-            if (
-              await actions.run(() =>
-                actions.removeFriendship.mutateAsync({
-                  path: { friendship_id: person.friendship_id! },
-                }),
-              )
+          onClick={() =>
+            actions.run(() =>
+              actions.removeFriendship.mutateAsync({
+                path: { friendship_id: person.friendship_id! },
+              }),
             )
-              notify('Request cancelled');
-          }}
+          }
         >
           Requested
         </Button>
@@ -296,14 +286,11 @@ function SearchResults({
         disabled={actions.busy}
         leftSection={<Icon name="plus" size="sm" />}
         aria-label={`Send friend request to ${person.name}`}
-        onClick={async () => {
-          if (
-            await actions.run(() =>
-              actions.sendRequest.mutateAsync({ body: { user_id: person.id } }),
-            )
+        onClick={() =>
+          actions.run(() =>
+            actions.sendRequest.mutateAsync({ body: { user_id: person.id } }),
           )
-            notify(`Friend request sent to ${person.name}`, 'userPlus');
-        }}
+        }
       >
         Add
       </Button>
@@ -448,7 +435,7 @@ function GroupAction({ groups }: { groups: ReturnType<typeof useGroups> }) {
         disabled={unavailable}
         leftSection={<Icon name="plus" />}
       >
-        Start a study group
+        Start a study party
       </Button>
     );
   const { held, running } = groups.booking;

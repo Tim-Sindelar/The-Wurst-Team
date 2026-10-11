@@ -3,7 +3,6 @@ import { useState } from 'react';
 import type { SocialPerson } from '../../api/generated';
 import { Navigate, useNavigate } from 'react-router';
 import { Icon } from '../../components/Icon';
-import { notify } from '../../components/notify';
 import {
   ActionBar,
   Screen,
@@ -72,21 +71,13 @@ export function NewGroupScreen() {
         });
     });
     /* The group exists even if an invitation failed: open it, the error shows there. */
-    if (id) {
-      if (ok)
-        notify(
-          picked.length
-            ? `${name.trim()} created · ${picked.length} invited`
-            : `${name.trim()} created`,
-        );
-      navigate(groupPath(id));
-    }
+    if (id) navigate(groupPath(id));
   };
 
   return (
     <Screen>
       <ScreenHeader
-        title="New study group"
+        title="New study party"
         backTo={socialPaths.friends}
         backLabel="Back to friends"
       />
@@ -103,7 +94,7 @@ export function NewGroupScreen() {
 
         {last && lastPeople && (
           <>
-            <SectionLabel>Last group</SectionLabel>
+            <SectionLabel>Last party</SectionLabel>
             <Card component="section" aria-label={`${last.name}, cancelled`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="grid min-w-0 gap-1">
@@ -128,7 +119,7 @@ export function NewGroupScreen() {
               </div>
               <AvatarStack people={lastPeople} />
             </Card>
-            <SectionLabel>New group</SectionLabel>
+            <SectionLabel>New party</SectionLabel>
           </>
         )}
 
@@ -215,10 +206,10 @@ export function NewGroupScreen() {
           loading={actions.busy}
         >
           {!named
-            ? 'Name your group'
+            ? 'Name your party'
             : picked.length
               ? `Create and invite ${picked.length}`
-              : 'Create study group'}
+              : 'Create study party'}
         </Button>
       </ActionBar>
     </Screen>

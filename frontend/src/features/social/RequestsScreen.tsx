@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router';
 import type { FriendRequestResponse } from '../../api/generated';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
-import { notify } from '../../components/notify';
 import { Screen, ScreenHeader, ScreenMain } from '../../components/Screen';
 import { SectionLabel } from '../../components/SectionLabel';
 import { going, type Group } from './groups';
@@ -18,7 +17,7 @@ import {
 } from './SocialParts';
 import { useFriends, useGroups, useSocialActions } from './useSocial';
 
-/** Everything waiting for an answer, opened from the header bell: study group
+/** Everything waiting for an answer, opened from the header bell: study party
     invitations, friend requests, and the requests you sent. */
 export function RequestsScreen() {
   const social = useFriends();
@@ -32,28 +31,18 @@ export function RequestsScreen() {
 
   const answer = async (request: FriendRequestResponse, accept: boolean) => {
     const path = { friendship_id: request.id };
-    const ok = await actions.run(() =>
+    await actions.run(() =>
       accept
         ? actions.acceptRequest.mutateAsync({ path })
         : actions.removeFriendship.mutateAsync({ path }),
     );
-    if (ok)
-      notify(
-        accept
-          ? `You’re now friends with ${request.person.name}`
-          : 'Request declined',
-        accept ? 'userCheck' : 'check',
-      );
   };
   const cancel = async (request: FriendRequestResponse) => {
-    if (
-      await actions.run(() =>
-        actions.removeFriendship.mutateAsync({
-          path: { friendship_id: request.id },
-        }),
-      )
-    )
-      notify('Request cancelled');
+    await actions.run(() =>
+      actions.removeFriendship.mutateAsync({
+        path: { friendship_id: request.id },
+      }),
+    );
   };
 
   const loading = social.loading || groups.loading;
@@ -203,7 +192,7 @@ export function RequestsScreen() {
             : `Decline ${sheet?.group.name ?? ''}?`
         }
         safeLabel="Not now"
-        actionLabel={sheet?.choice === 'join' ? 'Join group' : 'Decline'}
+        actionLabel={sheet?.choice === 'join' ? 'Join party' : 'Decline'}
         actionTone={sheet?.choice === 'join' ? 'primary' : 'danger'}
         onConfirm={async () => {
           if (!sheet) return;
@@ -216,10 +205,7 @@ export function RequestsScreen() {
           );
           if (!ok) return;
           setSheet(null);
-          if (choice === 'join') {
-            notify(`You joined ${group.name}`, 'userCheck');
-            navigate(groupPath(group.id));
-          } else notify('Invitation declined');
+          if (choice === 'join') navigate(groupPath(group.id));
         }}
       >
         {actions.error ||

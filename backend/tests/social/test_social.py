@@ -202,7 +202,7 @@ def test_party_consent_and_permissions(social_client, seats):
     assert call(client, "POST", path + "/invitations", A, {"user_id": str(A)}).status_code == 409
     assert call(client, "POST", path + "/book", A, assignments(seats)).status_code == 409
     assert current(client, A) is None
-    # Study groups don't need friendship: A can invite C, who is not a friend.
+    # Study parties don't need friendship: A can invite C, who is not a friend.
     login(client, C)
     invited = call(client, "POST", path + "/invitations", A, {"user_id": str(C)})
     assert invited.status_code == 200, invited.text

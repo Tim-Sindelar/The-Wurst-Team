@@ -130,7 +130,7 @@ export function usePeopleSearch(search: string) {
   };
 }
 
-/** People to invite to a study group: friends first (all of them before
+/** People to invite to a study party: friends first (all of them before
     anything is typed), then anyone else whose name matches. */
 export function useInvitable(search: string) {
   const social = useFriends();
@@ -155,7 +155,7 @@ export function useInvitable(search: string) {
   };
 }
 
-/** Your study groups: the one you're in, open invitations, and the last one you
+/** Your study parties: the one you're in, open invitations, and the last one you
     cancelled. */
 export function useGroups() {
   const available = useSocialAvailable();
@@ -188,7 +188,7 @@ export function useGroups() {
   };
 }
 
-/** One study group, kept fresh. */
+/** One study party, kept fresh. */
 export function useGroup(groupId: string) {
   const groups = useGroups();
   const detail = useQuery({
@@ -207,7 +207,7 @@ export function useGroup(groupId: string) {
     error:
       groups.error ||
       (missing
-        ? "This study group doesn't exist, or you're not in it."
+        ? "This study party doesn't exist, or you're not in it."
         : detail.error
           ? apiProblem(detail.error).message
           : ''),

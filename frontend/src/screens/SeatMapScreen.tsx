@@ -97,7 +97,7 @@ export function SeatMapScreen() {
     return () => document.removeEventListener('keydown', onKey);
   }, [picked, sheetOpen]);
 
-  /* Organizing a study group someone has joined: rooms are picked for the
+  /* Organizing a study party someone has joined: rooms are picked for the
      whole group, so open Book together with this room. */
   const group = groups.active;
   if (

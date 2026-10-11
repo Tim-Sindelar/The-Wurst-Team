@@ -40,7 +40,7 @@ import { useGroup, useInvitable, useSocialActions } from './useSocial';
 
 type Sheet = 'join' | 'decline' | 'leave' | 'cancel';
 
-/** One study group: who's going, inviting more, and the next step. */
+/** One study party: who's going, inviting more, and the next step. */
 export function GroupScreen() {
   const { groupId = '' } = useParams();
   const social = useGroup(groupId);
@@ -69,7 +69,7 @@ export function GroupScreen() {
 
   const header = (
     <ScreenHeader
-      title="Study group"
+      title="Study party"
       backTo={socialPaths.friends}
       backLabel="Back to friends"
     />
@@ -86,8 +86,8 @@ export function GroupScreen() {
             retry={social.missing ? undefined : social.retry}
             title={
               social.missing
-                ? 'Study group not found'
-                : "Couldn't load this study group"
+                ? 'Study party not found'
+                : "Couldn't load this study party"
             }
           />
         </ScreenMain>
@@ -137,7 +137,7 @@ export function GroupScreen() {
     <Screen>
       {header}
       <ScreenMain>
-        <Card component="section" aria-label="Study group">
+        <Card component="section" aria-label="Study party">
           <div className="grid gap-1">
             <Title order={2} className="text-heading wrap-anywhere">
               {group.name}
@@ -167,7 +167,7 @@ export function GroupScreen() {
         )}
 
         {group.status === 'cancelled' && (
-          <Alert icon={<Icon name="info" />} title="This group was cancelled">
+          <Alert icon={<Icon name="info" />} title="This party was cancelled">
             <Text size="sm">Seats nobody checked in to were released.</Text>
           </Alert>
         )}
@@ -277,7 +277,7 @@ export function GroupScreen() {
           >
             {group.status === 'booked'
               ? 'Cancel booking'
-              : 'Cancel study group'}
+              : 'Cancel study party'}
           </Button>
         )}
       </ScreenMain>
@@ -290,7 +290,7 @@ export function GroupScreen() {
             fullWidth
             leftSection={<Icon name="plus" />}
           >
-            Start a study group
+            Start a study party
           </Button>
         ) : group.status === 'booked' ? (
           mySeat ? (
@@ -346,7 +346,7 @@ export function GroupScreen() {
             disabled={actions.busy}
             onClick={() => setSheet('leave')}
           >
-            Leave study group
+            Leave study party
           </Button>
         )}
       </ActionBar>
@@ -368,15 +368,15 @@ export function GroupScreen() {
                   ? 'Cancel the booking?'
                   : `Cancel ${group.name}?`
         }
-        safeLabel={sheet === 'cancel' ? 'Keep group' : 'Not now'}
+        safeLabel={sheet === 'cancel' ? 'Keep party' : 'Not now'}
         actionLabel={
           sheet === 'join'
-            ? 'Join group'
+            ? 'Join party'
             : sheet === 'decline'
               ? 'Decline'
               : sheet === 'leave'
-                ? 'Leave group'
-                : 'Cancel group'
+                ? 'Leave party'
+                : 'Cancel party'
         }
         actionTone={sheet === 'join' ? 'primary' : 'danger'}
         onConfirm={confirm}

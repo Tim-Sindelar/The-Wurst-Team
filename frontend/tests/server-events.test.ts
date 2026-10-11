@@ -24,11 +24,11 @@ test('social events say who did what and link to it', () => {
   const declined = describeEvent({
     type: 'party.replied',
     party_id: 'p 1',
-    party_name: 'Study group',
+    party_name: 'Study party',
     person,
     accepted: false,
   });
-  assert.equal(declined?.title, 'Ana Novak declined Study group');
+  assert.equal(declined?.title, 'Ana Novak declined Study party');
   assert.equal(declined?.icon, 'userX');
   assert.equal(declined?.link, '/groups/p%201');
   assert.equal(

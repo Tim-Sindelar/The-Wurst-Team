@@ -4,7 +4,7 @@ import { seatMapPath } from '../../routes.ts';
 /** Screen paths of the social feature. */
 export const socialPaths = {
   friends: '/friends',
-  /** Friend requests and study group invitations, opened from the header bell. */
+  /** Friend requests and study party invitations, opened from the header bell. */
   requests: '/requests',
   newGroup: '/groups/new',
   group: '/groups/:groupId',

@@ -5,7 +5,7 @@ import type {
 } from '../../api/generated';
 import { isHeld, isRunning } from '../../domain/booking.ts';
 
-/* A "study group" is a party in the API. These helpers read the party list
+/* Study parties (`group` in the code, a party in the API). These helpers read the party list
    from the signed-in user's point of view. */
 
 export type Group = PartyResponse;
