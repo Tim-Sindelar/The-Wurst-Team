@@ -69,8 +69,8 @@ Manage rooms and people through an admin dashboard. Create room layouts, print o
 
 With make from repo root:
 
-`make install`
-`make backend`
+`make install`<br>
+`make backend`<br>
 `make frontend`
 
 Without make from repo root:
