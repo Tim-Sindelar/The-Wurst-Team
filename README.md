@@ -1,8 +1,8 @@
-# Academic Study Spaces
+# Study Spaces
 **The Wurst Team**
 
-<img alt="The Academic Study Spaces logo" src="assets/logo-dark.svg#gh-dark-mode-only" width="90%">
-<img alt="The Academic Study Spaces logo" src="assets/logo-light.svg#gh-light-mode-only" width="90%">
+<img alt="The Study Spaces logo" src="assets/logo-dark.svg#gh-dark-mode-only" width="90%">
+<img alt="The Study Spaces logo" src="assets/logo-light.svg#gh-light-mode-only" width="90%">
 
 <br>
 
