@@ -206,14 +206,24 @@ const geometry = (() => {
     });
     return best;
   }
+  // Tables, seat rows and their seats carry the layout's furniture size as
+  // `scale` (1 = physical size). Stored width and height stay unscaled, so
+  // presets and limits don't change; this returns the size drawn in the room.
+  function actual(o) {
+    const k = o.scale ?? 1;
+    if (o.type === 'seat') return { ...o, width: 32 * k, height: 36 * k };
+    if (o.type !== 'table' || k === 1) return o;
+    return { ...o, width: o.width * k, height: o.height * k, scale: 1 };
+  }
   function valid(r, o) {
     if (o.type === 'table' && o.shape === 'curved')
       return shapeParts(o).every((p) => valid(r, p));
     if (o.type === 'row') return true;
     if (o.type === 'window' || o.type === 'door')
       return !!wallPoint(r, o.x, o.y, o.width);
-    const w = o.type === 'seat' ? 32 : o.width,
-      h = o.type === 'seat' ? 36 : o.height,
+    const size = actual(o),
+      w = size.width,
+      h = size.height,
       angle = (o.angle * Math.PI) / 180;
     const polygon = [
       [-w / 2, -h / 2],
@@ -254,21 +264,42 @@ const geometry = (() => {
       angle: (o.angle + angle + 360) % 360,
     };
   }
-  function rowSlots(o, equalCounts = false) {
-    const result = [],
-      span = (o.sweep * Math.PI) / 180;
+  // Slots are laid out at physical size around the origin, then scaled by the
+  // item's furniture size and placed at the item.
+  function scaledSlots(o, compute) {
+    const k = o.scale ?? 1;
+    return compute({ ...o, x: 0, y: 0, angle: 0, scale: 1 }).map((s) => ({
+      ...world(o, s.x * k, s.y * k, s.angle),
+      slot: s.slot,
+      scale: k,
+    }));
+  }
+  // Seat rows space seats 48 apart (56 along a curve) and rows 64 apart;
+  // seatSpacing and rowSpacing are percentages of that.
+  function rowMetrics(o) {
+    const span = (o.sweep * Math.PI) / 180,
+      column = (o.seatSpacing ?? 100) / 100,
+      step = (64 * (o.rowSpacing ?? 100)) / 100;
     const radius = span
       ? Math.max(
           o.radius,
-          56 / (2 * Math.sin(span / Math.max(1, o.count - 1) / 2)),
+          (56 * column) / (2 * Math.sin(span / Math.max(1, o.count - 1) / 2)),
         )
       : 0;
     const pitch =
       span && o.count > 1
-        ? Math.max(56, 2 * radius * Math.sin(span / (o.count - 1) / 2))
-        : 56;
+        ? Math.max(56 * column, 2 * radius * Math.sin(span / (o.count - 1) / 2))
+        : 48 * column;
+    return { span, radius, pitch, step };
+  }
+  function rowSlots(o, equalCounts = false) {
+    return scaledSlots(o, (row) => baseRowSlots(row, equalCounts));
+  }
+  function baseRowSlots(o, equalCounts) {
+    const result = [],
+      { span, radius, pitch, step } = rowMetrics(o);
     for (let row = 0; row < o.rows; row++) {
-      const r = radius + row * 64;
+      const r = radius + row * step;
       const count =
         !span || !row || equalCounts
           ? o.count
@@ -278,8 +309,8 @@ const geometry = (() => {
             );
       for (let i = 0; i < count; i++) {
         const a = count > 1 ? (i / (count - 1) - 0.5) * span : 0;
-        const x = span ? r * Math.sin(a) : (i - (count - 1) / 2) * 48;
-        const y = span ? r * Math.cos(a) - radius : row * 64;
+        const x = span ? r * Math.sin(a) : (i - (count - 1) / 2) * pitch;
+        const y = span ? r * Math.cos(a) - radius : row * step;
         result.push({
           ...world(o, x, y, (-a * 180) / Math.PI),
           slot: 'row' + row + ':' + i,
@@ -387,8 +418,11 @@ const geometry = (() => {
     return accepted;
   }
   function slots(table) {
+    return scaledSlots(table, baseSlots);
+  }
+  function baseSlots(table) {
     if (table.shape === 'curved') return curveSlots(table);
-    if (table.type === 'row') return rowSlots(table);
+    if (table.type === 'row') return baseRowSlots(table, false);
     if (table.shape === 'round') {
       const radius = table.width / 2 + 26,
         count = Math.max(1, Math.floor((2 * Math.PI * radius) / 56));
@@ -482,8 +516,7 @@ const geometry = (() => {
     return result;
   }
   function corners(o) {
-    const w = o.type === 'seat' ? 32 : o.width;
-    const h = o.type === 'seat' ? 36 : o.height;
+    const { width: w, height: h } = actual(o);
     const a = (o.angle * Math.PI) / 180;
     return [
       [-w / 2, -h / 2],
@@ -517,6 +550,8 @@ const geometry = (() => {
   }
 
   function shapeParts(o) {
+    const arm = 32 * (o.type === 'table' ? (o.scale ?? 1) : 1);
+    o = actual(o);
     if (o.type === 'table' && o.shape === 'curved') {
       const points = curvePoints(o);
       return points.slice(1).map((p, i) => {
@@ -535,16 +570,16 @@ const geometry = (() => {
       return [
         {
           ...o,
-          ...world(o, 0, -o.height / 2 + 16),
+          ...world(o, 0, -o.height / 2 + arm / 2),
           width: o.width,
-          height: 32,
+          height: arm,
           shape: 'rectangle',
         },
         {
           ...o,
-          ...world(o, -o.width / 2 + 16, 16),
-          width: 32,
-          height: Math.max(0, o.height - 32),
+          ...world(o, -o.width / 2 + arm / 2, arm / 2),
+          width: arm,
+          height: Math.max(0, o.height - arm),
           shape: 'rectangle',
         },
       ].filter((p) => p.height > 0);
@@ -722,6 +757,7 @@ const geometry = (() => {
   function handlePoint(o, handle) {
     const signs = handles[handle];
     if (!signs) throw Error('Choose a resize handle.');
+    o = actual(o);
     const x = (signs[0] * o.width) / 2,
       y = (signs[1] * o.height) / 2,
       a = (o.angle * Math.PI) / 180;
@@ -736,12 +772,13 @@ const geometry = (() => {
     if (!old || !signs || !['table', 'window', 'door'].includes(old.type))
       throw Error('Select a resizable item.');
     const a = (old.angle * Math.PI) / 180,
+      k = old.type === 'table' ? (old.scale ?? 1) : 1,
       dx = x - old.x,
       dy = y - old.y;
     const localX = dx * Math.cos(a) + dy * Math.sin(a),
       localY = -dx * Math.sin(a) + dy * Math.cos(a);
-    const anchorX = (-signs[0] * old.width) / 2,
-      anchorY = (-signs[1] * old.height) / 2;
+    const anchorX = (-signs[0] * old.width * k) / 2,
+      anchorY = (-signs[1] * old.height * k) / 2;
 
     const sizes =
       old.type === 'table'
@@ -749,19 +786,19 @@ const geometry = (() => {
           ? TABLE_SIZES.filter((s) => s >= 80)
           : TABLE_SIZES
         : WALL_SIZES;
-    const width = snapSize(signs[0] * (localX - anchorX), sizes);
+    const width = snapSize((signs[0] * (localX - anchorX)) / k, sizes);
     let height =
       old.type === 'table'
         ? snapSize(
-            signs[1] * (localY - anchorY),
+            (signs[1] * (localY - anchorY)) / k,
             old.shape === 'l'
               ? TABLE_SIZES.filter((s) => s >= 80)
               : TABLE_SIZES,
           )
         : old.height;
     if (old.shape === 'round') height = width;
-    const cx = anchorX + (signs[0] * width) / 2,
-      cy = old.type === 'table' ? anchorY + (signs[1] * height) / 2 : 0;
+    const cx = anchorX + (signs[0] * width * k) / 2,
+      cy = old.type === 'table' ? anchorY + (signs[1] * height * k) / 2 : 0;
     return update(r, objects, id, {
       width,
       height,
@@ -792,9 +829,10 @@ const geometry = (() => {
       o.type === 'table'
         ? next(o.height, Math.abs(dh) > 0.01 ? dh : 0, TABLE_SIZES)
         : o.height;
-    const p = handlePoint(o, handle),
-      lx = signs[0] * (width - o.width),
-      ly = signs[1] * (height - o.height);
+    const k = o.type === 'table' ? (o.scale ?? 1) : 1,
+      p = handlePoint(o, handle),
+      lx = signs[0] * (width - o.width) * k,
+      ly = signs[1] * (height - o.height) * k;
     return resize(
       r,
       objects,
@@ -834,7 +872,40 @@ const geometry = (() => {
       objects.map((o) => result.find((next) => next.id === o.id)),
     );
   }
-  function place(r, objects, type, x, y, id) {
+  const SCALE_RANGE = [0.5, 2],
+    SPACING_RANGE = [50, 300];
+  // The furniture size of a layout, or undefined while it has no furniture.
+  function layoutScale(objects) {
+    const furniture = objects.find((o) => ['table', 'row'].includes(o.type));
+    return furniture && (furniture.scale ?? 1);
+  }
+  // Resizes every table, seat row and seat around its own centre.
+  function rescale(r, objects, scale) {
+    if (
+      !Number.isFinite(scale) ||
+      scale < SCALE_RANGE[0] ||
+      scale > SCALE_RANGE[1]
+    )
+      throw Error('Use a furniture size from 50 to 200%.');
+    const parents = objects.map((o) =>
+      ['table', 'row'].includes(o.type) ? { ...o, scale } : o,
+    );
+    const result = parents.map((o) => {
+      if (o.type !== 'seat') return o;
+      const parent = parents.find((p) => p.id === o.tableId);
+      const slot = parent && slots(parent).find((s) => s.slot === o.slot);
+      return slot ? { ...o, ...slot } : { ...o, scale };
+    });
+    try {
+      assertLayout(r, result);
+    } catch {
+      throw Error(
+        'Not enough space for this furniture size: items would overlap or leave the room.',
+      );
+    }
+    return result;
+  }
+  function place(r, objects, type, x, y, id, scale = layoutScale(objects)) {
     if (
       ![
         'table',
@@ -873,6 +944,8 @@ const geometry = (() => {
         curvature: 60,
       });
     if (o.type === 'table') o.label = tableName(objects);
+    if (['table', 'row'].includes(o.type) && scale && scale !== 1)
+      o.scale = scale;
     if (type === 'row') {
       Object.assign(o, {
         seatSpacingVersion: 2,
@@ -992,6 +1065,16 @@ const geometry = (() => {
         throw Error(
           'Use 1–12 seats, 1–6 rows, an arc of 0–180° and radius 60–600.',
         );
+      for (const key of ['seatSpacing', 'rowSpacing'])
+        if (
+          next[key] !== undefined &&
+          !(
+            Number.isFinite(next[key]) &&
+            next[key] >= SPACING_RANGE[0] &&
+            next[key] <= SPACING_RANGE[1]
+          )
+        )
+          throw Error('Use row and column spacing from 50 to 300%.');
     }
     const resized =
       (next.type === 'table' &&
@@ -1002,9 +1085,14 @@ const geometry = (() => {
       (next.type === 'row' &&
         (initial ||
           old.seatSpacingVersion !== 2 ||
-          ['count', 'rows', 'sweep', 'radius'].some(
-            (k) => old[k] !== next[k],
-          )));
+          [
+            'count',
+            'rows',
+            'sweep',
+            'radius',
+            'seatSpacing',
+            'rowSpacing',
+          ].some((k) => old[k] !== next[k])));
     let result;
     if (resized) {
       const attached = objects.filter(
@@ -1157,6 +1245,11 @@ const geometry = (() => {
     sourcePoint,
     renumber,
     rowSlots,
+    rowMetrics,
+    layoutScale,
+    rescale,
+    SCALE_RANGE,
+    SPACING_RANGE,
     shapeParts,
     TABLE_SIZES,
     WALL_SIZES,

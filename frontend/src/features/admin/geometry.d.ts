@@ -21,6 +21,17 @@ interface Geometry {
   assertLayout(room: RoomGeometry, items: LayoutItem[]): void;
   slots(item: LayoutItem): Slot[];
   rowSlots(item: LayoutItem): Slot[];
+  rowMetrics(item: LayoutItem): {
+    span: number;
+    radius: number;
+    pitch: number;
+    step: number;
+  };
+  /** The layout's furniture size (1 = physical size), undefined without furniture. */
+  layoutScale(items: LayoutItem[]): number | undefined;
+  rescale(room: RoomGeometry, items: LayoutItem[], scale: number): LayoutItem[];
+  SCALE_RANGE: [number, number];
+  SPACING_RANGE: [number, number];
   curveOutline(item: LayoutItem): [number, number][];
   curvePoints(item: LayoutItem): [number, number][];
   place(
@@ -30,6 +41,7 @@ interface Geometry {
     x: number,
     y: number,
     id: string,
+    scale?: number,
   ): LayoutItem[];
   move(
     room: RoomGeometry,

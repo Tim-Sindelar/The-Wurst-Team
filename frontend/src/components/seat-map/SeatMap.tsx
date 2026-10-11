@@ -200,6 +200,7 @@ export function SeatMap({
             x={seat.x}
             y={seat.y}
             angle={seat.angle}
+            scale={seat.scale}
             features={seat.badges.map((badge) => geometry.BADGES[badge])}
             selected={seat.id === selected}
             onSelect={() => onSelect(seat.id)}

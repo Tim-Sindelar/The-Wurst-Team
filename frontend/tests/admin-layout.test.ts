@@ -211,3 +211,73 @@ test('rooms keep pillar holes through alignment and accept furniture over them',
   );
   assert.equal(objects.length, 1);
 });
+function squareRoom() {
+  return geometry.roomFromCoordinates({
+    id: 'square',
+    label: 'Square',
+    coordinateUnit: 'm',
+    boundary: [
+      [0, 0],
+      [12, 0],
+      [12, 12],
+      [0, 12],
+    ],
+  });
+}
+test('furniture size scales tables, rows and their seats around their centres', () => {
+  const room = squareRoom();
+  let objects = geometry.place(room, [], 'table', 300, 300, 'table-a');
+  for (const slot of geometry.slots(objects[0]).slice(0, 2))
+    objects = geometry.place(room, objects, 'seat', slot.x, slot.y, slot.slot);
+  objects = geometry.place(room, objects, 'row', 450, 600, 'row-a');
+  const seats = objects.filter((o) => o.type === 'seat').length;
+  const scaled = geometry.rescale(room, objects, 1.5);
+  assert.equal(geometry.layoutScale(scaled), 1.5);
+  assert.equal(scaled.filter((o) => o.type === 'seat').length, seats);
+  geometry.assertLayout(room, scaled);
+  const before = objects.find((o) => o.id === 'table-a')!;
+  const after = scaled.find((o) => o.id === 'table-a')!;
+  assert.equal(after.x, before.x);
+  assert.equal(after.width, before.width);
+  const seat = (items: LayoutItem[]) =>
+    items.find((o) => o.type === 'seat' && o.tableId === 'table-a')!;
+  close(seat(scaled).y - after.y, 1.5 * (seat(objects).y - before.y));
+  // New furniture takes the layout's size.
+  const placed = geometry.place(room, scaled, 'table', 300, 120, 'table-b');
+  assert.equal(placed.find((o) => o.id === 'table-b')!.scale, 1.5);
+  assert.throws(() => geometry.rescale(room, objects, 3));
+});
+test('scaled tables resize between presets from their scaled corners', () => {
+  const room = squareRoom();
+  const objects = geometry.rescale(
+    room,
+    geometry.place(room, [], 'table', 300, 300, 'table-a'),
+    1.5,
+  );
+  const table = objects[0];
+  const corner = geometry.handlePoint(table, 'se');
+  close(corner.x - table.x, (1.5 * table.width) / 2);
+  const resized = geometry.resizeBy(room, objects, 'table-a', 'se', 16, 0);
+  assert.equal(resized[0].width, 176);
+});
+test('seat rows space rows and columns by their own percentages', () => {
+  const room = squareRoom();
+  let objects = geometry.place(room, [], 'row', 380, 300, 'row-a');
+  objects = geometry.update(room, objects, 'row-a', { sweep: 0 });
+  const gap = (items: LayoutItem[], a: string, b: string) => {
+    const seat = (slot: string) =>
+      items.find((o) => o.type === 'seat' && o.slot === slot)!;
+    return Math.hypot(seat(a).x - seat(b).x, seat(a).y - seat(b).y);
+  };
+  close(gap(objects, 'row0:0', 'row0:1'), 48);
+  close(gap(objects, 'row0:0', 'row1:0'), 64);
+  objects = geometry.update(room, objects, 'row-a', {
+    seatSpacing: 150,
+    rowSpacing: 125,
+  });
+  close(gap(objects, 'row0:0', 'row0:1'), 72);
+  close(gap(objects, 'row0:0', 'row1:0'), 80);
+  assert.throws(() =>
+    geometry.update(room, objects, 'row-a', { seatSpacing: 60 }),
+  );
+});

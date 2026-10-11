@@ -15,6 +15,7 @@ import {
   NativeSelect,
   NumberInput,
   Popover,
+  Slider,
   Text,
   TextInput,
   Title,
@@ -105,6 +106,8 @@ function LayoutEditor({
     [rotating, setRotating] = useState(false),
     [clear, setClear] = useState(false),
     [shortcutsOpen, setShortcutsOpen] = useState(false),
+    // Furniture size for the first table or row, while there is none to read it from.
+    [emptyScale, setEmptyScale] = useState(1),
     [view, setView] = useState({
       x: 0,
       y: 0,
@@ -217,6 +220,20 @@ function LayoutEditor({
       setMessage(e instanceof Error ? e.message : 'Change blocked');
     }
   }
+  // Sliders change the layout live and leave one undo step when released.
+  function slide(next: () => LayoutItem[]) {
+    editing.current ??= geometry.clone(objectsRef.current);
+    try {
+      change(next(), false);
+      setMessage('');
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Change blocked');
+    }
+  }
+  function slideEnd() {
+    if (editing.current) record(editing.current);
+    editing.current = null;
+  }
   function point(e: { clientX: number; clientY: number }) {
     const p = svg.current!.createSVGPoint();
     p.x = e.clientX;
@@ -276,6 +293,7 @@ function LayoutEditor({
           Number(slot.dataset.x),
           Number(slot.dataset.y),
           crypto.randomUUID(),
+          furnitureScale,
         );
         change(next);
         setSelected(
@@ -311,6 +329,7 @@ function LayoutEditor({
           p.x,
           p.y,
           crypto.randomUUID(),
+          furnitureScale,
         );
         change(next);
         setSelected(
@@ -529,6 +548,7 @@ function LayoutEditor({
     };
   }, []);
   const item = objects.find((o) => o.id === selected);
+  const furnitureScale = geometry.layoutScale(objects) ?? emptyScale;
   const live = objects.map((o) =>
     o.type === 'seat'
       ? {
@@ -930,7 +950,39 @@ function LayoutEditor({
           aria-label="Selected item properties"
           className="admin-editor-inspector grid min-w-0 content-start gap-3 p-3"
         >
-          <Title order={2} className="text-body">
+          <div className="grid gap-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <Title order={2} className="text-body">
+                Furniture size
+              </Title>
+              <Text size="sm" className="tabular-nums">
+                {Math.round(furnitureScale * 100)}%
+              </Text>
+            </div>
+            <Slider
+              min={geometry.SCALE_RANGE[0] * 100}
+              max={geometry.SCALE_RANGE[1] * 100}
+              step={1}
+              value={Math.round(furnitureScale * 100)}
+              disabled={space.is_archived}
+              thumbLabel="Furniture size"
+              marks={[{ value: 100 }]}
+              className="min-h-11 py-4"
+              onChange={(percent) => {
+                if (geometry.layoutScale(objectsRef.current) === undefined)
+                  setEmptyScale(percent / 100);
+                else
+                  slide(() =>
+                    geometry.rescale(room, objectsRef.current, percent / 100),
+                  );
+              }}
+              onChangeEnd={slideEnd}
+            />
+            <Text size="sm" c="dimmed">
+              Size of every table and seat, relative to its physical size.
+            </Text>
+          </div>
+          <Title order={2} className="border-t border-border pt-3 text-body">
             Selected item
           </Title>
           {!item ? (
@@ -1016,6 +1068,45 @@ function LayoutEditor({
                       onChange={(v) => edit({ [key]: Number(v) })}
                       {...resizeEditProps}
                     />
+                  ))}
+                  {(
+                    [
+                      ['Row spacing', 'rowSpacing', (item.rows || 1) < 2],
+                      ['Column spacing', 'seatSpacing', (item.count || 1) < 2],
+                    ] as const
+                  ).map(([label, key, disabled]) => (
+                    <div key={key} className="grid gap-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <Text size="sm" component="span" fw={600}>
+                          {label}
+                        </Text>
+                        <Text
+                          size="sm"
+                          component="span"
+                          className="tabular-nums"
+                        >
+                          {item[key] ?? 100}%
+                        </Text>
+                      </div>
+                      <Slider
+                        min={key === 'rowSpacing' ? 60 : 70}
+                        max={200}
+                        step={1}
+                        value={item[key] ?? 100}
+                        disabled={disabled || space.is_archived}
+                        thumbLabel={label}
+                        marks={[{ value: 100 }]}
+                        className="min-h-11 py-4"
+                        onChange={(percent) =>
+                          slide(() =>
+                            geometry.update(room, objectsRef.current, item.id, {
+                              [key]: percent,
+                            }),
+                          )
+                        }
+                        onChangeEnd={slideEnd}
+                      />
+                    </div>
                   ))}
                 </>
               )}
