@@ -85,8 +85,11 @@ function featureRenders(scene,qr,screens){
   box(second,[.014,.41,.012],[0,.15,0],'#bd795b');
   const pin=cylinder(watch,.035,.035,.025,[0,0,.16],'#435346',8);pin.rotation.x=Math.PI/2;
   variants.forEach((variant,i)=>{
-    const device=staticPhone(variant,screens[i]);device.scale.setScalar(3.5);
-    device.position.set(i===1?.8:2.0,2,0);device.rotation.set(0,-.1,-.025);
+    const device=staticPhone(variant,screens[i]);
+    const readableScreen=i===1||i===2;
+    device.scale.setScalar(readableScreen?4.2:3.5);
+    device.position.set(i===1?.8:2.0,2,0);
+    device.rotation.set(readableScreen?-Math.atan2(1.6,9):0,readableScreen?0:-.1,readableScreen?0:-.025);
     batchStatic(variant,null);
   });
   return {root,show(step){variants.forEach((variant,i)=>{variant.visible=i===step;});}};
