@@ -21,6 +21,7 @@ from app.features.reservations.schemas import (
     RequestValidationErrorResponse,
     ReservationResponse,
     RulesResponse,
+    SeatQrResponse,
     SeatScanRequest,
     SpaceResponse,
     SpacesResponse,
@@ -115,6 +116,11 @@ def list_recents(service: Service, user_id: CurrentUser) -> RecentsResponse:
 @router.get("/spaces/{space_id}", response_model=SpaceResponse, operation_id="get_space")
 def get_space(space_id: UUID, service: Service, photos: Photos) -> SpaceResponse:
     return service.space(space_id, photos)
+
+
+@router.get("/seats/by-qr", response_model=SeatQrResponse, operation_id="find_seat_by_qr")
+def find_seat_by_qr(qr_token: str, service: Service) -> SeatQrResponse:
+    return service.seat_by_qr(qr_token)
 
 
 @router.get(

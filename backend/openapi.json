@@ -3652,6 +3652,27 @@
         "title": "SeatAvailability",
         "type": "object"
       },
+      "SeatQrResponse": {
+        "description": "The seat a printed QR code belongs to.",
+        "properties": {
+          "seat_id": {
+            "format": "uuid",
+            "title": "Seat Id",
+            "type": "string"
+          },
+          "space_id": {
+            "format": "uuid",
+            "title": "Space Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id",
+          "seat_id"
+        ],
+        "title": "SeatQrResponse",
+        "type": "object"
+      },
       "SeatScanRequest": {
         "additionalProperties": false,
         "description": "The QR code scanned at the reservation's own seat, proving the user is there.",
@@ -8045,6 +8066,78 @@
           }
         },
         "summary": "Get Rules",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/seats/by-qr": {
+      "get": {
+        "operationId": "find_seat_by_qr",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "qr_token",
+            "required": true,
+            "schema": {
+              "title": "Qr Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatQrResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Find Seat By Qr",
         "tags": [
           "reservations"
         ]

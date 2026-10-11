@@ -34,6 +34,7 @@ from app.features.reservations.schemas import (
     ReservationSpace,
     ReservationStatus,
     SeatAvailability,
+    SeatQrResponse,
     SpaceDetail,
     SpaceResponse,
     SpacesResponse,
@@ -634,6 +635,14 @@ class ReservationService:
             self._remember(user_id, [seat.id], now)
             return row.id, now
         raise BookingError(409, "seat_unavailable", "No eligible seat is available")
+
+    def seat_by_qr(self, qr_token: str) -> SeatQrResponse:
+        """The seat a scanned QR code link points to, so the app can open its seat map."""
+        seat = self.session.scalar(select(Seat).where(Seat.qr_token == qr_token))
+        space = seat and self.session.get(StudySpace, seat.space_id)
+        if seat is None or not seat.is_active or space is None or space.is_archived:
+            raise BookingError(404, "qr_not_found", "Seat QR token not found")
+        return SeatQrResponse(space_id=seat.space_id, seat_id=seat.id)
 
     def check_in(self, user_id: UUID, qr_token: str) -> tuple[UUID, datetime]:
         seat = self.session.scalar(select(Seat).where(Seat.qr_token == qr_token))

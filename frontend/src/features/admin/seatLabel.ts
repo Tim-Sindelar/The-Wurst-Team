@@ -68,12 +68,13 @@ const seatMark = (x: number, y: number, size: number) =>
   `<rect x="88" y="154" width="34" height="34" rx="9" fill="${SEAT}"/>` +
   `<rect x="134" y="154" width="34" height="34" rx="9" fill="${SEAT}"/></g>`;
 
-/** The QR code holds only the seat's token: the app's scan screen sends it
-    as-is to the check-in call. It uses the highest error correction, so the
-    seat mark in its middle doesn't stop it from scanning. */
-function qrCode(token: string, x: number, y: number) {
+/** The QR code holds the seat's link (domain/seatQr.ts): a phone camera
+    opens it in the app, and the app's scan screen reads the token from it.
+    It uses the highest error correction, so the seat mark in its middle
+    doesn't stop it from scanning. */
+function qrCode(link: string, x: number, y: number) {
   const qr = qrcode(0, 'H');
-  qr.addData(token);
+  qr.addData(link);
   qr.make();
   const count = qr.getModuleCount(),
     m = QR / count;
@@ -135,7 +136,7 @@ const line = (
 /** The whole label as an SVG document, and its height in label units.
     Every gap between blocks is GAP, measured from the tops and bottoms of
     the capitals, and the card has PAD on every side. */
-export function seatLabelSvg(room: string, seat: string, token: string) {
+export function seatLabelSvg(room: string, seat: string, link: string) {
   let y = PAD;
   // Header: logo left, the seat as a "yours" chip right (like the seat map),
   // the logo's and the chip's capitals the same height and centred together.
@@ -175,7 +176,7 @@ export function seatLabelSvg(room: string, seat: string, token: string) {
       )
       .join('');
   y += (roomLines.length - 1) * 7.5 + CAP * roomSize + GAP;
-  const qrSvg = qrCode(token, PAD + TILE, y + TILE);
+  const qrSvg = qrCode(link, PAD + TILE, y + TILE);
   y += QR + 2 * TILE + GAP;
   const head = 8.5,
     sub = 7,
