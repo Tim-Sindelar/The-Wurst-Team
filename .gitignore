@@ -20,3 +20,6 @@
 
 scraper/polymaps_data/
 scraper/floors/
+
+occupancy-map-preview/data/cache/
+occupancy-map-preview/public/floors/
