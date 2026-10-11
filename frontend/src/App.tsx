@@ -15,6 +15,7 @@ import { AdminUsersPage, AdminUserPage } from './features/admin/AdminUsersPage';
 import { SeatCheckInPage } from './features/admin/SeatCheckInPage';
 import { HomeScreen } from './screens/HomeScreen';
 import { MapScreen } from './screens/MapScreen';
+import { NotFoundScreen, RouteErrorScreen } from './screens/NotFoundScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { ProfileEditScreen } from './screens/ProfileEditScreen';
 import { ReservationScreen } from './screens/ReservationScreen';
@@ -31,6 +32,7 @@ const router = createBrowserRouter(
     {
       path: '/admin',
       element: <AdminShell />,
+      errorElement: <RouteErrorScreen />,
       children: [
         { index: true, element: <AdminSpacesPage /> },
         { path: 'new', element: <AdminNewSpacePage /> },
@@ -54,6 +56,7 @@ const router = createBrowserRouter(
     },
     {
       element: <AppLayout />,
+      errorElement: <RouteErrorScreen />,
       children: [
         { path: '/check-in', element: <SeatCheckInPage /> },
         { path: paths.home, element: <HomeScreen /> },
@@ -66,6 +69,7 @@ const router = createBrowserRouter(
         { path: paths.profile, element: <ProfileScreen /> },
         { path: paths.profileEdit, element: <ProfileEditScreen /> },
         ...socialRoutes,
+        { path: '*', element: <NotFoundScreen /> },
       ],
     },
   ],

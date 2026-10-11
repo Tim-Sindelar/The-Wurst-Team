@@ -55,7 +55,7 @@ export function ProfileScreen() {
                   {initials}
                 </Avatar>
                 <div className="grid min-w-0 flex-1 gap-1">
-                  <Text className="text-title font-semibold break-words">
+                  <Text className="text-title font-semibold wrap-anywhere">
                     {user.name}
                   </Text>
                   <Text size="sm" c="dimmed" className="break-all">

@@ -20,7 +20,7 @@ import {
   sendFriendRequestMutation,
   updateSocialPrivacyMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
-import { apiProblem, type ApiProblem } from '../../domain/booking';
+import { apiProblem, isMissing, type ApiProblem } from '../../domain/booking';
 import { socialEnabled } from '../../features';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useMyReservation } from '../../hooks/useMyReservation';
@@ -170,12 +170,20 @@ export function useGroup(groupId: string) {
     ...fresh,
     refetchInterval: 15_000,
   });
+  const missing = detail.error !== null && isMissing(detail.error);
   return {
     ...groups,
     group: detail.data ?? null,
+    /** The group doesn't exist, or you were never in it. */
+    missing,
     loading: groups.loading || (groups.enabled && detail.isPending),
     error:
-      groups.error || (detail.error ? apiProblem(detail.error).message : ''),
+      groups.error ||
+      (missing
+        ? "This study group doesn't exist, or you're not in it."
+        : detail.error
+          ? apiProblem(detail.error).message
+          : ''),
     retry: () => {
       groups.retry();
       void detail.refetch();

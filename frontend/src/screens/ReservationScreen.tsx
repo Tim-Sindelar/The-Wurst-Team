@@ -108,7 +108,7 @@ export function ReservationScreen() {
             <Text>
               {running
                 ? 'You have already checked in. Your session is running.'
-                : 'Your reservation has expired or been cancelled. The seat is no longer held for you.'}
+                : 'No seat is held for you right now.'}
             </Text>
           </Alert>
         </ScreenMain>
@@ -128,16 +128,15 @@ export function ReservationScreen() {
   const canCheckIn = held.available_actions.includes('check_in');
 
   const cancel = () =>
-    end.mutate(
-      { path: { reservation_id: held.id } },
-      {
-        onSuccess: async () => {
-          setLeaving(true);
-          await refresh();
-          navigate(paths.home);
-        },
-      },
-    );
+    end
+      .mutateAsync({ path: { reservation_id: held.id } })
+      .then(async () => {
+        setLeaving(true);
+        await refresh();
+        navigate(paths.home);
+      })
+      /* The error shows in the sheet through `end.error`. */
+      .catch(() => undefined);
 
   const closeSheet = () => {
     setCancelOpen(false);

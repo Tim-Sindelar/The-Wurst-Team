@@ -351,7 +351,14 @@ export const createReservation = <ThrowOnError extends boolean = false>(options:
 /**
  * Start Break
  */
-export const startBreak = <ThrowOnError extends boolean = false>(options: Options<StartBreakData, ThrowOnError>): RequestResult<StartBreakResponses, StartBreakErrors, ThrowOnError> => (options.client ?? client).post<StartBreakResponses, StartBreakErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/break', ...options });
+export const startBreak = <ThrowOnError extends boolean = false>(options: Options<StartBreakData, ThrowOnError>): RequestResult<StartBreakResponses, StartBreakErrors, ThrowOnError> => (options.client ?? client).post<StartBreakResponses, StartBreakErrors, ThrowOnError>({
+    url: '/api/v1/reservations/{reservation_id}/break',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * End Reservation
@@ -361,12 +368,26 @@ export const endReservation = <ThrowOnError extends boolean = false>(options: Op
 /**
  * Extend Reservation
  */
-export const extendReservation = <ThrowOnError extends boolean = false>(options: Options<ExtendReservationData, ThrowOnError>): RequestResult<ExtendReservationResponses, ExtendReservationErrors, ThrowOnError> => (options.client ?? client).post<ExtendReservationResponses, ExtendReservationErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/extend', ...options });
+export const extendReservation = <ThrowOnError extends boolean = false>(options: Options<ExtendReservationData, ThrowOnError>): RequestResult<ExtendReservationResponses, ExtendReservationErrors, ThrowOnError> => (options.client ?? client).post<ExtendReservationResponses, ExtendReservationErrors, ThrowOnError>({
+    url: '/api/v1/reservations/{reservation_id}/extend',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Return From Break
  */
-export const returnFromBreak = <ThrowOnError extends boolean = false>(options: Options<ReturnFromBreakData, ThrowOnError>): RequestResult<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError> => (options.client ?? client).post<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError>({ url: '/api/v1/reservations/{reservation_id}/return', ...options });
+export const returnFromBreak = <ThrowOnError extends boolean = false>(options: Options<ReturnFromBreakData, ThrowOnError>): RequestResult<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError> => (options.client ?? client).post<ReturnFromBreakResponses, ReturnFromBreakErrors, ThrowOnError>({
+    url: '/api/v1/reservations/{reservation_id}/return',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Get Rules

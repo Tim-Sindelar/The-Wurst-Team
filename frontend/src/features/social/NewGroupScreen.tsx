@@ -94,7 +94,7 @@ export function NewGroupScreen() {
             <Card component="section" aria-label={`${last.name}, cancelled`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="grid min-w-0 gap-1">
-                  <Title order={2} className="break-words">
+                  <Title order={2} className="wrap-anywhere">
                     {last.name}
                   </Title>
                   <Text size="sm" c="dimmed">
@@ -153,7 +153,7 @@ export function NewGroupScreen() {
                 <li key={person.id}>
                   <label className="flex min-h-15 cursor-pointer items-center gap-3 py-2 pr-4 pl-4 hover:bg-hover">
                     <PersonAvatar person={person} />
-                    <Text className="min-w-0 flex-1 font-medium break-words">
+                    <Text className="min-w-0 flex-1 font-medium wrap-anywhere">
                       {person.name}
                     </Text>
                     <Checkbox

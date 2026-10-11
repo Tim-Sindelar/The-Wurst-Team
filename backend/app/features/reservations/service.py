@@ -43,6 +43,8 @@ from app.models.favourite import FavouriteSpace
 from app.models.recent import RecentSpace
 
 LIVE_STATUSES = {"upcoming", "pending", "active", "on_break"}
+# Actions that need the seat's QR code, scanned at the table.
+SCANNED_ACTIONS = {"extend", "break", "return"}
 RECENTS_LIMIT = 10
 POPULAR_LIMIT = 5
 POPULAR_WINDOW = timedelta(days=7)
@@ -80,6 +82,16 @@ class BookingError(Exception):
         self.status_code = status_code
         self.code = code
         self.detail = detail
+
+
+class MembersAlreadyReserved(BookingError):
+    """Some of the people in a group booking already hold a live booking."""
+
+    def __init__(self, user_ids: list[UUID]):
+        super().__init__(
+            409, "member_already_reserved", "A party member already has a live booking"
+        )
+        self.user_ids = user_ids
 
 
 @dataclass(frozen=True)
@@ -263,8 +275,9 @@ class ReservationService:
         if len({seat.space_id for seat in seats}) != 1:
             raise BookingError(409, "different_rooms", "All party seats must be in the same room")
         now = self._prepare_users(list(assignments), list(assignments.values()))
-        if reservation_states(self.session, now, user_ids=list(assignments), live_only=True):
-            raise BookingError(409, "already_reserved", "A party member already has a live booking")
+        busy = reservation_states(self.session, now, user_ids=list(assignments), live_only=True)
+        if busy:
+            raise MembersAlreadyReserved(sorted({state.user_id for state in busy}, key=str))
         states = self._live(now, seat_ids=list(assignments.values()))
         for seat in seats:
             availability = self._availability(
@@ -657,10 +670,20 @@ class ReservationService:
         self._remember(user_id, [seat.id], now)
         return row.id, now
 
-    def act(self, user_id: UUID, reservation_id: UUID, action: str) -> tuple[UUID, datetime]:
+    def act(
+        self, user_id: UUID, reservation_id: UUID, action: str, *, qr_token: str | None = None
+    ) -> tuple[UUID, datetime]:
         row = self.session.get(Reservation, reservation_id)
         if row is None or row.user_id != user_id:
             raise BookingError(404, "not_found", "Reservation not found")
+        if action in SCANNED_ACTIONS:
+            # Extending and starting or ending a break happen at the seat: the
+            # QR code on that seat's table proves it.
+            seat = self.session.scalar(select(Seat).where(Seat.qr_token == (qr_token or "")))
+            if seat is None:
+                raise BookingError(404, "qr_not_found", "Seat QR token not found")
+            if seat.id != row.seat_id:
+                raise BookingError(409, "wrong_seat", "That QR code is for another seat")
         now = self._prepare(user_id, [row.seat_id])
         row = self.session.get(Reservation, reservation_id, populate_existing=True)
         state = next(

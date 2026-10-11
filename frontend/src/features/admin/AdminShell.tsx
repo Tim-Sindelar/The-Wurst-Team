@@ -107,7 +107,7 @@ export function AdminSpaceShell() {
       <header className="admin-page-header">
         <div>
           <Title order={1}>{space.name}</Title>
-          <Text c="dimmed">
+          <Text component="div" c="dimmed">
             <AdminStateChip
               label={
                 space.is_archived

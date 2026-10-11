@@ -75,7 +75,12 @@ export function GroupScreen() {
           <SocialStatus
             loading={social.loading}
             error={social.error}
-            retry={social.retry}
+            retry={social.missing ? undefined : social.retry}
+            title={
+              social.missing
+                ? 'Study group not found'
+                : "Couldn't load this study group"
+            }
           />
         </ScreenMain>
       </Screen>
@@ -126,7 +131,7 @@ export function GroupScreen() {
       <ScreenMain>
         <Card component="section" aria-label="Study group">
           <div className="grid gap-1">
-            <Title order={2} className="text-heading break-words">
+            <Title order={2} className="text-heading wrap-anywhere">
               {group.name}
             </Title>
             <Text size="sm" c="dimmed">
@@ -354,7 +359,7 @@ export function GroupScreen() {
                 : 'Cancel group'
         }
         actionTone={sheet === 'join' ? 'primary' : 'danger'}
-        onConfirm={() => void confirm()}
+        onConfirm={confirm}
       >
         {actions.error ||
           (sheet === 'join'

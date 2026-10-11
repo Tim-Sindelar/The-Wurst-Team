@@ -105,7 +105,7 @@ export function RequestsScreen() {
                 <Text size="sm" c="dimmed">
                   {organizer?.person.name ?? 'A friend'} invited you
                 </Text>
-                <Title order={2} className="break-words">
+                <Title order={2} className="wrap-anywhere">
                   {group.name}
                 </Title>
               </div>

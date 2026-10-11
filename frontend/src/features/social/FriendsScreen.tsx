@@ -343,7 +343,7 @@ function GroupCard({ groups }: { groups: ReturnType<typeof useGroups> }) {
     >
       <div className="flex items-center justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <Title order={2} className="break-words">
+          <Title order={2} className="wrap-anywhere">
             {group.name}
           </Title>
           <Text size="sm" c="dimmed">

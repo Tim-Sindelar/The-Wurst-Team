@@ -68,7 +68,12 @@ export function GroupSeatsScreen() {
           <SocialStatus
             loading={social.loading}
             error={social.error}
-            retry={social.retry}
+            retry={social.missing ? undefined : social.retry}
+            title={
+              social.missing
+                ? 'Study group not found'
+                : "Couldn't load this study group"
+            }
           />
         </div>
       </Screen>
@@ -502,7 +507,7 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
         title={`Reserve ${count} seats in ${room?.name ?? 'this room'}?`}
         safeLabel="Keep choosing"
         actionLabel={actions.busy ? 'Reserving…' : `Reserve ${count} seats`}
-        onConfirm={() => void book()}
+        onConfirm={book}
       >
         {actions.error || (
           <>

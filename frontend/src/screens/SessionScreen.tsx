@@ -126,16 +126,15 @@ export function SessionScreen() {
   }).format(new Date(sessionEnd));
 
   const endSession = () =>
-    end.mutate(
-      { path: { reservation_id: running.id } },
-      {
-        onSuccess: async () => {
-          setLeaving(true);
-          await refresh();
-          navigate(paths.home);
-        },
-      },
-    );
+    end
+      .mutateAsync({ path: { reservation_id: running.id } })
+      .then(async () => {
+        setLeaving(true);
+        await refresh();
+        navigate(paths.home);
+      })
+      /* The error shows in the sheet through `end.error`. */
+      .catch(() => undefined);
 
   const closeSheet = () => {
     setSheet(null);

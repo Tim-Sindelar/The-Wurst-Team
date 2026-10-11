@@ -9,6 +9,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.database import get_session
 from app.features.reservations.schemas import ReserveSeatRequest
 from app.features.reservations.seed import seed_demo
 from app.features.reservations.service import BookingError, ReservationService, reservation_states
@@ -32,8 +33,50 @@ def walk_up(client: TestClient, seat: Seat, headers: dict | None = None):
     return client.post("/api/v1/check-ins", json={"qr_token": seat.qr_token}, headers=headers)
 
 
-def action(client: TestClient, reservation_id: str, name: str, headers: dict | None = None):
-    return client.post(f"/api/v1/reservations/{reservation_id}/{name}", headers=headers)
+def seat_qr(client: TestClient, reservation_id: str) -> str:
+    """The QR code on the reservation's own seat, as if scanned at the table."""
+    sessions = client.app.dependency_overrides[get_session]()
+    session = next(sessions)
+    try:
+        token = session.scalar(
+            select(Seat.qr_token)
+            .join(Reservation, Reservation.seat_id == Seat.id)
+            .where(Reservation.id == UUID(reservation_id))
+        )
+    finally:
+        sessions.close()
+    return token or "unknown"
+
+
+def action(
+    client: TestClient,
+    reservation_id: str,
+    name: str,
+    headers: dict | None = None,
+    qr_token: str | None = None,
+):
+    body = None if name == "end" else {"qr_token": qr_token or seat_qr(client, reservation_id)}
+    return client.post(f"/api/v1/reservations/{reservation_id}/{name}", json=body, headers=headers)
+
+
+def test_scanned_actions_need_the_seats_own_qr_code(client, seats, clock):
+    reservation = walk_up(client, seats[0]).json()["reservation"]
+    path = f"/api/v1/reservations/{reservation['id']}/break"
+    assert client.post(path).status_code == 422
+    missing = action(client, reservation["id"], "break", qr_token="not-a-seat")
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "qr_not_found"
+    other = action(client, reservation["id"], "break", qr_token=seats[1].qr_token)
+    assert other.status_code == 409
+    assert other.json()["code"] == "wrong_seat"
+    assert action(client, reservation["id"], "break").status_code == 200
+    wrong_return = action(client, reservation["id"], "return", qr_token=seats[1].qr_token)
+    assert wrong_return.json()["code"] == "wrong_seat"
+    assert action(client, reservation["id"], "return").status_code == 200
+    clock.advance(minutes=110)
+    wrong_extend = action(client, reservation["id"], "extend", qr_token=seats[2].qr_token)
+    assert wrong_extend.json()["code"] == "wrong_seat"
+    assert action(client, reservation["id"], "extend").status_code == 200
 
 
 def test_reservation_check_in_privacy_and_end(client, seats, clock):
@@ -389,7 +432,9 @@ def test_extension_races_next_booking(db, client, seats, clock, policy):
         db,
         policy,
         [
-            lambda service: service.act(owner, UUID(occupant["id"]), "extend"),
+            lambda service: service.act(
+                owner, UUID(occupant["id"]), "extend", qr_token=seats[0].qr_token
+            ),
             lambda service: service.reserve(
                 uuid4(), ReserveSeatRequest(kind="seat", seat_id=seats[0].id)
             ),
@@ -408,7 +453,7 @@ def test_database_rejects_overlapping_seats_users_and_breaks(db, seats, clock, p
             with pytest.raises(IntegrityError):
                 service._insert(user, seat.id, clock.value)
             session.rollback()
-        service.act(owner, reservation_id, "break")
+        service.act(owner, reservation_id, "break", qr_token=seats[0].qr_token)
         session.commit()
         with pytest.raises(IntegrityError):
             session.add(

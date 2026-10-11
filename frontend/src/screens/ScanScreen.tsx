@@ -18,9 +18,8 @@ import { paths } from '../routes';
 
 /* Why the scan is happening (?from=), which changes the title, what happens
    after a good scan, and where the back arrow and a successful scan lead.
-   Check-in is the default. The QR code is checked by asking the server to
-   check in at that seat; for an already running session that changes nothing,
-   so it proves presence for extending and for starting or ending a break. */
+   Check-in is the default. Every flow sends the scanned code to the server,
+   which checks it belongs to the reservation's own seat. */
 type FlowKey = 'checkIn' | 'extend' | 'break-start' | 'break-end';
 
 const flows: Record<
@@ -90,13 +89,19 @@ export function ScanScreen() {
     setBusy(true);
     setProblem(null);
     try {
-      const { reservation: current } = await checkIn.mutateAsync({
-        body: { qr_token: token },
-      });
-      const path = { reservation_id: current.id };
-      if (flowKey === 'extend') await extend.mutateAsync({ path });
-      if (flowKey === 'break-start') await startBreak.mutateAsync({ path });
-      if (flowKey === 'break-end') await returnFromBreak.mutateAsync({ path });
+      const body = { qr_token: token };
+      if (flowKey === 'checkIn') {
+        await checkIn.mutateAsync({ body });
+      } else {
+        if (!reservation) throw new Error('No reservation to scan for');
+        const path = { reservation_id: reservation.id };
+        const action = {
+          extend,
+          'break-start': startBreak,
+          'break-end': returnFromBreak,
+        }[flowKey];
+        await action.mutateAsync({ path, body });
+      }
       setLeaving(true);
       await refresh();
       navigate(flow.done, { replace: true });
@@ -160,7 +165,8 @@ export function ScanScreen() {
     }
   }
 
-  const wrongSeat = problem?.code === 'already_reserved';
+  const wrongSeat =
+    problem?.code === 'already_reserved' || problem?.code === 'wrong_seat';
 
   return (
     <Screen>
