@@ -19,6 +19,13 @@ if settings.auth_mode != "demo":
     raise SystemExit("Refusing to seed: this command only runs in local demo auth mode.")
 template = json.load(sys.stdin)
 now = datetime.now(timezone.utc)
+if settings.database_url.rsplit("/", 1)[-1].startswith("pitch_"):
+    with SessionLocal() as session:
+        spaces = session.scalars(select(StudySpace).where(~StudySpace.is_archived).order_by(StudySpace.name)).all()
+        count = seed_crowd(session, spaces, settings, now)
+        session.commit()
+    print(json.dumps({"rooms": len(spaces), "synthetic_occupants": count, "layouts": "preserved"}))
+    raise SystemExit(0)
 session_length = timedelta(minutes=settings.session_length_minutes)
 check_in_window = timedelta(minutes=settings.check_in_window_minutes)
 counts = {"rooms": 0, "seats": 0, "occupied": 0, "reserved": 0, "on_break": 0, "claimable": 0}

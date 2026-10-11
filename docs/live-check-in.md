@@ -4,7 +4,7 @@ Use the teammate's iPhone for the app and a second phone for the moving camera. 
 
 ## App and desk setup
 
-The current presentation defaults to the local app, with temporary layouts and occupancy while a VM catalogue export is pending. This is ready for laptop rehearsal. Its bookings do not reach the hosted iPhone, even after copying room/seat data. For a physical check-in, either use the hosted app directly on both devices or prepare HTTPS access to the same local backend on the phone; the latter is not configured yet.
+The current presentation defaults to the local app, using the imported production room/seat/layout catalogue and synthetic occupancy. Production seat IDs and QR tokens are preserved. This is ready for laptop rehearsal. Its bookings do not reach the hosted iPhone: copying room/seat data does not synchronise reservations. For a physical check-in, either use the hosted app directly on both devices or prepare HTTPS access to the same local backend on the phone; the latter is not configured yet.
 
 1. For the hosted check-in flow, use https://02.hackathon.ethz.ch/ on both devices. Point the presentation at it with `?app=https%3A%2F%2F02.hackathon.ethz.ch%2F` only after authenticated embedding works, or open the hosted app in a normal browser tab. The toilet scene and Q&A open Home, where any saved booking is restored. Hosted login did not work reliably inside the presentation, which is why local rehearsal is now the default.
 2. Sign in as the same demo participant on both devices. In proxy auth, different logins own different reservations. Check that Profile shows the same account on each. Do not rely on the local shared demo-user behaviour.
