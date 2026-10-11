@@ -1,4 +1,4 @@
-/* The app's name as the logo in design/brand/: the seat mark (a desk with four
+/* The app's name as the logo: the seat mark (a desk with four
    seats, one free) and the wordmark, "Study" bold and "Spaces" regular.
    Put it inside a heading; it takes the heading's size. */
 export function AppName() {

@@ -239,7 +239,7 @@ export type MinimalStyles = Record<Theme, MinimalStyle>;
 type PartialStyles = Partial<Record<Theme, Partial<MinimalStyle>>>;
 
 // Two layers over the built-in defaults: the standard from the backend
-// (GET /api/v1/map/style, edited in occupancy-map-preview) and this browser's
+// (GET /api/v1/map/style) and this browser's
 // tweaks in localStorage. Tweaks win.
 const STORAGE_KEY = 'minimal-style';
 

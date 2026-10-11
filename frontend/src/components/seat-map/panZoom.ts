@@ -1,4 +1,4 @@
-/* Pan and zoom for the seat map, ported from design/base.js.
+/* Pan and zoom for the seat map.
    Mouse or one finger pans, two fingers pinch, the wheel zooms at the
    pointer. A tap that doesn't move selects the seat under it. Works on the
    DOM directly so dragging doesn't re-render React on every frame. */

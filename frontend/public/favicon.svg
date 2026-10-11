@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="64 64 128 128">
-  <!-- The seat mark (design/brand/icon-*.svg), transparent, cropped for browser tabs.
+  <!-- The seat mark, transparent, cropped for browser tabs.
        The free seat uses the light theme's green on light browser chrome. -->
   <style>@media (prefers-color-scheme: light) { .free { fill: #2e7d32 } }</style>
   <rect x="72" y="111" width="112" height="34" rx="12" fill="#808080"/>

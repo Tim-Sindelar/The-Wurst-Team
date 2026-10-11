@@ -14,8 +14,7 @@ export interface OccupancyRepository {
 
 /**
  * GET /api/v1/map/workspaces: the generated workspaces with the admin edits
- * applied, from Postgres. Editing happens in occupancy-map-preview; its files
- * are imported with `make map-sync`.
+ * applied, from Postgres (imported from backend/app/features/campus_map/map-data).
  */
 export class HttpRepository implements OccupancyRepository {
   async load(): Promise<OccupancyData> {

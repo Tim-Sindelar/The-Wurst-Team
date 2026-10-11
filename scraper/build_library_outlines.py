@@ -1,13 +1,12 @@
 """Derive a map outline for every library from its PolyMaps rooms.
 
-Reads the legacy occupancy-map-preview/data/generated.json, or the backend
-campus catalog when that file is absent, and the level files written by
-extract_floors.py, and writes occupancy-map-preview/public/floors/library-outlines.json:
+Reads the backend campus catalog (map-data/generated.json) and the level files written by
+extract_floors.py, and writes scraper/floors/library-outlines.json:
 
     { "<libraryId>": { "type": "MultiPolygon", "coordinates": [...], "rooms": ["<roomId>", ...] } }
 
 and, for workspaces created or changed in the admin UI (whose rooms differ from generated.json),
-public/floors/room-outlines/<levelId>.json with the polygon of every room of that level:
+floors/room-outlines/<levelId>.json with the polygon of every room of that level:
 
     { "<roomId>": [[ring, ...], ...] }       (polygons -> rings -> [lng, lat])
 
@@ -16,8 +15,8 @@ Outlines drawn by hand in the admin UI (library.outline) take precedence over th
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent / 'occupancy-map-preview'
-FLOORS = ROOT / 'public' / 'floors'
+ROOT = Path(__file__).resolve().parent.parent
+FLOORS = ROOT / 'scraper' / 'floors'
 
 
 def decode(flat, origin, scale):
@@ -29,9 +28,7 @@ def decode(flat, origin, scale):
 
 
 def main():
-    catalog = ROOT / 'data' / 'generated.json'
-    if not catalog.exists():
-        catalog = ROOT.parent / 'backend' / 'app' / 'features' / 'campus_map' / 'map-data' / 'generated.json'
+    catalog = ROOT / 'backend' / 'app' / 'features' / 'campus_map' / 'map-data' / 'generated.json'
     data = json.loads(catalog.read_text(encoding='utf-8'))
     levels = {}
 

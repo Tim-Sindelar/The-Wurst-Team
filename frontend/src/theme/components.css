@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Mantine component styles, matching design/base.css.
+   Mantine component styles.
    theme.tsx attaches these classes to Mantine's parts; variants come from
    Mantine's data attributes. They live in the components layer: above
    Mantine's own styles, below Tailwind utilities, so a screen can still
