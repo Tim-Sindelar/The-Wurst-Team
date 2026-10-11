@@ -234,7 +234,7 @@ export function SeatMapScreen() {
       });
       queryClient.setQueryData(getMyReservationQueryKey(), data);
       void refresh();
-      navigate(paths.reservation);
+      navigate(paths.reservation, { replace: true });
     } catch (error) {
       void refresh();
       /* Someone else got the seat first: leave the sheet, explain it on the screen. */

@@ -71,7 +71,7 @@ export function NewGroupScreen() {
         });
     });
     /* The group exists even if an invitation failed: open it, the error shows there. */
-    if (id) navigate(groupPath(id));
+    if (id) navigate(groupPath(id), { replace: true });
   };
 
   return (

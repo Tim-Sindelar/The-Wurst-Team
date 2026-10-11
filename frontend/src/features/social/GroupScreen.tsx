@@ -109,7 +109,7 @@ export function GroupScreen() {
     );
     if (!ok) return;
     setSheet(null);
-    if (choice !== 'join') navigate(socialPaths.friends);
+    if (choice !== 'join') navigate(socialPaths.friends, { replace: true });
   };
 
   const invitable = candidates.people.filter(

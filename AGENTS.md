@@ -45,7 +45,7 @@ React 19, Vite, TypeScript, Mantine 9, Tailwind CSS 4, React Router, TanStack Qu
 | Toggle | `Switch` with a `label` |
 | Text | `Title order={1}` is the 28px screen heading, `order={2/3}` the 20px title (add `text-heading` for a heading-sized `h2`). `Text size="sm"` for secondary text, `c="dimmed"` for muted. Section labels: `SectionLabel`. Timers: `text-timer tabular-nums` |
 | Icons | `Icon` from `src/components/Icon.tsx` only (24px outline, 1.75 stroke). Add new icons there |
-| Screen layout | `Screen` > `ScreenHeader` (back, title, requests bell) > `ScreenMain` > `ActionBar` |
+| Screen layout | `Screen` > `ScreenHeader` (back, title, requests bell) > `ScreenMain` > `ActionBar`. Back goes one step back in the history (`useGoBack`); `backTo` is only where it goes when the app was opened on that screen. Navigate after an action (booking, cancelling, creating a party, a scan) with `replace`, so back never returns to a screen that no longer applies |
 
 Only two kinds of popup exist: the decision sheet and the notification banner. Don't add a third. The banner is `@mantine/notifications` (themed in `theme.tsx`, `.ui-notifications`). (The campus map's bottom sheets, `MapSheet`, use the decision sheet's frame for its settings and its room dashboard.) Errors on a screen are shown in place as a `danger` notice.
 

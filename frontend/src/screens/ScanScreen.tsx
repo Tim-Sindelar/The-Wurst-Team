@@ -20,7 +20,9 @@ import { paths } from '../routes';
 /* Why the scan is happening (?from=), which changes the title, what happens
    after a good scan, and where the back arrow and a successful scan lead.
    Check-in is the default. Every flow sends the scanned code to the server,
-   which checks it belongs to the reservation's own seat. */
+   which checks it belongs to the reservation's own seat. The booking screens
+   open the scan in their own place in the history, so the back arrow and a
+   successful scan swap it for the next screen instead of stacking up. */
 type FlowKey = 'checkIn' | 'extend' | 'break-start' | 'break-end';
 
 const flows: Record<
@@ -185,6 +187,7 @@ export function ScanScreen() {
             variant="camera"
             component={Link}
             to={flow.back}
+            replace
             aria-label="Back"
           >
             <Icon name="back" />

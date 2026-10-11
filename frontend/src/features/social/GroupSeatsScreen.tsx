@@ -273,7 +273,7 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
         }
       },
     );
-    if (ok) navigate(paths.reservation);
+    if (ok) navigate(paths.reservation, { replace: true });
   };
 
   /* The picker card's height, so a chosen seat is centred above it. */
