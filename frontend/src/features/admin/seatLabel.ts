@@ -13,6 +13,8 @@ import logo from './study-spaces-logo.svg?raw';
 
 export const WIDTH = 148;
 const PAD = 12,
+  GAP = 10,
+  CAP = 0.72, // cap height of the label font, in em
   QR = 100,
   TILE = 12, // white quiet zone around the code
   BG = '#f5f5f5',
@@ -56,7 +58,8 @@ export function wrap(text: string, max: number, lines: number): string[] {
   return out;
 }
 
-/** The seat mark (a desk with four seats, one free), centred at x, y. */
+/** The seat mark (a desk with four seats, one free), centred at x, y and
+    `size` tall. */
 const seatMark = (x: number, y: number, size: number) =>
   `<g transform="translate(${x} ${y}) scale(${size / 120}) translate(-128 -128)">` +
   `<rect x="72" y="111" width="112" height="34" rx="12" fill="${SEAT}"/>` +
@@ -91,48 +94,96 @@ function qrCode(token: string, x: number, y: number) {
   );
 }
 
-/** The logo from design/brand/ (light theme), cropped to its artwork. */
-function logoAt(x: number, y: number, height: number) {
-  const width = (height * 448) / 124;
+/* The logo, put together like AppName in the app: the seat mark as tall as
+   the capitals, sitting on the baseline, 0.3em before the wordmark. The
+   wordmark is the outlined "Study" (bold) and "Spaces" (regular) from
+   design/brand/; its capitals are 70.8 units tall. */
+const WORDMARK_CAP = 70.8;
+const wordmark = [...logo.matchAll(/<path data-word[^>]*\/>/g)]
+  .map((m) => m[0].replace(/fill="[^"]*"/, `fill="${TEXT}"`))
+  .join('');
+
+/** The logo with its capitals `cap` tall, the top of the capitals at x, y.
+    Returns its width too. */
+function logoAt(x: number, y: number, cap: number) {
+  const em = cap / CAP,
+    markW = (cap * 112) / 120,
+    gap = 0.3 * em,
+    s = cap / WORDMARK_CAP,
+    // The wordmark's first letter starts 3.6 units in from its origin.
+    textX = x + markW + gap - 3.6 * s;
   return {
-    width,
-    svg: logo
-      .replace(/<title>.*?<\/title>/, '')
-      .replace(
-        /<svg[^>]*>/,
-        `<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="10 10 448 124">`,
-      ),
+    width: markW + gap + 585 * s,
+    svg:
+      seatMark(x + markW / 2, y + cap / 2, cap) +
+      `<g transform="translate(${textX} ${y + cap}) scale(${s})">${wordmark}</g>`,
   };
 }
 
-/** The whole label as an SVG document, and its height in label units. */
+/** A line of text with the top of its capitals at y. */
+const line = (
+  x: number,
+  y: number,
+  size: number,
+  weight: number,
+  fill: string,
+  content: string,
+  extra = '',
+) =>
+  `<text x="${x}" y="${y + CAP * size}" font-size="${size}" font-weight="${weight}" fill="${fill}"${extra}>${escape(content)}</text>`;
+
+/** The whole label as an SVG document, and its height in label units.
+    Every gap between blocks is GAP, measured from the tops and bottoms of
+    the capitals, and the card has PAD on every side. */
 export function seatLabelSvg(room: string, seat: string, token: string) {
-  const inner = WIDTH - 2 * PAD;
   let y = PAD;
-  // Header: logo left, the seat as a "yours" chip right (like the seat map).
+  // Header: logo left, the seat as a "yours" chip right (like the seat map),
+  // the logo's and the chip's capitals the same height and centred together.
   const chipH = 20,
+    cap = 9,
+    chipSize = cap / CAP,
     chipText = seat.length > 5 ? seat.slice(0, 4) + '…' : seat,
     chipW = Math.max(chipH, 9 + chipText.length * 7),
-    brand = logoAt(PAD - 1, y + 2, 16),
+    capTop = y + (chipH - cap) / 2,
+    brand = logoAt(PAD, capTop, cap),
     chip =
       `<rect x="${WIDTH - PAD - chipW}" y="${y}" width="${chipW}" height="${chipH}" rx="5.5" fill="${ACCENT}"/>` +
-      `<text x="${WIDTH - PAD - chipW / 2}" y="${y + 14.6}" font-size="12.5" font-weight="700" fill="${ON_ACCENT}" text-anchor="middle">${escape(chipText)}</text>`;
-  y += chipH + 13;
+      line(
+        WIDTH - PAD - chipW / 2,
+        capTop,
+        chipSize,
+        700,
+        ON_ACCENT,
+        chipText,
+        ' text-anchor="middle"',
+      );
+  y += chipH + GAP;
   // The room, as the app's uppercase section label.
-  const roomLines = wrap(room.toUpperCase(), 30, 2),
+  const roomSize = 5.6,
+    roomLines = wrap(room.toUpperCase(), 30, 2),
     roomSvg = roomLines
-      .map(
-        (l, i) =>
-          `<text x="${PAD}" y="${y + i * 7.5}" font-size="5.6" font-weight="700" letter-spacing="0.5" fill="${MUTED}">${escape(l)}</text>`,
+      .map((l, i) =>
+        line(
+          PAD,
+          y + i * 7.5,
+          roomSize,
+          700,
+          MUTED,
+          l,
+          ' letter-spacing="0.5"',
+        ),
       )
       .join('');
-  y += (roomLines.length - 1) * 7.5 + 6 + TILE;
-  const qrSvg = qrCode(token, PAD + (inner - QR) / 2, y);
-  y += QR + TILE + 14;
-  const note =
-    `<text x="${PAD}" y="${y}" font-size="8.5" font-weight="700" fill="${TEXT}">Reserve it to make it yours.</text>` +
-    `<text x="${PAD}" y="${y + 10}" font-size="7" fill="${MUTED}">Scan here to check in.</text>`;
-  const height = Math.ceil(y + 10 + PAD);
+  y += (roomLines.length - 1) * 7.5 + CAP * roomSize + GAP;
+  const qrSvg = qrCode(token, PAD + TILE, y + TILE);
+  y += QR + 2 * TILE + GAP;
+  const head = 8.5,
+    sub = 7,
+    note =
+      line(PAD, y, head, 700, TEXT, 'Reserve it to make it yours.') +
+      line(PAD, y + CAP * head + 4, sub, 400, MUTED, 'Scan here to check in.');
+  y += CAP * head + 4 + CAP * sub + PAD;
+  const height = Math.ceil(y);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${height}">` +
     `<rect x="0.5" y="0.5" width="${WIDTH - 1}" height="${height - 1}" rx="14" fill="${BG}" stroke="${BORDER}"/>` +
