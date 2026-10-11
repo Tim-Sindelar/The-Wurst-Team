@@ -60,6 +60,12 @@ export interface LayoutItem {
   radius?: number;
   sweep?: number;
   rowGap?: number;
+  /** Furniture size of tables, seat rows and seats (1 = physical size). */
+  scale?: number;
+  /** Seat rows: space between seats in a row, in % of the default. */
+  seatSpacing?: number;
+  /** Seat rows: space between rows, in % of the default. */
+  rowSpacing?: number;
   state?: string;
   active?: boolean;
   backendSeatId?: string;

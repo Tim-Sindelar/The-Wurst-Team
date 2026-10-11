@@ -12,6 +12,8 @@ type SeatMarkerProps = {
   y: number;
   /** Rotation of the seat in degrees; the number stays upright. */
   angle?: number;
+  /** Furniture size from the layout; the seat is drawn this much larger. */
+  scale?: number;
   /** Seat features, read out after the state ("power outlet"). */
   features?: string[];
   selected: boolean;
@@ -27,6 +29,7 @@ export function SeatMarker({
   x,
   y,
   angle = 0,
+  scale = 1,
   features = [],
   selected,
   onSelect,
@@ -67,7 +70,10 @@ export function SeatMarker({
         ]
           .filter(Boolean)
           .join(' ')}
-        style={angle ? { rotate: `${angle}deg` } : undefined}
+        style={{
+          ...(angle && { rotate: `${angle}deg` }),
+          ...(scale !== 1 && { scale }),
+        }}
         aria-hidden="true"
       />
       <span
