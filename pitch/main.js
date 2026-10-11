@@ -48,7 +48,7 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;sce
 const hall=buildHall(scene),bathroom=buildBathroom(scene),phone=buildPhone(scene);
 const exterior=buildHG(scene);
 const closing=await buildClosing(scene,exterior.root),slides=buildSlides();
-const sets=[exterior.root,hall.root,bathroom.root,closing.features.root,closing.friends,closing.friendTable.root,closing.campus,closing.campusMap,closing.adoption.root];
+const sets=[exterior.root,hall.root,bathroom.root,closing.features.root,closing.friends,closing.friendTable.root,closing.campus,closing.campusMap,closing.adoption.root,closing.qaAdmin];
 batchStatic(hall.root,hall.student);batchStatic(bathroom.root,bathroom.student);
 const cssScene=new THREE.Scene();
 const cssRenderer=new CSS3DRenderer({element:document.getElementById('screens')});cssRenderer.setSize(innerWidth,innerHeight);
@@ -57,8 +57,8 @@ cssRenderer.domElement.style.overflow='clip';
 const screenElement=document.createElement('div');screenElement.className='phone-screen';
 const appFrame=document.createElement('iframe');appFrame.title='Study Spaces live booking app';appFrame.allow='camera';
 const requestedApp=new URLSearchParams(location.search).get('app');
-let appUrl='http://localhost:5173/';
-if(requestedApp){try{const url=new URL(requestedApp);if(['http:','https:'].includes(url.protocol)){url.pathname=url.pathname.replace(/\/map\/?$/,'/');appUrl=url.href;}}catch{ /* Keep the local app if the URL is malformed. */ }}
+let appUrl='https://02.hackathon.ethz.ch/';
+if(requestedApp){try{const url=new URL(requestedApp);if(['http:','https:'].includes(url.protocol)){url.pathname=url.pathname.replace(/\/map\/?$/,'/');appUrl=url.href;}}catch{ /* Keep the hosted app if the URL is malformed. */ }}
 appFrame.src=appUrl;screenElement.append(appFrame);
 appFrame.addEventListener('load',()=>{stage.dataset.appLoaded='true';});
 const island=document.createElement('div');island.className='island';island.setAttribute('aria-hidden','true');screenElement.append(island);
@@ -145,6 +145,7 @@ function go(index,snap=false){
   closing.campusMap.visible=current===9;closing.adoption.root.visible=current===10;
   if(current===10){closing.adoption.show(rolloutStep);slides.revealRollout(rolloutStep);}
   closing.friends.visible=current===8;closing.campus.visible=current===11;
+  closing.qaAdmin.visible=current===11;
   closing.friendTable.root.visible=current===8;
   closing.features.root.visible=current===7;
   if(current===7){closing.features.show(featureStep);slides.revealFeature(featureStep);}
@@ -327,6 +328,7 @@ function render(now){
   else{camera.position.copy(cameraFrom).lerp(cameraTo,t);look.copy(lookFrom).lerp(lookTo,t);}
   camera.lookAt(look);
   if(current===10)closing.adoption.placeAdmin(camera);
+  if(current===11)closing.placeQaAdmin(camera,qaExpanded);
   const impactAge=(elapsed-impactTime)/1000;
   if(current===2&&impactAge>=0&&impactAge<.24&&!reducedMotion)camera.rotateZ(Math.sin(impactAge*65)*.022*Math.exp(-impactAge*14));
   updatePhone();

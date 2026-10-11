@@ -194,6 +194,7 @@ export async function buildClosing(scene,hgRoot){
   const [planner,qr,map,admin,...screens]=await Promise.all([plannerUrl,qrUrl,campusMapUrl,adminUrl,scannerUrl,priorityUrl,handoverUrl,breakUrl].map(url=>loader.loadAsync(url)));
   [planner,qr,map,admin,...screens].forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;});
   const features=featureRenders(scene,qr,screens),campusMap=mapRender(scene,map),adoption=adoptionRender(scene,hgRoot,admin);
+  const qaAdmin=adminLaptop(scene,admin);
   const friends=group(scene);
   const partyPhone=staticPhone(friends,planner);partyPhone.scale.setScalar(4.2);partyPhone.position.y=2.1;partyPhone.rotation.set(0,-.12,-.045);
   batchStatic(friends,null);
@@ -225,7 +226,14 @@ export async function buildClosing(scene,hgRoot){
   }
   batchStatic(campus,motion);
   const point=new THREE.Vector3(),tangent=new THREE.Vector3();
-  return {features,friends,friendTable,campus,campusMap,adoption,animate(time,reducedMotion){
+  return {features,friends,friendTable,campus,campusMap,adoption,qaAdmin,placeQaAdmin(camera,phoneExpanded){
+    qaAdmin.visible=!phoneExpanded;
+    if(!qaAdmin.visible)return;
+    const depth=5,viewHeight=2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),viewWidth=viewHeight*camera.aspect;
+    qaAdmin.scale.setScalar(Math.min(viewWidth*.28/3.9,viewHeight*.28/2.9));
+    qaAdmin.quaternion.copy(camera.quaternion);
+    qaAdmin.position.set(-viewWidth*.32,-viewHeight*.30,-depth).applyQuaternion(camera.quaternion).add(camera.position);
+  },animate(time,reducedMotion){
     if(reducedMotion)return;
     chatters.forEach((student,i)=>{idle(student,time+i*2.1);});
     chatters[0].userData.arms[0].elbow.rotation.z=Math.sin(time*1.3)*.15;
@@ -258,7 +266,7 @@ export function buildSlides(){
       <div class="pilot-copy"><h1 data-rollout="0">One library</h1><span aria-hidden="true">→</span><p data-rollout="1">Entire ETH</p><span aria-hidden="true">→</span><p data-rollout="2">Other universities</p></div>
       <p class="pilot-admin">Admin room setup</p>
     </section>
-    <section class="pitch-slide future-slide" data-slide="4" hidden aria-label="Questions and answers over a happy ETH campus"><h1>Q&amp;A</h1></section>`;
+    <section class="pitch-slide future-slide" data-slide="4" hidden aria-label="Questions and answers over a happy ETH campus"><h1>Q&amp;A</h1><p class="qa-admin-copy">Admin</p></section>`;
   const pages=[...root.querySelectorAll('[data-slide]')];
   const features=[...root.querySelectorAll('[data-feature]')];
   const rollout=[...root.querySelectorAll('[data-rollout]')];

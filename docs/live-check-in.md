@@ -4,15 +4,29 @@ Use the teammate's iPhone for the app and a second phone for the moving camera. 
 
 ## App and desk setup
 
-1. Use the same hosted app environment in the presentation and on the iPhone. The presentation currently defaults to the local backend, which will not share a booking with the hosted app. Set its `app` query parameter to the hosted Home URL (the deployment root). The toilet scene and Q&A open Home, where any saved booking is restored. Verify the hosted app can be embedded and is already signed in; if the managed login cannot work in the iframe, open the hosted app directly for the live booking segment.
+1. Use https://02.hackathon.ethz.ch/ in the presentation and on the iPhone. The presentation now defaults to this hosted Home URL. The toilet scene and Q&A open Home, where any saved booking is restored. Sign in in a normal browser tab first, then verify the hosted app can be embedded; if the managed login cannot work in the iframe, open the hosted app directly for the live booking segment. The local backup is `http://127.0.0.1:5174/?app=http%3A%2F%2Flocalhost%3A5173%2F`, but bookings there are separate from the hosted phone.
 2. Sign in as the same demo participant on both devices. In proxy auth, different logins own different reservations. Check that Profile shows the same account on each. Do not rely on the local shared demo-user behaviour.
 3. Choose a participating demo seat in that environment. Print a QR whose payload is exactly that seat's existing `qr_token`. The in-app scanner submits the decoded text directly; a URL wrapper will not be understood. Obtain the token from the hosted demo inventory / authorized administrator, not a different local database. `make seed` prints the existing tokens when run against the corresponding demo backend; do not seed another environment merely to obtain a code.
 4. Attach the printed QR flat to the desk where the teammate will study. Use a large, high-contrast print with a clear white margin. Keep the corresponding seat label beside it.
 5. Open the hosted app on the iPhone in Safari. Rehearse camera permission and an actual scan before the pitch, then end the rehearsal session so the seat is free again. The HTTPS page is required for camera access on the phone.
 
-## Camera feed
+## FaceTime handoff
 
-Suggested transport: VDO.Ninja. On the filming phone, open VDO.Ninja, choose "Add your camera to OBS", select the rear camera and start. Use landscape orientation. Keep its microphone muted; the presenter supplies the narration. Copy the generated viewer link into the presentation's encoded `live` query parameter, or into an OBS Browser Source if a video operator is already using OBS. Connect and check the feed before the opening film starts.
+Keep the call and iPhone screen share connected before the opening film. The audience sees one image at a time: shared phone, then camera feed. Prepare both windows at presentation size and rehearse switching without searching for windows or resizing them on stage.
+
+1. Finish the hosted booking, with the reservation visible on both devices. Hold the teammate's shared reservation screen still.
+2. Say, “The seat is held. Let's go there.” Cue L or click outside the pitch phone to fade to black. Switch to the prepared FaceTime desktop and show the phone share large, alone, for one beat.
+3. Cut to the camera feed, already framed tightly on that same reservation screen. The filming operator waits until this feed is visible, then pulls back and follows the teammate into the room.
+4. Keep the camera feed large during the walk. At the scan, optionally cut to the shared app screen to show check-in and the ticking timer clearly, then back to the teammate sitting down.
+5. Switch back to the pitch's black handoff screen, focus the presentation and press P to reveal the first closing slide.
+
+For a cleaner projector output, OBS can capture each FaceTime window separately using its macOS Screen Capture source. Prepare three scenes: Pitch, Phone share (portrait, centred on black), and Camera (fills the output with its aspect ratio preserved). Use a short fade between scenes and a full-screen Program projector on the audience display; keep OBS controls on the laptop. Test that both FaceTime windows capture correctly before adopting this setup. No streaming or recording is required. Keep the call's local microphone and speaker output muted during the passage if the presenter is narrating, and rehearse the audio setup.
+
+If staying with desktop swipes, dedicate that desktop to FaceTime, maximise the window being shown and hide the other window. Make the black handoff deliberate; never resize or arrange windows in front of the audience.
+
+## Alternative browser camera feed
+
+An alternative transport is VDO.Ninja. On the filming phone, open VDO.Ninja, choose "Add your camera to OBS", select the rear camera and start. Use landscape orientation. Keep its microphone muted; the presenter supplies the narration. Copy the generated viewer link into the presentation's encoded `live` query parameter, or into an OBS Browser Source if a video operator is already using OBS. Connect and check the feed before the opening film starts.
 
 The presentation supports an embedded viewer and an external-source blackout handoff. This is setup guidance, not evidence that a stream is connected. Rehearse on the actual laptop, phones and venue network. The two camera jobs use two phones: the app phone scans the QR, the filming phone keeps sending the scene.
 
@@ -25,10 +39,12 @@ The presentation supports an embedded viewer and an external-source blackout han
 5. At the desk, the teammate taps the app's check-in action and scans the printed QR using the app's scanner. Use Safari for the app, not the iPhone Camera app. Show the resulting session screen and ticking timer to the filming camera for a beat.
 6. The teammate places the phone down, sits and starts working. Allow roughly 25–40 seconds for the live passage, then continue the pitch.
 
-If scanning fails, the app already has a manual-code entry that goes through the same real check-in request. Introduce it honestly as manual entry. Keep the seat token available to the teammate. An explicitly introduced recording is the fallback for a failed video connection.
+The hosted scanner has no typed-code fallback. Rehearse the real QR and camera permission beforehand. An explicitly introduced recording is the fallback for a failed scan or video connection; do not rely on the local development-only skip button in the hosted app.
 
 ## Sources
 
+- [OBS macOS Screen Capture](https://obsproject.com/kb/macos-screen-capture-source)
+- [OBS full-screen projectors](https://obsproject.com/kb/power-of-projectors)
 - [VDO.Ninja basics](https://docs.vdo.ninja/getting-started/vdo.ninja-basics)
 - [Embedding a VDO.Ninja viewer](https://docs.vdo.ninja/guides/how-to-use-vdo.ninja-on-a-website)
 - [Browser camera secure-context requirement](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
