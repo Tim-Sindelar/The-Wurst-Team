@@ -78,15 +78,18 @@ export function SafeAreaTop() {
 export function ScreenMain({
   children,
   fit = false,
+  className,
 }: {
   children: ReactNode;
   fit?: boolean;
+  className?: string;
 }) {
   return (
     <main
       className={cx(
         'flex flex-1 flex-col px-4 py-4',
         fit ? 'min-h-0 gap-3 [&>*]:shrink-0' : 'gap-4',
+        className,
       )}
     >
       {children}

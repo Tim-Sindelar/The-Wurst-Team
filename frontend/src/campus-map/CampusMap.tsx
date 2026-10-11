@@ -14,6 +14,7 @@ import type { LatLngBoundsLiteral } from 'leaflet';
 import { Link, useNavigate } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { Icon } from '../components/Icon';
+import { MapLoading } from '../components/MapLoading';
 import { ScreenHeader } from '../components/Screen';
 import { SpaceLists } from '../components/SpaceLists';
 import {
@@ -148,6 +149,8 @@ function mensaPlace(item: DatasetItem) {
    the space's seat map. */
 export function CampusMap() {
   const theme = useComputedColorScheme('dark');
+  const [mapReady, setMapReady] = useState(false);
+  const [assetsReady, setAssetsReady] = useState(false);
 
   const [rawData, setData] = useState<OccupancyData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -216,12 +219,14 @@ export function CampusMap() {
       (err) => setLoadError(String(err)),
     );
     // The map still works without floor plans (extract_floors.py not run yet).
-    loadFloorIndex().then(setFloorIndex, (err) =>
-      console.warn('Floor plans unavailable', err),
-    );
-    fetchStandardStyles().then(setStyles, (err) =>
-      console.warn('Map style unavailable, using the built-in one', err),
-    );
+    void Promise.allSettled([
+      loadFloorIndex().then(setFloorIndex, (err) =>
+        console.warn('Floor plans unavailable', err),
+      ),
+      fetchStandardStyles().then(setStyles, (err) =>
+        console.warn('Map style unavailable, using the built-in one', err),
+      ),
+    ]).then(() => setAssetsReady(true));
   }, []);
 
   // ---- the bookable study spaces (the home screen's), for the study mode ----
@@ -429,9 +434,9 @@ export function CampusMap() {
     );
   if (!data)
     return (
-      <FullScreenNote>
-        <Text c="dimmed">Loading the campus map…</Text>
-      </FullScreenNote>
+      <div className="campus-map relative h-dvh">
+        <MapLoading />
+      </div>
     );
 
   // The study mode shows only the workspaces of the bookable study spaces.
@@ -621,6 +626,7 @@ export function CampusMap() {
 
       <div className="relative min-h-0 flex-1">
         <MapView
+          onReady={() => setMapReady(true)}
           theme={theme}
           data={visible}
           selection={selection}
@@ -670,6 +676,10 @@ export function CampusMap() {
           />
         </MapView>
       </div>
+
+      {(!mapReady || !assetsReady || !navigation || spacesQuery.isPending) && (
+        <MapLoading />
+      )}
 
       {/* Bottom: selection card, toolbar */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-1100 grid gap-2 px-3 pb-[calc(--spacing(3)+env(safe-area-inset-bottom))]">
