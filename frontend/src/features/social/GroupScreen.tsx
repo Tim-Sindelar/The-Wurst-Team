@@ -1,4 +1,12 @@
-import { Alert, Anchor, Button, Card, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Anchor,
+  Button,
+  Card,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { DecisionSheet } from '../../components/DecisionSheet';
@@ -28,7 +36,7 @@ import {
   PersonRow,
   SocialStatus,
 } from './SocialParts';
-import { useFriends, useGroup, useSocialActions } from './useSocial';
+import { useGroup, useInvitable, useSocialActions } from './useSocial';
 
 type Sheet = 'join' | 'decline' | 'leave' | 'cancel';
 
@@ -36,7 +44,8 @@ type Sheet = 'join' | 'decline' | 'leave' | 'cancel';
 export function GroupScreen() {
   const { groupId = '' } = useParams();
   const social = useGroup(groupId);
-  const friends = useFriends();
+  const [search, setSearch] = useState('');
+  const candidates = useInvitable(search);
   const actions = useSocialActions();
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -114,11 +123,11 @@ export function GroupScreen() {
     }
   };
 
-  const invitable = friends.friends.filter(
-    (friend) =>
+  const invitable = candidates.people.filter(
+    (person) =>
       !group.members.some(
         (member) =>
-          member.person.id === friend.person.id &&
+          member.person.id === person.id &&
           (member.status === 'accepted' || member.status === 'invited'),
       ),
   );
@@ -142,7 +151,9 @@ export function GroupScreen() {
             </Text>
           </div>
         </Card>
-        <ActionError error={sheet ? '' : actions.error} />
+        <ActionError
+          error={sheet ? '' : actions.error || candidates.searchError}
+        />
 
         {me?.status === 'invited' && conflict && (
           <Alert variant="danger" icon={<Icon name="alert" />}>
@@ -196,33 +207,54 @@ export function GroupScreen() {
                 </PeopleList>
               </>
             )}
-            {organizer && invitable.length > 0 && (
+            {organizer && (
               <>
                 <SectionLabel>Invite more</SectionLabel>
-                <PeopleList label="Invite more">
-                  {invitable.map(({ person }) => (
-                    <PersonRow key={person.id} person={person}>
-                      <Button
-                        variant="secondary"
-                        disabled={actions.busy}
-                        aria-label={`Invite ${person.name}`}
-                        onClick={async () => {
-                          if (
-                            await actions.run(() =>
-                              actions.invite.mutateAsync({
-                                path: { party_id: group.id },
-                                body: { user_id: person.id },
-                              }),
+                <TextInput
+                  type="search"
+                  placeholder="Search people"
+                  aria-label="Search people"
+                  leftSection={<Icon name="search" />}
+                  maxLength={80}
+                  value={search}
+                  onChange={(event) => setSearch(event.currentTarget.value)}
+                />
+                {invitable.length > 0 ? (
+                  <PeopleList label="Invite more">
+                    {invitable.map((person) => (
+                      <PersonRow key={person.id} person={person}>
+                        <Button
+                          variant="secondary"
+                          disabled={actions.busy}
+                          aria-label={`Invite ${person.name}`}
+                          onClick={async () => {
+                            if (
+                              await actions.run(() =>
+                                actions.invite.mutateAsync({
+                                  path: { party_id: group.id },
+                                  body: { user_id: person.id },
+                                }),
+                              )
                             )
-                          )
-                            notify(`Invited ${person.name}`, 'mail');
-                        }}
-                      >
-                        Invite
-                      </Button>
-                    </PersonRow>
-                  ))}
-                </PeopleList>
+                              notify(`Invited ${person.name}`, 'mail');
+                          }}
+                        >
+                          Invite
+                        </Button>
+                      </PersonRow>
+                    ))}
+                  </PeopleList>
+                ) : candidates.searching ? (
+                  <Text size="sm" c="dimmed" role="status">
+                    Searching…
+                  </Text>
+                ) : (
+                  search.trim() !== '' && (
+                    <Text size="sm" c="dimmed" role="status">
+                      No one found
+                    </Text>
+                  )
+                )}
               </>
             )}
           </>
@@ -304,7 +336,7 @@ export function GroupScreen() {
             leftSection={<Icon name="friends" />}
           >
             {nobodyElse
-              ? 'Waiting for friends to join'
+              ? 'Waiting for others to join'
               : `Choose seats for ${going(group).length}`}
           </Button>
         ) : (

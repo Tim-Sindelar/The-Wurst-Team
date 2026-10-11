@@ -20,7 +20,9 @@ import {
   sendFriendRequestMutation,
   updateSocialPrivacyMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
+import type { SocialPerson } from '../../api/generated';
 import { apiProblem, isMissing, type ApiProblem } from '../../domain/booking';
+import { searchByName } from '../../domain/similarity';
 import { socialEnabled } from '../../features';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useMyReservation } from '../../hooks/useMyReservation';
@@ -125,6 +127,31 @@ export function usePeopleSearch(search: string) {
     people: settled && !result.isError ? (result.data?.people ?? []) : [],
     searching: search.trim().length >= 2 && (!settled || result.isFetching),
     error: result.error ? apiProblem(result.error).message : '',
+  };
+}
+
+/** People to invite to a study group: friends first (all of them before
+    anything is typed), then anyone else whose name matches. */
+export function useInvitable(search: string) {
+  const social = useFriends();
+  const directory = usePeopleSearch(search);
+  const friends = searchByName(
+    social.friends.map((friend) => friend.person),
+    search,
+    (person) => person.name,
+  );
+  const friendIds = new Set(friends.map((person) => person.id));
+  const others: SocialPerson[] = directory.people
+    .filter((person) => person.relationship !== 'friends')
+    .filter((person) => !friendIds.has(person.id))
+    .map(({ id, name, photo_url }) => ({ id, name, photo_url }));
+  return {
+    people: [...friends, ...others],
+    searching: directory.searching,
+    loading: social.loading,
+    error: social.error,
+    searchError: directory.error,
+    retry: social.retry,
   };
 }
 

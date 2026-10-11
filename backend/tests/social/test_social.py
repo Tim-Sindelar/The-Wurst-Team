@@ -28,6 +28,7 @@ def login(client, user=A):
 
 
 def friendship(client, organizer=A, friend=B):
+    login(client, friend)
     target_id = login(client, organizer)
     response = call(client, "POST", BASE + "/friend-requests", friend, {"user_id": target_id})
     assert response.status_code == 200, response.text
@@ -38,7 +39,8 @@ def friendship(client, organizer=A, friend=B):
 
 
 def party(client, organizer=A, member=B, *, accept=True):
-    friendship(client, organizer, member)
+    login(client, organizer)
+    login(client, member)
     created = call(client, "POST", BASE + "/parties", organizer, {"name": "Study together"})
     assert created.status_code == 201, created.text
     party_id = created.json()["id"]
@@ -195,9 +197,16 @@ def test_party_consent_and_permissions(social_client, seats):
     path = BASE + f"/parties/{party_id}"
     assert call(client, "GET", path, C).status_code == 404
     assert call(client, "POST", path + "/invitations", B, {"user_id": str(C)}).status_code == 403
-    assert call(client, "POST", path + "/invitations", A, {"user_id": str(C)}).status_code == 409
+    # C has never signed in, so there is nobody to invite yet.
+    assert call(client, "POST", path + "/invitations", A, {"user_id": str(C)}).status_code == 404
+    assert call(client, "POST", path + "/invitations", A, {"user_id": str(A)}).status_code == 409
     assert call(client, "POST", path + "/book", A, assignments(seats)).status_code == 409
     assert current(client, A) is None
+    # Study groups don't need friendship: A can invite C, who is not a friend.
+    login(client, C)
+    invited = call(client, "POST", path + "/invitations", A, {"user_id": str(C)})
+    assert invited.status_code == 200, invited.text
+    assert call(client, "POST", path + "/reply", C, {"accept": False}).status_code == 200
     assert call(client, "POST", path + "/reply", B, {"accept": True}).status_code == 200
     assert call(client, "POST", path + "/book", B, assignments(seats)).status_code == 403
     assert call(client, "POST", path + "/cancel", B).status_code == 403
@@ -217,6 +226,50 @@ def test_declined_invitation_can_be_reinvited(social_client):
         == 200
     )
     assert call(social_client, "POST", path + "/reply", B, {"accept": True}).status_code == 200
+
+
+def test_unfriending_an_invited_member_keeps_the_invitation(social_client, seats):
+    client = social_client
+    relation = friendship(client, A, B)
+    created = call(client, "POST", BASE + "/parties", A, {"name": "Study together"})
+    path = BASE + f"/parties/{created.json()['id']}"
+    assert call(client, "POST", path + "/invitations", A, {"user_id": str(B)}).status_code == 200
+    assert call(client, "DELETE", BASE + f"/friendships/{relation}", B).status_code == 204
+    assert call(client, "GET", BASE + "/friends", A).json()["friends"] == []
+
+    # The pending invitation survives, and can be declined and sent again.
+    assert call(client, "GET", path, B).status_code == 200
+    assert call(client, "POST", path + "/reply", B, {"accept": False}).status_code == 200
+    assert call(client, "POST", path + "/invitations", A, {"user_id": str(B)}).status_code == 200
+    assert call(client, "POST", path + "/reply", B, {"accept": True}).status_code == 200
+
+    booked = call(client, "POST", path + "/book", A, assignments(seats))
+    assert booked.status_code == 200, booked.text
+    assert current(client, B)["seat"]["id"] == str(seats[1].id)
+
+
+def test_unfriending_a_member_who_joined_keeps_them_in_the_group(social_client, seats):
+    client = social_client
+    relation = friendship(client, A, B)
+    created = call(client, "POST", BASE + "/parties", A, {"name": "Study together"})
+    path = BASE + f"/parties/{created.json()['id']}"
+    assert call(client, "POST", path + "/invitations", A, {"user_id": str(B)}).status_code == 200
+    assert call(client, "POST", path + "/reply", B, {"accept": True}).status_code == 200
+    assert call(client, "DELETE", BASE + f"/friendships/{relation}", A).status_code == 204
+
+    members = call(client, "GET", path, A).json()["members"]
+    assert {(m["person"]["id"], m["status"]) for m in members} == {
+        (str(A), "accepted"),
+        (str(B), "accepted"),
+    }
+    # Re-inviting someone already going changes nothing.
+    assert call(client, "POST", path + "/invitations", A, {"user_id": str(B)}).status_code == 200
+
+    booked = call(client, "POST", path + "/book", A, assignments(seats))
+    assert booked.status_code == 200, booked.text
+    assert current(client, B)["seat"]["id"] == str(seats[1].id)
+    assert call(client, "POST", path + "/cancel", A).status_code in {200, 204}
+    assert current(client, B) is None
 
 
 def test_party_booking_individual_ownership_check_in_and_no_show(social_client, seats, clock):

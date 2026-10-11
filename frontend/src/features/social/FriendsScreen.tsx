@@ -458,7 +458,7 @@ function GroupAction({ groups }: { groups: ReturnType<typeof useGroups> }) {
   const count = going(group).length;
   return count < 2 ? (
     <Button fullWidth disabled>
-      Waiting for friends to join
+      Waiting for others to join
     </Button>
   ) : (
     <Button component={Link} to={groupSeatsPath(group.id)} fullWidth>
