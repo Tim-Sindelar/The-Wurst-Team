@@ -2156,6 +2156,22 @@ export type SeatAvailability = {
 };
 
 /**
+ * SeatQrResponse
+ *
+ * The seat a printed QR code belongs to.
+ */
+export type SeatQrResponse = {
+    /**
+     * Seat Id
+     */
+    seat_id: string;
+    /**
+     * Space Id
+     */
+    space_id: string;
+};
+
+/**
  * SeatScanRequest
  *
  * The QR code scanned at the reservation's own seat, proving the user is there.
@@ -4571,6 +4587,48 @@ export type GetRulesResponses = {
 };
 
 export type GetRulesResponse = GetRulesResponses[keyof GetRulesResponses];
+
+export type FindSeatByQrData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Qr Token
+         */
+        qr_token: string;
+    };
+    url: '/api/v1/seats/by-qr';
+};
+
+export type FindSeatByQrErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type FindSeatByQrError = FindSeatByQrErrors[keyof FindSeatByQrErrors];
+
+export type FindSeatByQrResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatQrResponse;
+};
+
+export type FindSeatByQrResponse = FindSeatByQrResponses[keyof FindSeatByQrResponses];
 
 export type GetSocialCapabilitiesData = {
     body?: never;

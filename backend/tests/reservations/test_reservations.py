@@ -576,3 +576,17 @@ def test_popular_spaces_compare_shares_not_seat_time(client, db, seats, clock):
         str(small.id),
         str(seats[0].space_id),
     ]
+
+
+def test_seat_qr_link_finds_its_seat(client, seats, db):
+    found = client.get("/api/v1/seats/by-qr", params={"qr_token": seats[1].qr_token})
+    assert found.status_code == 200, found.text
+    assert found.json() == {"space_id": str(seats[1].space_id), "seat_id": str(seats[1].id)}
+    missing = client.get("/api/v1/seats/by-qr", params={"qr_token": "not-a-seat"})
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "qr_not_found"
+    with Session(db) as session:
+        session.get(Seat, seats[1].id).is_active = False
+        session.commit()
+    inactive = client.get("/api/v1/seats/by-qr", params={"qr_token": seats[1].qr_token})
+    assert inactive.status_code == 404

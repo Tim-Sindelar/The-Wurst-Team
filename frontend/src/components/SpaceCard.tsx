@@ -15,7 +15,6 @@ const titleLinkClass =
   "[font:inherit] text-inherit text-left [overflow-wrap:anywhere] after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-focus";
 
 type SpaceCardProps = {
-  fit?: boolean;
   space: StudySpace;
   onToggleFavourite: (favourite: boolean) => void;
   /** Called instead of opening the seat map (the campus map shows the space). */
@@ -24,7 +23,6 @@ type SpaceCardProps = {
 
 export function SpaceCard({
   space,
-  fit = false,
   onToggleFavourite,
   onSelect,
 }: SpaceCardProps) {
@@ -36,8 +34,7 @@ export function SpaceCard({
     <Card
       component="article"
       className={cx(
-        'relative isolate grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto] overflow-visible',
-        fit ? 'h-full min-h-0' : 'h-32',
+        'relative isolate h-32 grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto] overflow-visible',
         onPhoto,
       )}
     >
@@ -56,14 +53,7 @@ export function SpaceCard({
         </div>
       )}
       <div className="flex items-center justify-between gap-2 self-start">
-        <Title
-          order={2}
-          className={cx(
-            'min-w-0 flex-1',
-            fit ? 'line-clamp-1' : 'line-clamp-2',
-            onPhoto,
-          )}
-        >
+        <Title order={2} className={cx('line-clamp-2 min-w-0 flex-1', onPhoto)}>
           {onSelect ? (
             <Anchor
               component="button"

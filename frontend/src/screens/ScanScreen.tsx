@@ -12,6 +12,7 @@ import {
 import { Icon } from '../components/Icon';
 import { Screen } from '../components/Screen';
 import { apiProblem, type ApiProblem } from '../domain/booking';
+import { qrTokenFrom } from '../domain/seatQr';
 import { useMyReservation, useRefreshBooking } from '../hooks/useMyReservation';
 import { useQrScanner } from '../hooks/useQrScanner';
 import { paths } from '../routes';
@@ -83,7 +84,7 @@ export function ScanScreen() {
   const locked = useRef(false);
 
   const submit = async (raw: string) => {
-    const token = raw.trim();
+    const token = qrTokenFrom(raw);
     if (!token || locked.current) return;
     locked.current = true;
     setBusy(true);

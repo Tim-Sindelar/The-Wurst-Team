@@ -10,6 +10,7 @@ import {
   ScreenMain,
 } from '../../components/Screen';
 import { SectionLabel } from '../../components/SectionLabel';
+import { searchByName } from '../../domain/similarity';
 import { groupPath, socialPaths } from './paths';
 import {
   ActionError,
@@ -29,6 +30,7 @@ export function NewGroupScreen() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
 
   if (groups.active)
     return <Navigate replace to={groupPath(groups.active.id)} />;
@@ -43,6 +45,11 @@ export function NewGroupScreen() {
     picked.length === lastPeople.length &&
     lastPeople.every((person) => picked.includes(person.id));
   const named = name.trim() !== '';
+  const shown = searchByName(
+    social.friends,
+    search,
+    (friend) => friend.person.name,
+  );
 
   const create = async () => {
     if (!named) return;
@@ -148,30 +155,45 @@ export function NewGroupScreen() {
             <SectionLabel>
               Invite{picked.length ? ` · ${picked.length}` : ''}
             </SectionLabel>
-            <PeopleList label="Invite friends">
-              {social.friends.map(({ person }) => (
-                <li key={person.id}>
-                  <label className="flex min-h-15 cursor-pointer items-center gap-3 py-2 pr-4 pl-4 hover:bg-hover">
-                    <PersonAvatar person={person} />
-                    <Text className="min-w-0 flex-1 font-medium wrap-anywhere">
-                      {person.name}
-                    </Text>
-                    <Checkbox
-                      aria-label={`Invite ${person.name}`}
-                      checked={picked.includes(person.id)}
-                      onChange={(event) => {
-                        const on = event.currentTarget.checked;
-                        setPicked((ids) =>
-                          on
-                            ? [...ids, person.id]
-                            : ids.filter((id) => id !== person.id),
-                        );
-                      }}
-                    />
-                  </label>
-                </li>
-              ))}
-            </PeopleList>
+            <TextInput
+              type="search"
+              placeholder="Search friends"
+              aria-label="Search friends"
+              leftSection={<Icon name="search" />}
+              maxLength={80}
+              value={search}
+              onChange={(event) => setSearch(event.currentTarget.value)}
+            />
+            {shown.length === 0 ? (
+              <Text size="sm" c="dimmed">
+                No friends match
+              </Text>
+            ) : (
+              <PeopleList label="Invite friends">
+                {shown.map(({ person }) => (
+                  <li key={person.id}>
+                    <label className="flex min-h-15 cursor-pointer items-center gap-3 py-2 pr-4 pl-4 hover:bg-hover">
+                      <PersonAvatar person={person} />
+                      <Text className="min-w-0 flex-1 font-medium wrap-anywhere">
+                        {person.name}
+                      </Text>
+                      <Checkbox
+                        aria-label={`Invite ${person.name}`}
+                        checked={picked.includes(person.id)}
+                        onChange={(event) => {
+                          const on = event.currentTarget.checked;
+                          setPicked((ids) =>
+                            on
+                              ? [...ids, person.id]
+                              : ids.filter((id) => id !== person.id),
+                          );
+                        }}
+                      />
+                    </label>
+                  </li>
+                ))}
+              </PeopleList>
+            )}
           </>
         )}
       </ScreenMain>

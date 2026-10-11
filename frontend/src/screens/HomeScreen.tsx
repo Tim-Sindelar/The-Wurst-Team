@@ -121,7 +121,7 @@ export function HomeScreen() {
             Loading study spaces…
           </Text>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="-mx-4 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4">
             <SpaceLists
               fit
               matches={spaces}

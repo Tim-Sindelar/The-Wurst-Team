@@ -1,5 +1,5 @@
 import { Button, Card, Switch, Text, TextInput, Title } from '@mantine/core';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import type { DirectoryPerson, FriendResponse } from '../../api/generated';
 import { DecisionSheet } from '../../components/DecisionSheet';
@@ -13,7 +13,7 @@ import {
 } from '../../components/Screen';
 import { SectionLabel } from '../../components/SectionLabel';
 import { paths } from '../../routes';
-import { going, groupSummary, memberOf } from './groups';
+import { going, groupSummary, memberOf, type Group } from './groups';
 import {
   friendSeatPath,
   groupPath,
@@ -48,8 +48,13 @@ export function FriendsScreen() {
   const others = social.friends.filter((friend) => !friend.room);
   const byName = (a: FriendResponse, b: FriendResponse) =>
     a.person.name.localeCompare(b.person.name);
-  const removeButton = (friend: FriendResponse) =>
-    editing && (
+  const inviteTo =
+    groups.active?.status === 'open' &&
+    groups.active.organizer_id === groups.user?.id
+      ? groups.active
+      : null;
+  const rowAction = (friend: FriendResponse) =>
+    editing ? (
       <Button
         variant="danger"
         aria-label={`Remove ${friend.person.name}`}
@@ -57,6 +62,10 @@ export function FriendsScreen() {
       >
         Remove
       </Button>
+    ) : (
+      inviteTo && (
+        <InviteAction group={inviteTo} friend={friend} actions={actions} />
+      )
     );
 
   return (
@@ -84,7 +93,11 @@ export function FriendsScreen() {
         <ActionError error={actions.error} />
 
         {searching ? (
-          <SearchResults search={search} friends={social.friends} />
+          <SearchResults
+            search={search}
+            friends={social.friends}
+            rowAction={rowAction}
+          />
         ) : (
           !social.loading &&
           !social.error && (
@@ -142,7 +155,7 @@ export function FriendsScreen() {
                     studying={studyingMark(friend.room)}
                     to={editing ? undefined : friendSeatPath(friend.room)}
                   >
-                    {removeButton(friend)}
+                    {rowAction(friend)}
                   </PersonRow>
                 ))}
               </PeopleList>
@@ -156,7 +169,7 @@ export function FriendsScreen() {
                         key={friend.friendship_id}
                         person={friend.person}
                       >
-                        {removeButton(friend)}
+                        {rowAction(friend)}
                       </PersonRow>
                     ))}
                   </PeopleList>
@@ -210,9 +223,11 @@ export function FriendsScreen() {
 function SearchResults({
   search,
   friends,
+  rowAction,
 }: {
   search: string;
   friends: FriendResponse[];
+  rowAction: (friend: FriendResponse) => ReactNode;
 }) {
   const { people, searching, error } = usePeopleSearch(search);
   const actions = useSocialActions();
@@ -298,7 +313,9 @@ function SearchResults({
                 pinned
                 studying={studyingMark(friend.room)}
                 to={friend.room ? friendSeatPath(friend.room) : undefined}
-              />
+              >
+                {rowAction(friend)}
+              </PersonRow>
             ))}
           </PeopleList>
         </>
@@ -326,6 +343,47 @@ function SearchResults({
         )
       )}
     </>
+  );
+}
+
+/** Invite a friend to the open group you organize; nothing once they're going. */
+function InviteAction({
+  group,
+  friend,
+  actions,
+}: {
+  group: Group;
+  friend: FriendResponse;
+  actions: ReturnType<typeof useSocialActions>;
+}) {
+  const { person } = friend;
+  const status = memberOf(group, person.id)?.status;
+  if (status === 'accepted') return null;
+  if (status === 'invited')
+    return (
+      <Text size="sm" c="dimmed" className="flex-none">
+        Invited
+      </Text>
+    );
+  return (
+    <Button
+      variant="secondary"
+      disabled={actions.busy}
+      aria-label={`Invite ${person.name} to ${group.name}`}
+      onClick={async () => {
+        if (
+          await actions.run(() =>
+            actions.invite.mutateAsync({
+              path: { party_id: group.id },
+              body: { user_id: person.id },
+            }),
+          )
+        )
+          notify(`Invited ${person.name}`, 'mail');
+      }}
+    >
+      Invite
+    </Button>
   );
 }
 
