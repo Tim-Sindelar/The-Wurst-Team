@@ -2,7 +2,7 @@
 **The Wurst Team**
 
 <img alt="The Wurst Team logo" src="assets/logo_dark.png#gh-dark-mode-only">
-<img alt="The Wurst Team logo" src="assets/logo_light.png#gh-light-mode-only>
+<img alt="The Wurst Team logo" src="assets/logo_light.png#gh-light-mode-only">
 
 
 Mobile first web app for seat reservation and study room finding. Fully implemented with map and features for ETH and expandable for any university. Complete with admin dashboard and everything needed to start operation.
