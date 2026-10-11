@@ -260,6 +260,36 @@ test('scaled tables resize between presets from their scaled corners', () => {
   const resized = geometry.resizeBy(room, objects, 'table-a', 'se', 16, 0);
   assert.equal(resized[0].width, 176);
 });
+test('seat rows allow up to 20 rows of 40 seats', () => {
+  const room = geometry.roomFromCoordinates({
+    id: 'hall',
+    label: 'Hall',
+    coordinateUnit: 'm',
+    boundary: [
+      [0, 0],
+      [40, 0],
+      [40, 40],
+      [0, 40],
+    ],
+  });
+  let objects = geometry.place(
+    room,
+    [],
+    'row',
+    room.width / 2,
+    room.height / 2,
+    'row-a',
+  );
+  objects = geometry.update(room, objects, 'row-a', {
+    sweep: 0,
+    rows: 20,
+    count: 40,
+  });
+  assert.equal(objects.filter((o) => o.type === 'seat').length, 800);
+  assert.throws(() => geometry.update(room, objects, 'row-a', { rows: 21 }));
+  assert.throws(() => geometry.update(room, objects, 'row-a', { count: 41 }));
+});
+
 test('seat rows space rows and columns by their own percentages', () => {
   const room = squareRoom();
   let objects = geometry.place(room, [], 'row', 380, 300, 'row-a');

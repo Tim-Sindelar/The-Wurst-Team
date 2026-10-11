@@ -1051,19 +1051,19 @@ const geometry = (() => {
       if (
         !Number.isInteger(next.count) ||
         next.count < 1 ||
-        next.count > 12 ||
+        next.count > 40 ||
         !Number.isInteger(next.rows) ||
         next.rows < 1 ||
-        next.rows > 6 ||
+        next.rows > 20 ||
         !Number.isFinite(next.sweep) ||
         next.sweep < 0 ||
         next.sweep > 180 ||
         !Number.isFinite(next.radius) ||
         next.radius < 60 ||
-        next.radius > 600
+        next.radius > 1200
       )
         throw Error(
-          'Use 1–12 seats, 1–6 rows, an arc of 0–180° and radius 60–600.',
+          'Use 1–40 seats, 1–20 rows, an arc of 0–180° and radius 60–1200.',
         );
       for (const key of ['seatSpacing', 'rowSpacing'])
         if (
