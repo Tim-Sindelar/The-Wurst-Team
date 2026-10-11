@@ -44,7 +44,13 @@ Invite friends to join you while studying and book seats together. No racing to 
 
 <br clear="right">
 
+<img align="right" alt="Admin page" src="assets/06-admin-laptop.png" width="260">
 
+### Admin page
+
+Manage rooms and people through an admin dashboard. Create room layouts, print out QR codes and monitor occupancy. Check user statistics to catch abuse.
+
+<br clear="right">
 
 ## Tech stack
 
