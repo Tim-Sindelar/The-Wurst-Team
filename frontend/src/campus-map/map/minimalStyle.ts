@@ -320,6 +320,8 @@ export function partPathOptions(
 ): L.PolylineOptions {
   const p = s.parts[key];
   return {
+    // Leaflet merges styles: restore borders on polygons created while hidden.
+    stroke: true,
     color: p.color,
     weight: p.weight,
     opacity: p.opacity,
