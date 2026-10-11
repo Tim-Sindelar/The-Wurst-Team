@@ -1,4 +1,9 @@
 import type { Library } from './domain/types';
+import {
+  roomName,
+  type FacilityInfo,
+  type LevelInfo,
+} from './floors/floorData';
 import { readStored, writeStored } from './storage';
 
 /**
@@ -64,29 +69,63 @@ export interface BookableSpace {
   lng: number;
 }
 
-/** A workspace this far (m) from a study space still counts as its place. */
-const NEAR_METERS = 60;
-/** A workspace named like the study space counts up to this far (m), within one campus. */
-const NAMED_METERS = 500;
+/** The PolyMaps level of a room id ("ETH.HG.F.F_026.3" → "ETH.HG.F"). */
+const levelOf = (roomId: string) => roomId.split('.').slice(0, 3).join('.');
 
-/** Rough distance in meters, good enough within a campus. */
-function meters(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-) {
-  const dLat = (a.lat - b.lat) * 111_320;
-  const dLng = (a.lng - b.lng) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
-  return Math.hypot(dLat, dLng);
+/**
+ * A workspace for each study space whose map room no enabled workspace
+ * contains: the room itself, named like the space, on the room's floor. The
+ * map draws its outline from the room, as for workspaces made in admin.
+ */
+export function spaceWorkspaces(
+  spaces: BookableSpace[],
+  libraries: Library[],
+  levels: LevelInfo[],
+  facilities: FacilityInfo[],
+): Library[] {
+  const covered = new Set(
+    libraries.filter((l) => l.enabled).flatMap((l) => l.rooms),
+  );
+  const out: Library[] = [];
+  for (const space of spaces) {
+    if (!space.map_room_id || covered.has(space.map_room_id)) continue;
+    const level = levels.find((l) => l.id === levelOf(space.map_room_id));
+    if (!level) continue;
+    covered.add(space.map_room_id);
+    const address = facilities.find((f) => f.id === level.facilityId)?.address;
+    out.push({
+      id: `space-${space.id}`,
+      name: space.name,
+      kind: 'study',
+      address: address
+        ? `${address}, ${roomName(space.map_room_id)}`
+        : roomName(space.map_room_id),
+      // Hönggerberg is the only campus this far north.
+      campus: space.lat > 47.39 ? 'Hönggerberg' : 'Zentrum',
+      operator: 'Weitere',
+      availabilityNote: null,
+      cardAccess24h: false,
+      openingHours: null,
+      description: null,
+      position: { lat: space.lat, lng: space.lng },
+      positionApproximate: false,
+      sourceUrl: null,
+      outline: null,
+      facilityId: level.facilityId,
+      levelId: level.id,
+      floor: level.floor,
+      enabled: true,
+      rooms: [space.map_room_id],
+      levels: [level.id],
+    });
+  }
+  return out;
 }
-
-/** Lowercase letters and digits only, for comparing names. */
-const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9äöü]/g, '');
 
 /**
  * The workspaces of the bookable study spaces: workspace id → study space id.
- * A space's place is the workspace that contains its map room, else the closest
- * workspace nearby whose name (or id) shares a part of the space's name, else
- * the closest workspace within NEAR_METERS.
+ * A space's place is the workspace that contains its map room (one from
+ * `spaceWorkspaces` when no other does).
  */
 export function bookableLibraries(
   spaces: BookableSpace[],
@@ -97,29 +136,7 @@ export function bookableLibraries(
     const containing = libraries.find((lib) =>
       lib.rooms.includes(space.map_room_id),
     );
-    if (containing) {
-      out.set(containing.id, space.id);
-      continue;
-    }
-    const parts = space.name
-      .replace(/^demo:/i, '')
-      .split('/')
-      .map(squash)
-      .filter((p) => p.length >= 4);
-    const byDistance = libraries
-      .map((lib) => ({ lib, d: meters(space, lib.position) }))
-      .sort((a, b) => a.d - b.d);
-    const named = byDistance.find(
-      ({ lib, d }) =>
-        d <= NAMED_METERS &&
-        parts.some(
-          (p) => squash(lib.name).includes(p) || squash(lib.id).includes(p),
-        ),
-    );
-    const nearest = byDistance[0];
-    const match =
-      named ?? (nearest && nearest.d <= NEAR_METERS ? nearest : undefined);
-    if (match && !out.has(match.lib.id)) out.set(match.lib.id, space.id);
+    if (containing) out.set(containing.id, space.id);
   }
   return out;
 }

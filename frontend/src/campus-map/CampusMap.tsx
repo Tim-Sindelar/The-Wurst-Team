@@ -76,6 +76,7 @@ import {
 import { MapSheet } from './MapSheet';
 import {
   bookableLibraries,
+  spaceWorkspaces,
   load3d,
   loadMapMode,
   MAP_MODE_LABELS,
@@ -176,20 +177,31 @@ export function CampusMap() {
       rawFloorIndex && offsets ? alignFloorIndex(rawFloorIndex, offsets) : null,
     [rawFloorIndex, offsets],
   );
-  // Until the workspaces load, the map shows without them.
+  // The bookable study spaces (the home screen's), for the study mode.
+  const spacesQuery = useQuery(listSpacesOptions());
+  // Until the workspaces load, the map shows without them. A study space whose
+  // room is in no workspace gets one of its own (spaceWorkspaces).
   const data = useMemo(
     () =>
-      rawData && offsets
+      rawData && rawFloorIndex && offsets
         ? {
             ...rawData,
-            libraries: rawData.libraries.map((l) =>
+            libraries: [
+              ...rawData.libraries,
+              ...spaceWorkspaces(
+                spacesQuery.data?.spaces ?? [],
+                rawData.libraries,
+                rawFloorIndex.levels,
+                rawFloorIndex.facilities,
+              ),
+            ].map((l) =>
               l.floor === null
                 ? l
                 : { ...l, floor: alignedFloor(offsets, l.facilityId, l.floor) },
             ),
           }
         : (rawData ?? NO_WORKSPACES),
-    [rawData, offsets],
+    [rawData, rawFloorIndex, offsets, spacesQuery.data],
   );
   const [floor, setFloor] = useState(0);
   const [zoom, setZoom] = useState(0);
@@ -237,8 +249,7 @@ export function CampusMap() {
       .finally(() => setStyleReady(true));
   }, []);
 
-  // ---- the bookable study spaces (the home screen's), for the study mode ----
-  const spacesQuery = useQuery(listSpacesOptions());
+  // ---- the bookable study spaces, for the study mode ----
   const favourites = useFavourites();
   const recents = useRecents();
   const popular = usePopular();
