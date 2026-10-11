@@ -4,7 +4,7 @@ import plannerUrl from './assets/party-planner.jpg';
 import qrUrl from './assets/seat-qr.svg';
 import campusMapUrl from './assets/campus-map-phone.jpg';
 import scannerUrl from './assets/session-scanner.jpg';
-import adminUrl from './assets/admin-room-setup.jpg';
+import adminUrl from './assets/admin-room-setup-landscape.png';
 import priorityUrl from './assets/session-priority.jpg';
 import handoverUrl from './assets/session-handover.jpg';
 import breakUrl from './assets/session-break.jpg';
@@ -21,13 +21,14 @@ function staticPhone(parent,texture){
 
 function adminLaptop(parent,texture){
   const root=group(parent),body=group(root);
-  body.rotation.set(.28,.10,0);
+  body.rotation.set(.18,0,0);
   roundedBox(body,[3.8,.10,1.65],[0,-1.17,.68],'#a9b0ad',.06);
   const lid=group(body,[0,-1.10,-.10]);lid.rotation.x=-.08;
   roundedBox(lid,[3.8,2.42,.10],[0,1.21,0],'#a9b0ad',.06);
   roundedBox(lid,[3.57,2.20,.015],[0,1.22,.061],'#101010',.025);
   // Fit the entire admin capture inside the display without stretching or cropping.
-  const screenHeight=2.12,screenWidth=screenHeight*texture.image.width/texture.image.height;
+  const screenScale=Math.min(3.45/texture.image.width,2.12/texture.image.height);
+  const screenHeight=texture.image.height*screenScale,screenWidth=texture.image.width*screenScale;
   const display=mesh(lid,new THREE.PlaneGeometry(screenWidth,screenHeight),new THREE.MeshBasicMaterial({map:texture,toneMapped:false}),[0,1.22,.073]);
   display.castShadow=false;
   cylinder(lid,.025,.025,.01,[0,2.34,.067],'#263128',8).rotation.x=Math.PI/2;
@@ -235,7 +236,7 @@ export async function buildClosing(scene,hgRoot){
     const depth=5,viewHeight=2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),viewWidth=viewHeight*camera.aspect;
     qaAdmin.scale.setScalar(Math.min(viewWidth*.28/3.9,viewHeight*.28/2.9));
     qaAdmin.quaternion.copy(camera.quaternion);
-    qaAdmin.position.set(-viewWidth*.32,-viewHeight*.30,-depth).applyQuaternion(camera.quaternion).add(camera.position);
+    qaAdmin.position.set(-viewWidth*.32,-viewHeight*.24,-depth).applyQuaternion(camera.quaternion).add(camera.position);
   },animate(time,reducedMotion){
     if(reducedMotion)return;
     chatters.forEach((student,i)=>{idle(student,time+i*2.1);});
