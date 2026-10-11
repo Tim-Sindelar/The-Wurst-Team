@@ -84,4 +84,4 @@ docker compose up --build -d --wait
 npm run dev --prefix frontend
 ```
 
-For codebase orientation and an indepth guide on serving it locally, read ORIENTATION.md
+For codebase orientation and an indepth guide on serving it locally, read [Orientation MD file](ORIENTATION.md)
