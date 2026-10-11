@@ -193,10 +193,13 @@ function adoptionRender(scene,hgRoot,adminTexture){
   }};
 }
 
-export async function buildClosing(scene,hgRoot){
+export async function buildClosing(scene,hgRoot,maxAnisotropy=1){
   const loader=new THREE.TextureLoader();
   const [planner,qr,map,admin,...screens]=await Promise.all([plannerUrl,qrUrl,campusMapUrl,adminUrl,scannerUrl,priorityUrl,handoverUrl,breakUrl].map(url=>loader.loadAsync(url)));
-  [planner,qr,map,admin,...screens].forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;});
+  [planner,qr,map,admin,...screens].forEach(texture=>{
+    texture.colorSpace=THREE.SRGBColorSpace;
+    texture.anisotropy=Math.min(8,maxAnisotropy);
+  });
   const features=featureRenders(scene,qr,screens),campusMap=mapRender(scene,map),adoption=adoptionRender(scene,hgRoot,admin);
   const qaAdmin=adminLaptop(scene,admin);
   const friends=group(scene);

@@ -24,7 +24,8 @@ try{
 }
 const lowQuality=new URLSearchParams(location.search).get('quality')==='low';
 const exportQuality=new URLSearchParams(location.search).get('quality')==='export';
-renderer.setPixelRatio(exportQuality?3:Math.min(devicePixelRatio,lowQuality?1:1.25));
+let animationPixelRatio=Math.min(devicePixelRatio,lowQuality?1:1.25);
+renderer.setPixelRatio(exportQuality?3:animationPixelRatio);
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -48,7 +49,7 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;sce
 
 const hall=buildHall(scene),bathroom=buildBathroom(scene),phone=buildPhone(scene);
 const exterior=buildHG(scene);
-const closing=await buildClosing(scene,exterior.root),slides=buildSlides();
+const closing=await buildClosing(scene,exterior.root,renderer.capabilities.getMaxAnisotropy()),slides=buildSlides();
 const sets=[exterior.root,hall.root,bathroom.root,closing.features.root,closing.friends,closing.friendTable.root,closing.campus,closing.campusMap,closing.adoption.root,closing.qaAdmin];
 batchStatic(hall.root,hall.student);batchStatic(bathroom.root,bathroom.student);
 const cssScene=new THREE.Scene();
@@ -149,6 +150,9 @@ function go(index,snap=false){
   if(index===10)rolloutStep=current===11?2:0;
   if(index===5){zoomStartPosition.copy(phone.root.position);zoomStartRotation.set(phone.root.rotation.x,phone.root.rotation.y,phone.root.rotation.z);}
   captureCamera();current=Math.max(0,Math.min(11,index));elapsed=0;paused=false;impacts.clear();impactTime=-1000;
+  // Phone screenshots need more resolution than the opening film. These slides
+  // mostly render once, so keep their text sharp even in low-quality rehearsals.
+  renderer.setPixelRatio(exportQuality?3:current>=7&&current<=10?2:animationPixelRatio);
   // Start each live segment on Home; saved bookings are restored by the app.
   if(current===4||current===11)appFrame.src=appUrl;
   taken.classList.remove('slam');delete stage.dataset.peek;forceDraw=true;renderer.shadowMap.needsUpdate=true;
@@ -322,7 +326,7 @@ function resize(){
 }
 function render(now){
   const rawDelta=now-last,delta=Math.min(rawDelta,100);last=now;
-  if(current===2&&rawDelta>0&&rawDelta<180){frameTotal+=rawDelta;frameSamples++;if(frameSamples===90&&frameTotal/frameSamples>28&&!lowQuality&&!exportQuality){renderer.setPixelRatio(1);forceDraw=true;}}
+  if(current===2&&rawDelta>0&&rawDelta<180){frameTotal+=rawDelta;frameSamples++;if(frameSamples===90&&frameTotal/frameSamples>28&&!lowQuality&&!exportQuality){animationPixelRatio=1;renderer.setPixelRatio(animationPixelRatio);forceDraw=true;}}
   if(!paused){elapsed+=delta;transition+=delta;updateCut(delta);}
   if(current===0)exteriorMotion();
   else if(current===1)hallMotion();
