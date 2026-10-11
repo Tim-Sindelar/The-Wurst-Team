@@ -20,7 +20,7 @@ import {
   sendFriendRequestMutation,
   updateSocialPrivacyMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
-import { apiProblem, type ApiProblem } from '../../domain/booking';
+import { apiProblem, isMissing, type ApiProblem } from '../../domain/booking';
 import { socialEnabled } from '../../features';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useMyReservation } from '../../hooks/useMyReservation';
@@ -98,6 +98,19 @@ export function useFriends() {
   };
 }
 
+/** Your friends and where they study, for screens outside Friends (the
+    seat map). Empty while social is off or loading; errors stay quiet there. */
+export function useFriendList() {
+  const { enabled } = useSocialAvailable();
+  const friends = useQuery({
+    ...listFriendsOptions(live),
+    enabled,
+    ...fresh,
+    refetchInterval: 20_000,
+  });
+  return friends.data?.friends ?? [];
+}
+
 /** People who use the app, by name, for adding friends. Two characters at least. */
 export function usePeopleSearch(search: string) {
   const { enabled } = useSocialAvailable();
@@ -157,12 +170,20 @@ export function useGroup(groupId: string) {
     ...fresh,
     refetchInterval: 15_000,
   });
+  const missing = detail.error !== null && isMissing(detail.error);
   return {
     ...groups,
     group: detail.data ?? null,
+    /** The group doesn't exist, or you were never in it. */
+    missing,
     loading: groups.loading || (groups.enabled && detail.isPending),
     error:
-      groups.error || (detail.error ? apiProblem(detail.error).message : ''),
+      groups.error ||
+      (missing
+        ? "This study group doesn't exist, or you're not in it."
+        : detail.error
+          ? apiProblem(detail.error).message
+          : ''),
     retry: () => {
       groups.retry();
       void detail.refetch();

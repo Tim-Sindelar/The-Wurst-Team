@@ -5,9 +5,8 @@
     python -m app.features.campus_map.importer --if-empty       # only into an empty database
     python -m app.features.campus_map.importer --export         # database -> files
 
-The files are the ones occupancy-map-preview edits (its data/ folder), copied
-to map-data/ by `make map-sync`: generated.json (scraper pipeline output),
-overrides.json (admin edits), map-style.json and navigation.json.
+The files live in map-data/: generated.json (scraper pipeline output),
+overrides.json (workspace edits), map-style.json and navigation.json.
 """
 
 import argparse

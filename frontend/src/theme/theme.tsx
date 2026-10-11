@@ -23,7 +23,7 @@ import {
 import { Notifications } from '@mantine/notifications';
 import { Icon } from '../components/Icon';
 
-/* Mantine configured to look like design/base.css. Each component gets the
+/* Mantine configured to match the design tokens. Each component gets the
    ui-* classes from components.css; screens pick a variant and never restyle.
 
    Variants:

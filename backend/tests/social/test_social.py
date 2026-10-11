@@ -165,10 +165,19 @@ def test_room_sharing_requires_friendship_opt_in_and_check_in(social_client, sea
     assert room() is None  # A held seat is not a current location.
     call(client, "POST", "/api/v1/check-ins", B, {"qr_token": seats[0].qr_token})
     assert room()["id"] == str(seats[0].space_id)
+    assert room()["seat_id"] == str(seats[0].id)
+    assert room()["seat_label"] == seats[0].label
+    assert room()["on_break"] is False
     assert call(client, "GET", BASE + "/friends", C).json()["friends"] == []
     reservation = current(client, B)
-    call(client, "POST", f"/api/v1/reservations/{reservation['id']}/break", B)
-    assert room() is not None
+    call(
+        client,
+        "POST",
+        f"/api/v1/reservations/{reservation['id']}/break",
+        B,
+        {"qr_token": seats[0].qr_token},
+    )
+    assert room()["on_break"] is True
     clock.advance(minutes=30)
     assert room() is None  # Derived expiry, without any worker or write.
     call(client, "POST", "/api/v1/check-ins", B, {"qr_token": seats[0].qr_token})
@@ -290,6 +299,11 @@ def test_party_booking_failure_rolls_back_all_members(social_client, seats, db, 
             body["assignments"][1]["seat_id"] = str(seat.id)
     response = call(client, "POST", BASE + f"/parties/{party_id}/book", A, body)
     assert response.status_code in {404, 409}
+    if conflict == "member":
+        # The organizer is told who is blocking the booking, not "you".
+        assert response.json()["code"] == "member_already_reserved"
+        assert response.json()["detail"].endswith("need to end or cancel it first.")
+        assert not response.json()["detail"].startswith("You")
     assert current(client, A) is None
     assert (current(client, B) is not None) == (conflict == "member")
     assert call(client, "GET", BASE + f"/parties/{party_id}").json()["status"] == "open"

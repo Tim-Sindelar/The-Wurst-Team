@@ -27,6 +27,7 @@ const messages: Record<string, string> = {
   already_reserved: 'You already have a reservation.',
   too_early: "Your reservation hasn't started yet.",
   qr_not_found: "That code isn't a seat code.",
+  wrong_seat: 'That QR code is for another seat.',
   extension_unavailable: "This session can't be extended right now.",
   invalid_state: "That isn't possible right now.",
   break_budget_exhausted: "You've used all of your break time.",
@@ -45,4 +46,19 @@ export function apiProblem(error: unknown): ApiProblem {
     if (typeof detail === 'string') return { code: null, message: detail };
   }
   return { code: null, message: 'Something went wrong. Try again.' };
+}
+
+/** The thing asked for doesn't exist (or isn't yours): a 404, or a link whose
+    id isn't even an id. Retrying won't help, unlike a network error. */
+export function isMissing(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { code, detail } = error as { code?: unknown; detail?: unknown };
+  if (code === 'not_found') return true;
+  return (
+    Array.isArray(detail) &&
+    detail.some(
+      (item: { loc?: unknown }) =>
+        Array.isArray(item?.loc) && item.loc[0] === 'path',
+    )
+  );
 }

@@ -1,9 +1,12 @@
 import { Text } from '@mantine/core';
 import type { SpaceRowData, StudySpace } from '../domain/space';
+import { cx } from './cx';
 import { SectionLabel } from './SectionLabel';
 import { SpaceCard } from './SpaceCard';
 
 type SpaceListsProps = {
+  /** Fit Home into its viewport; search results remain horizontally swipeable. */
+  fit?: boolean;
   /** The spaces matching the search, best match first. */
   matches: StudySpace[];
   search: string;
@@ -19,6 +22,7 @@ type SpaceListsProps = {
     a plain list of matches while typing. Home and the campus map share it. */
 export function SpaceLists({
   matches,
+  fit = false,
   search,
   rows,
   onToggleFavourite,
@@ -26,6 +30,7 @@ export function SpaceLists({
 }: SpaceListsProps) {
   const card = (space: StudySpace) => (
     <SpaceCard
+      fit={fit}
       space={space}
       onToggleFavourite={(on) => onToggleFavourite(space.id, on)}
       onSelect={onSelect && (() => onSelect(space))}
@@ -38,9 +43,23 @@ export function SpaceLists({
         No study spaces match “{search.trim()}”.
       </Text>
     ) : (
-      <ul className="grid gap-3" aria-label="Search results">
+      <ul
+        className={
+          fit
+            ? 'flex min-h-0 gap-3 overflow-x-auto snap-x snap-mandatory p-1'
+            : 'grid gap-3'
+        }
+        aria-label="Search results"
+      >
         {matches.map((space) => (
-          <li key={space.id}>{card(space)}</li>
+          <li
+            key={space.id}
+            className={
+              fit ? 'h-32 min-w-0 flex-[0_0_90%] snap-start' : undefined
+            }
+          >
+            {card(space)}
+          </li>
         ))}
       </ul>
     );
@@ -58,10 +77,18 @@ export function SpaceLists({
         <section
           key={row.id}
           aria-labelledby={`space-row-${row.id}`}
-          className="grid gap-2"
+          className={cx(
+            'grid gap-2',
+            fit && 'min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)]',
+          )}
         >
           <SectionLabel id={`space-row-${row.id}`}>{row.title}</SectionLabel>
-          <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <ul
+            className={cx(
+              '-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+              fit && 'min-h-0 max-h-36',
+            )}
+          >
             {row.spaces.map((space) => (
               <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
                 {card(space)}

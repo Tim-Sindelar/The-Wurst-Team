@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <!-- The seat mark (design/brand/icon-dark.svg) on the dark background: a desk with four seats, one free.
+  <!-- The seat mark on the dark background: a desk with four seats, one free.
        Full bleed so it also works as a maskable icon; the artwork, scaled 1.2x for the home screen, stays inside the middle 80%. -->
   <rect width="256" height="256" fill="#121212"/>
   <g transform="translate(128 128) scale(1.2) translate(-128 -128)">

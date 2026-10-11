@@ -23,6 +23,8 @@ export type MapSeat = {
   y: number;
   /** Rotation in degrees, from the layout. */
   angle: number;
+  /** Furniture size from the layout (1 = physical size). */
+  scale?: number;
   badges: Feature[];
 };
 
@@ -128,7 +130,7 @@ export function layoutSeats(
     );
   const mapSeat = (
     seat: SeatAvailability,
-    place: Pick<MapSeat, 'x' | 'y' | 'angle' | 'badges'>,
+    place: Pick<MapSeat, 'x' | 'y' | 'angle' | 'scale' | 'badges'>,
   ): MapSeat => ({
     id: seat.id,
     label: seat.label,
@@ -151,6 +153,7 @@ export function layoutSeats(
               x: item.x,
               y: item.y,
               angle: item.angle || 0,
+              scale: item.scale ?? 1,
               badges: item.badges ?? [],
             }),
           ]

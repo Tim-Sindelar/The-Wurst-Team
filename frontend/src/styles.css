@@ -9,7 +9,7 @@
 @import './campus-map/campus-map.css';
 
 /* ==========================================================================
-   Design tokens, ported from design/tokens.css. Dark is the default theme;
+   Design tokens. Dark is the default theme;
    light applies when Mantine sets data-mantine-color-scheme="light" on <html>.
    Tailwind's default palette, type scale, radii and shadows are cleared, so
    only these tokens exist as utilities (bg-surface, text-title, rounded-card).

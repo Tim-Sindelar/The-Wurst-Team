@@ -21,6 +21,7 @@ from app.features.reservations.schemas import (
     RequestValidationErrorResponse,
     ReservationResponse,
     RulesResponse,
+    SeatScanRequest,
     SpaceResponse,
     SpacesResponse,
 )
@@ -148,9 +149,11 @@ def check_in(
     operation_id="extend_reservation",
 )
 def extend_reservation(
-    reservation_id: UUID, service: Service, user_id: CurrentUser
+    reservation_id: UUID, request: SeatScanRequest, service: Service, user_id: CurrentUser
 ) -> ReservationResponse:
-    return commit_response(service, service.act(user_id, reservation_id, "extend"))
+    return commit_response(
+        service, service.act(user_id, reservation_id, "extend", qr_token=request.qr_token)
+    )
 
 
 @router.post(
@@ -159,9 +162,11 @@ def extend_reservation(
     operation_id="start_break",
 )
 def start_break(
-    reservation_id: UUID, service: Service, user_id: CurrentUser
+    reservation_id: UUID, request: SeatScanRequest, service: Service, user_id: CurrentUser
 ) -> ReservationResponse:
-    return commit_response(service, service.act(user_id, reservation_id, "break"))
+    return commit_response(
+        service, service.act(user_id, reservation_id, "break", qr_token=request.qr_token)
+    )
 
 
 @router.post(
@@ -170,9 +175,11 @@ def start_break(
     operation_id="return_from_break",
 )
 def return_from_break(
-    reservation_id: UUID, service: Service, user_id: CurrentUser
+    reservation_id: UUID, request: SeatScanRequest, service: Service, user_id: CurrentUser
 ) -> ReservationResponse:
-    return commit_response(service, service.act(user_id, reservation_id, "return"))
+    return commit_response(
+        service, service.act(user_id, reservation_id, "return", qr_token=request.qr_token)
+    )
 
 
 @router.post(

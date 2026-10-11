@@ -15,7 +15,7 @@ import { useFavourites } from '../hooks/useFavourites';
 import { usePopular } from '../hooks/usePopular';
 import { useRecents } from '../hooks/useRecents';
 import { formatCountdown, secondsUntil } from '../hooks/useCountdown';
-import { useNow } from '../hooks/useNow';
+import { useDeadlineClock } from '../hooks/useDeadlineClock';
 import { useMyReservation } from '../hooks/useMyReservation';
 import { paths } from '../routes';
 
@@ -43,9 +43,9 @@ export function HomeScreen() {
   const rows = spaces && spaceRows(spaces, recents.ids, popular.ids);
 
   return (
-    <Screen>
+    <Screen className="h-full overflow-hidden">
       <SafeAreaTop />
-      <ScreenMain>
+      <ScreenMain fit className="[&>div:last-child]:shrink">
         <div className="flex items-center justify-between gap-2">
           <Title order={1}>
             <AppName />
@@ -53,7 +53,7 @@ export function HomeScreen() {
           <RequestsBell />
         </div>
 
-        <div className="sticky top-[env(safe-area-inset-top)] z-2 -mx-4 -mt-4 -mb-2 bg-bg px-4 pt-4 pb-2">
+        <div className="-mx-4 -mt-4 -mb-2 bg-bg px-4 pt-4 pb-2">
           <TextInput
             type="search"
             placeholder="Search study spaces"
@@ -121,12 +121,15 @@ export function HomeScreen() {
             Loading study spaces…
           </Text>
         ) : (
-          <SpaceLists
-            matches={spaces}
-            search={search}
-            rows={rows}
-            onToggleFavourite={favourites.toggle}
-          />
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <SpaceLists
+              fit
+              matches={spaces}
+              search={search}
+              rows={rows}
+              onToggleFavourite={favourites.toggle}
+            />
+          </div>
         )}
       </ScreenMain>
     </Screen>
@@ -172,7 +175,7 @@ function SessionDetail({
   onBreak: boolean;
   endsAt: number;
 }) {
-  const now = useNow();
+  const now = useDeadlineClock(endsAt);
   return (
     <>
       {onBreak ? 'On break' : 'In session'} ·{' '}

@@ -54,11 +54,19 @@ class SocialRoom(BaseModel):
     name: str
 
 
+class FriendRoom(SocialRoom):
+    """Where a friend who shares their room is checked in right now."""
+
+    seat_id: UUID
+    seat_label: str
+    on_break: bool
+
+
 class FriendResponse(BaseModel):
     friendship_id: UUID
     person: SocialPerson
     # null deliberately does not distinguish hidden location from no active session.
-    room: SocialRoom | None
+    room: FriendRoom | None
 
 
 class FriendsResponse(BaseModel):

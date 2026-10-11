@@ -72,7 +72,11 @@ export function RoomScene({
         ...objects.filter((o) => o.type !== 'seat'),
         ...objects.filter((o) => o.type === 'seat'),
       ].map((o) => {
-        const w = o.width,
+        // Furniture size: tables and seats are drawn at their stored size
+        // inside a scaled group.
+        const k = ['table', 'seat'].includes(o.type) ? (o.scale ?? 1) : 1,
+          furniture = 'scale(' + k + ')',
+          w = o.width,
           h = o.height,
           angle = o.angle || 0,
           labelY =
@@ -115,53 +119,55 @@ export function RoomScene({
           >
             {o.type === 'table' && (
               <>
-                {o.shape === 'round' ? (
-                  <circle r={w / 2} className="admin-scene-table" />
-                ) : o.shape === 'l' ? (
-                  <path
-                    d={
-                      'M' +
-                      -w / 2 +
-                      ' ' +
-                      -h / 2 +
-                      'H' +
-                      w / 2 +
-                      'V' +
-                      (-h / 2 + 32) +
-                      'H' +
-                      (-w / 2 + 32) +
-                      'V' +
-                      h / 2 +
-                      'H' +
-                      -w / 2 +
-                      'Z'
-                    }
-                    className="admin-scene-table"
-                  />
-                ) : o.shape === 'curved' ? (
-                  <path
-                    d={path(geometry.curveOutline(o))}
-                    className="admin-scene-table"
-                  />
-                ) : (
-                  <rect
-                    x={-w / 2}
-                    y={-h / 2}
-                    width={w}
-                    height={h}
-                    rx={5}
-                    className="admin-scene-table"
-                  />
-                )}
-                <text
-                  y={labelY}
-                  transform={'rotate(' + -angle + ' 0 ' + labelY + ')'}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-text-muted text-small font-bold"
-                >
-                  {o.label}
-                </text>
+                <g transform={furniture}>
+                  {o.shape === 'round' ? (
+                    <circle r={w / 2} className="admin-scene-table" />
+                  ) : o.shape === 'l' ? (
+                    <path
+                      d={
+                        'M' +
+                        -w / 2 +
+                        ' ' +
+                        -h / 2 +
+                        'H' +
+                        w / 2 +
+                        'V' +
+                        (-h / 2 + 32) +
+                        'H' +
+                        (-w / 2 + 32) +
+                        'V' +
+                        h / 2 +
+                        'H' +
+                        -w / 2 +
+                        'Z'
+                      }
+                      className="admin-scene-table"
+                    />
+                  ) : o.shape === 'curved' ? (
+                    <path
+                      d={path(geometry.curveOutline(o))}
+                      className="admin-scene-table"
+                    />
+                  ) : (
+                    <rect
+                      x={-w / 2}
+                      y={-h / 2}
+                      width={w}
+                      height={h}
+                      rx={5}
+                      className="admin-scene-table"
+                    />
+                  )}
+                  <text
+                    y={labelY}
+                    transform={'rotate(' + -angle + ' 0 ' + labelY + ')'}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="fill-text-muted text-small font-bold"
+                  >
+                    {o.label}
+                  </text>
+                </g>
                 {editor &&
                   geometry
                     .slots(o)
@@ -234,19 +240,9 @@ export function RoomScene({
                   const points = rowSlots.filter((s) =>
                     s.slot.startsWith('row' + row + ':'),
                   );
+                  const metrics = geometry.rowMetrics(o);
                   const radius =
-                    Math.max(
-                      o.radius || 0,
-                      56 /
-                        (2 *
-                          Math.sin(
-                            ((o.sweep || 0) * Math.PI) /
-                              180 /
-                              Math.max(1, (o.count || 1) - 1) /
-                              2,
-                          )),
-                    ) +
-                    row * 64;
+                    (metrics.radius + row * metrics.step) * (o.scale ?? 1);
                   const d =
                     points.length > 1 && o.sweep
                       ? 'M' +
@@ -310,7 +306,7 @@ export function RoomScene({
               </>
             )}
             {o.type === 'seat' && (
-              <>
+              <g transform={furniture}>
                 <rect
                   x={-16}
                   y={-18}
@@ -360,7 +356,7 @@ export function RoomScene({
                     />
                   )}
                 </g>
-              </>
+              </g>
             )}
             {o.type === 'window' && (
               <>
@@ -413,11 +409,15 @@ export function RoomScene({
             )}
             {selected === o.id && o.type !== 'row' && (
               <rect
-                x={-w / 2 - 4}
-                y={['window', 'door'].includes(o.type) ? -8 : -h / 2 - 4}
-                width={w + 8}
+                x={(-w * k) / 2 - 4}
+                y={['window', 'door'].includes(o.type) ? -8 : (-h * k) / 2 - 4}
+                width={w * k + 8}
                 height={
-                  o.type === 'door' ? w + 16 : o.type === 'window' ? 16 : h + 8
+                  o.type === 'door'
+                    ? w + 16
+                    : o.type === 'window'
+                      ? 16
+                      : h * k + 8
                 }
                 rx={7}
                 className="admin-scene-selection"

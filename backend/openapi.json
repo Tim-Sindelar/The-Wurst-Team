@@ -2055,7 +2055,7 @@
           "room": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SocialRoom"
+                "$ref": "#/components/schemas/FriendRoom"
               },
               {
                 "type": "null"
@@ -2069,6 +2069,42 @@
           "room"
         ],
         "title": "FriendResponse",
+        "type": "object"
+      },
+      "FriendRoom": {
+        "description": "Where a friend who shares their room is checked in right now.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "on_break": {
+            "title": "On Break",
+            "type": "boolean"
+          },
+          "seat_id": {
+            "format": "uuid",
+            "title": "Seat Id",
+            "type": "string"
+          },
+          "seat_label": {
+            "title": "Seat Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "seat_id",
+          "seat_label",
+          "on_break"
+        ],
+        "title": "FriendRoom",
         "type": "object"
       },
       "FriendsResponse": {
@@ -3614,6 +3650,23 @@
           "is_active"
         ],
         "title": "SeatAvailability",
+        "type": "object"
+      },
+      "SeatScanRequest": {
+        "additionalProperties": false,
+        "description": "The QR code scanned at the reservation's own seat, proving the user is there.",
+        "properties": {
+          "qr_token": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Qr Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "qr_token"
+        ],
+        "title": "SeatScanRequest",
         "type": "object"
       },
       "ServerEvent": {
@@ -7629,6 +7682,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7775,6 +7838,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7848,6 +7921,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {

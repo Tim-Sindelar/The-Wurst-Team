@@ -1215,7 +1215,35 @@ export type FriendResponse = {
      */
     friendship_id: string;
     person: SocialPerson;
-    room: SocialRoom | null;
+    room: FriendRoom | null;
+};
+
+/**
+ * FriendRoom
+ *
+ * Where a friend who shares their room is checked in right now.
+ */
+export type FriendRoom = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * On Break
+     */
+    on_break: boolean;
+    /**
+     * Seat Id
+     */
+    seat_id: string;
+    /**
+     * Seat Label
+     */
+    seat_label: string;
 };
 
 /**
@@ -2125,6 +2153,18 @@ export type SeatAvailability = {
      * State
      */
     state: 'free' | 'reserved' | 'occupied' | 'on_break' | 'claimable' | 'unavailable';
+};
+
+/**
+ * SeatScanRequest
+ *
+ * The QR code scanned at the reservation's own seat, proving the user is there.
+ */
+export type SeatScanRequest = {
+    /**
+     * Qr Token
+     */
+    qr_token: string;
 };
 
 /**
@@ -4328,7 +4368,7 @@ export type CreateReservationResponses = {
 export type CreateReservationResponse = CreateReservationResponses[keyof CreateReservationResponses];
 
 export type StartBreakData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id
@@ -4412,7 +4452,7 @@ export type EndReservationResponses = {
 export type EndReservationResponse = EndReservationResponses[keyof EndReservationResponses];
 
 export type ExtendReservationData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id
@@ -4454,7 +4494,7 @@ export type ExtendReservationResponses = {
 export type ExtendReservationResponse = ExtendReservationResponses[keyof ExtendReservationResponses];
 
 export type ReturnFromBreakData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id

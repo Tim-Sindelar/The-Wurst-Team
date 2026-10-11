@@ -14,7 +14,12 @@ import {
 import { SectionLabel } from '../../components/SectionLabel';
 import { paths } from '../../routes';
 import { going, groupSummary, memberOf } from './groups';
-import { groupPath, groupSeatsPath, socialPaths } from './paths';
+import {
+  friendSeatPath,
+  groupPath,
+  groupSeatsPath,
+  socialPaths,
+} from './paths';
 import {
   ActionError,
   AvatarStack,
@@ -22,6 +27,7 @@ import {
   PersonRow,
   SocialStatus,
 } from './SocialParts';
+import { friendWhere, studyingFriends, studyingMark } from './studying';
 import {
   useFriends,
   useGroups,
@@ -38,7 +44,7 @@ export function FriendsScreen() {
   const [removing, setRemoving] = useState<FriendResponse | null>(null);
   const searching = search.trim().length >= 2;
 
-  const studying = social.friends.filter((friend) => friend.room);
+  const studying = studyingFriends(social.friends);
   const others = social.friends.filter((friend) => !friend.room);
   const byName = (a: FriendResponse, b: FriendResponse) =>
     a.person.name.localeCompare(b.person.name);
@@ -127,12 +133,14 @@ export function FriendsScreen() {
                     </div>
                   </PersonRow>
                 )}
-                {studying.sort(byName).map((friend) => (
+                {studying.map((friend) => (
                   <PersonRow
                     key={friend.friendship_id}
                     person={friend.person}
-                    detail={friend.room?.name}
+                    detail={friendWhere(friend.room)}
                     pinned
+                    studying={studyingMark(friend.room)}
+                    to={editing ? undefined : friendSeatPath(friend.room)}
                   >
                     {removeButton(friend)}
                   </PersonRow>
@@ -286,8 +294,10 @@ function SearchResults({
               <PersonRow
                 key={friend.friendship_id}
                 person={friend.person}
-                detail={friend.room?.name}
+                detail={friend.room && friendWhere(friend.room)}
                 pinned
+                studying={studyingMark(friend.room)}
+                to={friend.room ? friendSeatPath(friend.room) : undefined}
               />
             ))}
           </PeopleList>
@@ -333,7 +343,7 @@ function GroupCard({ groups }: { groups: ReturnType<typeof useGroups> }) {
     >
       <div className="flex items-center justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <Title order={2} className="break-words">
+          <Title order={2} className="wrap-anywhere">
             {group.name}
           </Title>
           <Text size="sm" c="dimmed">

@@ -1,7 +1,13 @@
 import { Alert, Button, Text } from '@mantine/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 import {
   createReservationMutation,
   getMyReservationQueryKey,
@@ -18,7 +24,7 @@ import {
 } from '../components/Screen';
 import { SeatMap } from '../components/seat-map/SeatMap';
 import { SeatSheet } from '../components/seat-map/SeatSheet';
-import { apiProblem } from '../domain/booking';
+import { apiProblem, isMissing } from '../domain/booking';
 import { savedLayout } from '../features/admin/layoutDocument';
 import { layoutSeats } from '../domain/room';
 import { describeAvailability } from '../domain/space';
@@ -28,7 +34,8 @@ import { useRules } from '../hooks/useRules';
 import { socialEnabled } from '../features';
 import { going } from '../features/social/groups';
 import { groupSeatsPath } from '../features/social/paths';
-import { useGroups } from '../features/social/useSocial';
+import { friendsBySeat } from '../features/social/studying';
+import { useFriendList, useGroups } from '../features/social/useSocial';
 import { paths } from '../routes';
 
 export function SeatMapScreen() {
@@ -44,7 +51,17 @@ export function SeatMapScreen() {
   const { reservation, held, running } = useMyReservation();
   const reserve = useMutation(createReservationMutation());
   const groups = useGroups();
-  const [picked, setPicked] = useState<string | null>(null);
+  const friendList = useFriendList();
+  const friends = useMemo(
+    () => friendsBySeat(friendList, spaceId),
+    [friendList, spaceId],
+  );
+  const friendCount = Object.keys(friends).length;
+  /* Opened from a friend: their seat is selected. */
+  const [searchParams] = useSearchParams();
+  const [picked, setPicked] = useState<string | null>(() =>
+    searchParams.get('seat'),
+  );
   const [sheetOpen, setSheetOpen] = useState(false);
   /* Label of a seat somebody else reserved a moment before us, shown as a warning. */
   const [takenLabel, setTakenLabel] = useState<string | null>(null);
@@ -109,11 +126,38 @@ export function SeatMapScreen() {
             {space.is_open
               ? `${freeCount} free of ${space.seats.length} seats`
               : 'Closed right now'}
+            {friendCount > 0 &&
+              ` · ${friendCount} ${friendCount === 1 ? 'friend' : 'friends'} here`}
           </AvailabilityLabel>
         )
       }
     />
   );
+
+  if (spaceQuery.isError && isMissing(spaceQuery.error)) {
+    return (
+      <Screen>
+        {header}
+        <ScreenMain>
+          <Alert
+            variant="danger"
+            role="alert"
+            icon={<Icon name="alert" />}
+            title="Study space not found"
+          >
+            <Text size="sm">
+              This study space doesn&apos;t exist or has been removed.
+            </Text>
+          </Alert>
+        </ScreenMain>
+        <ActionBar>
+          <Button component={Link} to={paths.home} fullWidth>
+            Choose a study space
+          </Button>
+        </ActionBar>
+      </Screen>
+    );
+  }
 
   if (spaceQuery.isError || rulesQuery.isError) {
     return (
@@ -180,29 +224,26 @@ export function SeatMapScreen() {
     if (pool.length > 0) pick(pool[Math.floor(Math.random() * pool.length)].id);
   };
 
-  const confirmReserve = () => {
+  const confirmReserve = async () => {
     if (!seat) return;
-    reserve.mutate(
-      { body: { kind: 'seat', seat_id: seat.id } },
-      {
-        onSuccess: (data) => {
-          queryClient.setQueryData(getMyReservationQueryKey(), data);
-          void refresh();
-          navigate(paths.reservation);
-        },
-        onError: (error) => {
-          void refresh();
-          /* Someone else got the seat first: leave the sheet, explain it on the screen. */
-          if (apiProblem(error).code === 'seat_unavailable') {
-            setSheetOpen(false);
-            reserve.reset();
-            setPicked(null);
-            setTakenLabel(seat.label);
-            void spaceQuery.refetch();
-          }
-        },
-      },
-    );
+    try {
+      const data = await reserve.mutateAsync({
+        body: { kind: 'seat', seat_id: seat.id },
+      });
+      queryClient.setQueryData(getMyReservationQueryKey(), data);
+      void refresh();
+      navigate(paths.reservation);
+    } catch (error) {
+      void refresh();
+      /* Someone else got the seat first: leave the sheet, explain it on the screen. */
+      if (apiProblem(error).code === 'seat_unavailable') {
+        setSheetOpen(false);
+        reserve.reset();
+        setPicked(null);
+        setTakenLabel(seat.label);
+        void spaceQuery.refetch();
+      }
+    }
   };
 
   const closeSheet = () => {
@@ -243,14 +284,17 @@ export function SeatMapScreen() {
     <>Check in within {checkIn} or the seat is released.</>
   );
 
+  const friend = seat ? friends[seat.id] : undefined;
   const seatDetail = seat
-    ? own
-      ? running
-        ? 'Your session'
-        : 'Reserved for you'
-      : later && reservableFrom
-        ? `Occupied · available to reserve from ${reservableFrom}`
-        : seatStateDetail[seat.state]
+    ? friend
+      ? `${friend.name} · ${friend.onBreak ? 'on a break' : 'studying here'}`
+      : own
+        ? running
+          ? 'Your session'
+          : 'Reserved for you'
+        : later && reservableFrom
+          ? `Occupied · available to reserve from ${reservableFrom}`
+          : seatStateDetail[seat.state]
     : null;
 
   return (
@@ -282,6 +326,7 @@ export function SeatMapScreen() {
             onChooseFree={ownSeatId === null ? chooseAnyFree : undefined}
             chooseFreeDisabled={!seats.some((item) => item.state === 'free')}
             getCovered={() => sheetHeight.current}
+            friends={friends}
           />
         ) : (
           <div className="p-4">

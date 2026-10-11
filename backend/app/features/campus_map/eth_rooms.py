@@ -19,8 +19,7 @@ Nearby occupancy:
     https://www.ub.uzh.ch/en/ub-besuchen/belegung-alle.html   UZH library
     https://hbzwwws04.uzh.ch/occusense/occusense_progressbar_150_en.php?id=N
 
-Stdlib only: the standalone dashboard (eth_room_dashboard.py in the repo root)
-imports this module without the backend's dependencies. Call configure() first.
+Stdlib only. Call configure() first.
 """
 
 import datetime as dt
