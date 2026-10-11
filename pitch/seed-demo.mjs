@@ -21,7 +21,7 @@ objects=geometry.place(room,objects,'door',348,668,'door-1');
 objects=geometry.renumber(objects);
 geometry.assertLayout(room,objects);
 const layout={schemaVersion:1,unitsPerMeter:geometry.UNITS_PER_METER,room,objects};
-const code=readFileSync(new URL('./seed-crowd.py',import.meta.url),'utf8')+'\n'+readFileSync(new URL('./seed-demo.py',import.meta.url),'utf8');
+const code=['seed-crowd.py','seed-friends.py','seed-demo.py'].map(file=>readFileSync(new URL(file,import.meta.url),'utf8')).join('\n');
 const result=spawnSync('docker',['compose','exec','-T','backend','python','-c',code],{
   cwd:new URL('../',import.meta.url),input:JSON.stringify(layout),encoding:'utf8',maxBuffer:1024*1024,
 });
