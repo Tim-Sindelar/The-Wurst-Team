@@ -1,23 +1,25 @@
 import { useReducedMotion } from '@mantine/hooks';
 import { notifications, Notifications } from '@mantine/notifications';
-import { Link } from 'react-router';
-import { describeEvent } from '../domain/serverEvents';
+import { Link, useLocation } from 'react-router';
+import { describeEvent, shownOnScreen } from '../domain/serverEvents';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useRefreshBooking } from '../hooks/useMyReservation';
 import { useServerEvents } from '../hooks/useServerEvents';
 import { Icon } from './Icon';
 
-/** Shows what the server pushes as notification banners and refetches, so the
- * open screen catches up too. Rendered inside the router so a banner can link to its screen. */
+/** Refetches on every server event, so the open screen catches up, and shows a
+ * notification banner unless that screen already shows the change. Rendered
+ * inside the router so a banner can link to its screen. */
 export function ServerEventNotifications() {
   const { user } = useCurrentUser();
   const refresh = useRefreshBooking();
   const reduceMotion = useReducedMotion();
+  const { pathname } = useLocation();
 
   useServerEvents(!!user, (event) => {
     void refresh();
     const notice = describeEvent(event);
-    if (!notice) return;
+    if (!notice || shownOnScreen(notice, pathname)) return;
     const id = notifications.show({
       icon: <Icon name={notice.icon} />,
       title: notice.link ? (

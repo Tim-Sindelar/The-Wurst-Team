@@ -11,7 +11,6 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
-import { notify } from '../../components/notify';
 import {
   ActionBar,
   Screen,
@@ -110,17 +109,7 @@ export function GroupScreen() {
     );
     if (!ok) return;
     setSheet(null);
-    if (choice === 'join') notify(`You joined ${group.name}`, 'userCheck');
-    else {
-      notify(
-        choice === 'decline'
-          ? 'Invitation declined'
-          : choice === 'leave'
-            ? `You left ${group.name}`
-            : `${group.name} cancelled`,
-      );
-      navigate(socialPaths.friends);
-    }
+    if (choice !== 'join') navigate(socialPaths.friends);
   };
 
   const invitable = candidates.people.filter(
@@ -227,17 +216,14 @@ export function GroupScreen() {
                           variant="secondary"
                           disabled={actions.busy}
                           aria-label={`Invite ${person.name}`}
-                          onClick={async () => {
-                            if (
-                              await actions.run(() =>
-                                actions.invite.mutateAsync({
-                                  path: { party_id: group.id },
-                                  body: { user_id: person.id },
-                                }),
-                              )
+                          onClick={() =>
+                            actions.run(() =>
+                              actions.invite.mutateAsync({
+                                path: { party_id: group.id },
+                                body: { user_id: person.id },
+                              }),
                             )
-                              notify(`Invited ${person.name}`, 'mail');
-                          }}
+                          }
                         >
                           Invite
                         </Button>

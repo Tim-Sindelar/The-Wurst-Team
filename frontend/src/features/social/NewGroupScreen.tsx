@@ -59,7 +59,7 @@ export function NewGroupScreen() {
   const create = async () => {
     if (!named) return;
     let id = '';
-    const ok = await actions.run(async () => {
+    await actions.run(async () => {
       const group = await actions.createGroup.mutateAsync({
         body: { name: name.trim() },
       });

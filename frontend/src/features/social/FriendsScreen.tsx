@@ -375,17 +375,14 @@ function InviteAction({
       variant="secondary"
       disabled={actions.busy}
       aria-label={`Invite ${person.name} to ${group.name}`}
-      onClick={async () => {
-        if (
-          await actions.run(() =>
-            actions.invite.mutateAsync({
-              path: { party_id: group.id },
-              body: { user_id: person.id },
-            }),
-          )
+      onClick={() =>
+        actions.run(() =>
+          actions.invite.mutateAsync({
+            path: { party_id: group.id },
+            body: { user_id: person.id },
+          }),
         )
-          notify(`Invited ${person.name}`, 'mail');
-      }}
+      }
     >
       Invite
     </Button>
