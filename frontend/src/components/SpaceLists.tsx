@@ -79,7 +79,7 @@ export function SpaceLists({
           aria-labelledby={`space-row-${row.id}`}
           className={cx(
             'grid gap-2',
-            fit && 'min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)]',
+            fit && 'min-h-0 grid-rows-[auto_minmax(0,1fr)]',
           )}
         >
           <SectionLabel id={`space-row-${row.id}`}>{row.title}</SectionLabel>
