@@ -57,8 +57,8 @@ cssRenderer.domElement.style.overflow='clip';
 const screenElement=document.createElement('div');screenElement.className='phone-screen';
 const appFrame=document.createElement('iframe');appFrame.title='Study Spaces live booking app';appFrame.allow='camera';
 const requestedApp=new URLSearchParams(location.search).get('app');
-let appUrl='https://02.hackathon.ethz.ch/';
-if(requestedApp){try{const url=new URL(requestedApp);if(['http:','https:'].includes(url.protocol)){url.pathname=url.pathname.replace(/\/map\/?$/,'/');appUrl=url.href;}}catch{ /* Keep the hosted app if the URL is malformed. */ }}
+let appUrl='http://localhost:5173/';
+if(requestedApp){try{const url=new URL(requestedApp);if(['http:','https:'].includes(url.protocol)){url.pathname=url.pathname.replace(/\/map\/?$/,'/');appUrl=url.href;}}catch{ /* Keep the local app if the URL is malformed. */ }}
 appFrame.src=appUrl;screenElement.append(appFrame);
 appFrame.addEventListener('load',()=>{stage.dataset.appLoaded='true';});
 const island=document.createElement('div');island.className='island';island.setAttribute('aria-hidden','true');screenElement.append(island);
