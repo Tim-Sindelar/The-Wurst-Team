@@ -138,6 +138,14 @@ function nearArea(boxes: LatLngBoundsLiteral[], lat: number, lng: number) {
   );
 }
 
+const NO_WORKSPACES: OccupancyData = {
+  schemaVersion: 1,
+  updatedAt: '',
+  libraries: [],
+  tables: [],
+  seats: [],
+};
+
 /** The rooms of a mensa item, if datasets/mensa/rooms.json locates it. */
 function mensaPlace(item: DatasetItem) {
   return (item.details as unknown as MensaDetails).place ?? null;
@@ -150,7 +158,7 @@ function mensaPlace(item: DatasetItem) {
 export function CampusMap() {
   const theme = useComputedColorScheme('dark');
   const [mapReady, setMapReady] = useState(false);
-  const [assetsReady, setAssetsReady] = useState(false);
+  const [styleReady, setStyleReady] = useState(false);
 
   const [rawData, setData] = useState<OccupancyData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -168,6 +176,7 @@ export function CampusMap() {
       rawFloorIndex && offsets ? alignFloorIndex(rawFloorIndex, offsets) : null,
     [rawFloorIndex, offsets],
   );
+  // Until the workspaces load, the map shows without them.
   const data = useMemo(
     () =>
       rawData && offsets
@@ -179,7 +188,7 @@ export function CampusMap() {
                 : { ...l, floor: alignedFloor(offsets, l.facilityId, l.floor) },
             ),
           }
-        : rawData,
+        : (rawData ?? NO_WORKSPACES),
     [rawData, offsets],
   );
   const [floor, setFloor] = useState(0);
@@ -201,32 +210,31 @@ export function CampusMap() {
   const [dashboardOpen, setDashboardOpen] = useState(false);
 
   useEffect(() => {
+    const nav = fetchNavigation().catch((err) => {
+      console.warn('Navigation config unavailable', err);
+      return null;
+    });
+    void nav.then((n) => n && setNavigation(forPhones(n)));
     repository.load().then(
       (loaded) => {
         setData(loaded);
         // Without navigation.json, start with one area per campus.
-        fetchNavigation().then(
-          (nav) =>
-            setNavigation(
-              forPhones(nav ?? defaultNavigation(loaded.libraries)),
-            ),
-          (err) => {
-            console.warn('Navigation config unavailable', err);
-            setNavigation(forPhones(defaultNavigation(loaded.libraries)));
-          },
+        void nav.then(
+          (n) =>
+            n || setNavigation(forPhones(defaultNavigation(loaded.libraries))),
         );
       },
       (err) => setLoadError(String(err)),
     );
     // The map still works without floor plans (extract_floors.py not run yet).
-    void Promise.allSettled([
-      loadFloorIndex().then(setFloorIndex, (err) =>
-        console.warn('Floor plans unavailable', err),
-      ),
-      fetchStandardStyles().then(setStyles, (err) =>
+    loadFloorIndex().then(setFloorIndex, (err) =>
+      console.warn('Floor plans unavailable', err),
+    );
+    fetchStandardStyles()
+      .then(setStyles, (err) =>
         console.warn('Map style unavailable, using the built-in one', err),
-      ),
-    ]).then(() => setAssetsReady(true));
+      )
+      .finally(() => setStyleReady(true));
   }, []);
 
   // ---- the bookable study spaces (the home screen's), for the study mode ----
@@ -432,13 +440,6 @@ export function CampusMap() {
         </Alert>
       </FullScreenNote>
     );
-  if (!data)
-    return (
-      <div className="campus-map relative h-dvh">
-        <MapLoading />
-      </div>
-    );
-
   // The study mode shows only the workspaces of the bookable study spaces.
   const visible = keepLibraries(
     data,
@@ -677,9 +678,9 @@ export function CampusMap() {
         </MapView>
       </div>
 
-      {(!mapReady || !assetsReady || !navigation || spacesQuery.isPending) && (
-        <MapLoading />
-      )}
+      {/* Only the map itself: its tiles, colours and start view. Workspaces,
+          floor plans, rooms and study spaces appear when they arrive. */}
+      {(!mapReady || !styleReady || !navigation) && <MapLoading />}
 
       {/* Bottom: selection card, toolbar */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-1100 grid gap-2 px-3 pb-[calc(--spacing(3)+env(safe-area-inset-bottom))]">
