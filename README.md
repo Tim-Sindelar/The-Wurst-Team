@@ -12,22 +12,44 @@ Mobile first web app for seat reservation and study room finding. Fully implemen
 
 ## Features
 
-- Reserve a study seat from anywhere: Reserve up to 15 min befor Check-in and keep it for two hours. Seat reservations can be extended starting from 20 mins before the end of the period. 10 mins before everyone will get a chance to reserve the seat. Reserve alone or in groups
-<br>
-<img alt="Picture of the App rendering a Building" src="assets/04-selected-seat-features.png" width="300">
-<br>
-- Find your study space from anywhere. We offer study room browsing and availability preview.You can find the right study space through browsing or using out interactive 3D-Map
-<br>
-<img alt="Picture of the App rendering a Building" src="assets/01-home.png" width="300">
-<br>
-- 3D-Map: Browse the campus and find resrevable seat spots or the next possible workspace. Three different information levels allow For use in different scenarios: Finding the right spot to reserve, Finding the next unoccupied room or study space and finding the right sports class or mensa after studying. The map works in the ETH centre and Hönggerberg and is fed real room layouts.
-<br>
-<img alt="Picture of the App rendering a Building" src="assets/3d_map_picture.png" width="300">
-<br>
-- Group system: Invite friends to join you while studying and book seats together. No racing to register at the same time: One person books for all
-<br>
-<img alt="Picture of the App rendering a Building" src="assets/03-friends.png" width="300">
-<br>
+<table>
+  <tr>
+    <td valign="top">
+      <h3>Reserve a seat</h3>
+      <p>Reserve up to 15 min before check-in and keep the seat for two hours. Extend your reservation starting 20 min before it ends; 10 min before the end, everyone gets a chance to reserve the seat. Reserve alone or in groups.</p>
+    </td>
+    <td width="300" align="center">
+      <img alt="Selecting and reserving a seat" src="assets/04-selected-seat-features.png" width="280">
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>Find your study space</h3>
+      <p>Browse study rooms and preview their availability from anywhere. Find the right space by browsing or through the interactive 3D map.</p>
+    </td>
+    <td width="300" align="center">
+      <img alt="Home screen with study spaces" src="assets/01-home.png" width="280">
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>3D map</h3>
+      <p>Browse the campus and find reservable seats or the next free workspace. Three information levels cover different needs: finding the right spot to reserve, finding the next unoccupied room, and finding a sports class or mensa after studying. The map covers ETH Zentrum and Hönggerberg and uses real room layouts.</p>
+    </td>
+    <td width="300" align="center">
+      <img alt="3D campus map" src="assets/3d_map_picture.png" width="280">
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>Groups</h3>
+      <p>Invite friends to join you while studying and book seats together. No racing to register at the same time: one person books for all.</p>
+    </td>
+    <td width="300" align="center">
+      <img alt="Friends and groups screen" src="assets/03-friends.png" width="280">
+    </td>
+  </tr>
+</table>
 
 
 ## Tech stack
