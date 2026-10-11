@@ -20,6 +20,9 @@ def seed_crowd(session, spaces, settings, now):
         seats = session.scalars(select(Seat).where(Seat.space_id == space.id, Seat.is_active).order_by(Seat.label)).all()
         for number, seat in enumerate(seats):
             mode = number % 8
+            # Spread demo states across Audimax's curved rows; seat 01 stays free.
+            if space.name == "HG F 30":
+                mode = (int(seat.label) - 1) % 8
             if mode in (0, 4, 5):
                 continue
             reservation_id = uuid5(NAMESPACE_URL, f"pitch-catalogue-reservation/{seat.id}")
