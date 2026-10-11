@@ -1,9 +1,13 @@
 # Academic Study Spaces
 *The Wurst Team*
-![Academic Study Spaces](logo.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo_dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo_light.png">
+  <img alt="Fallback image description" src="assets/logo_light.png">
+</picture>
 Mobile first web app for seat reservation and study room finding. Fully implemented with map and features for ETH and expandable for any university. Complete with admin dashboard and everything needed to start operation.
 
-![Picture of the App rendering a Building](Screenshot App.png)
+![Picture of the App rendering a Building](app_picture.png)
 
 ## Tech stack
 
