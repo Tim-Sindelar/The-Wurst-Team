@@ -44,7 +44,8 @@ import { going, initials, type Group } from './groups';
 import { groupPath } from './paths';
 import { seatTogether } from './seatTogether';
 import { PersonAvatar, SocialStatus } from './SocialParts';
-import { useGroup, useSocialActions } from './useSocial';
+import { friendsBySeat } from './studying';
+import { useFriendList, useGroup, useSocialActions } from './useSocial';
 
 /** The organizer picks a room and a seat for everyone who joined, then books
     them all at once. */
@@ -109,9 +110,11 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
   const fits = (space: SpaceSummary) =>
     space.is_open && space.free_seats >= count;
 
-  /* ?room= when opened from a room's seat map. */
+  /* ?room= (and ?seat=, a friend's or a QR code's) when opened from a room's seat map. */
   const [searchParams] = useSearchParams();
   const [chosenRoom, setChosenRoom] = useState(searchParams.get('room') ?? '');
+  const focusedSeat =
+    chosenRoom === searchParams.get('room') ? searchParams.get('seat') : null;
   const roomId =
     chosenRoom ||
     [...spaces].sort((a, b) => b.free_seats - a.free_seats).find(fits)?.id ||
@@ -124,6 +127,11 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
     refetchInterval: 15_000,
   });
   const space = spaceQuery.data?.space;
+  const friendList = useFriendList();
+  const friends = useMemo(
+    () => friendsBySeat(friendList, roomId),
+    [friendList, roomId],
+  );
 
   /* member id -> seat id. A seat that stops being free drops out on its own. */
   const [picks, setPicks] = useState<Record<string, string>>({});
@@ -376,7 +384,9 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
               complete && !moving ? null : (assigned[active.id] ?? null)
             }
             onSelect={tapSeat}
+            focused={focusedSeat}
             people={people}
+            friends={friends}
             getCovered={() => covered.current}
           />
         )}

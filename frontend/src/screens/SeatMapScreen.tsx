@@ -57,11 +57,10 @@ export function SeatMapScreen() {
     [friendList, spaceId],
   );
   const friendCount = Object.keys(friends).length;
-  /* Opened from a friend: their seat is selected. */
+  /* Opened from a seat's QR code or a friend: that seat is selected and zoomed in on. */
   const [searchParams] = useSearchParams();
-  const [picked, setPicked] = useState<string | null>(() =>
-    searchParams.get('seat'),
-  );
+  const focusedSeat = searchParams.get('seat');
+  const [picked, setPicked] = useState<string | null>(focusedSeat);
   const [sheetOpen, setSheetOpen] = useState(false);
   /* Label of a seat somebody else reserved a moment before us, shown as a warning. */
   const [takenLabel, setTakenLabel] = useState<string | null>(null);
@@ -98,7 +97,7 @@ export function SeatMapScreen() {
   }, [picked, sheetOpen]);
 
   /* Organizing a study party someone has joined: rooms are picked for the
-     whole group, so open Book together with this room. */
+     whole group, so open Book together with this room (and the seat it opened on). */
   const group = groups.active;
   if (
     socialEnabled &&
@@ -109,7 +108,10 @@ export function SeatMapScreen() {
     return (
       <Navigate
         replace
-        to={`${groupSeatsPath(group.id)}?room=${encodeURIComponent(spaceId)}`}
+        to={`${groupSeatsPath(group.id)}?${new URLSearchParams({
+          room: spaceId,
+          ...(focusedSeat && { seat: focusedSeat }),
+        })}`}
       />
     );
   const checkingGroup = socialEnabled && groups.loading && !groups.error;
@@ -321,6 +323,7 @@ export function SeatMapScreen() {
             plan={plan}
             seats={seats}
             selected={seat?.id ?? null}
+            focused={focusedSeat}
             onSelect={pick}
             onDeselect={() => pick(null)}
             onChooseFree={ownSeatId === null ? chooseAnyFree : undefined}
