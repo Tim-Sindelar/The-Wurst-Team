@@ -223,20 +223,24 @@ function ProfileEditor({
           </Text>
           {source ? (
             <ProfilePhotoCropper
+              key={source.url}
               source={source}
               crop={crop}
               disabled={busy}
               onChange={setCrop}
             />
           ) : (
-            <Avatar
-              src={photoUrl}
-              size="lg"
-              className="mx-auto"
-              aria-hidden="true"
+            <button
+              type="button"
+              className="mx-auto rounded-full border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              disabled={busy || !photoUrl}
+              aria-label="Adjust profile photo"
+              onClick={() => photoUrl && void openPhoto(photoUrl)}
             >
-              {initials}
-            </Avatar>
+              <Avatar src={photoUrl} size="lg" aria-hidden="true">
+                {initials}
+              </Avatar>
+            </button>
           )}
           {preparing && (
             <Text role="status" c="dimmed">
