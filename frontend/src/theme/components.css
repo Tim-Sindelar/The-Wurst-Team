@@ -515,7 +515,7 @@
     display: grid;
     grid-template-columns: repeat(
       auto-fill,
-      minmax(calc(var(--admin-qr-size) + var(--spacing) * 8), 1fr)
+      minmax(calc(var(--admin-qr-label-width) + var(--spacing) * 8), 1fr)
     );
     @apply gap-3;
   }
@@ -524,8 +524,8 @@
     break-inside: avoid;
   }
   .admin-qr-image {
-    width: var(--admin-qr-size);
-    height: var(--admin-qr-size);
+    width: var(--admin-qr-label-width);
+    height: auto;
   }
 
   .admin-page {
@@ -734,23 +734,16 @@
     box-shadow: none;
   }
   .admin-qr-labels {
-    grid-template-columns: repeat(auto-fill, calc(var(--admin-qr-size) + 6mm));
-    gap: 3mm;
+    grid-template-columns: repeat(auto-fill, var(--admin-qr-label-width));
+    gap: 4mm;
   }
+  /* The label image has its own cut line. */
   .admin-qr-label {
     background: white;
-    color: black;
-    border: 0.25mm solid #777;
-    border-radius: 0;
+    border: 0;
     box-shadow: none;
-    padding: 2mm;
+    padding: 0;
     break-inside: avoid;
-  }
-  .admin-qr-label strong {
-    font-size: 8pt;
-  }
-  .admin-qr-label p {
-    font-size: 13pt;
   }
 }
 @page admin-qr {

@@ -11,41 +11,24 @@ import {
 } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as q from '../../api/generated/@tanstack/react-query.gen';
-import qrcode from 'qrcode-generator';
 import { adminHeaders, errorMessage } from './useAdminAction';
+import { seatLabelSvg, WIDTH } from './seatLabel';
 interface Label {
   seatId: string;
   label: string;
   room: string;
   svg: string;
 }
-/** The QR code holds only the seat's token: the app's scan screen sends it
-    as-is to the check-in call. */
 function makeLabel(
   seatId: string,
   label: string,
   room: string,
   token: string,
 ): Label {
-  const qr = qrcode(0, 'M');
-  qr.addData(token);
-  qr.make();
-  const count = qr.getModuleCount(),
-    size = count + 8;
-  let path = '';
-  for (let y = 0; y < count; y++)
-    for (let x = 0; x < count; x++)
-      if (qr.isDark(y, x)) path += 'M' + (x + 4) + ' ' + (y + 4) + 'h1v1h-1z';
-  const svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' +
-    size +
-    ' ' +
-    size +
-    '"><rect width="100%" height="100%" fill="white"/><path d="' +
-    path +
-    '" fill="black"/></svg>';
-  return { seatId, label, room, svg };
+  return { seatId, label, room, svg: seatLabelSvg(room, label, token).svg };
 }
+/** The label's width in cm when its QR code is `size` cm. */
+const labelWidth = (size: number) => (size * WIDTH) / 100;
 function download(label: Label) {
   const blob = new Blob([label.svg], { type: 'image/svg+xml' }),
     url = URL.createObjectURL(blob),
@@ -165,7 +148,7 @@ export function AdminQrPage() {
             />
           )}
           <div className="grid gap-2">
-            <span className="text-small font-semibold">QR image size</span>
+            <span className="text-small font-semibold">QR code size</span>
             <div className="admin-qr-sizes flex flex-wrap gap-2">
               {[3, 4].map((cm) => (
                 <Button
@@ -180,8 +163,8 @@ export function AdminQrPage() {
             </div>
           </div>
           <Text size="sm" c="dimmed">
-            The image includes its white margin. Print at 100% / actual size.
-            Captions sit outside the QR area.
+            Each label is {labelWidth(size)} cm wide, with the logo, the seat
+            and a note to reserve it. Print at 100% / actual size.
           </Text>
           <details>
             <summary className="cursor-pointer">
@@ -258,17 +241,19 @@ export function AdminQrPage() {
           <div className="admin-qr-controls flex flex-wrap items-center justify-between gap-3">
             <Title order={2}>Print preview</Title>
             <Text size="sm" c="dimmed">
-              {labels.length} labels · {size} × {size} cm
+              {labels.length} labels · {labelWidth(size)} cm wide
             </Text>
           </div>
           <div
             className="admin-qr-labels"
-            style={{ '--admin-qr-size': size + 'cm' } as React.CSSProperties}
+            style={
+              {
+                '--admin-qr-label-width': labelWidth(size) + 'cm',
+              } as React.CSSProperties
+            }
           >
             {labels.map((l) => (
               <Card key={l.seatId} className="admin-qr-label">
-                <strong>{l.room}</strong>
-                <Text className="text-title">Seat {l.label}</Text>
                 <img
                   className="admin-qr-image"
                   src={
