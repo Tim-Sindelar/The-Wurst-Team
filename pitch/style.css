@@ -37,7 +37,10 @@
 #stage[data-rollout='2'] .pilot-admin{display:block}
 .pilot-slide .pilot-admin{font-size:clamp(20px,2.2vw,34px);letter-spacing:-.035em;color:#71816e}
 .future-slide{justify-content:flex-start;padding-top:8vh}
-.future-slide h1{font-size:clamp(80px,13vw,200px);font-weight:500;letter-spacing:-.07em}
+.future-slide .closing-brand{display:flex;align-items:baseline;gap:.3em;font-size:clamp(40px,7vw,108px);font-weight:400;letter-spacing:-.055em;white-space:nowrap}
+.closing-brand svg{height:.75em;width:auto;flex-shrink:0;fill:#808080}
+.closing-brand .brand-free-seat{fill:#2e7d32}
+.closing-brand strong{font-weight:700}
 .future-slide .qa-admin-copy{position:absolute;left:5vw;bottom:33vh;font-size:clamp(18px,1.6vw,26px);letter-spacing:-.035em;color:#71816e}
 #stage[data-qa-phone='expanded'] .qa-admin-copy{display:none}
 @media(max-width:700px){.pitch-slide{padding:7vw}.session-slide{padding-top:8vh}.session-copy{max-width:48vw;font-size:clamp(21px,4.3vw,30px);gap:4vh}.session-copy span{font-size:14px;line-height:1.2}.friends-slide h1{max-width:45vw}.pilot-copy{grid-template-columns:1fr;gap:3vh}.pilot-copy span{transform:rotate(90deg);justify-self:start}.eth-copy{margin-top:5vh}}

@@ -266,7 +266,19 @@ export function buildSlides(){
       <div class="pilot-copy"><h1 data-rollout="0">One library</h1><span aria-hidden="true">→</span><p data-rollout="1">Entire ETH</p><span aria-hidden="true">→</span><p data-rollout="2">Other universities</p></div>
       <p class="pilot-admin">Admin room setup</p>
     </section>
-    <section class="pitch-slide future-slide" data-slide="4" hidden aria-label="Questions and answers over a happy ETH campus"><h1>Q&amp;A</h1><p class="qa-admin-copy">Admin</p></section>`;
+    <section class="pitch-slide future-slide" data-slide="4" hidden aria-label="Study Spaces over a happy ETH campus">
+      <h1 class="closing-brand" aria-label="Study Spaces">
+        <svg viewBox="72 68 112 120" aria-hidden="true">
+          <rect x="72" y="111" width="112" height="34" rx="12" />
+          <rect class="brand-free-seat" x="88" y="68" width="34" height="34" rx="9" />
+          <rect x="134" y="68" width="34" height="34" rx="9" />
+          <rect x="88" y="154" width="34" height="34" rx="9" />
+          <rect x="134" y="154" width="34" height="34" rx="9" />
+        </svg>
+        <span><strong>Study</strong> Spaces</span>
+      </h1>
+      <p class="qa-admin-copy">Admin</p>
+    </section>`;
   const pages=[...root.querySelectorAll('[data-slide]')];
   const features=[...root.querySelectorAll('[data-feature]')];
   const rollout=[...root.querySelectorAll('[data-rollout]')];

@@ -66,7 +66,7 @@ const phoneCover=document.createElement('button');phoneCover.className='phone-co
 const cssPhone=new THREE.Group();cssScene.add(cssPhone);
 const cssScreen=new CSS3DObject(screenElement);cssScreen.scale.setScalar(.001);cssScreen.position.set(0,0,.036);cssPhone.add(cssScreen);
 
-const names=['ETH main building','The student enters the hall','Looking for an available study seat','The student gives up','Book a seat from the toilet','Live booking on the phone','Live teammate check-in','Your session','Study together','Built for ETH','One library, entire ETH, other universities','Q&A at a happy ETH campus'];
+const names=['ETH main building','The student enters the hall','Looking for an available study seat','The student gives up','Book a seat from the toilet','Live booking on the phone','Live teammate check-in','Your session','Study together','Built for ETH','One library, entire ETH, other universities','Study Spaces at a happy ETH campus'];
 const featureNames=['QR check-in starts your session','Session limits and priority to extend','Handovers','Timed breaks'];
 // The opening is one film. The toilet and real app are deliberate presenter holds.
 const durations=[6200,1200,11700,3600,5200,1050,0];
