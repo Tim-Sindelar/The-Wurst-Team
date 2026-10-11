@@ -1,23 +1,31 @@
 import qrcode from 'qrcode-generator';
-import logo from './study-spaces-logo.svg?raw';
+import logo from './study-spaces-logo-dark.svg?raw';
 
-/* The printed seat label: the Study Spaces logo, the room and seat, the QR
-   code with the seat mark in its middle, and a line telling people the seat
-   is booked through the app. It is print artwork, so it uses the colours of
-   the logo files in design/brand/ (light theme) rather than the app's tokens.
+/* The printed seat label, drawn like a card in the app's dark theme: the
+   Study Spaces logo with the seat number as a "yours" seat chip, the room as
+   a section label, the QR code on a white tile with the seat mark in its
+   middle, and one line to reserve before sitting down. It is print artwork,
+   so it repeats the dark theme's colours (src/styles.css) and the logo files
+   in design/brand/ rather than using tokens.
 
    Units: the QR code is 100 wide; the label is WIDTH wide. The admin picks
    the QR size in cm, and the label prints at WIDTH / 100 times that. */
 
-export const WIDTH = 140;
-const PAD = 10,
+export const WIDTH = 148;
+const PAD = 12,
   QR = 100,
-  INK = '#212121',
-  MUTED = '#5c5c5c',
-  LINE = '#c4c4c4',
+  TILE = 12, // white quiet zone around the code
+  BG = '#121212',
+  BORDER = '#333333',
+  TEXT = '#ffffff',
+  MUTED = '#bdbdbd',
+  ACCENT = '#6d9de0',
+  ON_ACCENT = '#121212',
+  QR_INK = '#121212',
+  // The seat mark on the white tile uses the light theme's colours.
   FREE = '#2e7d32',
   SEAT = '#808080',
-  FONT = "Barlow, 'DIN Next LT W05', Arial, Helvetica, sans-serif";
+  FONT = "'DIN Next LT W05', Barlow, Arial, Helvetica, sans-serif";
 
 const escape = (s: string) =>
   s.replace(
@@ -49,36 +57,18 @@ export function wrap(text: string, max: number, lines: number): string[] {
   return out;
 }
 
-const text = (
-  lines: string[],
-  y: number,
-  size: number,
-  weight: number,
-  fill: string,
-) =>
-  lines
-    .map(
-      (l, i) =>
-        `<text x="${WIDTH / 2}" y="${y + i * size * 1.25}" font-size="${size}" font-weight="${weight}" fill="${fill}">${escape(l)}</text>`,
-    )
-    .join('');
-
 /** The seat mark (a desk with four seats, one free), centred at x, y. */
-const seatMark = (x: number, y: number, size: number) => {
-  const s = size / 120;
-  return (
-    `<g transform="translate(${x} ${y}) scale(${s}) translate(-128 -128)">` +
-    `<rect x="72" y="111" width="112" height="34" rx="12" fill="${SEAT}"/>` +
-    `<rect x="88" y="68" width="34" height="34" rx="9" fill="${FREE}"/>` +
-    `<rect x="134" y="68" width="34" height="34" rx="9" fill="${SEAT}"/>` +
-    `<rect x="88" y="154" width="34" height="34" rx="9" fill="${SEAT}"/>` +
-    `<rect x="134" y="154" width="34" height="34" rx="9" fill="${SEAT}"/></g>`
-  );
-};
+const seatMark = (x: number, y: number, size: number) =>
+  `<g transform="translate(${x} ${y}) scale(${size / 120}) translate(-128 -128)">` +
+  `<rect x="72" y="111" width="112" height="34" rx="12" fill="${SEAT}"/>` +
+  `<rect x="88" y="68" width="34" height="34" rx="9" fill="${FREE}"/>` +
+  `<rect x="134" y="68" width="34" height="34" rx="9" fill="${SEAT}"/>` +
+  `<rect x="88" y="154" width="34" height="34" rx="9" fill="${SEAT}"/>` +
+  `<rect x="134" y="154" width="34" height="34" rx="9" fill="${SEAT}"/></g>`;
 
 /** The QR code holds only the seat's token: the app's scan screen sends it
     as-is to the check-in call. It uses the highest error correction, so the
-    seat mark covering its middle doesn't stop it from scanning. */
+    seat mark in its middle doesn't stop it from scanning. */
 function qrCode(token: string, x: number, y: number) {
   const qr = qrcode(0, 'H');
   qr.addData(token);
@@ -96,16 +86,17 @@ function qrCode(token: string, x: number, y: number) {
       if (qr.isDark(r, c) && !(blank(r) && blank(c)))
         path += `M${c} ${r}h1v1h-1z`;
   return (
-    `<path transform="translate(${x} ${y}) scale(${m})" d="${path}" fill="${INK}" shape-rendering="crispEdges"/>` +
+    `<rect x="${x - TILE}" y="${y - TILE}" width="${QR + 2 * TILE}" height="${QR + 2 * TILE}" rx="10" fill="white"/>` +
+    `<path transform="translate(${x} ${y}) scale(${m})" d="${path}" fill="${QR_INK}" shape-rendering="crispEdges"/>` +
     seatMark(x + QR / 2, y + QR / 2, hole * m * 0.8)
   );
 }
 
-/** The logo from design/brand/, cropped to its artwork, `width` wide. */
-function logoAt(x: number, y: number, width: number) {
-  const height = (width * 124) / 448;
+/** The logo from design/brand/ (dark theme), cropped to its artwork. */
+function logoAt(x: number, y: number, height: number) {
+  const width = (height * 448) / 124;
   return {
-    height,
+    width,
     svg: logo
       .replace(/<title>.*?<\/title>/, '')
       .replace(
@@ -117,34 +108,37 @@ function logoAt(x: number, y: number, width: number) {
 
 /** The whole label as an SVG document, and its height in label units. */
 export function seatLabelSvg(room: string, seat: string, token: string) {
-  let y = PAD + 4;
-  const brand = logoAt((WIDTH - 76) / 2, y, 76);
-  y += brand.height + 9;
-  const roomLines = wrap(room, 30, 2),
-    roomSvg = text(roomLines, y, 7, 500, MUTED);
-  y += (roomLines.length - 1) * 7 * 1.25 + 15;
-  const seatSvg = text(['Seat ' + seat], y, 15, 700, INK);
-  y += 9;
-  const qrSvg = qrCode(token, (WIDTH - QR) / 2, y);
-  y += QR + 15;
-  const head = text(['Part of Study Spaces'], y, 7.5, 700, INK);
-  y += 9.5;
-  const body = wrap(
-    'Reserve this seat in the app to make sure it’s yours, then scan this code to check in.',
-    38,
-    3,
-  );
-  const bodySvg = text(body, y, 6.5, 400, MUTED);
-  y += (body.length - 1) * 6.5 * 1.25 + PAD;
-  const height = Math.ceil(y);
+  const inner = WIDTH - 2 * PAD;
+  let y = PAD;
+  // Header: logo left, the seat as a "yours" chip right (like the seat map).
+  const chipH = 20,
+    chipText = seat.length > 5 ? seat.slice(0, 4) + '…' : seat,
+    chipW = Math.max(chipH, 9 + chipText.length * 7),
+    brand = logoAt(PAD - 1, y + 2, 16),
+    chip =
+      `<rect x="${WIDTH - PAD - chipW}" y="${y}" width="${chipW}" height="${chipH}" rx="5.5" fill="${ACCENT}"/>` +
+      `<text x="${WIDTH - PAD - chipW / 2}" y="${y + 14.6}" font-size="12.5" font-weight="700" fill="${ON_ACCENT}" text-anchor="middle">${escape(chipText)}</text>`;
+  y += chipH + 13;
+  // The room, as the app's uppercase section label.
+  const roomLines = wrap(room.toUpperCase(), 30, 2),
+    roomSvg = roomLines
+      .map(
+        (l, i) =>
+          `<text x="${PAD}" y="${y + i * 7.5}" font-size="5.6" font-weight="700" letter-spacing="0.5" fill="${MUTED}">${escape(l)}</text>`,
+      )
+      .join('');
+  y += (roomLines.length - 1) * 7.5 + 6 + TILE;
+  const qrSvg = qrCode(token, PAD + (inner - QR) / 2, y);
+  y += QR + TILE + 14;
+  const note =
+    `<text x="${PAD}" y="${y}" font-size="8.5" font-weight="700" fill="${TEXT}">Reserve it to make it yours.</text>` +
+    `<text x="${PAD}" y="${y + 10}" font-size="7" fill="${MUTED}">Scan here to check in.</text>`;
+  const height = Math.ceil(y + 10 + PAD);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${height}">` +
-    `<clipPath id="card"><rect width="${WIDTH}" height="${height}" rx="8"/></clipPath>` +
-    `<g clip-path="url(#card)"><rect width="${WIDTH}" height="${height}" fill="white"/>` +
-    `<rect width="${WIDTH}" height="3.5" fill="${FREE}"/></g>` +
-    `<rect x="0.25" y="0.25" width="${WIDTH - 0.5}" height="${height - 0.5}" rx="7.75" fill="none" stroke="${LINE}" stroke-width="0.5"/>` +
+    `<rect x="0.5" y="0.5" width="${WIDTH - 1}" height="${height - 1}" rx="14" fill="${BG}" stroke="${BORDER}"/>` +
     brand.svg +
-    `<g font-family="${FONT}" text-anchor="middle">${roomSvg}${seatSvg}${head}${bodySvg}</g>` +
+    `<g font-family="${FONT}">${chip}${roomSvg}${note}</g>` +
     qrSvg +
     '</svg>';
   return { svg, height };
