@@ -12,6 +12,8 @@ Open http://127.0.0.1:5174. The live phone defaults to http://localhost:5173/ wi
 
 ## Local demo data
 
+On localhost and loopback addresses, the campus map starts in Workspaces mode. Its local preference is remembered separately from the hosted app's Study spaces default.
+
 The active local database is `pitch_catalogue_20261011`, selected by `PITCH_DATABASE_NAME` in the ignored root `.env`. It contains the catalogue imported from `production-db-2026-10-11.sql`: eight study spaces (four currently active), 221 seats, seven saved layouts, schedules and the production campus-map documents, entities and overrides. Production accounts, social data and reservations were excluded. Synthetic participants supply mixed occupancy; the demo account has favourites and recents. Free seats remain bookable through the real local API.
 
 Run `npm run seed` in `pitch/` shortly before rehearsal to refresh synthetic timers. On an isolated `pitch_` database this preserves imported rooms, layouts, seat IDs and QR tokens and avoids seats with other active/upcoming bookings. It only works with demo authentication. Occupancy is sample data, not production occupancy. Home photos come from the existing ETH room-photo lookup; rooms without an ETH photo stay plain. On the original `hackathon` database, the command prepares the previous twelve illustrative rooms instead.

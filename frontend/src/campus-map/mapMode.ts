@@ -36,13 +36,21 @@ export const MODE_DATASETS: Record<MapMode, string[]> = {
   campus: ['asvz', 'mensa'],
 };
 
+const localMap = ['localhost', '127.0.0.1', '[::1]'].includes(
+  globalThis.location?.hostname ?? '',
+);
+// Keep the pitch's local preference separate from the hosted app's setting.
+const mapModeKey = localMap ? 'map-mode-local' : 'map-mode';
+
 export function loadMapMode(): MapMode {
-  const stored = readStored('map-mode');
-  return MAP_MODES.find((m) => m === stored) ?? 'study';
+  const stored = readStored(mapModeKey);
+  return (
+    MAP_MODES.find((m) => m === stored) ?? (localMap ? 'workspaces' : 'study')
+  );
 }
 
 export function saveMapMode(mode: MapMode) {
-  writeStored('map-mode', mode);
+  writeStored(mapModeKey, mode);
 }
 
 /** The 3D floor stack: on unless switched off. */
