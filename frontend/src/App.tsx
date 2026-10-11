@@ -12,18 +12,19 @@ import { AdminLayoutPage } from './features/admin/AdminLayoutPage';
 import { AdminQrPage } from './features/admin/AdminQrPage';
 import { AdminSettingsPage } from './features/admin/AdminSettingsPage';
 import { AdminUsersPage, AdminUserPage } from './features/admin/AdminUsersPage';
-import { SeatCheckInPage } from './features/admin/SeatCheckInPage';
 import { HomeScreen } from './screens/HomeScreen';
 import { MapScreen } from './screens/MapScreen';
+import { NotFoundScreen, RouteErrorScreen } from './screens/NotFoundScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { ProfileEditScreen } from './screens/ProfileEditScreen';
 import { ReservationScreen } from './screens/ReservationScreen';
 import { ScanScreen } from './screens/ScanScreen';
 import { SeatMapScreen } from './screens/SeatMapScreen';
+import { SeatQrScreen } from './screens/SeatQrScreen';
 import { SessionScreen } from './screens/SessionScreen';
 
-const socialDraftRoutes = socialEnabled
-  ? (await import('./features/social-draft/routes')).socialDraftRoutes
+const socialRoutes = socialEnabled
+  ? (await import('./features/social/routes')).socialRoutes
   : [];
 
 const router = createBrowserRouter(
@@ -31,6 +32,7 @@ const router = createBrowserRouter(
     {
       path: '/admin',
       element: <AdminShell />,
+      errorElement: <RouteErrorScreen />,
       children: [
         { index: true, element: <AdminSpacesPage /> },
         { path: 'new', element: <AdminNewSpacePage /> },
@@ -54,18 +56,20 @@ const router = createBrowserRouter(
     },
     {
       element: <AppLayout />,
+      errorElement: <RouteErrorScreen />,
       children: [
-        { path: '/check-in', element: <SeatCheckInPage /> },
         { path: paths.home, element: <HomeScreen /> },
         { path: paths.map, element: <MapScreen /> },
         { path: '/seats', element: <Navigate to={paths.home} replace /> },
         { path: paths.seatMap, element: <SeatMapScreen /> },
+        { path: paths.seatQr, element: <SeatQrScreen /> },
         { path: paths.reservation, element: <ReservationScreen /> },
         { path: paths.scan, element: <ScanScreen /> },
         { path: paths.session, element: <SessionScreen /> },
         { path: paths.profile, element: <ProfileScreen /> },
         { path: paths.profileEdit, element: <ProfileEditScreen /> },
-        ...socialDraftRoutes,
+        ...socialRoutes,
+        { path: '*', element: <NotFoundScreen /> },
       ],
     },
   ],

@@ -2,7 +2,7 @@
 
 The validation rules are the ones of frontend/src/campus-map/domain/validate.ts
 and navigation.ts. Models allow extra fields, so data written by newer tools
-(occupancy-map-preview) passes through unchanged.
+passes through unchanged.
 """
 
 import re

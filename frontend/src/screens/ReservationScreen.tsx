@@ -13,6 +13,7 @@ import {
 } from '../components/Screen';
 import { SeatChip } from '../components/SeatChip';
 import { TimerCard } from '../components/TimerCard';
+import { useDeadlineClock } from '../hooks/useDeadlineClock';
 import { apiProblem, secondsBetween } from '../domain/booking';
 import { stripeClass } from '../domain/seat';
 import {
@@ -53,6 +54,7 @@ export function ReservationScreen() {
     : 1;
   const { refetch } = query;
   useRefetchAt(target, refetch);
+  const now = useDeadlineClock(target);
 
   if (query.isError || rulesQuery.isError) {
     return (
@@ -106,7 +108,7 @@ export function ReservationScreen() {
             <Text>
               {running
                 ? 'You have already checked in. Your session is running.'
-                : 'Your reservation has expired or been cancelled. The seat is no longer held for you.'}
+                : 'No seat is held for you right now.'}
             </Text>
           </Alert>
         </ScreenMain>
@@ -126,16 +128,15 @@ export function ReservationScreen() {
   const canCheckIn = held.available_actions.includes('check_in');
 
   const cancel = () =>
-    end.mutate(
-      { path: { reservation_id: held.id } },
-      {
-        onSuccess: async () => {
-          setLeaving(true);
-          await refresh();
-          navigate(paths.home);
-        },
-      },
-    );
+    end
+      .mutateAsync({ path: { reservation_id: held.id } })
+      .then(async () => {
+        setLeaving(true);
+        await refresh();
+        navigate(paths.home, { replace: true });
+      })
+      /* The error shows in the sheet through `end.error`. */
+      .catch(() => undefined);
 
   const closeSheet = () => {
     setCancelOpen(false);
@@ -165,8 +166,8 @@ export function ReservationScreen() {
 
         <TimerCard
           label={upcoming ? 'Your time starts in' : 'Check in within'}
-          seconds={total}
           expiresAt={target}
+          now={now}
           total={total}
         >
           <Text size="sm" c="dimmed">
@@ -182,6 +183,7 @@ export function ReservationScreen() {
           <Button
             component={Link}
             to={paths.scan}
+            replace
             fullWidth
             leftSection={<Icon name="qr" />}
           >

@@ -8,16 +8,21 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.config import Settings, get_settings
 from app.database import get_session
+from app.features.campus_map.room_photos import RoomPhotos
+from app.features.campus_map.services import get_room_photos
 from app.features.reservations.schemas import (
     BookingErrorResponse,
     CheckInRequest,
     CreateReservationRequest,
     FavouritesResponse,
     MyReservationResponse,
+    PopularSpacesResponse,
     RecentsResponse,
     RequestValidationErrorResponse,
     ReservationResponse,
     RulesResponse,
+    SeatQrResponse,
+    SeatScanRequest,
     SpaceResponse,
     SpacesResponse,
 )
@@ -45,6 +50,7 @@ def get_service(
 
 Service = Annotated[ReservationService, Depends(get_service)]
 CurrentUser = Annotated[UUID, Depends(get_current_user)]
+Photos = Annotated[RoomPhotos, Depends(get_room_photos)]
 
 
 def commit_response(
@@ -68,8 +74,15 @@ def get_rules(settings: Annotated[Settings, Depends(get_settings)]) -> RulesResp
 
 
 @router.get("/spaces", response_model=SpacesResponse, operation_id="list_spaces")
-def list_spaces(service: Service, map_room_id: str | None = None) -> SpacesResponse:
-    return service.spaces(map_room_id)
+def list_spaces(service: Service, photos: Photos, map_room_id: str | None = None) -> SpacesResponse:
+    return service.spaces(map_room_id, photos)
+
+
+@router.get(
+    "/spaces/popular", response_model=PopularSpacesResponse, operation_id="list_popular_spaces"
+)
+def list_popular_spaces(service: Service) -> PopularSpacesResponse:
+    return service.popular()
 
 
 @router.get("/me/favourites", response_model=FavouritesResponse, operation_id="list_favourites")
@@ -101,8 +114,13 @@ def list_recents(service: Service, user_id: CurrentUser) -> RecentsResponse:
 
 
 @router.get("/spaces/{space_id}", response_model=SpaceResponse, operation_id="get_space")
-def get_space(space_id: UUID, service: Service) -> SpaceResponse:
-    return service.space(space_id)
+def get_space(space_id: UUID, service: Service, photos: Photos) -> SpaceResponse:
+    return service.space(space_id, photos)
+
+
+@router.get("/seats/by-qr", response_model=SeatQrResponse, operation_id="find_seat_by_qr")
+def find_seat_by_qr(qr_token: str, service: Service) -> SeatQrResponse:
+    return service.seat_by_qr(qr_token)
 
 
 @router.get(
@@ -137,9 +155,11 @@ def check_in(
     operation_id="extend_reservation",
 )
 def extend_reservation(
-    reservation_id: UUID, service: Service, user_id: CurrentUser
+    reservation_id: UUID, request: SeatScanRequest, service: Service, user_id: CurrentUser
 ) -> ReservationResponse:
-    return commit_response(service, service.act(user_id, reservation_id, "extend"))
+    return commit_response(
+        service, service.act(user_id, reservation_id, "extend", qr_token=request.qr_token)
+    )
 
 
 @router.post(
@@ -148,9 +168,11 @@ def extend_reservation(
     operation_id="start_break",
 )
 def start_break(
-    reservation_id: UUID, service: Service, user_id: CurrentUser
+    reservation_id: UUID, request: SeatScanRequest, service: Service, user_id: CurrentUser
 ) -> ReservationResponse:
-    return commit_response(service, service.act(user_id, reservation_id, "break"))
+    return commit_response(
+        service, service.act(user_id, reservation_id, "break", qr_token=request.qr_token)
+    )
 
 
 @router.post(
@@ -159,9 +181,11 @@ def start_break(
     operation_id="return_from_break",
 )
 def return_from_break(
-    reservation_id: UUID, service: Service, user_id: CurrentUser
+    reservation_id: UUID, request: SeatScanRequest, service: Service, user_id: CurrentUser
 ) -> ReservationResponse:
-    return commit_response(service, service.act(user_id, reservation_id, "return"))
+    return commit_response(
+        service, service.act(user_id, reservation_id, "return", qr_token=request.qr_token)
+    )
 
 
 @router.post(

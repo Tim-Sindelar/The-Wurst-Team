@@ -31,6 +31,12 @@ const paths = {
     </>
   ),
   back: <path d="M15 5l-7 7 7 7" />,
+  bell: (
+    <>
+      <path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4z" />
+      <path d="M10 21a2 2 0 0 0 4 0" />
+    </>
+  ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   chevronRight: <path d="M9 5l7 7-7 7" />,
   clock: (
@@ -104,6 +110,54 @@ const paths = {
     <>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+    </>
+  ),
+  userPlus: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+      <path d="M19 8v6M16 11h6" />
+    </>
+  ),
+  userCheck: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+      <path d="M16 11l2 2 4-4" />
+    </>
+  ),
+  userX: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+      <path d="M17 9l4 4M21 9l-4 4" />
+    </>
+  ),
+  userMinus: (
+    <>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+      <path d="M16 11h6" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </>
+  ),
+  calendarCheck: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+      <path d="M9 15.5l2 2 4-4" />
+    </>
+  ),
+  calendarX: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+      <path d="M10 13.5l4 4M14 13.5l-4 4" />
     </>
   ),
   friends: (

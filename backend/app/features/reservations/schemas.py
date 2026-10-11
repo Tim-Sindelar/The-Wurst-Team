@@ -64,6 +64,20 @@ class CheckInRequest(BaseModel):
     qr_token: str = Field(min_length=1, max_length=256)
 
 
+class SeatScanRequest(BaseModel):
+    """The QR code scanned at the reservation's own seat, proving the user is there."""
+
+    model_config = ConfigDict(extra="forbid")
+    qr_token: str = Field(min_length=1, max_length=256)
+
+
+class SeatQrResponse(BaseModel):
+    """The seat a printed QR code belongs to."""
+
+    space_id: UUID
+    seat_id: UUID
+
+
 ReservationStatus = Literal["upcoming", "pending", "active", "on_break", "no_show", "ended"]
 SeatStatus = Literal["free", "reserved", "occupied", "on_break", "claimable", "unavailable"]
 ReservationAction = Literal["check_in", "extend", "start_break", "return", "end"]
@@ -89,6 +103,8 @@ class SpaceSummary(BaseModel):
     free_seats: int
     timezone: str
     is_open: bool
+    # The first photo of the space's ETH room, if ETH has one.
+    photo_url: str | None = None
 
 
 class SeatAvailability(UTCResponse):
@@ -116,6 +132,12 @@ class FavouritesResponse(BaseModel):
 
 class RecentsResponse(BaseModel):
     """Space ids, most recently used first."""
+
+    space_ids: list[UUID]
+
+
+class PopularSpacesResponse(BaseModel):
+    """Space ids, the most occupied over the last week first."""
 
     space_ids: list[UUID]
 

@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Popover } from '@mantine/core';
+import { ActionIcon, Button, Checkbox, Popover } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
 import {
@@ -8,6 +8,7 @@ import {
   type RoomPlan,
 } from '../../domain/room';
 import geometry from '../../features/admin/geometry';
+import type { SeatFriend } from '../../features/social/studying';
 import { FeatureBadge, RoomScene } from '../../features/admin/RoomScene';
 import { Icon, type IconName } from '../Icon';
 import { SectionLabel } from '../SectionLabel';
@@ -34,9 +35,9 @@ type SeatMapProps = {
   seats: MapSeat[];
   /** The selected seat, or null when nothing is selected. */
   selected: string | null;
+  /** The seat the map opened on (`?seat=` from a QR code or a friend): zoomed in on once, selected or not. */
+  focused?: string | null;
   onSelect: (seatId: string) => void;
-  /** Optional group selection; individual-seat screens keep their existing behavior. */
-  highlightedSeats?: string[];
   /** The empty map was tapped. */
   onDeselect?: () => void;
   /** Top-right text button: picks a free seat. Leave out to hide it. */
@@ -45,6 +46,10 @@ type SeatMapProps = {
   chooseFreeDisabled?: boolean;
   /** Height in px of the seat card covering the bottom of the map right now. */
   getCovered?: () => number;
+  /** Group booking: seats given to people, by seat id. They show initials. */
+  people?: Record<string, { initials: string; name: string }>;
+  /** Friends checked in here, by seat id. Their seats show their faces. */
+  friends?: Record<string, SeatFriend>;
 };
 
 /* Interactive room map: top-down floor plan with colour-coded seats.
@@ -53,12 +58,14 @@ export function SeatMap({
   plan,
   seats,
   selected,
+  focused = null,
   onSelect,
   onDeselect,
   onChooseFree,
   chooseFreeDisabled = false,
   getCovered,
-  highlightedSeats = [],
+  people,
+  friends,
 }: SeatMapProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -69,6 +76,11 @@ export function SeatMap({
   const coveredRef = useRef(getCovered);
   const [ready, setReady] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(true);
+  /* What the map has glided to so far; a new pan and zoom starts over. */
+  const firstFocus = useRef(focused);
+  const openedOn = useRef<string | null>(null);
+  const shownSelection = useRef<string | null>(null);
   const features = (
     Object.keys(featureIcon) as (keyof typeof featureIcon)[]
   ).filter((feature) => seats.some((seat) => seat.badges.includes(feature)));
@@ -94,14 +106,25 @@ export function SeatMap({
       onMapTap: () => onDeselectRef.current?.(),
     });
     panZoomRef.current = panZoom;
+    /* React's strict mode builds the pan and zoom twice in dev: the second
+       one must still glide to the seat the map opened on. */
+    openedOn.current = firstFocus.current;
+    shownSelection.current = null;
     setReady(true);
     return () => panZoom.destroy();
   }, []);
 
-  /* A new selection (tap, keyboard or "Choose any free seat") glides into
-     view; closing the seat card lets the map settle into the freed space. */
-  const shownSelection = useRef(selected);
+  /* The seat the map opened on is zoomed in on first. After that a new
+     selection (tap, keyboard, "Choose any free seat") glides into view, and
+     closing the seat card lets the map settle into the freed space. */
   useEffect(() => {
+    const focus = seats.find((item) => item.id === openedOn.current);
+    openedOn.current = null;
+    if (focus) {
+      shownSelection.current = selected;
+      panZoomRef.current?.centerOn(focus.x, focus.y, true);
+      return;
+    }
     if (shownSelection.current === selected) return;
     shownSelection.current = selected;
     const seat = seats.find((item) => item.id === selected);
@@ -198,14 +221,14 @@ export function SeatMap({
             angle={seat.angle}
             scale={seat.scale}
             features={seat.badges.map((badge) => geometry.BADGES[badge])}
-            selected={
-              seat.id === selected || highlightedSeats.includes(seat.id)
-            }
+            selected={seat.id === selected}
             onSelect={() => onSelect(seat.id)}
+            person={people?.[seat.id]}
+            friend={friends?.[seat.id]}
           />
         ))}
         {/* Feature badges sit on top of the seats, as in the layout editor. */}
-        {plan && (
+        {plan && showFeatures && (
           <svg
             className="pointer-events-none absolute inset-0 size-full"
             viewBox={`0 0 ${plan.room.width} ${plan.room.height}`}
@@ -227,7 +250,10 @@ export function SeatMap({
         )}
       </div>
 
-      <div className="absolute top-3 left-3 z-1" data-map-info>
+      <div
+        className="absolute top-3 left-3 z-1 flex items-center gap-2"
+        data-map-info
+      >
         <Popover
           opened={keyOpen}
           onChange={setKeyOpen}
@@ -258,6 +284,15 @@ export function SeatMap({
                   {seatStateName[state]}
                 </li>
               ))}
+              {friends && Object.keys(friends).length > 0 && (
+                <li className="flex items-center gap-3 text-small">
+                  <span
+                    className="size-3 flex-none rounded-full bg-surface ring-2 ring-accent"
+                    aria-hidden="true"
+                  />
+                  Friend
+                </li>
+              )}
             </ul>
             {features.length > 0 && (
               <div className="mt-2 grid gap-2">
@@ -282,6 +317,15 @@ export function SeatMap({
             )}
           </Popover.Dropdown>
         </Popover>
+        {plan && features.length > 0 && (
+          <Checkbox
+            variant="map"
+            size="xs"
+            label="Show features"
+            checked={showFeatures}
+            onChange={(event) => setShowFeatures(event.currentTarget.checked)}
+          />
+        )}
       </div>
 
       {onChooseFree && (

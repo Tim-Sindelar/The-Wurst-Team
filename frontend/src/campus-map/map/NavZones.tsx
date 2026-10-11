@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Polygon, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import {
-  campusViews,
   outlineCenter,
   zoneAt,
   type NavigationConfig,
@@ -54,7 +53,7 @@ export function NavZones({
 
   const hit = useRef<(e: MouseEvent) => NavZone | null>(() => null);
   hit.current = (e) => {
-    // Map controls (zoom, floor picker, home) keep their own clicks.
+    // Map controls (zoom, floor picker) keep their own clicks.
     const target = e.target as Element;
     if (
       !enabled ||
@@ -109,8 +108,6 @@ export function NavZones({
     map.getContainer().classList.toggle('nav-hover', hover !== null);
   }, [map, hover]);
 
-  useHomeControl(config);
-
   const highlighted = config.zones.find(
     (z) => z.id === highlightedZoneId && z.outline,
   );
@@ -137,62 +134,4 @@ export function NavZones({
       )}
     </>
   );
-}
-
-/** Zoom within this many levels and center within this many px of a campus view count as being there. */
-const AT_ZOOM = 0.25;
-const AT_PX = 30;
-
-/**
- * The home button: flies to a campus (the area zones, Zentrum first), as a
- * click on its zone does. Already there, it switches to the other campus;
- * anywhere else, it goes to the nearest one.
- */
-function useHomeControl(config: NavigationConfig) {
-  const map = useMap();
-  const campuses = useRef<{ center: L.LatLng; zoom: number }[]>([]);
-  campuses.current = campusViews(config).map((c) => ({
-    center: L.latLng(c.center.lat, c.center.lng),
-    zoom: c.zoom,
-  }));
-  const hasCampus = campuses.current.length > 0;
-
-  useEffect(() => {
-    if (!hasCampus) return;
-    const next = () => {
-      const all = campuses.current;
-      const here = map.getCenter();
-      const zoom = map.getZoom();
-      const at = all.findIndex(
-        (c) =>
-          Math.abs(zoom - c.zoom) <= AT_ZOOM &&
-          map
-            .latLngToContainerPoint(c.center)
-            .distanceTo(map.latLngToContainerPoint(here)) <= AT_PX,
-      );
-      if (at >= 0) return all[(at + 1) % all.length];
-      return all.reduce((a, b) =>
-        here.distanceTo(b.center) < here.distanceTo(a.center) ? b : a,
-      );
-    };
-    const control = new L.Control({ position: 'topleft' });
-    control.onAdd = () => {
-      const bar = L.DomUtil.create('div', 'leaflet-bar');
-      const btn = L.DomUtil.create('a', 'nav-home', bar);
-      btn.href = '#';
-      btn.role = 'button';
-      btn.title = 'Go to a campus';
-      btn.setAttribute('aria-label', btn.title);
-      btn.innerHTML = '&#8962;';
-      L.DomEvent.disableClickPropagation(bar);
-      L.DomEvent.on(btn, 'click', (e) => {
-        L.DomEvent.preventDefault(e);
-        const c = next();
-        map.flyTo(c.center, c.zoom, { duration: 0.8 });
-      });
-      return bar;
-    };
-    control.addTo(map);
-    return () => void control.remove();
-  }, [map, hasCampus]);
 }

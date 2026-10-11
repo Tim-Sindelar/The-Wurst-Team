@@ -9,6 +9,7 @@ import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 setWorkerUrl(workerUrl);
 
 interface Props {
+  onReady?: () => void;
   children?: import('react').ReactNode;
   /** OpenFreeMap style: free, no API key, no usage limits (https://openfreemap.org). */
   style: 'positron' | 'bright' | 'liberty';
@@ -39,14 +40,29 @@ function applyLabels(layer: GLLayer) {
 }
 
 export const VectorBasemap = createLayerComponent<L.Layer, Props>(
-  ({ style, labels }, ctx) => {
+  ({ style, labels, onReady }, ctx) => {
     const layer = maplibreGL({
       style: `https://tiles.openfreemap.org/styles/${style}`,
       attributionControl: false,
     } as never) as GLLayer;
     layer._showLabels = labels;
     // The GL map only exists while the layer is on a Leaflet map (it is recreated on every add).
-    layer.on('add', () => applyLabels(layer));
+    layer.on('add', () => {
+      applyLabels(layer);
+      const gl = layer.getMaplibreMap();
+      if (!gl || !onReady) return;
+      // Reveal the map after its first render; failed external tiles must not leave a perpetual loader.
+      const ready = () => {
+        gl.off('load', ready);
+        gl.off('error', ready);
+        onReady();
+      };
+      if (gl.loaded()) ready();
+      else {
+        gl.once('load', ready);
+        gl.once('error', ready);
+      }
+    });
     return { instance: layer, context: ctx };
   },
   (instance, { labels }, prev) => {

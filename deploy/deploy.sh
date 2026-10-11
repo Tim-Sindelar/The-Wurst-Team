@@ -111,7 +111,7 @@ compose exec -T db pg_dump -U hackathon -d hackathon --format=custom > "$backup.
 compose exec -T db pg_restore --list < "$backup.partial" > /dev/null
 mv "$backup.partial" "$backup"
 compose run --rm --no-deps backend alembic upgrade head
-# The map files in the release are the source of truth (`make map-sync`), so every deploy
+# The map files in the release are the source of truth (map-data/), so every deploy
 # re-imports them; importing only into an empty database left map style changes undeployed.
 compose run --rm --no-deps backend python -m app.features.campus_map.importer
 if [[ -n "$pr" ]]; then

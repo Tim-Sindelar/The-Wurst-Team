@@ -15,6 +15,7 @@ from app.features.campus_map.floor_plans import FloorPlans
 from app.features.campus_map.importer import MAP_DATA_DIR, import_files
 from app.features.campus_map.models import MapOverride
 from app.features.campus_map.overlay import merge_overrides
+from app.features.campus_map.room_photos import RoomPhotos
 from app.features.campus_map.services import MapServices, get_services
 from app.main import app
 from tests.campus_map.test_floor_plans import write_plans
@@ -66,6 +67,7 @@ def client(db: Engine, tmp_path: Path, datasets_dir: Path) -> Iterator[TestClien
     services = MapServices(
         datasets=DatasetCache(tmp_path / "cache", datasets_dir),
         floor_plans=FloorPlans(tmp_path / "floors"),
+        room_photos=RoomPhotos(),
     )
     app.dependency_overrides[get_session] = test_session
     app.dependency_overrides[get_services] = lambda: services

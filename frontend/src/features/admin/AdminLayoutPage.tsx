@@ -437,7 +437,12 @@ function LayoutEditor({
         setTool('select');
         return;
       }
-      if (e.code === 'Space' && drag.current?.kind === 'item') {
+      // R rotates like Space mid-drag: the drag moves from its own copy of
+      // the layout, so rotating only the live layout would snap back.
+      if (
+        (e.code === 'Space' || (k === 'r' && !e.ctrlKey && !e.metaKey)) &&
+        drag.current?.kind === 'item'
+      ) {
         e.preventDefault();
         if (e.repeat) return;
         const d = drag.current;

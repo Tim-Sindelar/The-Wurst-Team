@@ -20,9 +20,10 @@ import {
   Title,
   type CSSVariablesResolver,
 } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { Icon } from '../components/Icon';
 
-/* Mantine configured to look like design/base.css. Each component gets the
+/* Mantine configured to match the design tokens. Each component gets the
    ui-* classes from components.css; screens pick a variant and never restyle.
 
    Variants:
@@ -74,6 +75,7 @@ export const theme = createTheme({
       classNames: {
         root: 'ui-button',
         inner: 'ui-button-inner',
+        label: 'ui-button-label',
         section: 'ui-button-section',
       },
     }),
@@ -110,7 +112,10 @@ export const theme = createTheme({
     }),
 
     Checkbox: Checkbox.extend({
+      defaultProps: { size: 'md' },
       classNames: {
+        root: 'ui-checkbox-root',
+        body: 'ui-checkbox-body',
         input: 'ui-checkbox',
         label: 'ui-checkbox-label',
         icon: 'ui-checkbox-icon',
@@ -156,11 +161,18 @@ export const theme = createTheme({
 
     Avatar: Avatar.extend({
       classNames: (_theme, props) => ({
-        root: props.size === 'lg' ? 'ui-avatar ui-avatar--lg' : 'ui-avatar',
+        root:
+          props.size === 'lg'
+            ? 'ui-avatar ui-avatar--lg'
+            : props.size === 'sm'
+              ? 'ui-avatar ui-avatar--sm'
+              : 'ui-avatar',
         placeholder:
           props.size === 'lg'
             ? 'ui-avatar-placeholder ui-avatar-placeholder--lg'
-            : 'ui-avatar-placeholder',
+            : props.size === 'sm'
+              ? 'ui-avatar-placeholder ui-avatar-placeholder--sm'
+              : 'ui-avatar-placeholder',
       }),
     }),
 
@@ -192,6 +204,20 @@ export const theme = createTheme({
         title: 'ui-banner-title',
         description: 'ui-banner-description',
         closeButton: 'ui-banner-close',
+      },
+    }),
+
+    /* Server events (useServerEvents): a stack of the banners above. */
+    Notifications: Notifications.extend({
+      defaultProps: {
+        position: 'top-center',
+        limit: 3,
+        autoClose: 6000,
+        withAutoCloseProgress: false,
+      },
+      classNames: {
+        root: 'ui-notifications',
+        notification: 'ui-notifications-item',
       },
     }),
 

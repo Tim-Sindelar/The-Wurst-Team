@@ -2,19 +2,36 @@ from base64 import b64encode
 from secrets import token_urlsafe
 from uuid import UUID
 
-from sqlalchemy import func, or_, select, text
+from pydantic import BaseModel
+from sqlalchemy import func, literal_column, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.features.events.schemas import (
+    EventPerson,
+    FriendRequestAcceptedEvent,
+    FriendRequestReceivedEvent,
+    PartyBookedEvent,
+    PartyCancelledEvent,
+    PartyInvitedEvent,
+    PartyLeftEvent,
+    PartyRepliedEvent,
+)
 from app.features.reservations.models import Reservation, Seat, StudySpace
-from app.features.reservations.service import BookingError, ReservationService, reservation_states
+from app.features.reservations.service import (
+    BookingError,
+    MembersAlreadyReserved,
+    ReservationService,
+    reservation_states,
+)
 from app.features.social.models import Friendship, Party, PartyMember, SocialUser
 from app.features.social.schemas import (
     DirectoryPerson,
     FriendRequestResponse,
     FriendRequestsResponse,
     FriendResponse,
+    FriendRoom,
     FriendsResponse,
     PartiesResponse,
     PartyBook,
@@ -36,6 +53,14 @@ class SocialService:
         self.bookings = ReservationService(session, settings)
         self.user_id = user_id
         self.name = name[:80]
+        # Sent by the router only after the transaction commits.
+        self.events: list[tuple[UUID, BaseModel]] = []
+
+    def _notify(self, user_id: UUID, event: BaseModel) -> None:
+        self.events.append((user_id, event))
+
+    def _me(self) -> EventPerson:
+        return EventPerson(id=self.user_id, name=self.person(self.user_id).name)
 
     def enroll(self) -> SocialUser:
         self.session.execute(
@@ -139,20 +164,24 @@ class SocialService:
             requests=[self._request(row) for row in self._relations("pending")]
         )
 
-    def request_friend(self, user_id: UUID) -> FriendRequestResponse:
+    def _enroll_other(self, user_id: UUID) -> UserProfile:
         target = self.session.get(UserProfile, user_id)
         if target is None:
             raise BookingError(404, "not_found", "User not found")
         if target.id == self.user_id:
             raise BookingError(409, "self_request", "You cannot add yourself")
-        self.enroll()
         self.session.execute(
             insert(SocialUser)
             .values(user_id=target.id, fallback_name=target.name, invite_token=token_urlsafe(24))
             .on_conflict_do_nothing(index_elements=[SocialUser.user_id])
         )
+        return target
+
+    def request_friend(self, user_id: UUID) -> FriendRequestResponse:
+        target = self._enroll_other(user_id)
+        self.enroll()
         low, high = sorted((self.user_id, target.id))
-        self.session.execute(
+        inserted = self.session.scalar(
             insert(Friendship)
             .values(user_low=low, user_high=high, requested_by=self.user_id, status="pending")
             # A no-op update holds the pair's row lock through commit, even if another
@@ -161,6 +190,8 @@ class SocialService:
                 index_elements=[Friendship.user_low, Friendship.user_high],
                 set_={"status": Friendship.status},
             )
+            # xmax is 0 only for a freshly inserted row, so retries notify nobody.
+            .returning(literal_column("xmax = 0"))
         )
         row = self.session.scalar(
             select(Friendship)
@@ -170,6 +201,10 @@ class SocialService:
         if row.status == "accepted":
             raise BookingError(409, "already_friends", "You are already friends")
         # Crossing requests never silently create friendship; the recipient must accept.
+        if inserted:
+            self._notify(
+                target.id, FriendRequestReceivedEvent(friendship_id=row.id, person=self._me())
+            )
         return self._request(row)
 
     def _friendship(self, friendship_id: UUID) -> Friendship:
@@ -184,8 +219,11 @@ class SocialService:
         row = self._friendship(friendship_id)
         if row.requested_by == self.user_id:
             raise BookingError(403, "recipient_required", "Only the recipient can accept")
-        row.status = "accepted"
-        self.session.flush()
+        if row.status != "accepted":
+            row.status = "accepted"
+            self.session.flush()
+            event = FriendRequestAcceptedEvent(friendship_id=row.id, person=self._me())
+            self._notify(row.requested_by, event)
         return self._request(row)
 
     def delete_friendship(self, friendship_id: UUID) -> None:
@@ -210,7 +248,13 @@ class SocialService:
             if state.status in {"active", "on_break"}:
                 seat = self.session.get(Seat, state.seat_id)
                 space = self.session.get(StudySpace, seat.space_id)
-                rooms[state.user_id] = SocialRoom(id=space.id, name=space.name)
+                rooms[state.user_id] = FriendRoom(
+                    id=space.id,
+                    name=space.name,
+                    seat_id=seat.id,
+                    seat_label=seat.label,
+                    on_break=state.status == "on_break",
+                )
         return FriendsResponse(
             friends=[
                 FriendResponse(
@@ -348,18 +392,8 @@ class SocialService:
     def invite(self, party_id: UUID, user_id: UUID) -> PartyResponse:
         party = self._party(party_id, lock=True, organizer=True)
         self._open(party)
-        low, high = sorted((self.user_id, user_id))
-        friend = self.session.scalar(
-            select(Friendship)
-            .where(
-                Friendship.user_low == low,
-                Friendship.user_high == high,
-                Friendship.status == "accepted",
-            )
-            .with_for_update()
-        )
-        if friend is None:
-            raise BookingError(409, "friend_required", "Invite an accepted friend")
+        # Anyone with a profile can be invited; friendship is not required.
+        self._enroll_other(user_id)
         member = self.session.get(PartyMember, (party.id, user_id))
         if member and member.status in {"invited", "accepted"}:
             return self._detail(party)
@@ -370,6 +404,9 @@ class SocialService:
         else:
             self.session.add(PartyMember(party_id=party.id, user_id=user_id))
         self.session.flush()
+        self._notify(
+            user_id, PartyInvitedEvent(party_id=party.id, party_name=party.name, person=self._me())
+        )
         return self._detail(party)
 
     def reply(self, party_id: UUID, accept: bool) -> PartyResponse:
@@ -385,6 +422,12 @@ class SocialService:
             self._require_party_slot(self.user_id, exclude=party.id)
         member.status = "accepted" if accept else "declined"
         self.session.flush()
+        self._notify(
+            party.organizer_id,
+            PartyRepliedEvent(
+                party_id=party.id, party_name=party.name, person=self._me(), accepted=accept
+            ),
+        )
         return self._detail(party)
 
     def leave(self, party_id: UUID) -> None:
@@ -395,6 +438,10 @@ class SocialService:
         member = self.session.get(PartyMember, (party.id, self.user_id))
         member.status = "left"
         self.session.flush()
+        self._notify(
+            party.organizer_id,
+            PartyLeftEvent(party_id=party.id, party_name=party.name, person=self._me()),
+        )
 
     def book(self, party_id: UUID, request: PartyBook) -> PartyResponse:
         party = self._party(party_id, lock=True, organizer=True)
@@ -414,7 +461,10 @@ class SocialService:
                 return self._detail(party)
             raise BookingError(409, "already_booked", "This party already has a booking")
         self._open(party)
-        rows, _now = self.bookings.reserve_party(assignments)
+        try:
+            rows, _now = self.bookings.reserve_party(assignments)
+        except MembersAlreadyReserved as error:
+            raise self._members_busy(error.user_ids) from error
         # reserve_party holds every member's user lock in order. Recheck legacy
         # overlapping memberships before committing any group reservations.
         for user_id in accepted:
@@ -425,15 +475,38 @@ class SocialService:
                 member.reservation_id = by_user[member.user_id]
         party.status = "booked"
         self.session.flush()
+        for user_id in accepted - {self.user_id}:
+            self._notify(user_id, PartyBookedEvent(party_id=party.id, party_name=party.name))
         return self._detail(party)
+
+    def _members_busy(self, user_ids: list[UUID]) -> BookingError:
+        """Names who is blocking a group booking, so the organizer knows whom to ask."""
+        others = [self.person(user_id).name for user_id in user_ids if user_id != self.user_id]
+        if self.user_id in user_ids:
+            detail = "You already have a seat booked. End or cancel it first."
+        elif len(others) == 1:
+            detail = f"{others[0]} already has a seat booked. They need to end or cancel it first."
+        else:
+            detail = (
+                f"{', '.join(others[:-1])} and {others[-1]} already have seats booked. "
+                "They need to end or cancel them first."
+            )
+        return BookingError(409, "member_already_reserved", detail)
 
     def cancel(self, party_id: UUID) -> PartyCancellation:
         party = self._party(party_id, lock=True, organizer=True)
         cancelled = []
         if party.status != "cancelled":
+            members = self._members(party)
             cancelled = self.bookings.cancel_unchecked(
-                [m.reservation_id for m in self._members(party) if m.reservation_id]
+                [m.reservation_id for m in members if m.reservation_id]
             )
             party.status = "cancelled"
             self.session.flush()
+            for member in members:
+                if member.user_id != self.user_id and member.status in {"invited", "accepted"}:
+                    self._notify(
+                        member.user_id,
+                        PartyCancelledEvent(party_id=party.id, party_name=party.name),
+                    )
         return PartyCancellation(party=self._detail(party), cancelled_reservation_ids=cancelled)

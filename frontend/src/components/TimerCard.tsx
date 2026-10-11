@@ -1,17 +1,17 @@
 import { Card, Progress, Text } from '@mantine/core';
 import { useId, type ReactNode } from 'react';
 import { stripeClass, type SeatState } from '../domain/seat';
-import { formatCountdown, useCountdown } from '../hooks/useCountdown';
+import { formatCountdown, secondsUntil } from '../hooks/useCountdown';
 import { cx } from './cx';
 import { SectionLabel } from './SectionLabel';
 
 type TimerCardProps = {
   label: string;
-  /** Seconds left when the card appears. */
-  seconds: number;
-  /** Optional absolute expiry time for a persisted reservation. */
-  expiresAt?: number;
-  /** Full length, for the progress bar. */
+  /** When the countdown reaches zero (client clock). */
+  expiresAt: number;
+  /** The time to count from, shared by every timer on the screen so they tick together. */
+  now: number;
+  /** Full length in seconds, for the progress bar. */
   total: number;
   stripe?: SeatState;
   children?: ReactNode;
@@ -20,13 +20,13 @@ type TimerCardProps = {
 /** Countdown card: label, big ticking time, shrinking bar, optional note and action. */
 export function TimerCard({
   label,
-  seconds,
   expiresAt,
+  now,
   total,
   stripe,
   children,
 }: TimerCardProps) {
-  const left = useCountdown(seconds, expiresAt);
+  const left = Math.min(total, secondsUntil(expiresAt, now));
   const labelId = useId();
 
   return (

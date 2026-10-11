@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "_comment": "Which PolyMaps rooms each mensa occupies, kept apart from the workspaces in occupancy-map-preview/data/overrides.json. Keyed by the mensa id in locations.json. room: the room the ETH Gastro facilities API lists (idapps.ethz.ch/cookpit-pub-services/v1/facilities). rooms: PolyMaps unit ids of the mensa, main room first, plus the adjoining catering rooms ('Verpflegung') of the same outlet. facilityId/levelId/floor: the main room's building, level and floor (0 = ground floor). position: area-weighted center of the rooms on the main level; it replaces the pin position in locations.json. UZH mensas and Mendokoro (HPI is not in PolyMaps) have no entry.",
+  "_comment": "Which PolyMaps rooms each mensa occupies, kept apart from the workspaces in map-data/overrides.json. Keyed by the mensa id in locations.json. room: the room the ETH Gastro facilities API lists (idapps.ethz.ch/cookpit-pub-services/v1/facilities). rooms: PolyMaps unit ids of the mensa, main room first, plus the adjoining catering rooms ('Verpflegung') of the same outlet. facilityId/levelId/floor: the main room's building, level and floor (0 = ground floor). position: area-weighted center of the rooms on the main level; it replaces the pin position in locations.json. UZH mensas and Mendokoro (HPI is not in PolyMaps) have no entry.",
   "mensas": {
     "eth-polyterrasse": {
       "room": "MM B 79",

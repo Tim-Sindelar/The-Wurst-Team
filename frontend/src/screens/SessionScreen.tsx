@@ -21,7 +21,7 @@ import {
   useRefetchAt,
   useRefreshBooking,
 } from '../hooks/useMyReservation';
-import { useNow } from '../hooks/useNow';
+import { useDeadlineClock } from '../hooks/useDeadlineClock';
 import { useRules } from '../hooks/useRules';
 import { paths } from '../routes';
 
@@ -39,7 +39,6 @@ export function SessionScreen() {
   const navigate = useNavigate();
   const refresh = useRefreshBooking();
   const { query, running, toClient } = useMyReservation();
-  const now = useNow();
   const { query: rulesQuery, rules } = useRules();
   const end = useMutation(endReservationMutation());
   const [params, setParams] = useSearchParams();
@@ -62,6 +61,8 @@ export function SessionScreen() {
   const { refetch } = query;
   useRefetchAt(sessionEnd, refetch);
   useRefetchAt(breakEnd, refetch);
+  /* One clock for the break and session timers, so their seconds change together. */
+  const now = useDeadlineClock(sessionEnd);
 
   if (query.isError || rulesQuery.isError) {
     return (
@@ -125,16 +126,15 @@ export function SessionScreen() {
   }).format(new Date(sessionEnd));
 
   const endSession = () =>
-    end.mutate(
-      { path: { reservation_id: running.id } },
-      {
-        onSuccess: async () => {
-          setLeaving(true);
-          await refresh();
-          navigate(paths.home);
-        },
-      },
-    );
+    end
+      .mutateAsync({ path: { reservation_id: running.id } })
+      .then(async () => {
+        setLeaving(true);
+        await refresh();
+        navigate(paths.home, { replace: true });
+      })
+      /* The error shows in the sheet through `end.error`. */
+      .catch(() => undefined);
 
   const closeSheet = () => {
     setSheet(null);
@@ -201,14 +201,8 @@ export function SessionScreen() {
         {onBreak && breakEnd !== null && running.current_break && (
           <TimerCard
             label="Break ends in"
-            seconds={Math.max(
-              1,
-              secondsBetween(
-                running.current_break.started_at,
-                running.current_break.ends_at,
-              ),
-            )}
             expiresAt={breakEnd}
+            now={now}
             total={Math.max(
               1,
               secondsBetween(
@@ -224,6 +218,7 @@ export function SessionScreen() {
             <Button
               component={Link}
               to={`${paths.scan}?from=break-end`}
+              replace
               fullWidth
               leftSection={<Icon name="qr" />}
             >
@@ -234,14 +229,8 @@ export function SessionScreen() {
 
         <TimerCard
           label="Session time left"
-          seconds={Math.max(
-            1,
-            secondsBetween(
-              running.checked_in_at ?? running.starts_at,
-              running.ends_at,
-            ),
-          )}
           expiresAt={sessionEnd}
+          now={now}
           total={Math.max(
             1,
             secondsBetween(
@@ -262,7 +251,7 @@ export function SessionScreen() {
             End session
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="ui-button-row flex gap-2">
             <Button
               variant="secondary"
               className="flex-1"
@@ -289,7 +278,9 @@ export function SessionScreen() {
         title="Extend your session?"
         safeLabel="Not now"
         actionLabel="Extend session"
-        onConfirm={() => navigate(`${paths.scan}?from=extend`)}
+        onConfirm={() =>
+          navigate(`${paths.scan}?from=extend`, { replace: true })
+        }
       >
         Adds {rules.session_length_minutes / 60} hours, or less if the room
         closes sooner. You'll scan the QR code again to confirm you're still at
@@ -302,7 +293,9 @@ export function SessionScreen() {
         title="Take a break?"
         safeLabel="Stay"
         actionLabel="Start break"
-        onConfirm={() => navigate(`${paths.scan}?from=break-start`)}
+        onConfirm={() =>
+          navigate(`${paths.scan}?from=break-start`, { replace: true })
+        }
       >
         Your seat is held for up to {breakMinutes} minutes. Your session time
         keeps running. You scan the QR code to start and to end your break.

@@ -34,7 +34,13 @@ services:
       DUMMY_AUTH_ALLOW_HEADER: "false"
       DUMMY_ADMIN_ALLOW_HEADER: "false"
       DUMMY_IS_ADMIN: "false"
-      ADMIN_USER_IDS: '["4e30c625-e0d9-50b4-8a3d-e1e7a094dd83", "cd2c645f-aee2-5398-a19a-8d1c7f688cc8"]'
+      # Domen Lisjak, Filip Trplan, Tim Sindelar, Vid Rajh, Zan Zajc
+      ADMIN_USER_IDS: >-
+        ["4e30c625-e0d9-50b4-8a3d-e1e7a094dd83",
+        "cd2c645f-aee2-5398-a19a-8d1c7f688cc8",
+        "fb4b70c7-ca0d-5f08-806d-3013d35b07bb",
+        "612d5f17-5e45-5a98-9f49-8f43a2b47231",
+        "c662e578-59c5-5009-ab11-b1a81118273d"]
       CORS_ORIGINS: '["https://02.hackathon.ethz.ch"]'
     networks: [app, data]
     depends_on:

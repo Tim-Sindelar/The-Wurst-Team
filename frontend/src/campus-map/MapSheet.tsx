@@ -10,7 +10,8 @@ type MapSheetProps = {
   children: ReactNode;
   /** A submenu: shows a back button that returns to its parent sheet. */
   onBack?: () => void;
-  /** The room dashboard: nearly full height instead of fitting its content. */
+  /** Nearly full height instead of fitting its content (the room dashboard,
+      and the search, so it does not jump while typing). */
   tall?: boolean;
 };
 

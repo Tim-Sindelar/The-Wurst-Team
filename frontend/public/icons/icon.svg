@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- A seat map: three seats and yours. Full bleed so it also works as a maskable icon. -->
-  <rect width="512" height="512" fill="#121212"/>
-  <g fill="none" stroke="#808080" stroke-width="14">
-    <rect x="127" y="127" width="106" height="106" rx="24"/>
-    <rect x="127" y="279" width="106" height="106" rx="24"/>
-    <rect x="279" y="279" width="106" height="106" rx="24"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- The seat mark on the dark background: a desk with four seats, one free.
+       Full bleed so it also works as a maskable icon; the artwork, scaled 1.2x for the home screen, stays inside the middle 80%. -->
+  <rect width="256" height="256" fill="#121212"/>
+  <g transform="translate(128 128) scale(1.2) translate(-128 -128)">
+  <rect x="72" y="111" width="112" height="34" rx="12" fill="#808080"/>
+  <rect x="88" y="68" width="34" height="34" rx="9" fill="#6fbf73"/>
+  <rect x="134" y="68" width="34" height="34" rx="9" fill="#808080"/>
+  <rect x="88" y="154" width="34" height="34" rx="9" fill="#808080"/>
+  <rect x="134" y="154" width="34" height="34" rx="9" fill="#808080"/>
   </g>
-  <rect x="272" y="120" width="120" height="120" rx="28" fill="#6d9de0"/>
-  <path d="M302 182l22 22 40-44" fill="none" stroke="#121212" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

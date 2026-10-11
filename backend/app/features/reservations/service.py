@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.features.campus_map.room_photos import RoomPhotos
 from app.features.reservations.models import (
     Break,
     Reservation,
@@ -24,6 +25,7 @@ from app.features.reservations.schemas import (
     FavouritesResponse,
     MyReservationResponse,
     OpeningInterval,
+    PopularSpacesResponse,
     RecentsResponse,
     ReservationAction,
     ReservationDetails,
@@ -32,6 +34,7 @@ from app.features.reservations.schemas import (
     ReservationSpace,
     ReservationStatus,
     SeatAvailability,
+    SeatQrResponse,
     SpaceDetail,
     SpaceResponse,
     SpacesResponse,
@@ -41,7 +44,37 @@ from app.models.favourite import FavouriteSpace
 from app.models.recent import RecentSpace
 
 LIVE_STATUSES = {"upcoming", "pending", "active", "on_break"}
+# Actions that need the seat's QR code, scanned at the table.
+SCANNED_ACTIONS = {"extend", "break", "return"}
 RECENTS_LIMIT = 10
+POPULAR_LIMIT = 5
+POPULAR_WINDOW = timedelta(days=7)
+
+# Share of each space's seat time that was checked in during [since, until): seconds
+# sat (breaks included) over active seats times the space's weekly opening hours.
+# A seven-day window covers each weekday once, so the weekly hours are the open time.
+POPULAR_SPACES = text("""
+    WITH used AS (
+        SELECT seat.space_id, sum(extract(epoch FROM
+            LEAST(r.effective_ends_at, :until) - GREATEST(r.checked_in_at, :since)
+        )) AS seconds
+        FROM reservation_states_at(:until) r JOIN seats seat ON seat.id = r.seat_id
+        WHERE r.checked_in_at < :until AND r.effective_ends_at > :since
+        GROUP BY seat.space_id
+    ), capacity AS (
+        SELECT space.id AS space_id,
+            (SELECT count(*) FROM seats seat
+                WHERE seat.space_id = space.id AND seat.is_active)
+            * (SELECT COALESCE(sum(h.end_minute - h.start_minute), 0) * 60
+                FROM space_opening_intervals h WHERE h.space_id = space.id) AS seconds
+        FROM study_spaces space
+    )
+    SELECT c.space_id FROM capacity c
+    JOIN study_spaces space ON space.id = c.space_id
+    LEFT JOIN used u ON u.space_id = c.space_id
+    ORDER BY COALESCE(u.seconds / NULLIF(c.seconds, 0), 0) DESC, space.name, space.id
+    LIMIT :limit
+""")
 
 
 class BookingError(Exception):
@@ -50,6 +83,16 @@ class BookingError(Exception):
         self.status_code = status_code
         self.code = code
         self.detail = detail
+
+
+class MembersAlreadyReserved(BookingError):
+    """Some of the people in a group booking already hold a live booking."""
+
+    def __init__(self, user_ids: list[UUID]):
+        super().__init__(
+            409, "member_already_reserved", "A party member already has a live booking"
+        )
+        self.user_ids = user_ids
 
 
 @dataclass(frozen=True)
@@ -233,8 +276,9 @@ class ReservationService:
         if len({seat.space_id for seat in seats}) != 1:
             raise BookingError(409, "different_rooms", "All party seats must be in the same room")
         now = self._prepare_users(list(assignments), list(assignments.values()))
-        if reservation_states(self.session, now, user_ids=list(assignments), live_only=True):
-            raise BookingError(409, "already_reserved", "A party member already has a live booking")
+        busy = reservation_states(self.session, now, user_ids=list(assignments), live_only=True)
+        if busy:
+            raise MembersAlreadyReserved(sorted({state.user_id for state in busy}, key=str))
         states = self._live(now, seat_ids=list(assignments.values()))
         for seat in seats:
             availability = self._availability(
@@ -397,7 +441,9 @@ class ReservationService:
             server_time=now, reservation=self._details(states[0], now) if states else None
         )
 
-    def spaces(self, map_room_id: str | None = None) -> SpacesResponse:
+    def spaces(
+        self, map_room_id: str | None = None, room_photos: RoomPhotos | None = None
+    ) -> SpacesResponse:
         now = self.now()
         query = select(StudySpace).where(StudySpace.is_archived.is_(False))
         if map_room_id is not None:
@@ -412,6 +458,7 @@ class ReservationService:
             seats_by_space[seat.space_id].append(
                 self._availability(seat, states_by_seat[seat.id], now)
             )
+        photos = room_photos.lookup(space.map_room_id for space in spaces) if room_photos else {}
         return SpacesResponse(
             server_time=now,
             spaces=[
@@ -425,6 +472,7 @@ class ReservationService:
                     is_open=self.is_open(space.id, now),
                     total_seats=len(seats_by_space[space.id]),
                     free_seats=sum(seat.state == "free" for seat in seats_by_space[space.id]),
+                    photo_url=photos.get(space.map_room_id),
                 )
                 for space in spaces
             ],
@@ -456,6 +504,14 @@ class ReservationService:
         self.session.flush()
         return self.favourites(user_id)
 
+    def popular(self) -> PopularSpacesResponse:
+        now = self.now()
+        ids = self.session.scalars(
+            POPULAR_SPACES,
+            {"since": now - POPULAR_WINDOW, "until": now, "limit": POPULAR_LIMIT},
+        ).all()
+        return PopularSpacesResponse(space_ids=list(ids))
+
     def recents(self, user_id: UUID) -> RecentsResponse:
         ids = self.session.scalars(
             select(RecentSpace.space_id)
@@ -476,7 +532,7 @@ class ReservationService:
             )
         )
 
-    def space(self, space_id: UUID) -> SpaceResponse:
+    def space(self, space_id: UUID, room_photos: RoomPhotos | None = None) -> SpaceResponse:
         space = self.session.get(StudySpace, space_id)
         if space is None or space.is_archived:
             raise BookingError(404, "not_found", "Study space not found")
@@ -488,6 +544,7 @@ class ReservationService:
         for state in self._live(now, seat_ids=[seat.id for seat in seats]):
             states_by_seat[state.seat_id].append(state)
         availability = [self._availability(seat, states_by_seat[seat.id], now) for seat in seats]
+        photos = room_photos.lookup([space.map_room_id]) if room_photos else {}
         return SpaceResponse(
             server_time=now,
             space=SpaceDetail(
@@ -502,6 +559,7 @@ class ReservationService:
                 opening_hours=self.opening_hours(space.id),
                 total_seats=len(seats),
                 free_seats=sum(seat.state == "free" for seat in availability),
+                photo_url=photos.get(space.map_room_id),
                 seats=availability,
             ),
         )
@@ -578,6 +636,14 @@ class ReservationService:
             return row.id, now
         raise BookingError(409, "seat_unavailable", "No eligible seat is available")
 
+    def seat_by_qr(self, qr_token: str) -> SeatQrResponse:
+        """The seat a scanned QR code link points to, so the app can open its seat map."""
+        seat = self.session.scalar(select(Seat).where(Seat.qr_token == qr_token))
+        space = seat and self.session.get(StudySpace, seat.space_id)
+        if seat is None or not seat.is_active or space is None or space.is_archived:
+            raise BookingError(404, "qr_not_found", "Seat QR token not found")
+        return SeatQrResponse(space_id=seat.space_id, seat_id=seat.id)
+
     def check_in(self, user_id: UUID, qr_token: str) -> tuple[UUID, datetime]:
         seat = self.session.scalar(select(Seat).where(Seat.qr_token == qr_token))
         if seat is None:
@@ -613,10 +679,20 @@ class ReservationService:
         self._remember(user_id, [seat.id], now)
         return row.id, now
 
-    def act(self, user_id: UUID, reservation_id: UUID, action: str) -> tuple[UUID, datetime]:
+    def act(
+        self, user_id: UUID, reservation_id: UUID, action: str, *, qr_token: str | None = None
+    ) -> tuple[UUID, datetime]:
         row = self.session.get(Reservation, reservation_id)
         if row is None or row.user_id != user_id:
             raise BookingError(404, "not_found", "Reservation not found")
+        if action in SCANNED_ACTIONS:
+            # Extending and starting or ending a break happen at the seat: the
+            # QR code on that seat's table proves it.
+            seat = self.session.scalar(select(Seat).where(Seat.qr_token == (qr_token or "")))
+            if seat is None:
+                raise BookingError(404, "qr_not_found", "Seat QR token not found")
+            if seat.id != row.seat_id:
+                raise BookingError(409, "wrong_seat", "That QR code is for another seat")
         now = self._prepare(user_id, [row.seat_id])
         row = self.session.get(Reservation, reservation_id, populate_existing=True)
         state = next(

@@ -95,12 +95,11 @@ The URL uses the same managed login as production; it works without another doma
 
 Pushing new commits updates the preview and its existing comment. Its database persists across updates and stays separate from production and other PRs. The frontend builds with the PR base path, so assets, React Router navigation, and generated API calls stay under `/pr/<number>/`. Mock booking local-storage keys also have a PR prefix. Profile photos are returned as embedded data URLs, so they also work under the preview path.
 
-Production and PR builds enable live social (`VITE_SOCIAL_ENABLED=true`) and disable sample mode
-(`VITE_SOCIAL_DEMO_ENABLED=false`). Docker exposes these as `SOCIAL_ENABLED` and
-`SOCIAL_DEMO_ENABLED` build arguments. Friends, requests, privacy, party invitations and bookings
-use the real API; saved browser previews are ignored and no sample people or parties are injected.
+Production and PR builds enable live social (`VITE_SOCIAL_ENABLED=true`); Docker exposes it as the
+`SOCIAL_ENABLED` build argument. Friends, requests, privacy, study party invitations and bookings
+use the real API.
 Frontend flags are fixed at build time. `social-config.json` records the public build mode so the
-integration test checks actual flags rather than assuming bottom navigation means a demo.
+integration test checks the actual flag.
 
 Both deployed backends default to `SOCIAL_ENABLED=true`; production and each PR still have separate
 databases. Set `SOCIAL_ENABLED=false` in the deployment environment to disable the backend and

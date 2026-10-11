@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router';
+import { cx } from './cx';
+import { paths } from '../routes';
 import { BottomNavigation } from './BottomNavigation';
+import { ServerEventNotifications } from './ServerEventNotifications';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 
 export function AppLayout() {
@@ -15,11 +18,15 @@ export function AppLayout() {
     <div className="grid h-dvh grid-rows-[minmax(0,1fr)_auto]">
       <div
         ref={viewport}
-        className="min-h-0 overflow-y-auto [&>.campus-map]:h-full [&>.h-dvh]:h-full [&>div]:min-h-full"
+        className={cx(
+          'min-h-0 [&>.campus-map]:h-full [&>.h-dvh]:h-full [&>div]:min-h-full',
+          pathname === paths.home ? 'overflow-hidden' : 'overflow-y-auto',
+        )}
       >
         <Outlet />
       </div>
       <BottomNavigation />
+      <ServerEventNotifications />
     </div>
   );
 }

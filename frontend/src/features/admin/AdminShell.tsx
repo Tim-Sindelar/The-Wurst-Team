@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AppName } from '../../components/AppName';
 import { AdminNoticeContext } from './AdminNoticeContext';
 import { StatusBanner } from '../../components/StatusBanner';
 import { AdminSpaceActionsContext } from './AdminSpaceActionsContext';
@@ -22,7 +23,9 @@ export function AdminShell() {
       <div className="admin-frame">
         <aside className="admin-sidebar">
           <Link to="/admin" className="admin-brand">
-            <strong className="text-title">Study Spaces</strong>
+            <strong className="text-title">
+              <AppName />
+            </strong>
             <span className="text-label uppercase text-text-muted">Admin</span>
           </Link>
           <nav aria-label="Admin" className="admin-sidebar-nav">
@@ -104,7 +107,7 @@ export function AdminSpaceShell() {
       <header className="admin-page-header">
         <div>
           <Title order={1}>{space.name}</Title>
-          <Text c="dimmed">
+          <Text component="div" c="dimmed">
             <AdminStateChip
               label={
                 space.is_archived

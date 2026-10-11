@@ -7,45 +7,51 @@ import {
   Checkbox,
   NativeSelect,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as q from '../../api/generated/@tanstack/react-query.gen';
-import qrcode from 'qrcode-generator';
 import { adminHeaders, errorMessage } from './useAdminAction';
+import { seatLabelSvg, WIDTH } from './seatLabel';
+import { seatQrLink } from '../../domain/seatQr';
 interface Label {
   seatId: string;
   label: string;
   room: string;
   svg: string;
 }
-/** The QR code holds only the seat's token: the app's scan screen sends it
-    as-is to the check-in call. */
 function makeLabel(
   seatId: string,
   label: string,
   room: string,
-  token: string,
+  link: string,
 ): Label {
-  const qr = qrcode(0, 'M');
-  qr.addData(token);
-  qr.make();
-  const count = qr.getModuleCount(),
-    size = count + 8;
-  let path = '';
-  for (let y = 0; y < count; y++)
-    for (let x = 0; x < count; x++)
-      if (qr.isDark(y, x)) path += 'M' + (x + 4) + ' ' + (y + 4) + 'h1v1h-1z';
-  const svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' +
-    size +
-    ' ' +
-    size +
-    '"><rect width="100%" height="100%" fill="white"/><path d="' +
-    path +
-    '" fill="black"/></svg>';
-  return { seatId, label, room, svg };
+  return { seatId, label, room, svg: seatLabelSvg(room, label, link).svg };
 }
+/* The app address the seat links start with. By default the address this
+   admin runs under (so a PR preview links to itself); an admin can change it,
+   for example to print production labels, and it is remembered here. */
+const defaultPrefix = new URL(import.meta.env.BASE_URL, window.location.origin)
+  .href;
+const PREFIX_KEY = 'admin-qr-link-prefix';
+function savedPrefix() {
+  try {
+    return localStorage.getItem(PREFIX_KEY) || defaultPrefix;
+  } catch {
+    return defaultPrefix;
+  }
+}
+function savePrefix(prefix: string) {
+  try {
+    if (prefix === defaultPrefix) localStorage.removeItem(PREFIX_KEY);
+    else localStorage.setItem(PREFIX_KEY, prefix);
+  } catch {
+    // Not remembered on this device; the field still works.
+  }
+}
+/** The label's width in cm when its QR code is `size` cm. */
+const labelWidth = (size: number) => (size * WIDTH) / 100;
 function download(label: Label) {
   const blob = new Blob([label.svg], { type: 'image/svg+xml' }),
     url = URL.createObjectURL(blob),
@@ -66,7 +72,9 @@ export function AdminQrPage() {
     [labels, setLabels] = useState<Label[]>([]),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [selected, setSelected] = useState<string[] | null>(null);
+    [selected, setSelected] = useState<string[] | null>(null),
+    [prefix, setPrefix] = useState(savedPrefix);
+  const example = seatQrLink(prefix, 'TOKEN')?.replace('TOKEN', '…');
   const id =
     locked || chosen || spaces.data?.spaces.find((s) => !s.is_archived)?.id;
   const room = useQuery({
@@ -92,6 +100,7 @@ export function AdminQrPage() {
     setError('');
     try {
       if (!room.data) throw Error('Choose a study place.');
+      if (!example) throw Error('Enter a valid link address.');
       const data = await Promise.all(
         target.map((s) =>
           cache.fetchQuery({
@@ -109,7 +118,7 @@ export function AdminQrPage() {
             r.seat.id,
             r.seat.label,
             room.data.space.name,
-            r.seat.qr_token,
+            seatQrLink(prefix, r.seat.qr_token)!,
           ),
         ),
       );
@@ -165,7 +174,7 @@ export function AdminQrPage() {
             />
           )}
           <div className="grid gap-2">
-            <span className="text-small font-semibold">QR image size</span>
+            <span className="text-small font-semibold">QR code size</span>
             <div className="admin-qr-sizes flex flex-wrap gap-2">
               {[3, 4].map((cm) => (
                 <Button
@@ -179,9 +188,41 @@ export function AdminQrPage() {
               ))}
             </div>
           </div>
+          <TextInput
+            label="Link address"
+            disabled={busy}
+            value={prefix}
+            error={example ? undefined : 'Enter an http or https address.'}
+            description={example && 'Links look like ' + example}
+            onChange={(e) => {
+              setPrefix(e.currentTarget.value);
+              setLabels([]);
+            }}
+            onBlur={() => {
+              const value = prefix.trim() || defaultPrefix;
+              setPrefix(value);
+              if (seatQrLink(value, '')) savePrefix(value);
+            }}
+            rightSectionWidth={prefix === defaultPrefix ? undefined : 72}
+            rightSection={
+              prefix !== defaultPrefix && (
+                <Button
+                  variant="quiet"
+                  disabled={busy}
+                  onClick={() => {
+                    setPrefix(defaultPrefix);
+                    savePrefix(defaultPrefix);
+                    setLabels([]);
+                  }}
+                >
+                  Reset
+                </Button>
+              )
+            }
+          />
           <Text size="sm" c="dimmed">
-            The image includes its white margin. Print at 100% / actual size.
-            Captions sit outside the QR area.
+            Each label is {labelWidth(size)} cm wide, with the logo, the seat
+            and a note to reserve it. Print at 100% / actual size.
           </Text>
           <details>
             <summary className="cursor-pointer">
@@ -230,14 +271,16 @@ export function AdminQrPage() {
             </div>
           </details>
           <Button
-            disabled={busy || !target.length || room.data?.space.is_archived}
+            disabled={
+              busy || !target.length || !example || room.data?.space.is_archived
+            }
             onClick={() => void generate()}
           >
             {busy ? 'Generating…' : 'Generate labels'}
           </Button>
           <Text size="sm" c="dimmed">
-            Labels identify seats. Students need a matching reservation and must
-            confirm check-in.
+            Scanning a label opens its seat in the app, ready to reserve. The
+            app's scanner checks in with the same code.
           </Text>
           {(error || room.isError || spaces.isError) && (
             <Alert variant="danger">
@@ -258,17 +301,19 @@ export function AdminQrPage() {
           <div className="admin-qr-controls flex flex-wrap items-center justify-between gap-3">
             <Title order={2}>Print preview</Title>
             <Text size="sm" c="dimmed">
-              {labels.length} labels · {size} × {size} cm
+              {labels.length} labels · {labelWidth(size)} cm wide
             </Text>
           </div>
           <div
             className="admin-qr-labels"
-            style={{ '--admin-qr-size': size + 'cm' } as React.CSSProperties}
+            style={
+              {
+                '--admin-qr-label-width': labelWidth(size) + 'cm',
+              } as React.CSSProperties
+            }
           >
             {labels.map((l) => (
               <Card key={l.seatId} className="admin-qr-label">
-                <strong>{l.room}</strong>
-                <Text className="text-title">Seat {l.label}</Text>
                 <img
                   className="admin-qr-image"
                   src={

@@ -7,7 +7,7 @@ COPY scraper/scrape_polymaps.py scraper/
 ARG GEODATA_CACHE_WEEK=local
 RUN : "$GEODATA_CACHE_WEEK" && python scraper/scrape_polymaps.py scraper/polymaps_data
 COPY scraper/extract_floors.py scraper/build_library_outlines.py scraper/
-COPY backend/app/features/campus_map/map-data/generated.json occupancy-map-preview/data/generated.json
+COPY backend/app/features/campus_map/map-data/generated.json backend/app/features/campus_map/map-data/generated.json
 RUN python scraper/extract_floors.py --floors-only \
     && python scraper/build_library_outlines.py
 
@@ -21,6 +21,6 @@ ARG INSTALL_DEV=true
 RUN if [ "$INSTALL_DEV" = true ]; then uv sync --locked --no-install-project; else uv sync --locked --no-dev --no-install-project; fi
 COPY backend/ .
 RUN if [ "$INSTALL_DEV" = true ]; then uv sync --locked; else uv sync --locked --no-dev; fi
-COPY --from=map-floors /build/occupancy-map-preview/public/floors /app/floors
+COPY --from=map-floors /build/scraper/floors /app/floors
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

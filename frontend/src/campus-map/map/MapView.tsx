@@ -4,7 +4,6 @@ import {
   MapContainer,
   Marker,
   Polygon,
-  ScaleControl,
   useMap,
   useMapEvents,
 } from 'react-leaflet';
@@ -76,6 +75,7 @@ export interface FlyTarget {
 }
 
 interface Props {
+  onReady?: () => void;
   theme: Theme;
   data: OccupancyData;
   selection: Selection;
@@ -300,10 +300,9 @@ export function MapView(props: Props) {
       className="map"
     >
       {/* Always the clean base map. */}
-      <VectorBasemap style="positron" labels={labels} />
+      <VectorBasemap style="positron" labels={labels} onReady={props.onReady} />
       <AttributionText />
       <BasemapOpacity opacity={minimal ? minimal.basemapOpacity : 1} />
-      <ScaleControl imperial={false} />
 
       <MapEvents
         onZoom={(z) => {

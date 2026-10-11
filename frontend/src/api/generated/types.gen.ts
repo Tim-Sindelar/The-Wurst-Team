@@ -268,6 +268,10 @@ export type AdminSpaceDetails = {
      */
     opening_hours: Array<OpeningInterval>;
     /**
+     * Photo Url
+     */
+    photo_url?: string | null;
+    /**
      * Timezone
      */
     timezone: string;
@@ -343,6 +347,10 @@ export type AdminSpaceOverview = {
      * Opening Hours
      */
     opening_hours: Array<OpeningInterval>;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Seats
      */
@@ -435,6 +443,10 @@ export type AdminSpaceSummary = {
      * On Break Seats
      */
     on_break_seats: number;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Timezone
      */
@@ -1073,6 +1085,20 @@ export type EthSnapshot = {
 };
 
 /**
+ * EventPerson
+ */
+export type EventPerson = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * FavouritesResponse
  */
 export type FavouritesResponse = {
@@ -1112,6 +1138,21 @@ export type FloorPlanRoom = {
 };
 
 /**
+ * FriendRequestAcceptedEvent
+ */
+export type FriendRequestAcceptedEvent = {
+    /**
+     * Friendship Id
+     */
+    friendship_id: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'friend_request.accepted';
+};
+
+/**
  * FriendRequestCreate
  */
 export type FriendRequestCreate = {
@@ -1119,6 +1160,21 @@ export type FriendRequestCreate = {
      * User Id
      */
     user_id: string;
+};
+
+/**
+ * FriendRequestReceivedEvent
+ */
+export type FriendRequestReceivedEvent = {
+    /**
+     * Friendship Id
+     */
+    friendship_id: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'friend_request.received';
 };
 
 /**
@@ -1159,7 +1215,35 @@ export type FriendResponse = {
      */
     friendship_id: string;
     person: SocialPerson;
-    room: SocialRoom | null;
+    room: FriendRoom | null;
+};
+
+/**
+ * FriendRoom
+ *
+ * Where a friend who shares their room is checked in right now.
+ */
+export type FriendRoom = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * On Break
+     */
+    on_break: boolean;
+    /**
+     * Seat Id
+     */
+    seat_id: string;
+    /**
+     * Seat Label
+     */
+    seat_label: string;
 };
 
 /**
@@ -1477,6 +1561,24 @@ export type PartyBook = {
 };
 
 /**
+ * PartyBookedEvent
+ */
+export type PartyBookedEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    /**
+     * Type
+     */
+    type?: 'party.booked';
+};
+
+/**
  * PartyCancellation
  */
 export type PartyCancellation = {
@@ -1485,6 +1587,24 @@ export type PartyCancellation = {
      */
     cancelled_reservation_ids: Array<string>;
     party: PartyResponse;
+};
+
+/**
+ * PartyCancelledEvent
+ */
+export type PartyCancelledEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    /**
+     * Type
+     */
+    type?: 'party.cancelled';
 };
 
 /**
@@ -1508,6 +1628,44 @@ export type PartyInvite = {
 };
 
 /**
+ * PartyInvitedEvent
+ */
+export type PartyInvitedEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.invited';
+};
+
+/**
+ * PartyLeftEvent
+ */
+export type PartyLeftEvent = {
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.left';
+};
+
+/**
  * PartyMemberResponse
  */
 export type PartyMemberResponse = {
@@ -1521,6 +1679,29 @@ export type PartyMemberResponse = {
      * Status
      */
     status: 'invited' | 'accepted' | 'declined' | 'left';
+};
+
+/**
+ * PartyRepliedEvent
+ */
+export type PartyRepliedEvent = {
+    /**
+     * Accepted
+     */
+    accepted: boolean;
+    /**
+     * Party Id
+     */
+    party_id: string;
+    /**
+     * Party Name
+     */
+    party_name: string;
+    person: EventPerson;
+    /**
+     * Type
+     */
+    type?: 'party.replied';
 };
 
 /**
@@ -1586,6 +1767,30 @@ export type PeopleResponse = {
      * People
      */
     people: Array<DirectoryPerson>;
+};
+
+/**
+ * PingEvent
+ *
+ * Heartbeat so proxies keep an idle stream open. Clients ignore it.
+ */
+export type PingEvent = {
+    /**
+     * Type
+     */
+    type?: 'ping';
+};
+
+/**
+ * PopularSpacesResponse
+ *
+ * Space ids, the most occupied over the last week first.
+ */
+export type PopularSpacesResponse = {
+    /**
+     * Space Ids
+     */
+    space_ids: Array<string>;
 };
 
 /**
@@ -1951,6 +2156,57 @@ export type SeatAvailability = {
 };
 
 /**
+ * SeatQrResponse
+ *
+ * The seat a printed QR code belongs to.
+ */
+export type SeatQrResponse = {
+    /**
+     * Seat Id
+     */
+    seat_id: string;
+    /**
+     * Space Id
+     */
+    space_id: string;
+};
+
+/**
+ * SeatScanRequest
+ *
+ * The QR code scanned at the reservation's own seat, proving the user is there.
+ */
+export type SeatScanRequest = {
+    /**
+     * Qr Token
+     */
+    qr_token: string;
+};
+
+/**
+ * ServerEvent
+ *
+ * One message on the /api/v1/events stream.
+ */
+export type ServerEvent = ({
+    type: 'friend_request.received';
+} & FriendRequestReceivedEvent) | ({
+    type: 'friend_request.accepted';
+} & FriendRequestAcceptedEvent) | ({
+    type: 'party.invited';
+} & PartyInvitedEvent) | ({
+    type: 'party.replied';
+} & PartyRepliedEvent) | ({
+    type: 'party.left';
+} & PartyLeftEvent) | ({
+    type: 'party.booked';
+} & PartyBookedEvent) | ({
+    type: 'party.cancelled';
+} & PartyCancelledEvent) | ({
+    type: 'ping';
+} & PingEvent);
+
+/**
  * SocialCapabilities
  */
 export type SocialCapabilities = {
@@ -2057,6 +2313,10 @@ export type SpaceDetail = {
      */
     opening_hours: Array<OpeningInterval>;
     /**
+     * Photo Url
+     */
+    photo_url?: string | null;
+    /**
      * Seats
      */
     seats: Array<SeatAvailability>;
@@ -2113,6 +2373,10 @@ export type SpaceSummary = {
      * Name
      */
     name: string;
+    /**
+     * Photo Url
+     */
+    photo_url?: string | null;
     /**
      * Timezone
      */
@@ -4120,7 +4384,7 @@ export type CreateReservationResponses = {
 export type CreateReservationResponse = CreateReservationResponses[keyof CreateReservationResponses];
 
 export type StartBreakData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id
@@ -4204,7 +4468,7 @@ export type EndReservationResponses = {
 export type EndReservationResponse = EndReservationResponses[keyof EndReservationResponses];
 
 export type ExtendReservationData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id
@@ -4246,7 +4510,7 @@ export type ExtendReservationResponses = {
 export type ExtendReservationResponse = ExtendReservationResponses[keyof ExtendReservationResponses];
 
 export type ReturnFromBreakData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id
@@ -4323,6 +4587,48 @@ export type GetRulesResponses = {
 };
 
 export type GetRulesResponse = GetRulesResponses[keyof GetRulesResponses];
+
+export type FindSeatByQrData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Qr Token
+         */
+        qr_token: string;
+    };
+    url: '/api/v1/seats/by-qr';
+};
+
+export type FindSeatByQrErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type FindSeatByQrError = FindSeatByQrErrors[keyof FindSeatByQrErrors];
+
+export type FindSeatByQrResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatQrResponse;
+};
+
+export type FindSeatByQrResponse = FindSeatByQrResponses[keyof FindSeatByQrResponses];
 
 export type GetSocialCapabilitiesData = {
     body?: never;
@@ -5082,6 +5388,43 @@ export type ListSpacesResponses = {
 };
 
 export type ListSpacesResponse = ListSpacesResponses[keyof ListSpacesResponses];
+
+export type ListPopularSpacesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/spaces/popular';
+};
+
+export type ListPopularSpacesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ErrorResponse;
+    /**
+     * Not Found
+     */
+    404: BookingErrorResponse;
+    /**
+     * Conflict
+     */
+    409: BookingErrorResponse;
+    /**
+     * Unprocessable Entity
+     */
+    422: RequestValidationErrorResponse;
+};
+
+export type ListPopularSpacesError = ListPopularSpacesErrors[keyof ListPopularSpacesErrors];
+
+export type ListPopularSpacesResponses = {
+    /**
+     * Successful Response
+     */
+    200: PopularSpacesResponse;
+};
+
+export type ListPopularSpacesResponse = ListPopularSpacesResponses[keyof ListPopularSpacesResponses];
 
 export type GetSpaceData = {
     body?: never;

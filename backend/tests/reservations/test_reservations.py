@@ -9,6 +9,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.database import get_session
 from app.features.reservations.schemas import ReserveSeatRequest
 from app.features.reservations.seed import seed_demo
 from app.features.reservations.service import BookingError, ReservationService, reservation_states
@@ -32,8 +33,50 @@ def walk_up(client: TestClient, seat: Seat, headers: dict | None = None):
     return client.post("/api/v1/check-ins", json={"qr_token": seat.qr_token}, headers=headers)
 
 
-def action(client: TestClient, reservation_id: str, name: str, headers: dict | None = None):
-    return client.post(f"/api/v1/reservations/{reservation_id}/{name}", headers=headers)
+def seat_qr(client: TestClient, reservation_id: str) -> str:
+    """The QR code on the reservation's own seat, as if scanned at the table."""
+    sessions = client.app.dependency_overrides[get_session]()
+    session = next(sessions)
+    try:
+        token = session.scalar(
+            select(Seat.qr_token)
+            .join(Reservation, Reservation.seat_id == Seat.id)
+            .where(Reservation.id == UUID(reservation_id))
+        )
+    finally:
+        sessions.close()
+    return token or "unknown"
+
+
+def action(
+    client: TestClient,
+    reservation_id: str,
+    name: str,
+    headers: dict | None = None,
+    qr_token: str | None = None,
+):
+    body = None if name == "end" else {"qr_token": qr_token or seat_qr(client, reservation_id)}
+    return client.post(f"/api/v1/reservations/{reservation_id}/{name}", json=body, headers=headers)
+
+
+def test_scanned_actions_need_the_seats_own_qr_code(client, seats, clock):
+    reservation = walk_up(client, seats[0]).json()["reservation"]
+    path = f"/api/v1/reservations/{reservation['id']}/break"
+    assert client.post(path).status_code == 422
+    missing = action(client, reservation["id"], "break", qr_token="not-a-seat")
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "qr_not_found"
+    other = action(client, reservation["id"], "break", qr_token=seats[1].qr_token)
+    assert other.status_code == 409
+    assert other.json()["code"] == "wrong_seat"
+    assert action(client, reservation["id"], "break").status_code == 200
+    wrong_return = action(client, reservation["id"], "return", qr_token=seats[1].qr_token)
+    assert wrong_return.json()["code"] == "wrong_seat"
+    assert action(client, reservation["id"], "return").status_code == 200
+    clock.advance(minutes=110)
+    wrong_extend = action(client, reservation["id"], "extend", qr_token=seats[2].qr_token)
+    assert wrong_extend.json()["code"] == "wrong_seat"
+    assert action(client, reservation["id"], "extend").status_code == 200
 
 
 def test_reservation_check_in_privacy_and_end(client, seats, clock):
@@ -104,6 +147,15 @@ def test_reserve_any_and_empty_space(client, seats):
     empty = next(space for space in spaces if space["total_seats"] == 0)
     assert empty["free_seats"] == 0
     assert client.get(f"/api/v1/spaces/{empty['id']}").json()["space"]["seats"] == []
+
+
+def test_spaces_show_their_eth_room_photo(client, seats, room_photos):
+    room_photos.photos["ETH.HG.E.E_007"] = "/api/v1/map/eth/file?id=42"
+    spaces = {space["name"]: space for space in client.get("/api/v1/spaces").json()["spaces"]}
+    assert spaces["Test reading room"]["photo_url"] == "/api/v1/map/eth/file?id=42"
+    assert spaces["Empty test room"]["photo_url"] is None
+    detail = client.get(f"/api/v1/spaces/{seats[0].space_id}").json()["space"]
+    assert detail["photo_url"] == "/api/v1/map/eth/file?id=42"
 
 
 def test_priority_public_boundary_and_next_reservation(client, seats, clock):
@@ -380,7 +432,9 @@ def test_extension_races_next_booking(db, client, seats, clock, policy):
         db,
         policy,
         [
-            lambda service: service.act(owner, UUID(occupant["id"]), "extend"),
+            lambda service: service.act(
+                owner, UUID(occupant["id"]), "extend", qr_token=seats[0].qr_token
+            ),
             lambda service: service.reserve(
                 uuid4(), ReserveSeatRequest(kind="seat", seat_id=seats[0].id)
             ),
@@ -399,7 +453,7 @@ def test_database_rejects_overlapping_seats_users_and_breaks(db, seats, clock, p
             with pytest.raises(IntegrityError):
                 service._insert(user, seat.id, clock.value)
             session.rollback()
-        service.act(owner, reservation_id, "break")
+        service.act(owner, reservation_id, "break", qr_token=seats[0].qr_token)
         session.commit()
         with pytest.raises(IntegrityError):
             session.add(
@@ -489,3 +543,50 @@ def test_recents_follow_bookings_and_scans_per_user(client, seats):
     # A refused booking leaves no trace.
     assert book(client, seats[2], me).status_code == 409
     assert client.get("/api/v1/me/recents", headers=me).json() == {"space_ids": [space]}
+
+
+def test_popular_spaces_rank_last_weeks_occupancy(client, seats, clock):
+    space = str(seats[0].space_id)
+    popular = lambda: client.get("/api/v1/spaces/popular").json()["space_ids"]  # noqa: E731
+    # Nothing used yet: every space at 0%, by name; the seatless room ranks too.
+    assert popular()[1] == space and len(popular()) == 2
+    me = identity()
+    reservation = walk_up(client, seats[0], me).json()["reservation"]
+    clock.advance(minutes=30)
+    assert popular()[0] == space  # a running session counts up to now
+    assert action(client, reservation["id"], "end", me).status_code == 200
+    clock.advance(minutes=60 * 24 * 7 - 1)
+    assert popular()[0] == space  # the last minute of it is still in the window
+    clock.advance(minutes=1)
+    assert popular()[1] == space
+
+
+def test_popular_spaces_compare_shares_not_seat_time(client, db, seats, clock):
+    with Session(db, expire_on_commit=False) as session:
+        small = session.scalar(select(StudySpace).where(StudySpace.name == "Empty test room"))
+        lone = Seat(space_id=small.id, label="B-1", qr_token=uuid4().hex)
+        session.add(lone)
+        session.commit()
+    # An hour on 2 of 3 seats is more seat time than an hour on the only seat,
+    # but a smaller share of the room.
+    for seat in (*seats[:2], lone):
+        assert walk_up(client, seat, identity()).status_code == 200
+    clock.advance(minutes=60)
+    assert client.get("/api/v1/spaces/popular").json()["space_ids"] == [
+        str(small.id),
+        str(seats[0].space_id),
+    ]
+
+
+def test_seat_qr_link_finds_its_seat(client, seats, db):
+    found = client.get("/api/v1/seats/by-qr", params={"qr_token": seats[1].qr_token})
+    assert found.status_code == 200, found.text
+    assert found.json() == {"space_id": str(seats[1].space_id), "seat_id": str(seats[1].id)}
+    missing = client.get("/api/v1/seats/by-qr", params={"qr_token": "not-a-seat"})
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "qr_not_found"
+    with Session(db) as session:
+        session.get(Seat, seats[1].id).is_active = False
+        session.commit()
+    inactive = client.get("/api/v1/seats/by-qr", params={"qr_token": seats[1].qr_token})
+    assert inactive.status_code == 404

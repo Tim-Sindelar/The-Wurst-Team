@@ -2,7 +2,9 @@ import { ActionIcon, Title } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { cx } from './cx';
+import { useGoBack } from '../hooks/useGoBack';
 import { Icon } from './Icon';
+import { RequestsBell } from './RequestsBell';
 
 /* The screen frame: fills the whole width of any phone (no side margins),
    becomes a centred 390px column from 480px up. Full height, with the
@@ -29,19 +31,21 @@ export function Screen({
 
 type ScreenHeaderProps = {
   title: string;
+  /** Where back goes when there is no earlier screen in the app's history. */
   backTo: string;
   backLabel: string;
   /** A line under the title, such as how many seats are free. */
   subtitle?: ReactNode;
 };
 
-/** Top bar: back arrow, screen title (and optional subtitle). */
+/** Top bar: back arrow, screen title (and optional subtitle), requests bell. */
 export function ScreenHeader({
   title,
   backTo,
   backLabel,
   subtitle,
 }: ScreenHeaderProps) {
+  const goBack = useGoBack(backTo);
   return (
     <header className="border-b border-border bg-surface pt-[env(safe-area-inset-top)]">
       <div
@@ -50,7 +54,15 @@ export function ScreenHeader({
           subtitle ? 'min-h-14 py-1' : 'min-h-16',
         )}
       >
-        <ActionIcon component={Link} to={backTo} aria-label={backLabel}>
+        <ActionIcon
+          component={Link}
+          to={backTo}
+          aria-label={backLabel}
+          onClick={(event) => {
+            event.preventDefault();
+            goBack();
+          }}
+        >
           <Icon name="back" />
         </ActionIcon>
         <div className="min-w-0 flex-1">
@@ -59,6 +71,7 @@ export function ScreenHeader({
           </Title>
           {subtitle}
         </div>
+        <RequestsBell />
       </div>
     </header>
   );
@@ -76,15 +89,18 @@ export function SafeAreaTop() {
 export function ScreenMain({
   children,
   fit = false,
+  className,
 }: {
   children: ReactNode;
   fit?: boolean;
+  className?: string;
 }) {
   return (
     <main
       className={cx(
         'flex flex-1 flex-col px-4 py-4',
         fit ? 'min-h-0 gap-3 [&>*]:shrink-0' : 'gap-4',
+        className,
       )}
     >
       {children}

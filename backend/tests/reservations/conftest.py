@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.database import get_session
+from app.features.campus_map.services import get_room_photos
 from app.features.reservations.models import Seat, SpaceOpeningInterval, StudySpace
 from app.features.reservations.service import ReservationService
 from app.main import app
@@ -60,14 +61,32 @@ def policy(tmp_path: Path) -> Settings:
     return Settings(_env_file=None, auth_mode="demo", map_floors_dir=floors)
 
 
+class FakeRoomPhotos:
+    """Room photos without asking ETH: map room id -> photo url."""
+
+    def __init__(self) -> None:
+        self.photos: dict[str, str] = {}
+
+    def lookup(self, map_room_ids):
+        return {room: self.photos.get(room) for room in map_room_ids}
+
+
 @pytest.fixture
-def client(db: Engine, clock: Clock, policy: Settings) -> Iterator[TestClient]:
+def room_photos() -> FakeRoomPhotos:
+    return FakeRoomPhotos()
+
+
+@pytest.fixture
+def client(
+    db: Engine, clock: Clock, policy: Settings, room_photos: FakeRoomPhotos
+) -> Iterator[TestClient]:
     def test_session() -> Iterator[Session]:
         with Session(db) as session:
             yield session
 
     app.dependency_overrides[get_session] = test_session
     app.dependency_overrides[get_settings] = lambda: policy
+    app.dependency_overrides[get_room_photos] = lambda: room_photos
     try:
         with TestClient(app) as client:
             yield client

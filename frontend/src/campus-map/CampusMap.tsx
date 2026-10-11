@@ -5,21 +5,32 @@ import {
   Slider,
   Switch,
   Text,
-  Title,
+  TextInput,
   useComputedColorScheme,
 } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { LatLngBoundsLiteral } from 'leaflet';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { listSpacesOptions } from '../api/generated/@tanstack/react-query.gen';
 import { Icon } from '../components/Icon';
+import { MapLoading } from '../components/MapLoading';
+import { ScreenHeader } from '../components/Screen';
+import { SpaceLists } from '../components/SpaceLists';
+import {
+  filterSpaces,
+  spaceRows,
+  toStudySpace,
+  type StudySpace,
+} from '../domain/space';
+import { useFavourites } from '../hooks/useFavourites';
+import { usePopular } from '../hooks/usePopular';
+import { useRecents } from '../hooks/useRecents';
 import { paths, seatMapPath } from '../routes';
 import { LiveRooms } from './components/LiveRooms';
 import { RoomDetails } from './components/RoomDetails';
 import { RoomPhotos } from './components/RoomPhotos';
 import { WorkspaceDetails } from './components/WorkspaceDetails';
-import { WorkspaceList } from './components/WorkspaceList';
 import { guessEthId } from './data/ethRoomsRepository';
 import { repository } from './data/repository';
 import { fetchNavigation } from './data/navigationRepository';
@@ -65,6 +76,7 @@ import {
 import { MapSheet } from './MapSheet';
 import {
   bookableLibraries,
+  spaceWorkspaces,
   load3d,
   loadMapMode,
   MAP_MODE_LABELS,
@@ -127,19 +139,27 @@ function nearArea(boxes: LatLngBoundsLiteral[], lat: number, lng: number) {
   );
 }
 
+const NO_WORKSPACES: OccupancyData = {
+  schemaVersion: 1,
+  updatedAt: '',
+  libraries: [],
+  tables: [],
+  seats: [],
+};
+
 /** The rooms of a mensa item, if datasets/mensa/rooms.json locates it. */
 function mensaPlace(item: DatasetItem) {
   return (item.details as unknown as MensaDetails).place ?? null;
 }
 
-/* The campus map, full screen. Ported from the view mode of
-   occupancy-map-preview (that app keeps the admin tools; their output is
-   imported into the backend). Tapping a room, workspace or pin selects it and
+/* The campus map, full screen. Tapping a room, workspace or pin selects it and
    shows a short card above the toolbar: its info button opens the popup (the
    details sheet), and for a bookable study space a full-width button opens
    the space's seat map. */
 export function CampusMap() {
   const theme = useComputedColorScheme('dark');
+  const [mapReady, setMapReady] = useState(false);
+  const [styleReady, setStyleReady] = useState(false);
 
   const [rawData, setData] = useState<OccupancyData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -157,19 +177,31 @@ export function CampusMap() {
       rawFloorIndex && offsets ? alignFloorIndex(rawFloorIndex, offsets) : null,
     [rawFloorIndex, offsets],
   );
+  // The bookable study spaces (the home screen's), for the study mode.
+  const spacesQuery = useQuery(listSpacesOptions());
+  // Until the workspaces load, the map shows without them. A study space whose
+  // room is in no workspace gets one of its own (spaceWorkspaces).
   const data = useMemo(
     () =>
-      rawData && offsets
+      rawData && rawFloorIndex && offsets
         ? {
             ...rawData,
-            libraries: rawData.libraries.map((l) =>
+            libraries: [
+              ...rawData.libraries,
+              ...spaceWorkspaces(
+                spacesQuery.data?.spaces ?? [],
+                rawData.libraries,
+                rawFloorIndex.levels,
+                rawFloorIndex.facilities,
+              ),
+            ].map((l) =>
               l.floor === null
                 ? l
                 : { ...l, floor: alignedFloor(offsets, l.facilityId, l.floor) },
             ),
           }
-        : rawData,
-    [rawData, offsets],
+        : (rawData ?? NO_WORKSPACES),
+    [rawData, rawFloorIndex, offsets, spacesQuery.data],
   );
   const [floor, setFloor] = useState(0);
   const [zoom, setZoom] = useState(0);
@@ -190,19 +222,18 @@ export function CampusMap() {
   const [dashboardOpen, setDashboardOpen] = useState(false);
 
   useEffect(() => {
+    const nav = fetchNavigation().catch((err) => {
+      console.warn('Navigation config unavailable', err);
+      return null;
+    });
+    void nav.then((n) => n && setNavigation(forPhones(n)));
     repository.load().then(
       (loaded) => {
         setData(loaded);
         // Without navigation.json, start with one area per campus.
-        fetchNavigation().then(
-          (nav) =>
-            setNavigation(
-              forPhones(nav ?? defaultNavigation(loaded.libraries)),
-            ),
-          (err) => {
-            console.warn('Navigation config unavailable', err);
-            setNavigation(forPhones(defaultNavigation(loaded.libraries)));
-          },
+        void nav.then(
+          (n) =>
+            n || setNavigation(forPhones(defaultNavigation(loaded.libraries))),
         );
       },
       (err) => setLoadError(String(err)),
@@ -211,13 +242,19 @@ export function CampusMap() {
     loadFloorIndex().then(setFloorIndex, (err) =>
       console.warn('Floor plans unavailable', err),
     );
-    fetchStandardStyles().then(setStyles, (err) =>
-      console.warn('Map style unavailable, using the built-in one', err),
-    );
+    fetchStandardStyles()
+      .then(setStyles, (err) =>
+        console.warn('Map style unavailable, using the built-in one', err),
+      )
+      .finally(() => setStyleReady(true));
   }, []);
 
-  // ---- the bookable study spaces (the home screen's), for the study mode ----
-  const spacesQuery = useQuery(listSpacesOptions());
+  // ---- the bookable study spaces, for the study mode ----
+  const favourites = useFavourites();
+  const recents = useRecents();
+  const popular = usePopular();
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
   /** Workspace id → the study space id it is, for its seat map. */
   const bookable = useMemo(
     () =>
@@ -414,13 +451,6 @@ export function CampusMap() {
         </Alert>
       </FullScreenNote>
     );
-  if (!data)
-    return (
-      <FullScreenNote>
-        <Text c="dimmed">Loading the campus map…</Text>
-      </FullScreenNote>
-    );
-
   // The study mode shows only the workspaces of the bookable study spaces.
   const visible = keepLibraries(
     data,
@@ -428,6 +458,19 @@ export function CampusMap() {
   );
   const style = styles[theme];
   const roomStyle = style.occupancy;
+
+  /* The search sheet: the home screen's search over the study spaces. A
+     result shows its workspace on the map; a space without one on the map
+     opens its seat map. */
+  const studySpaces =
+    spacesQuery.data?.spaces.map((space) =>
+      toStudySpace(space, favourites.ids.has(space.id)),
+    ) ?? [];
+  const showSpace = (space: StudySpace) => {
+    const lib = visible.libraries.find((l) => bookable?.get(l.id) === space.id);
+    if (lib) showLibrary(lib.id);
+    else navigate(seatMapPath(space.id));
+  };
 
   const flyTo = (position: { lat: number; lng: number }, z: number) =>
     setFlyTarget({ position, zoom: z, nonce: Date.now() });
@@ -543,6 +586,13 @@ export function CampusMap() {
           ),
         )?.id ?? null)
       : null;
+  const selectedSpace = selectedSpaceId
+    ? (spacesQuery.data?.spaces.find((space) => space.id === selectedSpaceId) ??
+      null)
+    : null;
+  const favourite = selectedSpace
+    ? favourites.ids.has(selectedSpace.id)
+    : false;
 
   // ---- the card for the current selection ----
   let peek: { title: string; detail: string; dot?: string } | null = null;
@@ -579,75 +629,69 @@ export function CampusMap() {
   }
 
   return (
-    <div className="campus-map relative h-dvh w-full overflow-hidden bg-bg">
-      <MapView
-        theme={theme}
-        data={visible}
-        selection={selection}
-        flyTarget={flyTarget}
-        floorIndex={floorIndex}
-        floor={floor}
-        onFloorChange={setFloor}
-        onSelect={(sel) => {
-          if (sel.libraryId)
-            tap({
-              kind: 'library',
-              id: sel.libraryId,
-              tableId: sel.tableId ?? undefined,
-            });
-        }}
-        onZoomChange={setZoom}
-        minimal={style}
-        view3d={view3d ? style.view3d : null}
-        navigation={navigation}
-        homePositions={homePositions(data.libraries)}
-        ethRooms={roomsOnPlan}
-        occupancyStyle={rooms && roomFeatures.occupancy ? roomStyle : null}
-        roomLabels={rooms && roomFeatures.labels}
-        selectedEthRoom={selectedRoomInfo?.room.id ?? null}
-        onEthRoomClick={
-          rooms && roomFeatures.details
-            ? (id) => tap({ kind: 'room', id })
-            : null
-        }
-        mensaRooms={mode === 'study' ? NO_MENSAS : mensaRooms}
-        mensaWorkspaces={mode === 'study' ? NO_MENSAS : mensaWorkspaces}
-        selectedMensaId={
-          selectedDatasetItem?.datasetId === 'mensa'
-            ? selectedDatasetItem.itemId
-            : null
-        }
-        onSelectMensa={(itemId) =>
-          tap({ kind: 'dataset', datasetId: 'mensa', itemId })
-        }
-      >
-        <ModeControl onOpen={() => setSheet('mode')} />
-        <DatasetLayers
-          layers={datasetLayers}
-          clock={datasetClock}
-          selected={selectedDatasetItem}
-          onSelect={(sel) => tap({ kind: 'dataset', ...sel })}
-        />
-      </MapView>
+    <div className="campus-map relative flex h-dvh w-full flex-col overflow-hidden bg-bg">
+      <ScreenHeader
+        title="Campus map"
+        backTo={paths.home}
+        backLabel="Back to study spaces"
+      />
 
-      {/* Top bar: back, title, theme */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-1100 px-3 pt-[calc(--spacing(3)+env(safe-area-inset-top))]">
-        <div className="pointer-events-auto flex min-h-13 items-center gap-1 rounded-card border border-border bg-surface pr-1 pl-1 shadow-card">
-          <ActionIcon
-            component={Link}
-            to={paths.home}
-            aria-label="Back to study spaces"
-          >
-            <Icon name="back" />
-          </ActionIcon>
-          <Title
-            order={1}
-            className="min-w-0 flex-1 truncate text-title font-bold"
-          >
-            Campus map
-          </Title>
-        </div>
-      </header>
+      <div className="relative min-h-0 flex-1">
+        <MapView
+          onReady={() => setMapReady(true)}
+          theme={theme}
+          data={visible}
+          selection={selection}
+          flyTarget={flyTarget}
+          floorIndex={floorIndex}
+          floor={floor}
+          onFloorChange={setFloor}
+          onSelect={(sel) => {
+            if (sel.libraryId)
+              tap({
+                kind: 'library',
+                id: sel.libraryId,
+                tableId: sel.tableId ?? undefined,
+              });
+          }}
+          onZoomChange={setZoom}
+          minimal={style}
+          view3d={view3d ? style.view3d : null}
+          navigation={navigation}
+          homePositions={homePositions(data.libraries)}
+          ethRooms={roomsOnPlan}
+          occupancyStyle={rooms && roomFeatures.occupancy ? roomStyle : null}
+          roomLabels={rooms && roomFeatures.labels}
+          selectedEthRoom={selectedRoomInfo?.room.id ?? null}
+          onEthRoomClick={
+            rooms && roomFeatures.details
+              ? (id) => tap({ kind: 'room', id })
+              : null
+          }
+          mensaRooms={mode === 'study' ? NO_MENSAS : mensaRooms}
+          mensaWorkspaces={mode === 'study' ? NO_MENSAS : mensaWorkspaces}
+          selectedMensaId={
+            selectedDatasetItem?.datasetId === 'mensa'
+              ? selectedDatasetItem.itemId
+              : null
+          }
+          onSelectMensa={(itemId) =>
+            tap({ kind: 'dataset', datasetId: 'mensa', itemId })
+          }
+        >
+          <ModeControl onOpen={() => setSheet('mode')} />
+          <DatasetLayers
+            layers={datasetLayers}
+            clock={datasetClock}
+            selected={selectedDatasetItem}
+            onSelect={(sel) => tap({ kind: 'dataset', ...sel })}
+          />
+        </MapView>
+      </div>
+
+      {/* Only the map itself: its tiles, colours and start view. Workspaces,
+          floor plans, rooms and study spaces appear when they arrive. */}
+      {(!mapReady || !styleReady || !navigation) && <MapLoading />}
 
       {/* Bottom: selection card, toolbar */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-1100 grid gap-2 px-3 pb-[calc(--spacing(3)+env(safe-area-inset-bottom))]">
@@ -673,6 +717,17 @@ export function CampusMap() {
                   {peek.detail}
                 </span>
               </button>
+              {selectedSpace && (
+                <ActionIcon
+                  aria-pressed={favourite}
+                  aria-label={`Favourite ${selectedSpace.name}`}
+                  onClick={() =>
+                    favourites.toggle(selectedSpace.id, !favourite)
+                  }
+                >
+                  <Icon name="star" filled={favourite} />
+                </ActionIcon>
+              )}
               <ActionIcon
                 aria-label="Show details"
                 onClick={() => setDashboardOpen(true)}
@@ -689,9 +744,22 @@ export function CampusMap() {
                 to={seatMapPath(selectedSpaceId)}
                 fullWidth
               >
-                Open room plan
+                Open study space
               </Button>
             )}
+          </div>
+        )}
+
+        {selectedSpace && favourites.failed && (
+          <div className="pointer-events-auto">
+            <Alert
+              variant="danger"
+              role="alert"
+              icon={<Icon name="alert" />}
+              title="Couldn't update your favourites"
+            >
+              <Text size="sm">Check your connection and try again.</Text>
+            </Alert>
           </div>
         )}
 
@@ -705,21 +773,23 @@ export function CampusMap() {
 
         <nav
           aria-label="Map controls"
-          className="pointer-events-auto rounded-card border border-border bg-surface p-1 shadow-card"
+          className="pointer-events-auto rounded-control shadow-card"
         >
-          <button
-            type="button"
+          {/* The home screen's search box; typing happens in the sheet it opens. */}
+          <TextInput
+            type="search"
+            readOnly
+            placeholder="Search study spaces"
+            aria-label="Search study spaces"
+            aria-haspopup="dialog"
+            value={search}
             aria-expanded={sheet === 'workspaces'}
-            onClick={() =>
-              setSheet(sheet === 'workspaces' ? null : 'workspaces')
-            }
-            className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-control border-0 bg-transparent px-3 text-body text-text hover:bg-hover"
-          >
-            <Icon name="search" />
-            <span className="truncate">
-              {mode === 'study' ? 'Study spaces' : 'Workspaces'}
-            </span>
-          </button>
+            leftSection={<Icon name="search" />}
+            onClick={() => setSheet('workspaces')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') setSheet('workspaces');
+            }}
+          />
         </nav>
       </div>
 
@@ -765,14 +835,42 @@ export function CampusMap() {
       <MapSheet
         opened={sheet === 'workspaces'}
         onClose={() => setSheet(null)}
-        title={mode === 'study' ? 'Study spaces' : 'Workspaces'}
+        title="Study spaces"
+        tall
       >
-        <WorkspaceList
-          data={visible}
-          selectedId={selectedLibrary?.id ?? null}
-          levels={floorIndex?.levels ?? []}
-          onSelectLibrary={(lib) => showLibrary(lib.id)}
-        />
+        <div className="grid gap-4 px-4 py-4">
+          <TextInput
+            type="search"
+            placeholder="Search study spaces"
+            aria-label="Search study spaces"
+            leftSection={<Icon name="search" />}
+            value={search}
+            onChange={(event) => setSearch(event.currentTarget.value)}
+            data-autofocus
+          />
+          {spacesQuery.isError ? (
+            <Alert
+              variant="danger"
+              role="alert"
+              icon={<Icon name="alert" />}
+              title="Couldn't load study spaces"
+            >
+              <Text size="sm">Check your connection and try again.</Text>
+            </Alert>
+          ) : !spacesQuery.data ? (
+            <Text c="dimmed" role="status">
+              Loading study spaces…
+            </Text>
+          ) : (
+            <SpaceLists
+              matches={filterSpaces(studySpaces, search)}
+              search={search}
+              rows={spaceRows(studySpaces, recents.ids, popular.ids)}
+              onToggleFavourite={favourites.toggle}
+              onSelect={showSpace}
+            />
+          )}
+        </div>
       </MapSheet>
 
       {/* The popup of what is selected, opened by tapping it on the map */}
@@ -870,7 +968,7 @@ export function CampusMap() {
               to={seatMapPath(selectedSpaceId)}
               fullWidth
             >
-              Open room plan
+              Open study space
             </Button>
           </div>
         )}

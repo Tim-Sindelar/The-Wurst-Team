@@ -447,6 +447,17 @@
             "title": "Opening Hours",
             "type": "array"
           },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
           "timezone": {
             "title": "Timezone",
             "type": "string"
@@ -552,6 +563,17 @@
             },
             "title": "Opening Hours",
             "type": "array"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "seats": {
             "items": {
@@ -692,6 +714,17 @@
           "on_break_seats": {
             "title": "On Break Seats",
             "type": "integer"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "timezone": {
             "title": "Timezone",
@@ -1823,6 +1856,25 @@
         "title": "EthSnapshot",
         "type": "object"
       },
+      "EventPerson": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "EventPerson",
+        "type": "object"
+      },
       "FavouritesResponse": {
         "properties": {
           "space_ids": {
@@ -1875,6 +1927,30 @@
         "title": "FloorPlanRoom",
         "type": "object"
       },
+      "FriendRequestAcceptedEvent": {
+        "properties": {
+          "friendship_id": {
+            "format": "uuid",
+            "title": "Friendship Id",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "friend_request.accepted",
+            "default": "friend_request.accepted",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "friendship_id",
+          "person"
+        ],
+        "title": "FriendRequestAcceptedEvent",
+        "type": "object"
+      },
       "FriendRequestCreate": {
         "additionalProperties": false,
         "properties": {
@@ -1888,6 +1964,30 @@
           "user_id"
         ],
         "title": "FriendRequestCreate",
+        "type": "object"
+      },
+      "FriendRequestReceivedEvent": {
+        "properties": {
+          "friendship_id": {
+            "format": "uuid",
+            "title": "Friendship Id",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "friend_request.received",
+            "default": "friend_request.received",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "friendship_id",
+          "person"
+        ],
+        "title": "FriendRequestReceivedEvent",
         "type": "object"
       },
       "FriendRequestResponse": {
@@ -1955,7 +2055,7 @@
           "room": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SocialRoom"
+                "$ref": "#/components/schemas/FriendRoom"
               },
               {
                 "type": "null"
@@ -1969,6 +2069,42 @@
           "room"
         ],
         "title": "FriendResponse",
+        "type": "object"
+      },
+      "FriendRoom": {
+        "description": "Where a friend who shares their room is checked in right now.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "on_break": {
+            "title": "On Break",
+            "type": "boolean"
+          },
+          "seat_id": {
+            "format": "uuid",
+            "title": "Seat Id",
+            "type": "string"
+          },
+          "seat_label": {
+            "title": "Seat Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "seat_id",
+          "seat_label",
+          "on_break"
+        ],
+        "title": "FriendRoom",
         "type": "object"
       },
       "FriendsResponse": {
@@ -2555,6 +2691,31 @@
         "title": "PartyBook",
         "type": "object"
       },
+      "PartyBookedEvent": {
+        "properties": {
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "type": {
+            "const": "party.booked",
+            "default": "party.booked",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name"
+        ],
+        "title": "PartyBookedEvent",
+        "type": "object"
+      },
       "PartyCancellation": {
         "properties": {
           "cancelled_reservation_ids": {
@@ -2574,6 +2735,31 @@
           "cancelled_reservation_ids"
         ],
         "title": "PartyCancellation",
+        "type": "object"
+      },
+      "PartyCancelledEvent": {
+        "properties": {
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "type": {
+            "const": "party.cancelled",
+            "default": "party.cancelled",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name"
+        ],
+        "title": "PartyCancelledEvent",
         "type": "object"
       },
       "PartyCreate": {
@@ -2605,6 +2791,64 @@
           "user_id"
         ],
         "title": "PartyInvite",
+        "type": "object"
+      },
+      "PartyInvitedEvent": {
+        "properties": {
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "party.invited",
+            "default": "party.invited",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name",
+          "person"
+        ],
+        "title": "PartyInvitedEvent",
+        "type": "object"
+      },
+      "PartyLeftEvent": {
+        "properties": {
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "party.left",
+            "default": "party.left",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name",
+          "person"
+        ],
+        "title": "PartyLeftEvent",
         "type": "object"
       },
       "PartyMemberResponse": {
@@ -2652,6 +2896,40 @@
           "seat"
         ],
         "title": "PartyMemberResponse",
+        "type": "object"
+      },
+      "PartyRepliedEvent": {
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "party_id": {
+            "format": "uuid",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "party_name": {
+            "title": "Party Name",
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/EventPerson"
+          },
+          "type": {
+            "const": "party.replied",
+            "default": "party.replied",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "party_id",
+          "party_name",
+          "person",
+          "accepted"
+        ],
+        "title": "PartyRepliedEvent",
         "type": "object"
       },
       "PartyReply": {
@@ -2754,6 +3032,37 @@
           "people"
         ],
         "title": "PeopleResponse",
+        "type": "object"
+      },
+      "PingEvent": {
+        "description": "Heartbeat so proxies keep an idle stream open. Clients ignore it.",
+        "properties": {
+          "type": {
+            "const": "ping",
+            "default": "ping",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "PingEvent",
+        "type": "object"
+      },
+      "PopularSpacesResponse": {
+        "description": "Space ids, the most occupied over the last week first.",
+        "properties": {
+          "space_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Space Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "space_ids"
+        ],
+        "title": "PopularSpacesResponse",
         "type": "object"
       },
       "PrivacyUpdate": {
@@ -3343,6 +3652,87 @@
         "title": "SeatAvailability",
         "type": "object"
       },
+      "SeatQrResponse": {
+        "description": "The seat a printed QR code belongs to.",
+        "properties": {
+          "seat_id": {
+            "format": "uuid",
+            "title": "Seat Id",
+            "type": "string"
+          },
+          "space_id": {
+            "format": "uuid",
+            "title": "Space Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "space_id",
+          "seat_id"
+        ],
+        "title": "SeatQrResponse",
+        "type": "object"
+      },
+      "SeatScanRequest": {
+        "additionalProperties": false,
+        "description": "The QR code scanned at the reservation's own seat, proving the user is there.",
+        "properties": {
+          "qr_token": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Qr Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "qr_token"
+        ],
+        "title": "SeatScanRequest",
+        "type": "object"
+      },
+      "ServerEvent": {
+        "description": "One message on the /api/v1/events stream.",
+        "discriminator": {
+          "mapping": {
+            "friend_request.accepted": "#/components/schemas/FriendRequestAcceptedEvent",
+            "friend_request.received": "#/components/schemas/FriendRequestReceivedEvent",
+            "party.booked": "#/components/schemas/PartyBookedEvent",
+            "party.cancelled": "#/components/schemas/PartyCancelledEvent",
+            "party.invited": "#/components/schemas/PartyInvitedEvent",
+            "party.left": "#/components/schemas/PartyLeftEvent",
+            "party.replied": "#/components/schemas/PartyRepliedEvent",
+            "ping": "#/components/schemas/PingEvent"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FriendRequestReceivedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/FriendRequestAcceptedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyInvitedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyRepliedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyLeftEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyBookedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PartyCancelledEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PingEvent"
+          }
+        ],
+        "title": "ServerEvent"
+      },
       "SocialCapabilities": {
         "properties": {
           "enabled": {
@@ -3483,6 +3873,17 @@
             "title": "Opening Hours",
             "type": "array"
           },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
           "seats": {
             "items": {
               "$ref": "#/components/schemas/SeatAvailability"
@@ -3564,6 +3965,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
           },
           "timezone": {
             "title": "Timezone",
@@ -7291,6 +7703,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7437,6 +7859,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7510,6 +7942,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7624,6 +8066,78 @@
           }
         },
         "summary": "Get Rules",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/seats/by-qr": {
+      "get": {
+        "operationId": "find_seat_by_qr",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "qr_token",
+            "required": true,
+            "schema": {
+              "title": "Qr Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatQrResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Find Seat By Qr",
         "tags": [
           "reservations"
         ]
@@ -9011,6 +9525,67 @@
           }
         },
         "summary": "List Spaces",
+        "tags": [
+          "reservations"
+        ]
+      }
+    },
+    "/api/v1/spaces/popular": {
+      "get": {
+        "operationId": "list_popular_spaces",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PopularSpacesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Popular Spaces",
         "tags": [
           "reservations"
         ]

@@ -10,6 +10,4 @@
 **/*.pyc
 **/.cache
 scraper/polymaps_data
-occupancy-map-preview
-design
-user-flwo.drawio.html
+scraper/floors

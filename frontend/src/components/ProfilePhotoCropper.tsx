@@ -1,7 +1,23 @@
-import { ActionIcon, Button, Slider, Text } from '@mantine/core';
-import { Icon } from './Icon';
-import { useRef, type PointerEvent } from 'react';
-import type { PhotoCrop, ProfilePhotoSource } from '../domain/profilePhoto';
+import { Button, Text } from '@mantine/core';
+import { useCallback, useRef, useState, type PointerEvent } from 'react';
+import {
+  defaultPhotoCrop,
+  type PhotoCrop,
+  type ProfilePhotoSource,
+} from '../domain/profilePhoto';
+import { DecisionSheet } from './DecisionSheet';
+
+const clamp = (value: number) => Math.max(-1, Math.min(1, value));
+const zoomLimit = (value: number) => Math.max(1, Math.min(3, value));
+type Point = { x: number; y: number };
+const centre = (points: Point[]) => ({
+  x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+  y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+});
+const distance = (points: Point[]) =>
+  points.length < 2
+    ? 0
+    : Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
 
 export function ProfilePhotoCropper({
   source,
@@ -14,141 +30,191 @@ export function ProfilePhotoCropper({
   onChange: (crop: PhotoCrop) => void;
   disabled?: boolean;
 }) {
-  const drag = useRef<{
-    pointer: number;
-    x: number;
-    y: number;
+  const [opened, setOpened] = useState(true);
+  const [draft, setDraft] = useState(crop);
+  const circle = useRef<HTMLDivElement>(null);
+  const pointers = useRef(new Map<number, Point>());
+  const gesture = useRef<{
+    centre: Point;
+    distance: number;
     crop: PhotoCrop;
   } | null>(null);
-  const frame = useRef<HTMLButtonElement>(null);
-  const side = Math.min(source.width, source.height) / crop.zoom;
-  const width = (source.width / side) * 100;
-  const height = (source.height / side) * 100;
-  const clamp = (value: number) => Math.max(-1, Math.min(1, value));
+  const beginGesture = (current: PhotoCrop) => {
+    const points = [...pointers.current.values()];
+    gesture.current = points.length
+      ? { centre: centre(points), distance: distance(points), crop: current }
+      : null;
+  };
+  const close = () => {
+    pointers.current.clear();
+    gesture.current = null;
+    setOpened(false);
+  };
+  const attachFrame = useCallback(
+    (element: HTMLButtonElement | null) => {
+      if (!element || disabled) return;
+      const wheel = (event: WheelEvent) => {
+        event.preventDefault();
+        setDraft((current) => ({
+          ...current,
+          zoom: zoomLimit(current.zoom * Math.exp(-event.deltaY * 0.002)),
+        }));
+      };
+      element.addEventListener('wheel', wheel, { passive: false });
+      return () => element.removeEventListener('wheel', wheel);
+    },
+    [disabled],
+  );
   const stop = (event: PointerEvent<HTMLButtonElement>) => {
-    if (drag.current?.pointer === event.pointerId) drag.current = null;
+    pointers.current.delete(event.pointerId);
+    beginGesture(draft);
+  };
+  const image = (position: PhotoCrop) => {
+    const side = Math.min(source.width, source.height) / position.zoom;
+    const width = (source.width / side) * 100;
+    const height = (source.height / side) * 100;
+    return (
+      <img
+        src={source.url}
+        alt=""
+        draggable={false}
+        className="pointer-events-none absolute max-w-none select-none"
+        style={{
+          width: `${width}%`,
+          height: `${height}%`,
+          left: `${((100 - width) / 2) * (1 - position.x)}%`,
+          top: `${((100 - height) / 2) * (1 - position.y)}%`,
+        }}
+      />
+    );
   };
   return (
-    <div className="grid gap-3">
+    <>
       <button
-        ref={frame}
         type="button"
         disabled={disabled}
-        className="relative mx-auto size-56 touch-none overflow-hidden rounded-full border-2 border-border-strong bg-surface-2 p-0 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-default"
-        aria-label="Position profile photo. Drag to move, or use the arrow keys."
-        aria-describedby="photo-position-hint"
-        onPointerDown={(event) => {
-          if (disabled || (event.pointerType === 'mouse' && event.button !== 0))
-            return;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          drag.current = {
-            pointer: event.pointerId,
-            x: event.clientX,
-            y: event.clientY,
-            crop,
-          };
-        }}
-        onPointerMove={(event) => {
-          const start = drag.current;
-          if (!start || start.pointer !== event.pointerId || disabled) return;
-          const size = frame.current?.getBoundingClientRect().width ?? 1;
-          const panX = ((width - 100) / 200) * size;
-          const panY = ((height - 100) / 200) * size;
-          onChange({
-            ...crop,
-            x: panX
-              ? clamp(start.crop.x + (event.clientX - start.x) / panX)
-              : 0,
-            y: panY
-              ? clamp(start.crop.y + (event.clientY - start.y) / panY)
-              : 0,
-          });
-        }}
-        onPointerUp={stop}
-        onPointerCancel={stop}
-        onLostPointerCapture={() => {
-          drag.current = null;
-        }}
-        onKeyDown={(event) => {
-          const direction = {
-            ArrowLeft: [-1, 0],
-            ArrowRight: [1, 0],
-            ArrowUp: [0, -1],
-            ArrowDown: [0, 1],
-          }[event.key];
-          if (!direction || disabled) return;
-          event.preventDefault();
-          onChange({
-            ...crop,
-            x: clamp(crop.x + direction[0] * 0.1),
-            y: clamp(crop.y + direction[1] * 0.1),
-          });
+        className="relative mx-auto size-24 overflow-hidden rounded-full border-2 border-border-strong bg-surface-2 p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        aria-label="Enlarge and adjust profile photo"
+        onClick={() => {
+          setDraft(crop);
+          setOpened(true);
         }}
       >
-        <img
-          src={source.url}
-          alt=""
-          draggable={false}
-          className="pointer-events-none absolute max-w-none select-none"
-          style={{
-            width: `${width}%`,
-            height: `${height}%`,
-            left: `${((100 - width) / 2) * (1 - crop.x)}%`,
-            top: `${((100 - height) / 2) * (1 - crop.y)}%`,
-          }}
-        />
+        {image(crop)}
       </button>
-      <Text
-        size="sm"
-        c="dimmed"
-        id="photo-position-hint"
-        className="text-center"
-      >
-        Drag to position your photo. Use zoom to get the right fit.
+      <Text size="sm" c="dimmed" className="text-center">
+        Tap photo to adjust
       </Text>
-      <div className="grid gap-2">
-        <Text component="label" htmlFor="photo-zoom" size="sm">
-          Zoom · {crop.zoom.toFixed(1)}×
-        </Text>
-        <div className="flex items-center gap-2">
-          <ActionIcon
-            aria-label="Zoom out"
-            disabled={disabled || crop.zoom <= 1}
-            onClick={() =>
-              onChange({ ...crop, zoom: Math.max(1, crop.zoom - 0.1) })
-            }
-          >
-            <Icon name="minus" />
-          </ActionIcon>
-          <Slider
-            id="photo-zoom"
-            min={1}
-            max={3}
-            step={0.05}
-            value={crop.zoom}
-            disabled={disabled}
-            onChange={(zoom) => onChange({ ...crop, zoom })}
-            className="min-h-11 flex-1 py-4"
-            aria-label="Photo zoom"
-          />
-          <ActionIcon
-            aria-label="Zoom in"
-            disabled={disabled || crop.zoom >= 3}
-            onClick={() =>
-              onChange({ ...crop, zoom: Math.min(3, crop.zoom + 0.1) })
-            }
-          >
-            <Icon name="plus" />
-          </ActionIcon>
-        </div>
-      </div>
-      <Button
-        variant="quiet"
-        disabled={disabled}
-        onClick={() => onChange({ x: 0, y: 0, zoom: 1 })}
+      <DecisionSheet
+        opened={opened}
+        onClose={close}
+        title="Adjust photo"
+        safeLabel="Cancel"
+        actionLabel="Use photo"
+        onConfirm={() => {
+          onChange(draft);
+          close();
+        }}
       >
-        Reset position
-      </Button>
-    </div>
+        <div className="grid gap-3">
+          <button
+            ref={attachFrame}
+            type="button"
+            disabled={disabled}
+            className="relative aspect-square w-full touch-none overflow-hidden rounded-card border border-border bg-surface-2 p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            aria-label="Position profile photo"
+            aria-describedby="photo-position-hint"
+            onPointerDown={(event) => {
+              if (
+                disabled ||
+                (event.pointerType === 'mouse' && event.button !== 0)
+              )
+                return;
+              event.currentTarget.setPointerCapture(event.pointerId);
+              pointers.current.set(event.pointerId, {
+                x: event.clientX,
+                y: event.clientY,
+              });
+              beginGesture(draft);
+            }}
+            onPointerMove={(event) => {
+              const start = gesture.current;
+              if (!start || !pointers.current.has(event.pointerId) || disabled)
+                return;
+              pointers.current.set(event.pointerId, {
+                x: event.clientX,
+                y: event.clientY,
+              });
+              const points = [...pointers.current.values()];
+              const nextCentre = centre(points);
+              const size = circle.current?.getBoundingClientRect().width ?? 1;
+              const side =
+                Math.min(source.width, source.height) / start.crop.zoom;
+              const panX = ((source.width / side - 1) * size) / 2;
+              const panY = ((source.height / side - 1) * size) / 2;
+              setDraft({
+                x: panX
+                  ? clamp(start.crop.x + (nextCentre.x - start.centre.x) / panX)
+                  : 0,
+                y: panY
+                  ? clamp(start.crop.y + (nextCentre.y - start.centre.y) / panY)
+                  : 0,
+                zoom: zoomLimit(
+                  start.distance
+                    ? (start.crop.zoom * distance(points)) / start.distance
+                    : start.crop.zoom,
+                ),
+              });
+            }}
+            onPointerUp={stop}
+            onPointerCancel={stop}
+            onLostPointerCapture={stop}
+            onKeyDown={(event) => {
+              const direction = {
+                ArrowLeft: [-1, 0],
+                ArrowRight: [1, 0],
+                ArrowUp: [0, -1],
+                ArrowDown: [0, 1],
+              }[event.key];
+              if (direction) {
+                event.preventDefault();
+                setDraft({
+                  ...draft,
+                  x: clamp(draft.x + direction[0] * 0.1),
+                  y: clamp(draft.y + direction[1] * 0.1),
+                });
+              } else if (['+', '=', '-', '_'].includes(event.key)) {
+                event.preventDefault();
+                setDraft({
+                  ...draft,
+                  zoom: zoomLimit(
+                    draft.zoom +
+                      (event.key === '-' || event.key === '_' ? -0.1 : 0.1),
+                  ),
+                });
+              }
+            }}
+          >
+            <div ref={circle} className="pointer-events-none absolute inset-4">
+              {image(draft)}
+            </div>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-4 rounded-full border-2 border-on-photo shadow-camera-dim"
+            />
+          </button>
+          <Text size="sm" id="photo-position-hint">
+            Drag to move · Pinch or scroll to zoom
+          </Text>
+          <Button
+            type="button"
+            variant="quiet"
+            onClick={() => setDraft(defaultPhotoCrop)}
+          >
+            Reset position
+          </Button>
+        </div>
+      </DecisionSheet>
+    </>
   );
 }

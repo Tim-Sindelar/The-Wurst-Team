@@ -142,6 +142,7 @@ def test_map_room_link_and_coordinates(client, seats):
                 "is_open",
                 "total_seats",
                 "free_seats",
+                "photo_url",
             )
         }
     ]
