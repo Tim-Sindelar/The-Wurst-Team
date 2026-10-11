@@ -23,6 +23,8 @@
 .session-copy [data-feature].revealed{visibility:visible;opacity:.4;transform:translateY(0)}
 .session-copy [data-feature].active{opacity:1}
 .session-copy span{display:block;margin-top:9px;font-size:clamp(18px,2vw,30px);letter-spacing:-.035em;color:#71816e}
+.printed-seat-card{position:absolute;left:62vw;top:5vh;height:31vh;width:auto;transform:translateX(-50%);display:none}
+#stage[data-feature='1'] .printed-seat-card{display:block}
 .friends-slide,.eth-slide{justify-content:flex-start;padding-top:9vh}
 .friends-slide h1{max-width:42vw}
 .eth-copy{display:grid;gap:3vh;margin-top:8vh;font-size:clamp(30px,3.7vw,58px);color:#71816e}

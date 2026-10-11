@@ -8,6 +8,7 @@ import adminUrl from './assets/admin-room-setup-landscape.png';
 import priorityUrl from './assets/session-priority.jpg';
 import handoverUrl from './assets/session-handover.jpg';
 import breakUrl from './assets/session-break.jpg';
+import printedCardUrl from './assets/printed-seat-card.svg';
 
 function staticPhone(parent,texture){
   const phone=buildPhone(parent);
@@ -258,6 +259,7 @@ export function buildSlides(){
   root.innerHTML=`
     <section class="pitch-slide session-slide" data-slide="0" hidden aria-label="Session rules">
       <h1>Your session</h1>
+      <img class="printed-seat-card" src="${printedCardUrl}" alt="Printed Study Spaces table card for HG F 30, seat 01, with its check-in QR code" />
       <div class="session-copy">
         <div data-feature="0"><p>QR check-in</p><span>Starts your session</span></div>
         <div data-feature="1"><p>Session limits</p><span>First chance to extend</span></div>
