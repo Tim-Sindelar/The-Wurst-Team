@@ -22,7 +22,7 @@ Click once or press Space to play the opening film. No scene-by-scene advances a
 6. Use the real app to reserve a seat. Click the surrounding background or press L / Space with the presentation focused to cue the live handoff.
 7. Blackout while the video operator switches to the teammate livestream, or show the configured browser feed.
 8. After the teammate checks in and sits down, click the live image or press Right / Space to cut to the closing slides.
-9. Four quick slides: a four-step session explanation with an app screen for each render (scanner first), four students chatting beside the party planner phone, ETH fit with the portrait 3D map on a phone, then admin room setup beside a library and a three-step zoom from One library → Entire ETH → Other universities.
+9. Four quick slides: a four-step session explanation with an app screen for each render (scanner first), four students chatting beside the party planner phone, ETH fit with the portrait 3D map on a phone, then a three-step zoom from One library → Entire ETH → Other universities. The admin room setup appears on a 3D laptop only while Entire ETH is bold.
 10. End on Q&A over an imagined happy ETH campus: friends study and chat, while students stroll along varied paths. The live app opens Home in an interactive phone at the top right, restoring the demo's saved booking. The campus keeps moving gently until you leave the scene; reduced motion freezes it.
 
 The live camera starts tight on the teammate's phone showing the reservation, then physically pulls back and follows them into the pitch room. The teammate scans the QR on the demonstration desk and starts studying. There is no rendered lo-fi ending. Stream transport is still to be chosen and rehearsed.

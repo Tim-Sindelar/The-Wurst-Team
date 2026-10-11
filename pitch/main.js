@@ -326,6 +326,7 @@ function render(now){
   else if(current===2&&transition>=950&&!reducedMotion){const follow=1-Math.exp(-delta*.006);camera.position.lerp(cameraTo,follow);look.lerp(lookTo,follow);}
   else{camera.position.copy(cameraFrom).lerp(cameraTo,t);look.copy(lookFrom).lerp(lookTo,t);}
   camera.lookAt(look);
+  if(current===10)closing.adoption.placeAdmin(camera);
   const impactAge=(elapsed-impactTime)/1000;
   if(current===2&&impactAge>=0&&impactAge<.24&&!reducedMotion)camera.rotateZ(Math.sin(impactAge*65)*.022*Math.exp(-impactAge*14));
   updatePhone();

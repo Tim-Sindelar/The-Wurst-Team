@@ -19,6 +19,27 @@ function staticPhone(parent,texture){
   return phone.root;
 }
 
+function adminLaptop(parent,texture){
+  const root=group(parent),body=group(root);
+  body.rotation.set(.28,.10,0);
+  roundedBox(body,[3.8,.10,1.65],[0,-1.17,.68],'#a9b0ad',.06);
+  const lid=group(body,[0,-1.10,-.10]);lid.rotation.x=-.08;
+  roundedBox(lid,[3.8,2.42,.10],[0,1.21,0],'#a9b0ad',.06);
+  roundedBox(lid,[3.57,2.20,.015],[0,1.22,.061],'#101010',.025);
+  // Fit the entire admin capture inside the display without stretching or cropping.
+  const screenHeight=2.12,screenWidth=screenHeight*texture.image.width/texture.image.height;
+  const display=mesh(lid,new THREE.PlaneGeometry(screenWidth,screenHeight),new THREE.MeshBasicMaterial({map:texture,toneMapped:false}),[0,1.22,.073]);
+  display.castShadow=false;
+  cylinder(lid,.025,.025,.01,[0,2.34,.067],'#263128',8).rotation.x=Math.PI/2;
+  roundedBox(body,[3.13,.018,.75],[0,-1.107,.37],'#46504d',.035);
+  for(let row=0;row<4;row++)for(let col=0;col<13;col++)
+    roundedBox(body,[.18,.013,.12],[-1.42+col*.236,-1.09,.10+row*.18],'#7f8985',.012);
+  roundedBox(body,[1.1,.012,.44],[0,-1.109,1.02],'#959f9b',.025);
+  batchStatic(root,null);
+  root.traverse(object=>{if(object.isMesh){object.castShadow=false;object.receiveShadow=false;}});
+  return root;
+}
+
 function featureRenders(scene,qr,screens){
   const root=group(scene),variants=Array.from({length:4},()=>group(root));
   const scan=group(variants[0],[-.9,0,.2]);scan.scale.setScalar(.95);
@@ -130,8 +151,9 @@ function mapRender(scene,texture){
   batchStatic(root,null);return root;
 }
 
-function adoptionRender(scene,hgRoot){
+function adoptionRender(scene,hgRoot,adminTexture){
   const root=group(scene),library=group(root),eth=group(root),universities=group(root);
+  const admin=adminLaptop(root,adminTexture);
   roundedBox(library,[5.3,.18,4],[0,-.12,0],'#d5dfbd',.15);
   // An open library room remains visible as the camera pulls back to ETH.
   box(library,[5.3,2.5,.16],[0,1.15,-1.8],'#c9cec6');
@@ -158,14 +180,20 @@ function adoptionRender(scene,hgRoot){
     tree(campus,-5,4,1.3);tree(campus,5,4,1.1);
   }
   [library,eth,universities].forEach(part=>batchStatic(part,null));
-  return {root,show(step){eth.visible=step>=1;universities.visible=step>=2;}};
+  return {root,admin,show(step){eth.visible=step>=1;universities.visible=step>=2;admin.visible=step===1;},placeAdmin(camera){
+    if(!admin.visible)return;
+    const depth=5,viewHeight=2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),viewWidth=viewHeight*camera.aspect;
+    const scale=Math.min(viewWidth*.41/3.9,viewHeight*.52/2.9);
+    admin.scale.setScalar(scale);admin.quaternion.copy(camera.quaternion);
+    admin.position.set(-viewWidth*.225,-viewHeight*.065,-depth).applyQuaternion(camera.quaternion).add(camera.position);
+  }};
 }
 
 export async function buildClosing(scene,hgRoot){
   const loader=new THREE.TextureLoader();
-  const [planner,qr,map,...screens]=await Promise.all([plannerUrl,qrUrl,campusMapUrl,scannerUrl,priorityUrl,handoverUrl,breakUrl].map(url=>loader.loadAsync(url)));
-  [planner,qr,map,...screens].forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;});
-  const features=featureRenders(scene,qr,screens),campusMap=mapRender(scene,map),adoption=adoptionRender(scene,hgRoot);
+  const [planner,qr,map,admin,...screens]=await Promise.all([plannerUrl,qrUrl,campusMapUrl,adminUrl,scannerUrl,priorityUrl,handoverUrl,breakUrl].map(url=>loader.loadAsync(url)));
+  [planner,qr,map,admin,...screens].forEach(texture=>{texture.colorSpace=THREE.SRGBColorSpace;});
+  const features=featureRenders(scene,qr,screens),campusMap=mapRender(scene,map),adoption=adoptionRender(scene,hgRoot,admin);
   const friends=group(scene);
   const partyPhone=staticPhone(friends,planner);partyPhone.scale.setScalar(4.2);partyPhone.position.y=2.1;partyPhone.rotation.set(0,-.12,-.045);
   batchStatic(friends,null);
@@ -228,7 +256,7 @@ export function buildSlides(){
     </section>
     <section class="pitch-slide pilot-slide" data-slide="3" hidden aria-label="One library, entire ETH, other universities">
       <div class="pilot-copy"><h1 data-rollout="0">One library</h1><span aria-hidden="true">→</span><p data-rollout="1">Entire ETH</p><span aria-hidden="true">→</span><p data-rollout="2">Other universities</p></div>
-      <div class="pilot-admin"><p>Admin room setup</p><img src="${adminUrl}" alt="Study Spaces admin layout editor with furniture tools, tables and sixteen seats" /></div>
+      <p class="pilot-admin">Admin room setup</p>
     </section>
     <section class="pitch-slide future-slide" data-slide="4" hidden aria-label="Questions and answers over a happy ETH campus"><h1>Q&amp;A</h1></section>`;
   const pages=[...root.querySelectorAll('[data-slide]')];
