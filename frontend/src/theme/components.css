@@ -160,6 +160,17 @@
   .ui-checkbox-icon {
     @apply text-on-accent;
   }
+  /* Checkbox floating on a map, the same 32px height and look as the map's buttons. */
+  .ui-checkbox-root[data-variant='map'] {
+    @apply flex h-8 items-center rounded-control border border-border-strong bg-surface px-3 shadow-card;
+
+    & .ui-checkbox-body {
+      @apply items-center;
+    }
+    & .ui-checkbox-label {
+      @apply text-small;
+    }
+  }
 
   /* --- Switch: 48 × 28 track, 20px thumb ---------------------------------- */
   .ui-switch {

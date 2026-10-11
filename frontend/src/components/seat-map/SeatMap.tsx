@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Popover } from '@mantine/core';
+import { ActionIcon, Button, Checkbox, Popover } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { seatStateName, stateVar, type SeatState } from '../../domain/seat';
 import {
@@ -73,6 +73,7 @@ export function SeatMap({
   const coveredRef = useRef(getCovered);
   const [ready, setReady] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(true);
   const features = (
     Object.keys(featureIcon) as (keyof typeof featureIcon)[]
   ).filter((feature) => seats.some((seat) => seat.badges.includes(feature)));
@@ -209,7 +210,7 @@ export function SeatMap({
           />
         ))}
         {/* Feature badges sit on top of the seats, as in the layout editor. */}
-        {plan && (
+        {plan && showFeatures && (
           <svg
             className="pointer-events-none absolute inset-0 size-full"
             viewBox={`0 0 ${plan.room.width} ${plan.room.height}`}
@@ -231,7 +232,10 @@ export function SeatMap({
         )}
       </div>
 
-      <div className="absolute top-3 left-3 z-1" data-map-info>
+      <div
+        className="absolute top-3 left-3 z-1 flex items-center gap-2"
+        data-map-info
+      >
         <Popover
           opened={keyOpen}
           onChange={setKeyOpen}
@@ -295,6 +299,15 @@ export function SeatMap({
             )}
           </Popover.Dropdown>
         </Popover>
+        {plan && features.length > 0 && (
+          <Checkbox
+            variant="map"
+            size="xs"
+            label="Show features"
+            checked={showFeatures}
+            onChange={(event) => setShowFeatures(event.currentTarget.checked)}
+          />
+        )}
       </div>
 
       {onChooseFree && (
