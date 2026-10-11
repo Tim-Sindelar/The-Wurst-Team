@@ -1,22 +1,12 @@
-import {
-  ActionIcon,
-  Alert,
-  Avatar,
-  Button,
-  Card,
-  Switch,
-  Text,
-} from '@mantine/core';
+import { ActionIcon, Alert, Avatar, Button, Card, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import type { UserResponse } from '../api/generated';
 import { Icon } from '../components/Icon';
 import { Screen, ScreenHeader, ScreenMain } from '../components/Screen';
 import { SectionLabel } from '../components/SectionLabel';
 import { StatusBanner } from '../components/StatusBanner';
 import { ThemeSwitch } from '../components/ThemeSwitch';
 import { useCurrentUser } from '../hooks/useCurrentUser';
-import { useNotificationPreferences } from '../hooks/useNotificationPreferences';
 import { paths } from '../routes';
 
 export function ProfileScreen() {
@@ -76,7 +66,6 @@ export function ProfileScreen() {
             <Card component="section" aria-label="Appearance settings">
               <ThemeSwitch />
             </Card>
-            <NotificationSettings key={user.id} user={user} />
           </>
         ) : isPending ? (
           <Text role="status" c="dimmed">
@@ -100,39 +89,5 @@ export function ProfileScreen() {
         )}
       </ScreenMain>
     </Screen>
-  );
-}
-
-function NotificationSettings({ user }: { user: UserResponse }) {
-  const { preferences, update, error } = useNotificationPreferences(user.id);
-  return (
-    <>
-      <SectionLabel>Notifications</SectionLabel>
-      <Card component="section" aria-label="Notification settings">
-        <Switch
-          label="Check-in reminder"
-          checked={preferences.checkIn}
-          onChange={(e) => update('checkIn', e.currentTarget.checked)}
-        />
-        <Switch
-          label="Extension windows"
-          checked={preferences.extension}
-          onChange={(e) => update('extension', e.currentTarget.checked)}
-        />
-        <Switch
-          label="Seat freed early"
-          checked={preferences.seatFree}
-          onChange={(e) => update('seatFree', e.currentTarget.checked)}
-        />
-        <Text size="sm" c="dimmed">
-          Preferences save automatically on this device.
-        </Text>
-      </Card>
-      {error && (
-        <Alert variant="danger" role="alert" title="Unable to save preference">
-          {error}
-        </Alert>
-      )}
-    </>
   );
 }
