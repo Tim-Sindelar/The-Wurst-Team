@@ -1,6 +1,5 @@
 import { Text } from '@mantine/core';
 import type { SpaceRowData, StudySpace } from '../domain/space';
-import { cx } from './cx';
 import { SectionLabel } from './SectionLabel';
 import { SpaceCard } from './SpaceCard';
 
@@ -30,7 +29,6 @@ export function SpaceLists({
 }: SpaceListsProps) {
   const card = (space: StudySpace) => (
     <SpaceCard
-      fit={fit}
       space={space}
       onToggleFavourite={(on) => onToggleFavourite(space.id, on)}
       onSelect={onSelect && (() => onSelect(space))}
@@ -77,18 +75,10 @@ export function SpaceLists({
         <section
           key={row.id}
           aria-labelledby={`space-row-${row.id}`}
-          className={cx(
-            'grid gap-2',
-            fit && 'min-h-0 grid-rows-[auto_minmax(0,1fr)]',
-          )}
+          className="grid gap-2"
         >
           <SectionLabel id={`space-row-${row.id}`}>{row.title}</SectionLabel>
-          <ul
-            className={cx(
-              '-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-              fit && 'min-h-0 max-h-36',
-            )}
-          >
+          <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {row.spaces.map((space) => (
               <li key={space.id} className="min-w-0 flex-[0_0_72%] snap-start">
                 {card(space)}
