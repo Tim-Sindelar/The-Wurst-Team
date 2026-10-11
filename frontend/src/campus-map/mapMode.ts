@@ -17,15 +17,15 @@ export const MAP_MODE_LABELS: Record<MapMode, { label: string; hint: string }> =
   {
     study: {
       label: 'Study spaces',
-      hint: 'Only the study spaces you can book in the app.',
+      hint: 'Bookable study spaces',
     },
     workspaces: {
       label: 'Workspaces',
-      hint: 'All workspaces, plus lecture rooms showing whether they are free.',
+      hint: 'All workspaces and lecture rooms',
     },
     campus: {
       label: 'Campus',
-      hint: 'Everything in Workspaces, plus ASVZ sport and the mensas.',
+      hint: 'Everything in Workspaces, plus ASVZ sport and the mensas',
     },
   };
 
