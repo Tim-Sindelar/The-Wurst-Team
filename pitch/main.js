@@ -371,7 +371,10 @@ window.addEventListener('keydown',event=>{
   else if(key==='p'){if(current>=5)cutTo(7);}
   else if(key==='e'){if(current>=6)cutTo(11);}
   else if(key==='d'&&current===11){qaExpanded=!qaExpanded;forceDraw=true;}
-  else if(key==='arrowright')nextSlide();
+  else if(key==='arrowright'){
+    if(current<6){cut=null;filmPlaying=false;go(current+1,true);}
+    else nextSlide();
+  }
   else if(key==='arrowleft')previousSlide();
   else if(key==='escape'){paused=true;score.stop();updateAccessibleState();}
   else if(key===' '){
