@@ -131,7 +131,7 @@ export function SessionScreen() {
       .then(async () => {
         setLeaving(true);
         await refresh();
-        navigate(paths.home);
+        navigate(paths.home, { replace: true });
       })
       /* The error shows in the sheet through `end.error`. */
       .catch(() => undefined);
@@ -218,6 +218,7 @@ export function SessionScreen() {
             <Button
               component={Link}
               to={`${paths.scan}?from=break-end`}
+              replace
               fullWidth
               leftSection={<Icon name="qr" />}
             >
@@ -277,7 +278,9 @@ export function SessionScreen() {
         title="Extend your session?"
         safeLabel="Not now"
         actionLabel="Extend session"
-        onConfirm={() => navigate(`${paths.scan}?from=extend`)}
+        onConfirm={() =>
+          navigate(`${paths.scan}?from=extend`, { replace: true })
+        }
       >
         Adds {rules.session_length_minutes / 60} hours, or less if the room
         closes sooner. You'll scan the QR code again to confirm you're still at
@@ -290,7 +293,9 @@ export function SessionScreen() {
         title="Take a break?"
         safeLabel="Stay"
         actionLabel="Start break"
-        onConfirm={() => navigate(`${paths.scan}?from=break-start`)}
+        onConfirm={() =>
+          navigate(`${paths.scan}?from=break-start`, { replace: true })
+        }
       >
         Your seat is held for up to {breakMinutes} minutes. Your session time
         keeps running. You scan the QR code to start and to end your break.

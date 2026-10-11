@@ -4,7 +4,7 @@
 
 - **Find a seat:** search study spaces (typo-tolerant), keep favourites and recents, see the most popular rooms, or browse the campus map with a 3D floor stack, live ETH room bookings, mensas and ASVZ.
 - **Book and check in:** pick a seat on the room's real layout (or "any free seat"), then scan the QR code on the desk to check in. Sessions can be extended and paused for breaks; no-shows free the seat automatically.
-- **Study together:** add friends, see where they're studying, and book seats for a whole study group in one go.
+- **Study together:** add friends, see where they're studying, and book seats for a whole study party in one go.
 - **Live updates:** server-sent events push booking and social changes to every open screen.
 - **Admin panel** (`/admin`): create spaces from campus room outlines, lay out tables and seats, set opening hours and closures, manage users and print QR labels.
 
@@ -163,8 +163,8 @@ to `backend/.env` and run `make backend`.
 
 The social screens are under **Friends** in the Home / Map / Friends / Profile bottom navigation
 (`/friends`), in production and in CI-deployed PR previews. Friends has one search box for friends
-and people to add, the study group you're in, and your friends with their shared rooms. The bell in
-every header opens Requests: study group invitations and friend requests. A study group is created in
+and people to add, the study party you're in, and your friends with their shared rooms. The bell in
+every header opens Requests: study party invitations and friend requests. A study party is created in
 one step (name and who to invite); its organizer then books a seat for everyone who joined on
 `/groups/:id/seats`, and each person checks in through the usual reservation screens. Only one
 active group per person is allowed. Everything uses the real backend; there is no sample mode.

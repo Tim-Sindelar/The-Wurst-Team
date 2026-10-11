@@ -20,7 +20,9 @@ import {
   sendFriendRequestMutation,
   updateSocialPrivacyMutation,
 } from '../../api/generated/@tanstack/react-query.gen';
+import type { SocialPerson } from '../../api/generated';
 import { apiProblem, isMissing, type ApiProblem } from '../../domain/booking';
+import { searchByName } from '../../domain/similarity';
 import { socialEnabled } from '../../features';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useMyReservation } from '../../hooks/useMyReservation';
@@ -128,7 +130,32 @@ export function usePeopleSearch(search: string) {
   };
 }
 
-/** Your study groups: the one you're in, open invitations, and the last one you
+/** People to invite to a study party: friends first (all of them before
+    anything is typed), then anyone else whose name matches. */
+export function useInvitable(search: string) {
+  const social = useFriends();
+  const directory = usePeopleSearch(search);
+  const friends = searchByName(
+    social.friends.map((friend) => friend.person),
+    search,
+    (person) => person.name,
+  );
+  const friendIds = new Set(friends.map((person) => person.id));
+  const others: SocialPerson[] = directory.people
+    .filter((person) => person.relationship !== 'friends')
+    .filter((person) => !friendIds.has(person.id))
+    .map(({ id, name, photo_url }) => ({ id, name, photo_url }));
+  return {
+    people: [...friends, ...others],
+    searching: directory.searching,
+    loading: social.loading,
+    error: social.error,
+    searchError: directory.error,
+    retry: social.retry,
+  };
+}
+
+/** Your study parties: the one you're in, open invitations, and the last one you
     cancelled. */
 export function useGroups() {
   const available = useSocialAvailable();
@@ -161,7 +188,7 @@ export function useGroups() {
   };
 }
 
-/** One study group, kept fresh. */
+/** One study party, kept fresh. */
 export function useGroup(groupId: string) {
   const groups = useGroups();
   const detail = useQuery({
@@ -180,7 +207,7 @@ export function useGroup(groupId: string) {
     error:
       groups.error ||
       (missing
-        ? "This study group doesn't exist, or you're not in it."
+        ? "This study party doesn't exist, or you're not in it."
         : detail.error
           ? apiProblem(detail.error).message
           : ''),

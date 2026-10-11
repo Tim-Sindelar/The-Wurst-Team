@@ -164,18 +164,22 @@ class SocialService:
             requests=[self._request(row) for row in self._relations("pending")]
         )
 
-    def request_friend(self, user_id: UUID) -> FriendRequestResponse:
+    def _enroll_other(self, user_id: UUID) -> UserProfile:
         target = self.session.get(UserProfile, user_id)
         if target is None:
             raise BookingError(404, "not_found", "User not found")
         if target.id == self.user_id:
             raise BookingError(409, "self_request", "You cannot add yourself")
-        self.enroll()
         self.session.execute(
             insert(SocialUser)
             .values(user_id=target.id, fallback_name=target.name, invite_token=token_urlsafe(24))
             .on_conflict_do_nothing(index_elements=[SocialUser.user_id])
         )
+        return target
+
+    def request_friend(self, user_id: UUID) -> FriendRequestResponse:
+        target = self._enroll_other(user_id)
+        self.enroll()
         low, high = sorted((self.user_id, target.id))
         inserted = self.session.scalar(
             insert(Friendship)
@@ -388,18 +392,8 @@ class SocialService:
     def invite(self, party_id: UUID, user_id: UUID) -> PartyResponse:
         party = self._party(party_id, lock=True, organizer=True)
         self._open(party)
-        low, high = sorted((self.user_id, user_id))
-        friend = self.session.scalar(
-            select(Friendship)
-            .where(
-                Friendship.user_low == low,
-                Friendship.user_high == high,
-                Friendship.status == "accepted",
-            )
-            .with_for_update()
-        )
-        if friend is None:
-            raise BookingError(409, "friend_required", "Invite an accepted friend")
+        # Anyone with a profile can be invited; friendship is not required.
+        self._enroll_other(user_id)
         member = self.session.get(PartyMember, (party.id, user_id))
         if member and member.status in {"invited", "accepted"}:
             return self._detail(party)

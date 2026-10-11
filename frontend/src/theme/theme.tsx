@@ -114,6 +114,8 @@ export const theme = createTheme({
     Checkbox: Checkbox.extend({
       defaultProps: { size: 'md' },
       classNames: {
+        root: 'ui-checkbox-root',
+        body: 'ui-checkbox-body',
         input: 'ui-checkbox',
         label: 'ui-checkbox-label',
         icon: 'ui-checkbox-icon',

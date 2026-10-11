@@ -84,7 +84,9 @@ export function PeopleList({
 }
 
 /** One person: avatar, name, an optional line under it, and actions at the end.
-    With `to`, the person (not the actions) is a link with a chevron. */
+    With `to`, the person (not the actions) is a link with a chevron. With
+    `stacked`, the actions sit on their own line under the name, so several
+    buttons leave a long name the full width. */
 export function PersonRow({
   person,
   name = person.name,
@@ -92,6 +94,7 @@ export function PersonRow({
   pinned = false,
   studying,
   to,
+  stacked = false,
   children,
 }: {
   person: SocialPerson;
@@ -104,6 +107,8 @@ export function PersonRow({
   studying?: 'here' | 'break';
   /** Where tapping the person goes (their seat on the room map). */
   to?: string;
+  /** Put the actions under the name (not with `to`). */
+  stacked?: boolean;
   /** Buttons or a switch. */
   children?: ReactNode;
 }) {
@@ -121,6 +126,11 @@ export function PersonRow({
             {pinned && <Icon name="pin" size="sm" className="mt-0.5" />}
             <span className="min-w-0">{detail}</span>
           </Text>
+        )}
+        {stacked && children && (
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {children}
+          </div>
         )}
       </div>
     </>
@@ -147,7 +157,7 @@ export function PersonRow({
       ) : (
         body
       )}
-      {children}
+      {!stacked && children}
     </li>
   );
 }

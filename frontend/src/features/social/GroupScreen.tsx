@@ -1,9 +1,16 @@
-import { Alert, Anchor, Button, Card, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Anchor,
+  Button,
+  Card,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
-import { notify } from '../../components/notify';
 import {
   ActionBar,
   Screen,
@@ -28,15 +35,16 @@ import {
   PersonRow,
   SocialStatus,
 } from './SocialParts';
-import { useFriends, useGroup, useSocialActions } from './useSocial';
+import { useGroup, useInvitable, useSocialActions } from './useSocial';
 
 type Sheet = 'join' | 'decline' | 'leave' | 'cancel';
 
-/** One study group: who's going, inviting more, and the next step. */
+/** One study party: who's going, inviting more, and the next step. */
 export function GroupScreen() {
   const { groupId = '' } = useParams();
   const social = useGroup(groupId);
-  const friends = useFriends();
+  const [search, setSearch] = useState('');
+  const candidates = useInvitable(search);
   const actions = useSocialActions();
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -60,7 +68,7 @@ export function GroupScreen() {
 
   const header = (
     <ScreenHeader
-      title="Study group"
+      title="Study party"
       backTo={socialPaths.friends}
       backLabel="Back to friends"
     />
@@ -77,8 +85,8 @@ export function GroupScreen() {
             retry={social.missing ? undefined : social.retry}
             title={
               social.missing
-                ? 'Study group not found'
-                : "Couldn't load this study group"
+                ? 'Study party not found'
+                : "Couldn't load this study party"
             }
           />
         </ScreenMain>
@@ -101,24 +109,14 @@ export function GroupScreen() {
     );
     if (!ok) return;
     setSheet(null);
-    if (choice === 'join') notify(`You joined ${group.name}`, 'userCheck');
-    else {
-      notify(
-        choice === 'decline'
-          ? 'Invitation declined'
-          : choice === 'leave'
-            ? `You left ${group.name}`
-            : `${group.name} cancelled`,
-      );
-      navigate(socialPaths.friends);
-    }
+    if (choice !== 'join') navigate(socialPaths.friends, { replace: true });
   };
 
-  const invitable = friends.friends.filter(
-    (friend) =>
+  const invitable = candidates.people.filter(
+    (person) =>
       !group.members.some(
         (member) =>
-          member.person.id === friend.person.id &&
+          member.person.id === person.id &&
           (member.status === 'accepted' || member.status === 'invited'),
       ),
   );
@@ -128,7 +126,7 @@ export function GroupScreen() {
     <Screen>
       {header}
       <ScreenMain>
-        <Card component="section" aria-label="Study group">
+        <Card component="section" aria-label="Study party">
           <div className="grid gap-1">
             <Title order={2} className="text-heading wrap-anywhere">
               {group.name}
@@ -142,7 +140,9 @@ export function GroupScreen() {
             </Text>
           </div>
         </Card>
-        <ActionError error={sheet ? '' : actions.error} />
+        <ActionError
+          error={sheet ? '' : actions.error || candidates.searchError}
+        />
 
         {me?.status === 'invited' && conflict && (
           <Alert variant="danger" icon={<Icon name="alert" />}>
@@ -156,7 +156,7 @@ export function GroupScreen() {
         )}
 
         {group.status === 'cancelled' && (
-          <Alert icon={<Icon name="info" />} title="This group was cancelled">
+          <Alert icon={<Icon name="info" />} title="This party was cancelled">
             <Text size="sm">Seats nobody checked in to were released.</Text>
           </Alert>
         )}
@@ -196,33 +196,51 @@ export function GroupScreen() {
                 </PeopleList>
               </>
             )}
-            {organizer && invitable.length > 0 && (
+            {organizer && (
               <>
                 <SectionLabel>Invite more</SectionLabel>
-                <PeopleList label="Invite more">
-                  {invitable.map(({ person }) => (
-                    <PersonRow key={person.id} person={person}>
-                      <Button
-                        variant="secondary"
-                        disabled={actions.busy}
-                        aria-label={`Invite ${person.name}`}
-                        onClick={async () => {
-                          if (
-                            await actions.run(() =>
+                <TextInput
+                  type="search"
+                  placeholder="Search people"
+                  aria-label="Search people"
+                  leftSection={<Icon name="search" />}
+                  maxLength={80}
+                  value={search}
+                  onChange={(event) => setSearch(event.currentTarget.value)}
+                />
+                {invitable.length > 0 ? (
+                  <PeopleList label="Invite more">
+                    {invitable.map((person) => (
+                      <PersonRow key={person.id} person={person}>
+                        <Button
+                          variant="secondary"
+                          disabled={actions.busy}
+                          aria-label={`Invite ${person.name}`}
+                          onClick={() =>
+                            actions.run(() =>
                               actions.invite.mutateAsync({
                                 path: { party_id: group.id },
                                 body: { user_id: person.id },
                               }),
                             )
-                          )
-                            notify(`Invited ${person.name}`, 'mail');
-                        }}
-                      >
-                        Invite
-                      </Button>
-                    </PersonRow>
-                  ))}
-                </PeopleList>
+                          }
+                        >
+                          Invite
+                        </Button>
+                      </PersonRow>
+                    ))}
+                  </PeopleList>
+                ) : candidates.searching ? (
+                  <Text size="sm" c="dimmed" role="status">
+                    Searching…
+                  </Text>
+                ) : (
+                  search.trim() !== '' && (
+                    <Text size="sm" c="dimmed" role="status">
+                      No one found
+                    </Text>
+                  )
+                )}
               </>
             )}
           </>
@@ -245,7 +263,7 @@ export function GroupScreen() {
           >
             {group.status === 'booked'
               ? 'Cancel booking'
-              : 'Cancel study group'}
+              : 'Cancel study party'}
           </Button>
         )}
       </ScreenMain>
@@ -258,7 +276,7 @@ export function GroupScreen() {
             fullWidth
             leftSection={<Icon name="plus" />}
           >
-            Start a study group
+            Start a study party
           </Button>
         ) : group.status === 'booked' ? (
           mySeat ? (
@@ -304,7 +322,7 @@ export function GroupScreen() {
             leftSection={<Icon name="friends" />}
           >
             {nobodyElse
-              ? 'Waiting for friends to join'
+              ? 'Waiting for others to join'
               : `Choose seats for ${going(group).length}`}
           </Button>
         ) : (
@@ -314,7 +332,7 @@ export function GroupScreen() {
             disabled={actions.busy}
             onClick={() => setSheet('leave')}
           >
-            Leave study group
+            Leave study party
           </Button>
         )}
       </ActionBar>
@@ -336,15 +354,15 @@ export function GroupScreen() {
                   ? 'Cancel the booking?'
                   : `Cancel ${group.name}?`
         }
-        safeLabel={sheet === 'cancel' ? 'Keep group' : 'Not now'}
+        safeLabel={sheet === 'cancel' ? 'Keep party' : 'Not now'}
         actionLabel={
           sheet === 'join'
-            ? 'Join group'
+            ? 'Join party'
             : sheet === 'decline'
               ? 'Decline'
               : sheet === 'leave'
-                ? 'Leave group'
-                : 'Cancel group'
+                ? 'Leave party'
+                : 'Cancel party'
         }
         actionTone={sheet === 'join' ? 'primary' : 'danger'}
         onConfirm={confirm}

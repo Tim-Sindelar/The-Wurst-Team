@@ -1,10 +1,13 @@
 import { Button, Card, Switch, Text, TextInput, Title } from '@mantine/core';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import type { DirectoryPerson, FriendResponse } from '../../api/generated';
+import type {
+  DirectoryPerson,
+  FriendResponse,
+  SocialPerson,
+} from '../../api/generated';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
-import { notify } from '../../components/notify';
 import {
   ActionBar,
   Screen,
@@ -64,7 +67,11 @@ export function FriendsScreen() {
       </Button>
     ) : (
       inviteTo && (
-        <InviteAction group={inviteTo} friend={friend} actions={actions} />
+        <InviteAction
+          group={inviteTo}
+          person={friend.person}
+          actions={actions}
+        />
       )
     );
 
@@ -97,6 +104,7 @@ export function FriendsScreen() {
             search={search}
             friends={social.friends}
             rowAction={rowAction}
+            inviteTo={inviteTo}
           />
         ) : (
           !social.loading &&
@@ -207,10 +215,7 @@ export function FriendsScreen() {
               path: { friendship_id: friend.friendship_id },
             }),
           );
-          if (ok) {
-            setRemoving(null);
-            notify('Friend removed');
-          }
+          if (ok) setRemoving(null);
         }}
       >
         {actions.error || 'You’ll stop seeing each other’s rooms.'}
@@ -224,10 +229,13 @@ function SearchResults({
   search,
   friends,
   rowAction,
+  inviteTo,
 }: {
   search: string;
   friends: FriendResponse[];
   rowAction: (friend: FriendResponse) => ReactNode;
+  /** The open group you organize: people found can be invited to it too. */
+  inviteTo: Group | null;
 }) {
   const { people, searching, error } = usePeopleSearch(search);
   const actions = useSocialActions();
@@ -244,16 +252,13 @@ function SearchResults({
           variant="secondary"
           disabled={actions.busy}
           aria-label={`Accept ${person.name}`}
-          onClick={async () => {
-            if (
-              await actions.run(() =>
-                actions.acceptRequest.mutateAsync({
-                  path: { friendship_id: person.friendship_id! },
-                }),
-              )
+          onClick={() =>
+            actions.run(() =>
+              actions.acceptRequest.mutateAsync({
+                path: { friendship_id: person.friendship_id! },
+              }),
             )
-              notify(`You’re now friends with ${person.name}`, 'userCheck');
-          }}
+          }
         >
           Accept
         </Button>
@@ -264,16 +269,13 @@ function SearchResults({
           variant="quiet"
           disabled={actions.busy}
           aria-label={`Cancel request to ${person.name}`}
-          onClick={async () => {
-            if (
-              await actions.run(() =>
-                actions.removeFriendship.mutateAsync({
-                  path: { friendship_id: person.friendship_id! },
-                }),
-              )
+          onClick={() =>
+            actions.run(() =>
+              actions.removeFriendship.mutateAsync({
+                path: { friendship_id: person.friendship_id! },
+              }),
             )
-              notify('Request cancelled');
-          }}
+          }
         >
           Requested
         </Button>
@@ -284,14 +286,11 @@ function SearchResults({
         disabled={actions.busy}
         leftSection={<Icon name="plus" size="sm" />}
         aria-label={`Send friend request to ${person.name}`}
-        onClick={async () => {
-          if (
-            await actions.run(() =>
-              actions.sendRequest.mutateAsync({ body: { user_id: person.id } }),
-            )
+        onClick={() =>
+          actions.run(() =>
+            actions.sendRequest.mutateAsync({ body: { user_id: person.id } }),
           )
-            notify(`Friend request sent to ${person.name}`, 'userPlus');
-        }}
+        }
       >
         Add
       </Button>
@@ -330,7 +329,14 @@ function SearchResults({
       ) : others.length > 0 ? (
         <PeopleList label="Add people">
           {others.map((person) => (
-            <PersonRow key={person.id} person={person}>
+            <PersonRow key={person.id} person={person} stacked={!!inviteTo}>
+              {inviteTo && (
+                <InviteAction
+                  group={inviteTo}
+                  person={person}
+                  actions={actions}
+                />
+              )}
               {action(person)}
             </PersonRow>
           ))}
@@ -346,17 +352,16 @@ function SearchResults({
   );
 }
 
-/** Invite a friend to the open group you organize; nothing once they're going. */
+/** Invite someone to the open group you organize; nothing once they're going. */
 function InviteAction({
   group,
-  friend,
+  person,
   actions,
 }: {
   group: Group;
-  friend: FriendResponse;
+  person: SocialPerson;
   actions: ReturnType<typeof useSocialActions>;
 }) {
-  const { person } = friend;
   const status = memberOf(group, person.id)?.status;
   if (status === 'accepted') return null;
   if (status === 'invited')
@@ -370,17 +375,14 @@ function InviteAction({
       variant="secondary"
       disabled={actions.busy}
       aria-label={`Invite ${person.name} to ${group.name}`}
-      onClick={async () => {
-        if (
-          await actions.run(() =>
-            actions.invite.mutateAsync({
-              path: { party_id: group.id },
-              body: { user_id: person.id },
-            }),
-          )
+      onClick={() =>
+        actions.run(() =>
+          actions.invite.mutateAsync({
+            path: { party_id: group.id },
+            body: { user_id: person.id },
+          }),
         )
-          notify(`Invited ${person.name}`, 'mail');
-      }}
+      }
     >
       Invite
     </Button>
@@ -430,7 +432,7 @@ function GroupAction({ groups }: { groups: ReturnType<typeof useGroups> }) {
         disabled={unavailable}
         leftSection={<Icon name="plus" />}
       >
-        Start a study group
+        Start a study party
       </Button>
     );
   const { held, running } = groups.booking;
@@ -458,7 +460,7 @@ function GroupAction({ groups }: { groups: ReturnType<typeof useGroups> }) {
   const count = going(group).length;
   return count < 2 ? (
     <Button fullWidth disabled>
-      Waiting for friends to join
+      Waiting for others to join
     </Button>
   ) : (
     <Button component={Link} to={groupSeatsPath(group.id)} fullWidth>

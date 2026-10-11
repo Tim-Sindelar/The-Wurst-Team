@@ -4,6 +4,8 @@
    DOM directly so dragging doesn't re-render React on every frame. */
 
 const MAX_SCALE = 2.5;
+/* A seat the map opened on (a QR code, a friend) is shown this close up. */
+const FOCUS_SCALE = 1.75;
 const FIT_MARGIN = 24;
 const TAP_SLOP = 6;
 const KEY_STEP = 48;
@@ -45,7 +47,8 @@ export type PanZoomOptions = {
 export type PanZoom = {
   fit: () => void;
   zoomBy: (factor: number) => void;
-  centerOn: (x: number, y: number) => void;
+  /** Glides a seat into view; `focus` zooms in close (the seat the map opened on). */
+  centerOn: (x: number, y: number, focus?: boolean) => void;
   /** Glides back inside the bounds, e.g. after the seat card closed. */
   settle: () => void;
   destroy: () => void;
@@ -140,9 +143,9 @@ export function createPanZoom({
   };
 
   /* Selecting from the overview zooms back to at least 100% to inspect. */
-  const centerOn = (wx: number, wy: number) => {
+  const centerOn = (wx: number, wy: number, focus = false) => {
     fitted = false;
-    const next = Math.max(1, scale);
+    const next = Math.max(focus ? FOCUS_SCALE : 1, scale);
     /* Centre in the part of the map the seat card doesn't cover. */
     glideTo(next, width / 2 - wx * next, visibleHeight() / 2 - wy * next);
   };
@@ -322,6 +325,9 @@ export function createPanZoom({
     const oldHeight = height;
     width = viewport.clientWidth;
     height = viewport.clientHeight;
+    /* The observer also reports the starting size: nothing changed, so a
+       glide that just started (to the seat the map opened on) keeps going. */
+    if (width === oldWidth && height === oldHeight) return;
     if (fitted) {
       fit();
       return;

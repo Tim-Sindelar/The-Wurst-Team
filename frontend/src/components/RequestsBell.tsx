@@ -4,7 +4,7 @@ import { socialPaths } from '../features/social/paths';
 import { useRequestCount } from '../features/social/useSocial';
 import { Icon } from './Icon';
 
-/** The bell in every header: opens friend requests and study group invitations,
+/** The bell in every header: opens friend requests and study party invitations,
     with the number waiting for an answer. Hidden while social is off. */
 export function RequestsBell() {
   const { enabled, count } = useRequestCount();

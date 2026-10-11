@@ -2,6 +2,7 @@ import { ActionIcon, Title } from '@mantine/core';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { cx } from './cx';
+import { useGoBack } from '../hooks/useGoBack';
 import { Icon } from './Icon';
 import { RequestsBell } from './RequestsBell';
 
@@ -30,6 +31,7 @@ export function Screen({
 
 type ScreenHeaderProps = {
   title: string;
+  /** Where back goes when there is no earlier screen in the app's history. */
   backTo: string;
   backLabel: string;
   /** A line under the title, such as how many seats are free. */
@@ -43,6 +45,7 @@ export function ScreenHeader({
   backLabel,
   subtitle,
 }: ScreenHeaderProps) {
+  const goBack = useGoBack(backTo);
   return (
     <header className="border-b border-border bg-surface pt-[env(safe-area-inset-top)]">
       <div
@@ -51,7 +54,15 @@ export function ScreenHeader({
           subtitle ? 'min-h-14 py-1' : 'min-h-16',
         )}
       >
-        <ActionIcon component={Link} to={backTo} aria-label={backLabel}>
+        <ActionIcon
+          component={Link}
+          to={backTo}
+          aria-label={backLabel}
+          onClick={(event) => {
+            event.preventDefault();
+            goBack();
+          }}
+        >
           <Icon name="back" />
         </ActionIcon>
         <div className="min-w-0 flex-1">

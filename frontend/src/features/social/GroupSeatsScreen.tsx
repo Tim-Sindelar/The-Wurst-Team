@@ -23,7 +23,6 @@ import {
 import { AvailabilityLabel } from '../../components/AvailabilityLabel';
 import { DecisionSheet } from '../../components/DecisionSheet';
 import { Icon } from '../../components/Icon';
-import { notify } from '../../components/notify';
 import { ActionBar, Screen, ScreenHeader } from '../../components/Screen';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { SpaceLists } from '../../components/SpaceLists';
@@ -45,7 +44,8 @@ import { going, initials, type Group } from './groups';
 import { groupPath } from './paths';
 import { seatTogether } from './seatTogether';
 import { PersonAvatar, SocialStatus } from './SocialParts';
-import { useGroup, useSocialActions } from './useSocial';
+import { friendsBySeat } from './studying';
+import { useFriendList, useGroup, useSocialActions } from './useSocial';
 
 /** The organizer picks a room and a seat for everyone who joined, then books
     them all at once. */
@@ -57,7 +57,7 @@ export function GroupSeatsScreen() {
     <ScreenHeader
       title="Book together"
       backTo={groupPath(groupId)}
-      backLabel="Back to study group"
+      backLabel="Back to study party"
     />
   );
   if (!group)
@@ -71,8 +71,8 @@ export function GroupSeatsScreen() {
             retry={social.missing ? undefined : social.retry}
             title={
               social.missing
-                ? 'Study group not found'
-                : "Couldn't load this study group"
+                ? 'Study party not found'
+                : "Couldn't load this study party"
             }
           />
         </div>
@@ -110,9 +110,11 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
   const fits = (space: SpaceSummary) =>
     space.is_open && space.free_seats >= count;
 
-  /* ?room= when opened from a room's seat map. */
+  /* ?room= (and ?seat=, a friend's or a QR code's) when opened from a room's seat map. */
   const [searchParams] = useSearchParams();
   const [chosenRoom, setChosenRoom] = useState(searchParams.get('room') ?? '');
+  const focusedSeat =
+    chosenRoom === searchParams.get('room') ? searchParams.get('seat') : null;
   const roomId =
     chosenRoom ||
     [...spaces].sort((a, b) => b.free_seats - a.free_seats).find(fits)?.id ||
@@ -125,6 +127,11 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
     refetchInterval: 15_000,
   });
   const space = spaceQuery.data?.space;
+  const friendList = useFriendList();
+  const friends = useMemo(
+    () => friendsBySeat(friendList, roomId),
+    [friendList, roomId],
+  );
 
   /* member id -> seat id. A seat that stops being free drops out on its own. */
   const [picks, setPicks] = useState<Record<string, string>>({});
@@ -266,10 +273,7 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
         }
       },
     );
-    if (ok) {
-      notify(`${group.name} is booked`, 'calendarCheck');
-      navigate(paths.reservation);
-    }
+    if (ok) navigate(paths.reservation, { replace: true });
   };
 
   /* The picker card's height, so a chosen seat is centred above it. */
@@ -297,7 +301,7 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
       <ScreenHeader
         title={room?.name ?? 'Book together'}
         backTo={groupPath(group.id)}
-        backLabel="Back to study group"
+        backLabel="Back to study party"
         subtitle={
           room &&
           level && (
@@ -380,7 +384,9 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
               complete && !moving ? null : (assigned[active.id] ?? null)
             }
             onSelect={tapSeat}
+            focused={focusedSeat}
             people={people}
+            friends={friends}
             getCovered={() => covered.current}
           />
         )}
@@ -407,7 +413,7 @@ function SeatPicker({ group, userId }: { group: Group; userId: string }) {
 
         <section
           ref={pickerRef}
-          aria-label="Seats for your group"
+          aria-label="Seats for your party"
           className="absolute inset-x-0 bottom-0 z-2 grid gap-3 rounded-t-sheet border border-b-0 border-border bg-surface p-4 shadow-card"
         >
           <div className="flex items-center gap-3" aria-live="polite">

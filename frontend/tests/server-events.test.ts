@@ -4,6 +4,7 @@ import {
   describeEvent,
   eventsUrl,
   reconnectDelay,
+  shownOnScreen,
 } from '../src/domain/serverEvents.ts';
 
 const person = { id: 'a', name: 'Ana Novak' };
@@ -19,16 +20,17 @@ test('social events say who did what and link to it', () => {
       icon: 'userPlus',
       title: 'Friend request from Ana Novak',
       link: '/requests',
+      shownOn: ['/requests', '/friends'],
     },
   );
   const declined = describeEvent({
     type: 'party.replied',
     party_id: 'p 1',
-    party_name: 'Study group',
+    party_name: 'Study party',
     person,
     accepted: false,
   });
-  assert.equal(declined?.title, 'Ana Novak declined Study group');
+  assert.equal(declined?.title, 'Ana Novak declined Study party');
   assert.equal(declined?.icon, 'userX');
   assert.equal(declined?.link, '/groups/p%201');
   assert.equal(
@@ -36,6 +38,29 @@ test('social events say who did what and link to it', () => {
       ?.link,
     '/friends',
   );
+});
+
+test('no banner on a screen that already shows the change', () => {
+  const joined = describeEvent({
+    type: 'party.replied',
+    party_id: 'p',
+    party_name: 'Study party',
+    person,
+    accepted: true,
+  })!;
+  assert.equal(shownOnScreen(joined, '/groups/p'), true);
+  assert.equal(shownOnScreen(joined, '/groups/p/'), true);
+  assert.equal(shownOnScreen(joined, '/groups/p/seats'), true);
+  assert.equal(shownOnScreen(joined, '/groups/other'), false);
+  assert.equal(shownOnScreen(joined, '/'), false);
+  const invited = describeEvent({
+    type: 'party.invited',
+    party_id: 'p',
+    party_name: 'Study party',
+    person,
+  })!;
+  assert.equal(shownOnScreen(invited, '/requests'), true);
+  assert.equal(shownOnScreen(invited, '/friends'), false);
 });
 
 test('heartbeats show nothing', () => {

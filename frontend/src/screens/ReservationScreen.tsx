@@ -133,7 +133,7 @@ export function ReservationScreen() {
       .then(async () => {
         setLeaving(true);
         await refresh();
-        navigate(paths.home);
+        navigate(paths.home, { replace: true });
       })
       /* The error shows in the sheet through `end.error`. */
       .catch(() => undefined);
@@ -183,6 +183,7 @@ export function ReservationScreen() {
           <Button
             component={Link}
             to={paths.scan}
+            replace
             fullWidth
             leftSection={<Icon name="qr" />}
           >
