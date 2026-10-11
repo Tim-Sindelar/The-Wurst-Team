@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     # Campus map: fetched ETH bookings and campus datasets are cached here.
     map_cache_dir: Path = BACKEND_DIR / ".cache" / "campus-map"
     # Floor plans written by scraper/extract_floors.py (served under /api/v1/map/floors).
-    map_floors_dir: Path = BACKEND_DIR.parent / "occupancy-map-preview" / "public" / "floors"
+    map_floors_dir: Path = BACKEND_DIR.parent / "scraper" / "floors"
 
     @model_validator(mode="after")
     def validate_reservation_windows(self) -> "Settings":

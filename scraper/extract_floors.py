@@ -1,14 +1,15 @@
-"""Turn the scraped PolyMaps layers into the floor plan files and workspace list of occupancy-map-preview.
+"""Turn the scraped PolyMaps layers into the campus map's floor plan files and workspace list.
 
-Usage: python extract_floors.py [polymaps_dir] [app_dir] [--floors-only]
+Usage: python extract_floors.py [polymaps_dir] [floors_dir] [--floors-only]
 
 Writes
-  <app_dir>/public/floors/index.json        floors, building footprints and level outlines
-  <app_dir>/public/floors/levels/<id>.json  rooms and wall/door/stair lines of one level
-  <app_dir>/data/generated.json             workspaces built from the rooms of WORKSPACE_USES
+  <floors_dir>/index.json        floors, building footprints and level outlines
+  <floors_dir>/levels/<id>.json  rooms and wall/door/stair lines of one level
+  backend/app/features/campus_map/map-data/generated.json
+                                 workspaces built from the rooms of WORKSPACE_USES
 
-The pipeline only ever writes generated.json, from scratch on every run. Edits made in admin
-mode live in data/overrides.json and are applied on top of it by the app's API, so re-running
+The pipeline only ever writes generated.json, from scratch on every run. Workspace edits
+live in map-data/overrides.json and are applied on top of it by the backend, so re-running
 this script never loses them. Workspace ids are derived from PolyMaps room names, so they stay
 stable across runs and the overrides keep pointing at the right workspaces.
 
@@ -22,11 +23,12 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("polymaps_dir", nargs="?", type=Path, default=Path(__file__).parent / "polymaps_data")
-parser.add_argument("app_dir", nargs="?", type=Path, default=Path(__file__).parent.parent / "occupancy-map-preview")
-parser.add_argument("--floors-only", action="store_true", help="Build floor plans without replacing data/generated.json")
+parser.add_argument("floors_dir", nargs="?", type=Path, default=Path(__file__).parent / "floors")
+parser.add_argument("--floors-only", action="store_true", help="Build floor plans without replacing map-data/generated.json")
 args = parser.parse_args()
 SRC = args.polymaps_dir
-APP = args.app_dir
+OUT = args.floors_dir
+DATA_FILE = Path(__file__).resolve().parent.parent / "backend" / "app" / "features" / "campus_map" / "map-data" / "generated.json"
 SCALE = 1_000_000  # micro-degrees: ~0.11 m north-south, ~0.08 m east-west in Zurich
 
 # Room use type -> coarse kind used for styling in the app.
@@ -263,7 +265,7 @@ def round_ring(ring):
 
 
 def main():
-    out = APP / "public" / "floors"
+    out = OUT
     (out / "levels").mkdir(parents=True, exist_ok=True)
     for old in (out / "levels").glob("*.json"):
         old.unlink()
@@ -350,7 +352,7 @@ def main():
 
 
 def write_libraries(units, pois, levels, floors, facilities):
-    data_file = APP / "data" / "generated.json"
+    data_file = DATA_FILE
     data_file.parent.mkdir(parents=True, exist_ok=True)
 
     rooms = [u for u in units if workspace_of(u)]

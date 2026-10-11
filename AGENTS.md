@@ -3,7 +3,6 @@
 ## Frontend (`frontend/`)
 
 React 19, Vite, TypeScript, Mantine 9, Tailwind CSS 4, React Router, TanStack Query.
-The screens implement the mockups in `design/`. `design/design-rules.md` is the source of truth for how the app looks and behaves; when it and the code disagree, fix the code. When the design changes, port it here.
 
 ### Where things live
 
@@ -18,13 +17,13 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | `src/hooks/` | `useMyReservation` (the live booking, server-clock helpers, refetch at deadlines), `useServerEvents` (the events stream), `useQrScanner`, `useDeadlineClock` (one clock per screen, so its countdowns tick together) |
 | `src/routes.ts` | Screen paths |
 | `src/features/social/` | Friends, Requests, study groups and group booking (`/friends`, `/requests`, `/groups/...`). See "Friends and study groups" below |
-| `src/campus-map/` | The campus map screen (`/map`), ported from the view mode of `occupancy-map-preview/`. See "Campus map" below |
+| `src/campus-map/` | The campus map screen (`/map`). See "Campus map" below |
 | `src/api/generated/` | Generated API client. Never edit by hand; run `make generate` |
 | `src/pwa.ts`, `pwa/service-worker.js`, `public/manifest.webmanifest`, `public/icons/` | The installable app: worker registration, the service worker (the `service-worker` plugin in `vite.config.ts` emits it as `sw.js`), the manifest and the app icons. See "Installable app" below |
 
 ### Styling
 
-1. **Tokens only.** No hex codes or raw pixel values for colour, spacing, radius, type or shadow in components or screens. Use token utilities: `bg-surface`, `text-text-muted`, `border-border-strong`, `rounded-card`, `shadow-card`, `text-title`, `p-4`. Tailwind's default palette, type scale, radii and shadows are removed, so only design tokens exist. If you need a new value, add a token to `src/styles.css` (dark in `@theme`, light under `[data-mantine-color-scheme='light']`) and to `design/tokens.css`.
+1. **Tokens only.** No hex codes or raw pixel values for colour, spacing, radius, type or shadow in components or screens. Use token utilities: `bg-surface`, `text-text-muted`, `border-border-strong`, `rounded-card`, `shadow-card`, `text-title`, `p-4`. Tailwind's default palette, type scale, radii and shadows are removed, so only design tokens exist. If you need a new value, add a token to `src/styles.css` (dark in `@theme`, light under `[data-mantine-color-scheme='light']`).
 2. **Mantine components are styled once, in the theme.** Each component gets `ui-*` classes in `src/theme/theme.tsx`, defined in `src/theme/components.css` with `@apply` inside `@layer components`. Screens pick a variant and never restyle a component's colours, borders or type. To change how a component looks, change `components.css`. Use a utility class on one instance only for layout (`flex-1`, `mt-2`, a card's status stripe).
 3. **Layers decide who wins:** `theme < base < mantine < components < utilities`. Theme classes beat Mantine's defaults, and utilities beat theme classes. Don't use `!important`, and don't put utility classes in theme `classNames` (they would tie with screen classes).
 4. **Tailwind for everything custom**: layout, spacing, one-off elements. No CSS modules and no new CSS files. Inline `style` is only for computed geometry (seat positions on the map).
@@ -69,15 +68,15 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - The map components keep their own markup and class names, styled in `src/campus-map/campus-map.css`, the one plain CSS file outside `src/theme`. Its colour names point at the design tokens. Colours drawn on the map come from the backend's map style (`GET /api/v1/map/style`). The ESLint React Compiler rules are off for this folder (the Leaflet layers rely on latest-value refs).
 - All map data comes from the backend feature `backend/app/features/campus_map/` under `/api/v1/map`: workspaces, map style and navigation (Postgres), ETH room bookings, campus datasets and floor plans. The loaders in `src/campus-map/data/`, `datasets/repository.ts` and `map/minimalStyle.ts` call it through the generated client (`unwrap` in `data/api.ts`); floor plans and room photos are plain URLs under `MAP_API`. The map needs `make backend` running.
 - The 3D view (`map/Floors3D.tsx`) stacks only the building group in focus. Groups are the buildings inside each building zoom zone, hardcoded in `map/buildingGroups.ts`; update that list when the zones change. Floor letters come from the room names and the scraper counts floor numbers per building, so once loaded the map shifts each zoned building's floor numbers to line up by letter with the zone's main building (`letterOffsets` in `buildingGroups.ts`, applied in `CampusMap` to the floor index, the workspaces and the room and mensa places): a floor shows every level with the same name, even at different heights (I counts as J). Every floor is drawn with its own outline (the group's levels on that floor merged), so the stack follows the real shape, and the floor with the `E` letters stays in place, so floors above it (the selected one too, with its workspaces and pins) are drawn further north. With 3D on, at every zoom, every group not stacked is drawn as its footprint only: the group's merged outline (all its floors together), flat in its real place, with no floor plan, workspaces or pins. The floor wheel then lists only the stacked group's floors (and hides without one); a group without the selected floor switches to its nearest one. In 2D too, only the selected floor's workspaces and pins are drawn. Room layouts show from the lowest zoom a building zone flies to (`roomZoom` in `MapView`).
-- `occupancy-map-preview/` stays the developer tool for the map: its Admin mode edits workspaces and navigation, its Style panel edits the map style. After saving there, run `make map-sync` to import the files into the backend. There is no admin or style editor in this app.
-- The backend Docker build generates floor plans and workspace outlines into `/app/floors` and sets `MAP_FLOORS_DIR` to that directory. Outside Docker, floor plans are read from `occupancy-map-preview/public/floors` (built by `make map-floors`, not in git), or from the backend's `MAP_FLOORS_DIR`.
+- The workspaces, navigation zones and map style are JSON files in `backend/app/features/campus_map/map-data/`, imported into Postgres on start and on every deploy. There is no map admin or style editor in this app.
+- The backend Docker build generates floor plans and workspace outlines into `/app/floors` and sets `MAP_FLOORS_DIR` to that directory. Outside Docker, floor plans are read from `scraper/floors` (built by `make map-floors`, not in git), or from the backend's `MAP_FLOORS_DIR`.
 
 ### Installable app (PWA)
 
 - The app installs from https://02.hackathon.ethz.ch (and from each PR preview, as a separate app). The manifest uses relative URLs (`./`) and the worker registers at `BASE_URL`, so both work under `/pr/N/`. The manifest link has `crossorigin="use-credentials"` because the organisers' login proxy needs the session cookie.
 - The service worker only exists in production builds. It caches the app shell on install, serves hashed `assets/` from the cache, goes to the network first for pages (offline: the cached `index.html`), and never touches `/api`. Production's worker leaves `/pr/` and `/ar/` alone. Every build gets a new worker that replaces the old one and its cache.
 - Caddy serves `index.html`, `sw.js` and `manifest.webmanifest` with `no-cache`, so a deploy reaches installed apps on their next launch.
-- The icon (`public/icons/icon.svg`, `public/favicon.svg`) is the seat mark from `design/brand/` (the logo source files): a desk with four seats, one free. The favicon is transparent and switches the free seat's green with the browser's colour scheme. In the app the name is `AppName` (mark, bold "Study", regular "Spaces"), used on Home and in the admin sidebar. After changing the icon, re-render `icon-192.png`, `icon-512.png` (also the maskable icon, so keep the artwork within the middle 80%) and `apple-touch-icon.png` (180px).
+- The icon (`public/icons/icon.svg`, `public/favicon.svg`) is the seat mark: a desk with four seats, one free. The favicon is transparent and switches the free seat's green with the browser's colour scheme. In the app the name is `AppName` (mark, bold "Study", regular "Spaces"), used on Home and in the admin sidebar. After changing the icon, re-render `icon-192.png`, `icon-512.png` (also the maskable icon, so keep the artwork within the middle 80%) and `apple-touch-icon.png` (180px).
 - `meta[name=theme-color]` follows the colour scheme (`--color-bg`), so the installed app's status bar matches the theme.
 
 ### Data and state
@@ -98,7 +97,7 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 
 ### Friends and study groups
 
-- Screens implement `design/screens/08-friends.html` (Friends, Requests, Study group, New study group) and `09-book-together.html`. The API calls a study group a party; the screens never say "party". Everything is live: there is no sample-data mode. `VITE_SOCIAL_ENABLED=false` hides the feature; a backend with social off shows an error in place.
+- Screens: Friends, Requests, Study group, New study group and Book together. The API calls a study group a party; the screens never say "party". Everything is live: there is no sample-data mode. `VITE_SOCIAL_ENABLED=false` hides the feature; a backend with social off shows an error in place.
 - Data comes through `src/features/social/useSocial.ts`: `useFriends`, `usePeopleSearch`, `useGroups` (the group you're in, invitations, your last cancelled group), `useGroup`, `useRequestCount` (the bell) and `useSocialActions`, which runs one change at a time, keeps its error for the screen and refetches every query afterwards. Pure rules live in `groups.ts` and `seatTogether.ts` (tested in `tests/social-groups.test.ts`).
 - A friend who shares their room and is checked in reports their room, seat and break (`FriendRoom`). They're marked everywhere the same way: an accent ring and a pin badge (a cup on a break) on their avatar (`PersonAvatar studying`). Tapping them on Friends opens their room's seat map with their seat selected (`friendSeatPath`, `/seats/:id?seat=`). On the seat map their seat shows their photo or initials ringed in the accent instead of its number (`SeatMap`'s `friends` prop), the header counts friends here, and the seat card names them. Pure helpers live in `studying.ts`.
 - The bell (`RequestsBell`) is in every `ScreenHeader` and in Home's title row. It opens `/requests`, which holds study group invitations, friend requests and the requests you sent.
@@ -119,4 +118,4 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 
 - Files that export components export only components (React Fast Refresh). Put contexts, hooks and constants in their own files.
 - Dependencies are pinned to exact versions in `package.json`.
-- Before pushing, run `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` in `frontend/`. For visual changes, compare the screen against its mockup in `design/screens/` in both themes.
+- Before pushing, run `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` in `frontend/`. For visual changes, check the screen in both themes.

@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       },
       serviceWorker(),
     ],
-    // As in occupancy-map-preview: the campus map's MapLibre isn't pre-bundled.
+    // The campus map's MapLibre isn't pre-bundled.
     optimizeDeps: { exclude: ['maplibre-gl', '@maplibre/maplibre-gl-leaflet'] },
     server: {
       port: 5173,

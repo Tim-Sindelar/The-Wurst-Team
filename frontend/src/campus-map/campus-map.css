@@ -1,6 +1,5 @@
 /* ==========================================================================
-   Campus map. Ported from occupancy-map-preview/src/styles.css (view mode
-   only) and scoped to the map screen, admin room picker, and their sheets
+   Campus map, scoped to the map screen, admin room picker, and their sheets
    (.campus-map-ui, rendered in portals). The map's own colour names point at
    the design tokens, so both themes follow the rest of the app. The colours
    drawn on the map itself come from the backend's map style (/api/v1/map/style).

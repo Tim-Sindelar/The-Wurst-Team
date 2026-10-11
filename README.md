@@ -1,6 +1,23 @@
-# The Wurst Team
+# Study Spaces
 
-Web app starter with separate `frontend/` and `backend/` projects.
+**Find, book and check in to ETH study spaces.** Built by The Wurst Team. Live at https://02.hackathon.ethz.ch (installable as an app on your phone).
+
+- **Find a seat:** search study spaces (typo-tolerant), keep favourites and recents, see the most popular rooms, or browse the campus map with a 3D floor stack, live ETH room bookings, mensas and ASVZ.
+- **Book and check in:** pick a seat on the room's real layout (or "any free seat"), then scan the QR code on the desk to check in. Sessions can be extended and paused for breaks; no-shows free the seat automatically.
+- **Study together:** add friends, see where they're studying, and book seats for a whole study group in one go.
+- **Live updates:** server-sent events push booking and social changes to every open screen.
+- **Admin panel** (`/admin`): create spaces from campus room outlines, lay out tables and seats, set opening hours and closures, manage users and print QR labels.
+
+## Repository layout
+
+| Path | What it is |
+| --- | --- |
+| `frontend/` | React 19, Vite, TypeScript, Mantine, Tailwind CSS, TanStack Query. A PWA |
+| `backend/` | Python 3.12, FastAPI, SQLAlchemy, Alembic on PostgreSQL. Features live in `backend/app/features/` (`reservations`, `social`, `campus_map`, `events`) |
+| `scraper/` | Builds the campus floor plans from public ETH PolyMaps data (run during the backend Docker build) |
+| `deploy/`, `.github/` | Caddy, Compose and the GitHub Actions deploy with per-PR previews (see [docs/deployment.md](docs/deployment.md)) |
+
+The TypeScript API client in `frontend/src/api/generated/` is generated from FastAPI's OpenAPI schema with Hey API.
 
 - **Frontend:** React, Vite, TypeScript, React Router, TanStack Query, Mantine, Tailwind CSS, ESLint, Prettier.
 - **Backend:** Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic, Ruff.
@@ -27,7 +44,7 @@ npm run dev --prefix frontend
 ```
 
 Open the app at http://localhost:5173 and API documentation at http://localhost:8000/docs.
-The React admin panel at `/admin`, campus map, profile and student booking screens use the backend API. The HTML references remain in `design/admin/`.
+The admin panel is at http://localhost:5173/admin.
 Vite proxies relative `/api` requests to the backend on port 8000. Set `VITE_API_PROXY_TARGET` when running a local backend on another port. Backend source changes reload automatically; migrations run when the backend container starts.
 
 Python and JavaScript dependencies are locked in `backend/uv.lock` and `frontend/package-lock.json`. Rebuild the backend container after changing Python dependencies.
@@ -141,8 +158,8 @@ The social backend supports signed-in user search and direct friend requests, ac
 manual same-room seat assignments, atomic booking for all accepted members, and optional
 friend room sharing. Production and PR deployments enable it (`SOCIAL_ENABLED=true`); standalone
 backend settings default to disabled. Enabling it does
-not replace the frontend's live individual-booking flow. See [the social backend contract](docs/social-backend.md)
-for setup, endpoints, consent rules, and the frontend integration boundary.
+not replace the frontend's live individual-booking flow. To enable it locally, add `SOCIAL_ENABLED=true`
+to `backend/.env` and run `make backend`.
 
 The social screens are under **Friends** in the Home / Map / Friends / Profile bottom navigation
 (`/friends`), in production and in CI-deployed PR previews. Friends has one search box for friends
@@ -151,7 +168,6 @@ every header opens Requests: study group invitations and friend requests. A stud
 one step (name and who to invite); its organizer then books a seat for everyone who joined on
 `/groups/:id/seats`, and each person checks in through the usual reservation screens. Only one
 active group per person is allowed. Everything uses the real backend; there is no sample mode.
-See the mockups in `design/screens/08-friends.html` and `09-book-together.html`.
 `VITE_SOCIAL_ENABLED=false` (Docker build argument `SOCIAL_ENABLED`) hides the social feature.
 
 ## Admin API demo
@@ -197,7 +213,7 @@ Overview names come from saved profiles, with `Demo user <UUID>` fallbacks. The 
 
 ## React admin panel
 
-The HTML mockups stay in `design/admin/`. React feature code lives in `frontend/src/features/admin/` and uses the generated SDK and TanStack Query helpers.
+React feature code lives in `frontend/src/features/admin/` and uses the generated SDK and TanStack Query helpers.
 
 - Spaces: search, create from campus room outlines, settings, archive and restore. Deletion blocks new reservations while preserving seats and history. Under **Show deleted study places**, **Delete permanently** confirms removal of the space and its owned data. End live bookings before deleting a place.
 - Room management: seats and current users, multiple weekly opening intervals, dated room/seat closures, and conflict review before affecting bookings.
@@ -219,7 +235,7 @@ python scraper/extract_floors.py --floors-only
 python scraper/build_library_outlines.py
 ```
 
-Or use `make map-floors`. The extractor writes `occupancy-map-preview/public/floors/`; the backend serves it at `/api/v1/map/floors`. Set `MAP_FLOORS_DIR` for another location. This downloads a sizeable campus dataset. Rooms with holes or disconnected outlines are rejected by the editor. Legacy demo rooms can be linked to a border from their Layout tab.
+Or use `make map-floors`. The extractor writes `scraper/floors/`; the backend serves it at `/api/v1/map/floors`. Set `MAP_FLOORS_DIR` for another location. This downloads a sizeable campus dataset. Rooms with holes or disconnected outlines are rejected by the editor. Legacy demo rooms can be linked to a border from their Layout tab.
 
 ## Campus map
 
@@ -231,7 +247,7 @@ The layers button at the top right of the map opens **Map view**, a slider with 
 | Workspaces (middle) | Every workspace, and live rooms (lecture rooms colored by today's ETH bookings) |
 | Campus (right) | Every workspace, live rooms, ASVZ sport and the mensas |
 
-The map always uses the clean base map. The other map features (other campus datasets such as transport, weather and shared mobility; picking another date and time; detailed floor plans; the streets and satellite base maps; the free rooms and UZH library lists) are always off in the app and have no switch. `occupancy-map-preview/` still has all of them.
+The map always uses the clean base map. The other map features (other campus datasets such as transport, weather and shared mobility; picking another date and time; detailed floor plans; the streets and satellite base maps; the free rooms and UZH library lists) are always off in the app and have no switch.
 
 The map's backend is the feature `backend/app/features/campus_map/`:
 
@@ -244,22 +260,23 @@ The map's backend is the feature `backend/app/features/campus_map/`:
 | `GET /api/v1/map/eth/room?id=`, `/eth/file?id=`, `/eth/uzh` | ETH room sheet, room photos, live UZH library occupancy |
 | `/api/v1/map/floors/...` | Floor plans (static files) |
 
-The workspaces, style and navigation are stored in Postgres (`map_entities`, `map_overrides`, `map_documents`). They are edited in `occupancy-map-preview/` (Admin mode and Style panel), which saves JSON files; `make map-sync` copies them to `backend/app/features/campus_map/map-data/` and imports them. A fresh database imports those files when the backend starts. The importer can also write the database back to the files:
+The workspaces, style and navigation are stored in Postgres (`map_entities`, `map_overrides`, `map_documents`). Their source is the JSON files in `backend/app/features/campus_map/map-data/`; every deploy re-imports them. A fresh database imports those files when the backend starts. The importer can also write the database back to the files:
 
 ```bash
 docker compose exec backend python -m app.features.campus_map.importer --export
 docker compose exec backend python -m app.features.campus_map.importer --generated-only  # after a scraper re-run, keeps admin edits
 ```
 
-ETH bookings and dataset results are cached in the `map_cache` volume (`backend/.cache/campus-map` outside Docker). The dataset fetchers live in `backend/app/features/campus_map/datasets/` (see its README). The backend Docker build downloads public ETH PolyMaps geometry and generates floor plans and workspace outlines in a separate build stage. Only the generated files are included in the image, at `/app/floors`; no local floor-plan folder is required. Docker caches the download layer between builds; use `docker compose build --no-cache backend` to refresh the source geometry. `eth_room_dashboard.py` in the repo root is a standalone dashboard over the same ETH code.
+ETH bookings and dataset results are cached in the `map_cache` volume (`backend/.cache/campus-map` outside Docker). The dataset fetchers live in `backend/app/features/campus_map/datasets/` (see its README). The backend Docker build downloads public ETH PolyMaps geometry and generates floor plans and workspace outlines in a separate build stage. Only the generated files are included in the image, at `/app/floors`; no local floor-plan folder is required. Docker caches the download layer between builds; use `docker compose build --no-cache backend` to refresh the source geometry.
 
-For the standalone developer preview or a backend running outside Docker, run `make map-floors` to generate `occupancy-map-preview/public/floors` locally. This preserves workspace data and admin edits. With Python but without Make, run:
+For a backend running outside Docker, run `make map-floors` to generate `scraper/floors/` locally. This preserves workspace data and admin edits. With Python but without Make, run:
 
 ```sh
 python scraper/scrape_polymaps.py scraper/polymaps_data
 python scraper/extract_floors.py --floors-only
 python scraper/build_library_outlines.py
 ```
+
 ## Checks
 
 ```sh

@@ -142,9 +142,7 @@ function mensaPlace(item: DatasetItem) {
   return (item.details as unknown as MensaDetails).place ?? null;
 }
 
-/* The campus map, full screen. Ported from the view mode of
-   occupancy-map-preview (that app keeps the admin tools; their output is
-   imported into the backend). Tapping a room, workspace or pin selects it and
+/* The campus map, full screen. Tapping a room, workspace or pin selects it and
    shows a short card above the toolbar: its info button opens the popup (the
    details sheet), and for a bookable study space a full-width button opens
    the space's seat map. */

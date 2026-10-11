@@ -19,4 +19,4 @@
 .uv-cache/
 
 scraper/polymaps_data/
-occupancy-map-preview/public/floors/
+scraper/floors/

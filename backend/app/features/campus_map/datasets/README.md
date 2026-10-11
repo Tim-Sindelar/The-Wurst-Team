@@ -22,7 +22,7 @@ python3 backend/app/features/campus_map/datasets/mensa/fetch.py --out /tmp/mensa
 cd backend && uv run --locked pytest tests/campus_map/test_fetchers.py                  # offline parser tests
 ```
 
-The backend runs the fetchers in-process (`../dataset_cache.py`, served as `GET /api/v1/map/datasets/<id>`) and caches the results in `backend/.cache/campus-map/datasets/`. The developer map (`occupancy-map-preview`) still runs them as scripts through its `server/datasetsApi.ts`. A new dataset only needs a folder with `dataset.json` and `fetch.py`; give it a details view in `frontend/src/campus-map/datasets/DatasetSidebar.tsx` if the generic one isn't enough.
+The backend runs the fetchers in-process (`../dataset_cache.py`, served as `GET /api/v1/map/datasets/<id>`) and caches the results in `backend/.cache/campus-map/datasets/`. A new dataset only needs a folder with `dataset.json` and `fetch.py`; give it a details view in `frontend/src/campus-map/datasets/DatasetSidebar.tsx` if the generic one isn't enough.
 
 ## Other dates and times
 
@@ -37,11 +37,11 @@ The backend runs the fetchers in-process (`../dataset_cache.py`, served as `GET 
 | `shared-mobility/` | ✕ now only | sharedmobility.ch has **no history and no forecast**: always shows now |
 | `amenities/` | ✕ now only | Today's OpenStreetMap data, **no history** (positions hardly change) |
 
-Outside the map's datasets: ETH room bookings (`eth_room_dashboard.py`) work for any day in ETH's booking window (about a year back and ahead); the UZH library seat occupancy is **live only**.
+Outside the map's datasets: ETH room bookings (`../eth_rooms.py`) work for any day in ETH's booking window (about a year back and ahead); the UZH library seat occupancy is **live only**.
 
 ## Notes on the data
 
-- **Positions.** The ETH mensas are assigned to their PolyMaps rooms in `mensa/rooms.json` (room as listed by the ETH Gastro facilities API, e.g. Mensa Polyterrasse MM B 79, food market HPR D 70.1). The fetcher takes position, floor and rooms from there, and the map tints those rooms on the floor plan. This is kept apart from the workspaces in `occupancy-map-preview/data/overrides.json`. Some mensa rooms are also workspaces (study space outside meal times), and these are drawn as the workspace unless the mensa is selected. Mensas without a room (all UZH ones, and Mendokoro since HPI has no plans) are flagged `approximate` and drawn with a dashed border. Transport stops get their exact coordinates from the live API.
+- **Positions.** The ETH mensas are assigned to their PolyMaps rooms in `mensa/rooms.json` (room as listed by the ETH Gastro facilities API, e.g. Mensa Polyterrasse MM B 79, food market HPR D 70.1). The fetcher takes position, floor and rooms from there, and the map tints those rooms on the floor plan. This is kept apart from the workspaces in `../map-data/overrides.json`. Some mensa rooms are also workspaces (study space outside meal times), and these are drawn as the workspace unless the mensa is selected. Mensas without a room (all UZH ones, and Mendokoro since HPI has no plans) are flagged `approximate` and drawn with a dashed border. Transport stops get their exact coordinates from the live API.
 - **IDs.** ETH facility ids come from the open-source ETH/UZH mensa app ([famoser/Mensa](https://github.com/famoser/Mensa)). The ASVZ Polyterrasse/Fluntern facility ids come from [fbuetler/asvz-bot](https://github.com/fbuetler/asvz-bot). The UZH food2050 organisation paths, outlet slugs and menu categories are the ones in app.food2050.ch URLs (`/en/zfv/universitat-zurich`).
 - **Not verified against the live APIs yet.** The parsers are written against the documented/observed response shapes and covered by fixture tests, but the cloud environment they were built in could not reach the APIs. Run each `fetch.py` once on a normal connection and check `errors`. The ASVZ field names are the least certain.
 - **ASVZ.** Only reads the public schedule. Enrolling stays on schalter.asvz.ch; ASVZ's fair play rules forbid enrollment bots.
