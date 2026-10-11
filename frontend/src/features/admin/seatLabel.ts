@@ -1,11 +1,11 @@
 import qrcode from 'qrcode-generator';
-import logo from './study-spaces-logo-dark.svg?raw';
+import logo from './study-spaces-logo.svg?raw';
 
-/* The printed seat label, drawn like a card in the app's dark theme: the
+/* The printed seat label, drawn like the app's light theme: the
    Study Spaces logo with the seat number as a "yours" seat chip, the room as
    a section label, the QR code on a white tile with the seat mark in its
    middle, and one line to reserve before sitting down. It is print artwork,
-   so it repeats the dark theme's colours (src/styles.css) and the logo files
+   so it repeats the light theme's colours (src/styles.css) and the logo files
    in design/brand/ rather than using tokens.
 
    Units: the QR code is 100 wide; the label is WIDTH wide. The admin picks
@@ -15,14 +15,13 @@ export const WIDTH = 148;
 const PAD = 12,
   QR = 100,
   TILE = 12, // white quiet zone around the code
-  BG = '#121212',
-  BORDER = '#333333',
-  TEXT = '#ffffff',
-  MUTED = '#bdbdbd',
-  ACCENT = '#6d9de0',
-  ON_ACCENT = '#121212',
+  BG = '#f5f5f5',
+  BORDER = '#dcdcdc',
+  TEXT = '#212121',
+  MUTED = '#616161',
+  ACCENT = '#215caf',
+  ON_ACCENT = '#ffffff',
   QR_INK = '#121212',
-  // The seat mark on the white tile uses the light theme's colours.
   FREE = '#2e7d32',
   SEAT = '#808080',
   FONT = "'DIN Next LT W05', Barlow, Arial, Helvetica, sans-serif";
@@ -86,13 +85,13 @@ function qrCode(token: string, x: number, y: number) {
       if (qr.isDark(r, c) && !(blank(r) && blank(c)))
         path += `M${c} ${r}h1v1h-1z`;
   return (
-    `<rect x="${x - TILE}" y="${y - TILE}" width="${QR + 2 * TILE}" height="${QR + 2 * TILE}" rx="10" fill="white"/>` +
+    `<rect x="${x - TILE}" y="${y - TILE}" width="${QR + 2 * TILE}" height="${QR + 2 * TILE}" rx="10" fill="white" stroke="${BORDER}" stroke-width="0.5"/>` +
     `<path transform="translate(${x} ${y}) scale(${m})" d="${path}" fill="${QR_INK}" shape-rendering="crispEdges"/>` +
     seatMark(x + QR / 2, y + QR / 2, hole * m * 0.8)
   );
 }
 
-/** The logo from design/brand/ (dark theme), cropped to its artwork. */
+/** The logo from design/brand/ (light theme), cropped to its artwork. */
 function logoAt(x: number, y: number, height: number) {
   const width = (height * 448) / 124;
   return {
