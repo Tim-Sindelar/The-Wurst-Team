@@ -47,3 +47,6 @@
 @media(prefers-reduced-motion:reduce){.session-copy [data-feature]{transition:none;transform:none}}
 @keyframes slam{0%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(2.6)}12%{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(.95)}20%,78%{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(1.035)}}
 @media(prefers-reduced-motion:reduce){#taken.slam{animation:none;opacity:1}}
+#stage[data-capture='true'] #taken.slam{animation:none;opacity:1}
+#stage[data-capture='true'] #curtain{transition:none}
+.capture-phone-image{position:absolute;top:0;left:0;width:390px;height:844px;object-fit:contain;background:#101010;z-index:1}

@@ -60,6 +60,13 @@ const requestedApp=new URLSearchParams(location.search).get('app');
 let appUrl='http://localhost:5173/';
 if(requestedApp){try{const url=new URL(requestedApp);if(['http:','https:'].includes(url.protocol)){url.pathname=url.pathname.replace(/\/map\/?$/,'/');appUrl=url.href;}}catch{ /* Keep the local app if the URL is malformed. */ }}
 appFrame.src=appUrl;screenElement.append(appFrame);
+// Reuse the captured scanner UI when the emergency deck cannot use a camera.
+if(new URLSearchParams(location.search).get('capture')&&new URLSearchParams(location.search).get('phone')==='scanner'){
+  const scannerImage=document.createElement('img');
+  scannerImage.src=new URL('./assets/session-scanner.jpg',import.meta.url).href;
+  scannerImage.alt='Scan the QR code on your table';
+  scannerImage.className='capture-phone-image';screenElement.append(scannerImage);
+}
 appFrame.addEventListener('load',()=>{stage.dataset.appLoaded='true';});
 const island=document.createElement('div');island.className='island';island.setAttribute('aria-hidden','true');screenElement.append(island);
 const phoneCover=document.createElement('button');phoneCover.className='phone-cover';phoneCover.setAttribute('aria-label','Open the phone to reserve a study seat');screenElement.append(phoneCover);
@@ -67,6 +74,11 @@ const cssPhone=new THREE.Group();cssScene.add(cssPhone);
 const cssScreen=new CSS3DObject(screenElement);cssScreen.scale.setScalar(.001);cssScreen.position.set(0,0,.036);cssPhone.add(cssScreen);
 
 const names=['ETH main building','The student enters the hall','Looking for an available study seat','The student gives up','Book a seat from the toilet','Live booking on the phone','Live teammate check-in','Your session','Study together','Built for ETH','One library, entire ETH, other universities','Study Spaces at a happy ETH campus'];
+// Deterministic, silent frames for the screenshot-based emergency deck.
+const captureParams=new URLSearchParams(location.search);
+const captureScene=Number(captureParams.get('capture'));
+const captureMode=Number.isInteger(captureScene)&&captureScene>=1&&captureScene<=12;
+if(captureMode)stage.dataset.capture='true';
 const featureNames=['QR check-in starts your session','Session limits and priority to extend','Handovers','Timed breaks'];
 // The opening is one film. The toilet and real app are deliberate presenter holds.
 const durations=[6200,1200,11700,3600,5200,1050,0];
@@ -327,16 +339,18 @@ function render(now){
   else if(current===2&&transition>=950&&!reducedMotion){const follow=1-Math.exp(-delta*.006);camera.position.lerp(cameraTo,follow);look.lerp(lookTo,follow);}
   else{camera.position.copy(cameraFrom).lerp(cameraTo,t);look.copy(lookFrom).lerp(lookTo,t);}
   camera.lookAt(look);
+  if(captureMode){camera.position.copy(cameraTo);look.copy(lookTo);camera.lookAt(look);}
   if(current===10)closing.adoption.placeAdmin(camera);
   if(current===11)closing.placeQaAdmin(camera,qaExpanded);
   const impactAge=(elapsed-impactTime)/1000;
-  if(current===2&&impactAge>=0&&impactAge<.24&&!reducedMotion)camera.rotateZ(Math.sin(impactAge*65)*.022*Math.exp(-impactAge*14));
+  if(!captureMode&&current===2&&impactAge>=0&&impactAge<.24&&!reducedMotion)camera.rotateZ(Math.sin(impactAge*65)*.022*Math.exp(-impactAge*14));
   updatePhone();
   const settledPhone=current===5&&elapsed>=durations[5];
   const animated=!paused&&current!==6&&!settledPhone&&(current<7||current===10&&transition<1150||((current===8||current===11)&&(!reducedMotion||elapsed<1000)));
   if(forceDraw||(animated&&now-lastDraw>=1000/(current===8||current===11?30:45))){
     renderer.shadowMap.needsUpdate=forceDraw||current===1||current===2||current===3||current===8||current===11||(current===5&&!settledPhone);
     renderer.render(scene,camera);cssRenderer.render(cssScene,camera);lastDraw=now;forceDraw=false;stage.dataset.drawCalls=String(renderer.info.render.calls);
+    if(captureMode)stage.dataset.captureReady='true';
   }
   requestAnimationFrame(render);
 }
@@ -397,5 +411,14 @@ camera.position.set(22,14,24);look.set(0,1,0);camera.lookAt(look);cameraFrom.cop
 cssPhone.position.set(0,-60,0);cssRenderer.render(cssScene,camera);
 sets.forEach(root=>{root.visible=true;});phone.root.visible=true;
 try{await renderer.compileAsync(scene,camera);}catch{renderer.compile(scene,camera);}
-go(0);resize();renderer.shadowMap.needsUpdate=true;renderer.render(scene,camera);cssRenderer.render(cssScene,camera);
+go(0);resize();
+if(captureMode){
+  go(captureScene-1,true);
+  elapsed=Math.max(0,Math.min(60000,Number(captureParams.get('time'))||0));
+  transition=10000;filmPlaying=false;paused=true;score.stop();
+  if(current===7)showFeature(Math.max(0,Math.min(3,Number(captureParams.get('feature'))||0)));
+  if(current===10)showRollout(Math.max(0,Math.min(2,Number(captureParams.get('rollout'))||0)));
+  paused=true;forceDraw=true;
+}
+renderer.shadowMap.needsUpdate=true;renderer.render(scene,camera);cssRenderer.render(cssScene,camera);
 document.getElementById('curtain').classList.add('ready');last=performance.now();requestAnimationFrame(render);

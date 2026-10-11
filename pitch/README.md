@@ -24,6 +24,8 @@ To reproduce the import on a fresh checkout, run `python3 pitch/import-catalogue
 
 ## Presenting
 
+The complete screenshot-based emergency deck is in `fallback/output/`, as both PPTX and PDF. It contains 24 manually advanced widescreen slides and works offline. Slide 12 is the intentional black FaceTime handoff; slides 13–14 cover scanning and the active session if the feed is unavailable. See [fallback/README.md](fallback/README.md) for the slide index and sources.
+
 Click once or press Space to play the opening film. No scene-by-scene advances are required:
 
 1. HG fly-in; short blackout into the hall.
