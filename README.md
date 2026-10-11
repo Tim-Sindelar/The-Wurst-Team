@@ -1,8 +1,8 @@
 # Academic Study Spaces
 **The Wurst Team**
 
-<img alt="The Wurst Team logo" src="assets/logo_dark.png#gh-dark-mode-only">
-<img alt="The Wurst Team logo" src="assets/logo_light.png#gh-light-mode-only">
+<img alt="The Academic Study Spaces logo" src="assets/logo-dark.svg#gh-dark-mode-only">
+<img alt="The Academic Study Spaces logo" src="assets/logo-light.svg#gh-light-mode-only">
 
 
 Mobile first web app for seat reservation and study room finding. Fully implemented with map and features for ETH and expandable for any university. Complete with admin dashboard and everything needed to start operation.
@@ -33,8 +33,7 @@ Mobile first web app for seat reservation and study room finding. Fully implemen
 ├── docs/                    Deployment documentation
 ├── .github/                 CI workflow, SSH deploy action, PR preview comment script
 ├── compose.yaml             Local stack: PostgreSQL + backend
-├── Makefile                 Shortcuts for install, run, lint, test, seed, codegen
-└── AGENTS.md                Contributor rules (CLAUDE.md includes it)
+└── Makefile                 Shortcuts for install, run, lint, test, seed, codegen
 ```
 
 Request flow in development: browser → Vite dev server (`:5173`) → `/api` proxied → FastAPI (`:8000`) → PostgreSQL (`:5432`).
@@ -47,14 +46,14 @@ Request flow in development: browser → Vite dev server (`:5173`) → `/api` pr
 | --- | --- |
 | `app/main.py` | FastAPI app; mounts all routers under `/api/v1` |
 | `app/config.py` | Settings (env / `backend/.env`): DB URL, CORS, auth mode, reservation timing rules, map paths |
-| `app/auth.py` | Identity: `proxy` mode (trusted `X-User-Id` header) or `demo` mode (`DUMMY_USER_ID`) |
-| `app/database.py` | SQLAlchemy engine, `Base`, `get_session` dependency |
+| `app/auth.py` | using trusted `X-User-Id` header from the edu-ID login when not in debug mode |
+| `app/database.py` | SQLAlchemy engine |
 | `app/models/` | Shared models (profiles, favourites, recents); imports all models for Alembic |
 | `app/features/reservations/` | Study spaces, seats, hours, closures, reservations, breaks, admin API, demo `seed.py` |
-| `app/features/social/` | Friends, study groups ("parties"), group booking |
+| `app/features/social/` | Friends, study groups, group booking |
 | `app/features/events/` | In-memory SSE hub and `/events` stream |
 | `app/features/campus_map/` | `/api/v1/map/*`: workspaces, style, navigation, ETH room bookings, room photos, floor plans |
-| `app/features/campus_map/datasets/` | One folder per campus dataset (mensa, transport, ASVZ, weather, shared mobility, amenities), each with `dataset.json` + `fetch.py` |
+| `app/features/campus_map/datasets/` | One folder per campus dataset, see below for list |
 | `app/features/campus_map/map-data/` | Seed JSON for the map tables, imported into an empty DB on startup |
 | `app/export_openapi.py` | Writes `backend/openapi.json` (used by frontend codegen) |
 | `migrations/` | Alembic migrations |
