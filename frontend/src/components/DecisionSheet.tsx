@@ -1,5 +1,11 @@
 import { ActionIcon, Button, Drawer, Text } from '@mantine/core';
-import { useRef, type PointerEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import { Icon } from './Icon';
 
 type DecisionSheetProps = {
@@ -16,7 +22,10 @@ type DecisionSheetProps = {
   actionLabel: ReactNode;
   /** Risky actions (end, cancel) are outlined in danger instead of filled. */
   actionTone?: 'primary' | 'danger';
-  onConfirm: () => void;
+  /** Return the request's promise: the action stays disabled until it settles,
+      so a double tap can't send it twice. Without a promise it stays disabled
+      until the sheet closes. */
+  onConfirm: () => unknown;
 };
 
 const SWIPE_CLOSE_DISTANCE = 80;
@@ -35,6 +44,31 @@ export function DecisionSheet({
 }: DecisionSheetProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
+  /* A ref as well as state: two taps can land before the re-render. */
+  const confirming = useRef(false);
+  const [pending, setPending] = useState(false);
+  const [wasOpened, setWasOpened] = useState(opened);
+  if (opened !== wasOpened) {
+    setWasOpened(opened);
+    if (!opened) setPending(false);
+  }
+
+  useEffect(() => {
+    if (!opened) confirming.current = false;
+  }, [opened]);
+
+  const confirm = () => {
+    if (confirming.current) return;
+    confirming.current = true;
+    setPending(true);
+    const result = onConfirm();
+    if (result instanceof Promise) {
+      void result.finally(() => {
+        confirming.current = false;
+        setPending(false);
+      });
+    }
+  };
 
   const setOffset = (dy: number) => {
     if (contentRef.current)
@@ -97,7 +131,7 @@ export function DecisionSheet({
             <Button variant="secondary" onClick={onClose}>
               {safeLabel}
             </Button>
-            <Button variant={actionTone} onClick={onConfirm}>
+            <Button variant={actionTone} onClick={confirm} loading={pending}>
               {actionLabel}
             </Button>
           </div>

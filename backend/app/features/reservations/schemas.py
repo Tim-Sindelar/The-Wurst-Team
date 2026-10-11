@@ -64,6 +64,13 @@ class CheckInRequest(BaseModel):
     qr_token: str = Field(min_length=1, max_length=256)
 
 
+class SeatScanRequest(BaseModel):
+    """The QR code scanned at the reservation's own seat, proving the user is there."""
+
+    model_config = ConfigDict(extra="forbid")
+    qr_token: str = Field(min_length=1, max_length=256)
+
+
 ReservationStatus = Literal["upcoming", "pending", "active", "on_break", "no_show", "ended"]
 SeatStatus = Literal["free", "reserved", "occupied", "on_break", "claimable", "unavailable"]
 ReservationAction = Literal["check_in", "extend", "start_break", "return", "end"]

@@ -19,7 +19,12 @@ from app.features.events.schemas import (
     PartyRepliedEvent,
 )
 from app.features.reservations.models import Reservation, Seat, StudySpace
-from app.features.reservations.service import BookingError, ReservationService, reservation_states
+from app.features.reservations.service import (
+    BookingError,
+    MembersAlreadyReserved,
+    ReservationService,
+    reservation_states,
+)
 from app.features.social.models import Friendship, Party, PartyMember, SocialUser
 from app.features.social.schemas import (
     DirectoryPerson,
@@ -462,7 +467,10 @@ class SocialService:
                 return self._detail(party)
             raise BookingError(409, "already_booked", "This party already has a booking")
         self._open(party)
-        rows, _now = self.bookings.reserve_party(assignments)
+        try:
+            rows, _now = self.bookings.reserve_party(assignments)
+        except MembersAlreadyReserved as error:
+            raise self._members_busy(error.user_ids) from error
         # reserve_party holds every member's user lock in order. Recheck legacy
         # overlapping memberships before committing any group reservations.
         for user_id in accepted:
@@ -476,6 +484,20 @@ class SocialService:
         for user_id in accepted - {self.user_id}:
             self._notify(user_id, PartyBookedEvent(party_id=party.id, party_name=party.name))
         return self._detail(party)
+
+    def _members_busy(self, user_ids: list[UUID]) -> BookingError:
+        """Names who is blocking a group booking, so the organizer knows whom to ask."""
+        others = [self.person(user_id).name for user_id in user_ids if user_id != self.user_id]
+        if self.user_id in user_ids:
+            detail = "You already have a seat booked. End or cancel it first."
+        elif len(others) == 1:
+            detail = f"{others[0]} already has a seat booked. They need to end or cancel it first."
+        else:
+            detail = (
+                f"{', '.join(others[:-1])} and {others[-1]} already have seats booked. "
+                "They need to end or cancel them first."
+            )
+        return BookingError(409, "member_already_reserved", detail)
 
     def cancel(self, party_id: UUID) -> PartyCancellation:
         party = self._party(party_id, lock=True, organizer=True)

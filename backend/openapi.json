@@ -3652,6 +3652,23 @@
         "title": "SeatAvailability",
         "type": "object"
       },
+      "SeatScanRequest": {
+        "additionalProperties": false,
+        "description": "The QR code scanned at the reservation's own seat, proving the user is there.",
+        "properties": {
+          "qr_token": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Qr Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "qr_token"
+        ],
+        "title": "SeatScanRequest",
+        "type": "object"
+      },
       "ServerEvent": {
         "description": "One message on the /api/v1/events stream.",
         "discriminator": {
@@ -7665,6 +7682,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7811,6 +7838,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7884,6 +7921,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {

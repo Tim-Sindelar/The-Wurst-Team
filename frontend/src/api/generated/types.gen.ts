@@ -2156,6 +2156,18 @@ export type SeatAvailability = {
 };
 
 /**
+ * SeatScanRequest
+ *
+ * The QR code scanned at the reservation's own seat, proving the user is there.
+ */
+export type SeatScanRequest = {
+    /**
+     * Qr Token
+     */
+    qr_token: string;
+};
+
+/**
  * ServerEvent
  *
  * One message on the /api/v1/events stream.
@@ -4356,7 +4368,7 @@ export type CreateReservationResponses = {
 export type CreateReservationResponse = CreateReservationResponses[keyof CreateReservationResponses];
 
 export type StartBreakData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id
@@ -4440,7 +4452,7 @@ export type EndReservationResponses = {
 export type EndReservationResponse = EndReservationResponses[keyof EndReservationResponses];
 
 export type ExtendReservationData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id
@@ -4482,7 +4494,7 @@ export type ExtendReservationResponses = {
 export type ExtendReservationResponse = ExtendReservationResponses[keyof ExtendReservationResponses];
 
 export type ReturnFromBreakData = {
-    body?: never;
+    body: SeatScanRequest;
     path: {
         /**
          * Reservation Id

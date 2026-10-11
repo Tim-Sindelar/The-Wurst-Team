@@ -41,7 +41,7 @@ The screens implement the mockups in `design/`. `design/design-rules.md` is the 
 | Seat state chip | `SeatChip state=... [plain]` (Mantine `Badge` underneath) |
 | In-page notice | `Alert` with `variant="info"` (default), `"warning"` or `"danger"` |
 | Countdown | `TimerCard` (label, ticking time, progress bar) |
-| Decision before an action | `DecisionSheet`: safe option left (outlined), action right; `actionTone="danger"` for end or cancel |
+| Decision before an action | `DecisionSheet`: safe option left (outlined), action right; `actionTone="danger"` for end or cancel. Return the request's promise from `onConfirm`, so a double tap sends it once |
 | Something happened | `notify(title, icon)` from `src/components/notify.tsx` for confirmations of what the user just did; server events through `describeEvent` in `src/domain/serverEvents.ts` (see "Real-time events"). Both float below the header and never move the page. `StatusBanner` remains for the booking screens' own banners |
 | Toggle | `Switch` with a `label` |
 | Text | `Title order={1}` is the 28px screen heading, `order={2/3}` the 20px title (add `text-heading` for a heading-sized `h2`). `Text size="sm"` for secondary text, `c="dimmed"` for muted. Section labels: `SectionLabel`. Timers: `text-timer tabular-nums` |
@@ -57,7 +57,7 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Touch targets are at least 44px. Use real links and buttons, never clickable `div`s. Label every icon-only control.
 - Visible focus ring on everything focusable (Mantine's focus ring is mapped to `--color-focus`).
 - Motion only on `transform` and `opacity`, 150 to 250ms, and respect reduced motion.
-- Text never below 12px; long names (40+ characters) must wrap or truncate cleanly.
+- Text never below 12px; long names (40+ characters) must wrap or truncate cleanly. Wrap names with `wrap-anywhere`, not `break-words`: only `anywhere` lets a long word shrink its grid or flex column.
 - Phone first: below 480px (the `tablet` breakpoint) screens fill the full width with no side margins; from 480px up they are a centred 390px column. Don't stretch layouts wider. Headers and `SafeAreaTop` (Home) keep clear of the notch with `env(safe-area-inset-top)`.
 
 ### Campus map
@@ -94,7 +94,7 @@ Only two kinds of popup exist: the decision sheet and the notification banner. D
 - Space cards are plain surface cards. When a space has a photo it shows behind the text, always blurred 2px and dimmed with `bg-photo-scrim`, and the text on it uses `text-on-photo`. There are no placeholder photos. The photo is the first one on the room sheet of the space's ETH room (`map_room_id` read as an ETH room name): `SpaceSummary.photo_url`, a path to `/api/v1/map/eth/file` that `SpaceCard` puts under the API base URL. The backend (`campus_map/room_photos.py`) looks rooms up in the background and remembers them for a day; a list waits at most 1.5 s for rooms it hasn't seen, so a new space may get its photo on a later refetch. Rooms ETH has no sheet or photo for stay plain.
 - The room screen (`/seats/:spaceId`, `SeatMapScreen`) is a full-bleed `SeatMap` under the header with nothing selected at first (or the seat in `?seat=`, when opened from a friend). Tapping a seat opens `SeatSheet` (a non-modal card at the bottom, not a third popup); its action opens the decision sheet to confirm. The `map` button "Choose any free seat" top right picks a random other free seat and is hidden while the user holds a seat. If the server answers `seat_unavailable` to a reservation (someone else was first), the sheet closes and a danger `Alert` "Seat X was just taken" with "Choose another seat" shows over the map; other errors stay inside the decision sheet.
 - The notification switches on Profile save per-user preferences automatically in localStorage on this device; notification delivery is not implemented.
-- Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. The server checks the QR code by checking in at that seat, which changes nothing for a running session. Demo QR tokens are printed by `make seed`. The camera feed fills the scan screen, dimmed outside the scan frame; there is no typed-code fallback. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
+- Check-in, extend and break scans go through `/scan?from=extend|break-start|break-end`. Each scan sends the scanned `qr_token` with its call (`check-ins`, or the reservation's `extend`, `break` or `return`), and the server refuses a code from any other seat (`wrong_seat`), so these steps can't be done away from the table. Demo QR tokens are printed by `make seed`. The camera feed fills the scan screen, dimmed outside the scan frame; there is no typed-code fallback. The camera needs `localhost` or HTTPS. In dev (`npm run dev`) the scan screen also has "Skip scan (demo only)", which reads the seat's code through the demo admin stub (`X-Demo-Admin`); it is compiled out of production builds.
 
 ### Friends and study groups
 

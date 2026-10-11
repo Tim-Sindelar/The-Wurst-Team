@@ -2,6 +2,7 @@ import { Alert, Button, Text } from '@mantine/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Link,
   Navigate,
   useNavigate,
   useParams,
@@ -23,7 +24,7 @@ import {
 } from '../components/Screen';
 import { SeatMap } from '../components/seat-map/SeatMap';
 import { SeatSheet } from '../components/seat-map/SeatSheet';
-import { apiProblem } from '../domain/booking';
+import { apiProblem, isMissing } from '../domain/booking';
 import { savedLayout } from '../features/admin/layoutDocument';
 import { layoutSeats } from '../domain/room';
 import { describeAvailability } from '../domain/space';
@@ -133,6 +134,31 @@ export function SeatMapScreen() {
     />
   );
 
+  if (spaceQuery.isError && isMissing(spaceQuery.error)) {
+    return (
+      <Screen>
+        {header}
+        <ScreenMain>
+          <Alert
+            variant="danger"
+            role="alert"
+            icon={<Icon name="alert" />}
+            title="Study space not found"
+          >
+            <Text size="sm">
+              This study space doesn&apos;t exist or has been removed.
+            </Text>
+          </Alert>
+        </ScreenMain>
+        <ActionBar>
+          <Button component={Link} to={paths.home} fullWidth>
+            Choose a study space
+          </Button>
+        </ActionBar>
+      </Screen>
+    );
+  }
+
   if (spaceQuery.isError || rulesQuery.isError) {
     return (
       <Screen>
@@ -198,29 +224,26 @@ export function SeatMapScreen() {
     if (pool.length > 0) pick(pool[Math.floor(Math.random() * pool.length)].id);
   };
 
-  const confirmReserve = () => {
+  const confirmReserve = async () => {
     if (!seat) return;
-    reserve.mutate(
-      { body: { kind: 'seat', seat_id: seat.id } },
-      {
-        onSuccess: (data) => {
-          queryClient.setQueryData(getMyReservationQueryKey(), data);
-          void refresh();
-          navigate(paths.reservation);
-        },
-        onError: (error) => {
-          void refresh();
-          /* Someone else got the seat first: leave the sheet, explain it on the screen. */
-          if (apiProblem(error).code === 'seat_unavailable') {
-            setSheetOpen(false);
-            reserve.reset();
-            setPicked(null);
-            setTakenLabel(seat.label);
-            void spaceQuery.refetch();
-          }
-        },
-      },
-    );
+    try {
+      const data = await reserve.mutateAsync({
+        body: { kind: 'seat', seat_id: seat.id },
+      });
+      queryClient.setQueryData(getMyReservationQueryKey(), data);
+      void refresh();
+      navigate(paths.reservation);
+    } catch (error) {
+      void refresh();
+      /* Someone else got the seat first: leave the sheet, explain it on the screen. */
+      if (apiProblem(error).code === 'seat_unavailable') {
+        setSheetOpen(false);
+        reserve.reset();
+        setPicked(null);
+        setTakenLabel(seat.label);
+        void spaceQuery.refetch();
+      }
+    }
   };
 
   const closeSheet = () => {

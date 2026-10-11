@@ -111,12 +111,12 @@ export function PersonRow({
     <>
       <PersonAvatar person={person} studying={studying} />
       <div className="grid min-w-0 flex-1 gap-0.5">
-        <Text className="font-medium break-words">{name}</Text>
+        <Text className="font-medium wrap-anywhere">{name}</Text>
         {detail && (
           <Text
             size="sm"
             c={pinned ? undefined : 'dimmed'}
-            className="flex items-start gap-1 break-words"
+            className="flex items-start gap-1 wrap-anywhere"
           >
             {pinned && <Icon name="pin" size="sm" className="mt-0.5" />}
             <span className="min-w-0">{detail}</span>
@@ -157,10 +157,13 @@ export function SocialStatus({
   loading,
   error,
   retry,
+  title = "Couldn't load your friends",
 }: {
   loading: boolean;
   error: string;
-  retry: () => void;
+  /** Left out when trying again can't help (the thing doesn't exist). */
+  retry?: () => void;
+  title?: string;
 }) {
   if (error)
     return (
@@ -168,12 +171,14 @@ export function SocialStatus({
         variant="danger"
         role="alert"
         icon={<Icon name="alert" />}
-        title="Couldn't load your friends"
+        title={title}
       >
         <Text size="sm">{error}</Text>
-        <Button variant="secondary" className="mt-3" onClick={retry}>
-          Try again
-        </Button>
+        {retry && (
+          <Button variant="secondary" className="mt-3" onClick={retry}>
+            Try again
+          </Button>
+        )}
       </Alert>
     );
   if (loading)

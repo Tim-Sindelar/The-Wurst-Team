@@ -66,7 +66,7 @@ export function SeatSheet({
       </ActionIcon>
       <div className="grid gap-3 p-4">
         <div className="grid gap-1 pr-11">
-          <Title order={3} className="break-words">
+          <Title order={3} className="wrap-anywhere">
             {title}
           </Title>
           <div>
