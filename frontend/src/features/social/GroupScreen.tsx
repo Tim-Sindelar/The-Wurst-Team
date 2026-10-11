@@ -40,7 +40,6 @@ export function GroupScreen() {
   const actions = useSocialActions();
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<Sheet | null>(null);
-  const [inviting, setInviting] = useState(false);
 
   const group = social.group;
   const userId = social.user?.id;
@@ -199,42 +198,31 @@ export function GroupScreen() {
             )}
             {organizer && invitable.length > 0 && (
               <>
-                <div className="-mb-2 flex min-h-11 items-center justify-between gap-2">
-                  <SectionLabel>Invite more</SectionLabel>
-                  <Button
-                    variant="quiet"
-                    aria-expanded={inviting}
-                    onClick={() => setInviting((open) => !open)}
-                  >
-                    {inviting ? 'Hide' : 'Show'}
-                  </Button>
-                </div>
-                {inviting && (
-                  <PeopleList label="Invite more">
-                    {invitable.map(({ person }) => (
-                      <PersonRow key={person.id} person={person}>
-                        <Button
-                          variant="secondary"
-                          disabled={actions.busy}
-                          aria-label={`Invite ${person.name}`}
-                          onClick={async () => {
-                            if (
-                              await actions.run(() =>
-                                actions.invite.mutateAsync({
-                                  path: { party_id: group.id },
-                                  body: { user_id: person.id },
-                                }),
-                              )
+                <SectionLabel>Invite more</SectionLabel>
+                <PeopleList label="Invite more">
+                  {invitable.map(({ person }) => (
+                    <PersonRow key={person.id} person={person}>
+                      <Button
+                        variant="secondary"
+                        disabled={actions.busy}
+                        aria-label={`Invite ${person.name}`}
+                        onClick={async () => {
+                          if (
+                            await actions.run(() =>
+                              actions.invite.mutateAsync({
+                                path: { party_id: group.id },
+                                body: { user_id: person.id },
+                              }),
                             )
-                              notify(`Invited ${person.name}`, 'mail');
-                          }}
-                        >
-                          Invite
-                        </Button>
-                      </PersonRow>
-                    ))}
-                  </PeopleList>
-                )}
+                          )
+                            notify(`Invited ${person.name}`, 'mail');
+                        }}
+                      >
+                        Invite
+                      </Button>
+                    </PersonRow>
+                  ))}
+                </PeopleList>
               </>
             )}
           </>
